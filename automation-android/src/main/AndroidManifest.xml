@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="com.nothing.ketchum.permission.ENABLE" />
 
     <application>
@@ -58,6 +60,10 @@
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".lifecycle.GeofenceReceiver"
+            android:exported="false" />
 
         <service
             android:name=".lifecycle.AutomationService"

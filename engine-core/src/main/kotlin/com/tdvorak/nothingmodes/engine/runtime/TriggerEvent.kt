@@ -70,6 +70,13 @@ sealed interface TriggerEvent {
         val pkg: String,
         val inForeground: Boolean,
     ) : TriggerEvent
+
+    data class GeofenceTriggered(
+        override val eventId: String,
+        val lat: Double,
+        val lng: Double,
+        val transition: com.tdvorak.nothingmodes.engine.model.Transition,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

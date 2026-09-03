@@ -60,6 +60,7 @@ class AutomationService : Service() {
             ACTION_SMS -> handleSms(intent)
             ACTION_CONNECTIVITY -> handleConnectivity(intent)
             ACTION_APP_FOREGROUND -> handleAppForeground(intent)
+            ACTION_GEOFENCE -> handleGeofence(intent)
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -202,6 +203,19 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleGeofence(intent: Intent) {
+        val lat = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LAT, 0.0)
+        val lng = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LNG, 0.0)
+        val transitionStr = intent.getStringExtra(GeofenceReceiver.EXTRA_TRANSITION) ?: return
+        val transition = runCatching { com.tdvorak.nothingmodes.engine.model.Transition.valueOf(transitionStr) }.getOrNull() ?: return
+        dispatchEvent(TriggerEvent.GeofenceTriggered(
+            eventId = "geo:${System.currentTimeMillis()}",
+            lat = lat,
+            lng = lng,
+            transition = transition,
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         scope.launch {
             val envelope = TriggerEnvelope(
@@ -250,6 +264,7 @@ class AutomationService : Service() {
         const val ACTION_SMS = "com.tdvorak.nothingmodes.SMS"
         const val ACTION_CONNECTIVITY = "com.tdvorak.nothingmodes.CONNECTIVITY"
         const val ACTION_APP_FOREGROUND = "com.tdvorak.nothingmodes.APP_FOREGROUND"
+        const val ACTION_GEOFENCE = "com.tdvorak.nothingmodes.GEOFENCE"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }

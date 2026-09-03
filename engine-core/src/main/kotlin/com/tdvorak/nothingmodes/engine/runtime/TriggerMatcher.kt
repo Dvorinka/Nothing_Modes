@@ -47,7 +47,8 @@ class TriggerMatcher {
         is Trigger.AppOpened -> event is TriggerEvent.AppForegroundChanged &&
             event.inForeground && event.pkg == trigger.pkg
 
-        is Trigger.Geofence -> false // Geofence handled by Android location backend
+        is Trigger.Geofence -> event is TriggerEvent.GeofenceTriggered &&
+            event.transition == trigger.transition
     }
 
     /** Checks if a time trigger should fire on the given day. */
