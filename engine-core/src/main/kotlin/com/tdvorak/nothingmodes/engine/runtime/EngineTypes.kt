@@ -92,6 +92,7 @@ data class StateSnapshot(
     val settingKey: String,
     val previousValue: String,
     val capturedAtMillis: Long,
+    val namespace: String = "system",
 )
 
 /** Stores and retrieves state snapshots for mode restoration. */

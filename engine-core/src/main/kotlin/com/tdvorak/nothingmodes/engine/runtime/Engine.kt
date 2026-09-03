@@ -183,6 +183,7 @@ class Engine(
                 settingKey = key,
                 previousValue = value,
                 capturedAtMillis = batchNow,
+                namespace = namespaceForKey(key),
             ))
         }
     }
@@ -192,8 +193,13 @@ class Engine(
         // Deduplicate by setting key, keeping the newest snapshot per key
         val latestByKey = snapshots.associateBy { it.settingKey }
         for (snapshot in latestByKey.values) {
+            val ns = when (snapshot.namespace) {
+                "secure" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SECURE
+                "global" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL
+                else -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM
+            }
             val restoreAction = Action.WriteSetting(
-                namespace = com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM,
+                namespace = ns,
                 key = snapshot.settingKey,
                 value = snapshot.previousValue,
             )
@@ -207,6 +213,13 @@ class Engine(
             runCatching { executor.execute(restoreAction, context) }
         }
         snapshotStore.deleteForAutomation(id)
+    }
+
+    /** Maps a setting key to its Android Settings namespace. */
+    private fun namespaceForKey(key: String): String = when (key) {
+        "reduce_bright_colors_activated" -> "secure"
+        "airplane_mode_on", "low_power", "data_saver" -> "global"
+        else -> "system"
     }
 
     /** Checks if a time-based trigger should fire on the current day. */
