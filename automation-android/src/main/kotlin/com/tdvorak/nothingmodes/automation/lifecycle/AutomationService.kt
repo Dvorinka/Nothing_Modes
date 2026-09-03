@@ -59,6 +59,7 @@ class AutomationService : Service() {
             ACTION_PHONE_STATE -> handlePhoneState(intent)
             ACTION_SMS -> handleSms(intent)
             ACTION_CONNECTIVITY -> handleConnectivity(intent)
+            ACTION_APP_FOREGROUND -> handleAppForeground(intent)
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -192,6 +193,15 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleAppForeground(intent: Intent) {
+        val pkg = intent.getStringExtra(UsageStatsMonitor.EXTRA_PACKAGE) ?: return
+        dispatchEvent(TriggerEvent.AppForegroundChanged(
+            eventId = "app:${System.currentTimeMillis()}",
+            pkg = pkg,
+            inForeground = true,
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         scope.launch {
             val envelope = TriggerEnvelope(
@@ -239,6 +249,7 @@ class AutomationService : Service() {
         const val ACTION_PHONE_STATE = "com.tdvorak.nothingmodes.PHONE_STATE"
         const val ACTION_SMS = "com.tdvorak.nothingmodes.SMS"
         const val ACTION_CONNECTIVITY = "com.tdvorak.nothingmodes.CONNECTIVITY"
+        const val ACTION_APP_FOREGROUND = "com.tdvorak.nothingmodes.APP_FOREGROUND"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }

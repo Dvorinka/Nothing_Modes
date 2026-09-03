@@ -24,7 +24,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_PHONE_STATE -> handlePhoneState(context, intent)
+            ACTION_PHONE_STATE -> handlePhoneState(context, intent)
             SMS_RECEIVED -> handleSms(context, intent)
         }
     }
@@ -64,6 +64,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "PhoneStateReceiver"
         private const val SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED"
+        private const val ACTION_PHONE_STATE = "android.intent.action.PHONE_STATE"
         const val EXTRA_PHONE_STATE = "phone_state"
         const val EXTRA_PHONE_NUMBER = "phone_number"
     }

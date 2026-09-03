@@ -2,28 +2,22 @@ package com.tdvorak.nothingmodes.automation.glyph
 
 import android.app.Service
 import android.content.Intent
-import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Messenger
 import android.util.Log
-import com.nothing.ketchum.GlyphMatrixFrame
-import com.nothing.ketchum.GlyphMatrixManager
-import com.nothing.ketchum.GlyphMatrixObject
 import com.nothing.ketchum.GlyphToy
-import com.tdvorak.nothingmodes.nothing.NothingDeviceDetector
-import com.tdvorak.nothingmodes.nothing.GlyphHardware
+import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 
 /**
  * Glyph Toy Service for Nothing Phones with Glyph Matrix (Phone 3, Phone 4a Pro).
  *
  * Registers as a Glyph Toy that appears in the system's Glyph Toys manager.
  * Handles:
- * - Short press: cycle through mode visualizations
- * - Long press (EVENT_CHANGE): toggle current mode on/off
- * - AOD (EVENT_AOD): update always-on display every minute
- * - action_down / action_up: touch-down/up events
+ * - Short press (EVENT_ACTION_DOWN/UP): touch feedback
+ * - Long press (EVENT_CHANGE): cycle through mode visualizations
+ * - AOD (EVENT_AOD): update always-on display
  *
  * Manifest registration required:
  * <service android:name=".automation.glyph.NothingModesToyService"
@@ -31,18 +25,15 @@ import com.tdvorak.nothingmodes.nothing.GlyphHardware
  *     <intent-filter>
  *         <action android:name="com.nothing.glyph.TOY"/>
  *     </intent-filter>
- *     <meta-data android:name="com.nothing.glyph.toy.name" android:resource="@string/toy_name"/>
- *     <meta-data android:name="com.nothing.glyph.toy.image" android:resource="@drawable/ic_toy_preview"/>
- *     <meta-data android:name="com.nothing.glyph.toy.summary" android:resource="@string/toy_summary"/>
+ *     <meta-data android:name="com.nothing.glyph.toy.name" android:value="Nothing Modes"/>
+ *     <meta-data android:name="com.nothing.glyph.toy.summary" android:value="Display active automation modes on Glyph Matrix"/>
  *     <meta-data android:name="com.nothing.glyph.toy.longpress" android:value="1"/>
  *     <meta-data android:name="com.nothing.glyph.toy.aod_support" android:value="1"/>
  * </service>
  */
 class NothingModesToyService : Service() {
 
-    private var manager: GlyphMatrixManager? = null
-    private var connected = false
-    private val detector by lazy { NothingDeviceDetector(this) }
+    private lateinit var provider: NothingGlyphMatrixProvider
     private var currentModeIndex = 0
 
     private val modes = listOf(
@@ -63,8 +54,8 @@ class NothingModesToyService : Service() {
                 when (event) {
                     GlyphToy.EVENT_CHANGE -> onLongPress()
                     GlyphToy.EVENT_AOD -> onAodTick()
-                    "action_down" -> onTouchDown()
-                    "action_up" -> onTouchUp()
+                    GlyphToy.EVENT_ACTION_DOWN -> onTouchDown()
+                    GlyphToy.EVENT_ACTION_UP -> onTouchUp()
                     else -> Log.d(TAG, "Unknown event: $event")
                 }
                 true
@@ -75,92 +66,56 @@ class NothingModesToyService : Service() {
 
     private val serviceMessenger = Messenger(serviceHandler)
 
-    override fun onBind(intent: Intent?): IBinder? {
-        initGlyph()
-        return serviceMessenger.binder
+    override fun onCreate() {
+        super.onCreate()
+        provider = NothingGlyphMatrixProvider(this)
+        provider.init(
+            onConnected = { displayCurrentMode() },
+            onDisconnected = { Log.w(TAG, "Glyph Matrix disconnected") },
+        )
     }
 
+    override fun onBind(intent: Intent?): IBinder? = serviceMessenger.binder
+
     override fun onUnbind(intent: Intent?): Boolean {
-        cleanup()
         return false
     }
 
-    private fun initGlyph() {
-        val hardware = detector.detectGlyphHardware()
-        if (!hardware.isMatrix) {
-            Log.w(TAG, "No Glyph Matrix on this device")
-            return
-        }
-        manager = GlyphMatrixManager.getInstance(this)
-        manager?.init(object : GlyphMatrixManager.Callback {
-            override fun onServiceConnected(componentName: android.content.ComponentName) {
-                connected = true
-                val device = when (hardware) {
-                    GlyphHardware.MATRIX_25 -> com.nothing.ketchum.Glyph.DEVICE_23112
-                    GlyphHardware.MATRIX_13 -> com.nothing.ketchum.Glyph.DEVICE_25111p
-                    else -> return
-                }
-                try {
-                    manager?.register(device)
-                } catch (e: Exception) {
-                    Log.e(TAG, "register failed", e)
-                }
-                displayCurrentMode()
-            }
-
-            override fun onServiceDisconnected(componentName: android.content.ComponentName) {
-                connected = false
-            }
-        })
+    override fun onDestroy() {
+        provider.turnOff()
+        provider.unInit()
+        super.onDestroy()
     }
 
-    private fun cleanup() {
-        try {
-            manager?.turnOff()
-            manager?.unInit()
-        } catch (e: Exception) {
-            Log.e(TAG, "cleanup failed", e)
-        }
-        manager = null
-        connected = false
-    }
+    // -- Event handlers --
 
-    // ── Event handlers ──
-
-    /** Long press: toggle current mode. */
+    /** Long press: cycle to next mode. */
     private fun onLongPress() {
         currentModeIndex = (currentModeIndex + 1) % modes.size
         displayCurrentMode()
     }
 
-    /** AOD tick: refresh display every minute. */
+    /** AOD tick: refresh display. */
     private fun onAodTick() {
         displayCurrentMode()
     }
 
     private fun onTouchDown() {
-        // Could trigger a visual effect on touch-down
+        // Visual feedback on touch-down could be added here
     }
 
     private fun onTouchUp() {
-        // Could finalize visual effect on touch-up
+        // Finalize touch feedback here
     }
 
-    // ── Display ──
+    // -- Display --
 
     private fun displayCurrentMode() {
-        if (!connected) return
-        val (name, abbrev) = modes[currentModeIndex]
-        try {
-            val obj = GlyphMatrixObject.Builder()
-                .setText(abbrev)
-                .build()
-            val frame = GlyphMatrixFrame.Builder()
-                .addTop(obj)
-                .build(this)
-            manager?.setMatrixFrame(frame)
-        } catch (e: Exception) {
-            Log.e(TAG, "displayCurrentMode failed", e)
+        val (_, abbrev) = modes[currentModeIndex]
+        if (abbrev == "--") {
+            provider.turnOff()
+        } else {
+            provider.displayText(abbrev)
         }
     }
 
