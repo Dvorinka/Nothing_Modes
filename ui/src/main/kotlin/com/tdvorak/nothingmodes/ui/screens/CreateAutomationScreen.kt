@@ -46,7 +46,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class AutomationTemplate(
@@ -141,7 +140,7 @@ class CreateAutomationViewModel @Inject constructor(
 
     fun loadForEdit(automationId: String) {
         viewModelScope.launch {
-            val automation = store.get(AutomationId(automationId)).first()
+            val automation = store.get(AutomationId(automationId))
             _editingAutomation.value = automation
         }
     }
