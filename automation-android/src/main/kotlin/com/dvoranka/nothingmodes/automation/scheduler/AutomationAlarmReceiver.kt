@@ -3,6 +3,7 @@ package com.dvoranka.nothingmodes.automation.scheduler
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.dvoranka.nothingmodes.automation.lifecycle.AutomationService
 
 /**
  * Receives AlarmManager broadcasts and forwards them to AutomationService.
