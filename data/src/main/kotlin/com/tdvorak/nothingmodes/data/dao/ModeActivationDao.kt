@@ -15,6 +15,9 @@ interface ModeActivationDao {
     @Query("SELECT * FROM mode_activations WHERE modeId = :modeId AND status = 'ACTIVE' ORDER BY activatedAtMillis DESC LIMIT 1")
     suspend fun activeForMode(modeId: String): ModeActivationEntity?
 
+    @Query("SELECT DISTINCT modeId FROM mode_activations WHERE status = 'ACTIVE'")
+    suspend fun activeModeIds(): List<String>
+
     @Query("UPDATE mode_activations SET status = 'DEACTIVATED', deactivatedAtMillis = :atMillis WHERE modeId = :modeId AND status = 'ACTIVE'")
     suspend fun deactivate(modeId: String, atMillis: Long): Int
 

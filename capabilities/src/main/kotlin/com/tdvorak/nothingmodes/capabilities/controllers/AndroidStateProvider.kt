@@ -11,6 +11,7 @@ import android.os.BatteryManager
 import android.os.PowerManager
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
+import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 import com.tdvorak.nothingmodes.engine.runtime.StateProvider
 import java.util.concurrent.TimeUnit
 
@@ -20,9 +21,13 @@ import java.util.concurrent.TimeUnit
  * WiFi SSID requires ACCESS_FINE_LOCATION on Android 8+.
  * Bluetooth name requires BLUETOOTH_CONNECT on Android 12+.
  * Foreground app requires PACKAGE_USAGE_STATS (granted via Usage Access settings).
+ * Active mode IDs requires a ModeActivationProvider (backed by Room).
  * Fields left as false/null when unavailable (fail-closed).
  */
-class AndroidStateProvider(private val context: Context) : StateProvider {
+class AndroidStateProvider(
+    private val context: Context,
+    private val modeActivationProvider: ModeActivationProvider? = null,
+) : StateProvider {
 
     override suspend fun read(): DeviceState {
         val powerManager = context.getSystemService(PowerManager::class.java)
@@ -44,6 +49,7 @@ class AndroidStateProvider(private val context: Context) : StateProvider {
         val (wifiConnected, wifiSsid) = readWifiState()
         val (btConnected, btName) = readBluetoothState()
         val foregroundApp = readForegroundApp()
+        val activeModeIds = modeActivationProvider?.activeModeIds()?.toSet() ?: emptySet()
 
         return DeviceState(
             batteryLevel = batteryLevel,
@@ -54,6 +60,7 @@ class AndroidStateProvider(private val context: Context) : StateProvider {
             bluetoothDeviceName = btName,
             screenState = screenState,
             foregroundApp = foregroundApp,
+            activeModeIds = activeModeIds,
             now = System.currentTimeMillis(),
         )
     }

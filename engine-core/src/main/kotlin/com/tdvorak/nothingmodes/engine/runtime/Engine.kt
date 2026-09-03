@@ -21,6 +21,7 @@ class Engine(
     private val stateProvider: StateProvider = NoopStateProvider,
     private val snapshotStore: StateSnapshotStore = NoopStateSnapshotStore,
     private val settingReader: SettingReader = NoopSettingReader,
+    private val modeActivationSink: ModeActivationSink = NoopModeActivationSink,
     private val executionIds: ExecutionIdFactory = StableExecutionIdFactory,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -113,9 +114,20 @@ class Engine(
                     actionCount = actionResults.size,
                 ))
 
+                val isModeActivation = automation.type == AutomationType.MODE &&
+                    event !is TriggerEvent.ModeWindowEnd
+                val isModeDeactivation = event is TriggerEvent.ModeWindowEnd &&
+                    automation.type == AutomationType.MODE
+
+                if (isModeActivation) {
+                    modeActivationSink.activate(automation.id, batchNow)
+                } else if (isModeDeactivation) {
+                    modeActivationSink.deactivate(automation.id, batchNow)
+                }
+
                 audit.record(AuditEvent(
                     automationId = automation.id,
-                    kind = if (event is TriggerEvent.ModeWindowEnd && automation.type == AutomationType.MODE)
+                    kind = if (isModeDeactivation)
                         AuditKind.MODE_DEACTIVATED
                     else if (automation.type == AutomationType.MODE) AuditKind.MODE_ACTIVATED
                     else AuditKind.FIRED,

@@ -97,8 +97,21 @@ object AutomationModule {
 
     @Provides
     @Singleton
-    fun provideStateProvider(@ApplicationContext context: Context): StateProvider =
-        com.tdvorak.nothingmodes.capabilities.controllers.AndroidStateProvider(context)
+    fun provideModeActivationProvider(db: NothingModesDatabase): com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider =
+        com.tdvorak.nothingmodes.data.RoomModeActivationProvider(db.modeActivationDao())
+
+    @Provides
+    @Singleton
+    fun provideModeActivationSink(db: NothingModesDatabase): com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink =
+        com.tdvorak.nothingmodes.data.RoomModeActivationSink(db.modeActivationDao())
+
+    @Provides
+    @Singleton
+    fun provideStateProvider(
+        @ApplicationContext context: Context,
+        modeActivationProvider: com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider,
+    ): StateProvider =
+        com.tdvorak.nothingmodes.capabilities.controllers.AndroidStateProvider(context, modeActivationProvider)
 
     @Provides
     @Singleton
@@ -120,6 +133,7 @@ object AutomationModule {
         stateProvider: StateProvider,
         snapshotStore: StateSnapshotStore,
         settingReader: SettingReader,
+        modeActivationSink: com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink,
     ): Engine = Engine(
         store = store,
         executor = executor,
@@ -128,6 +142,7 @@ object AutomationModule {
         stateProvider = stateProvider,
         snapshotStore = snapshotStore,
         settingReader = settingReader,
+        modeActivationSink = modeActivationSink,
         executionIds = StableExecutionIdFactory,
     )
 
