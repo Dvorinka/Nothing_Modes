@@ -138,12 +138,13 @@ class AutomationService : Service() {
         val pkg = intent.getStringExtra(AutomationNotificationListener.EXTRA_PACKAGE) ?: return
         val title = intent.getStringExtra(AutomationNotificationListener.EXTRA_TITLE) ?: ""
         val text = intent.getStringExtra(AutomationNotificationListener.EXTRA_TEXT) ?: ""
+        val sender = intent.getStringExtra(AutomationNotificationListener.EXTRA_SENDER)
         dispatchEvent(TriggerEvent.NotificationPosted(
             eventId = "notif:${System.currentTimeMillis()}",
             pkg = pkg,
             title = title,
             text = text,
-            sender = null,
+            sender = sender,
         ))
     }
 

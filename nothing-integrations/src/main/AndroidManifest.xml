@@ -4,8 +4,6 @@
     <!-- Nothing Glyph SDK permission -->
     <uses-permission android:name="com.nothing.ketchum.permission.ENABLE" />
 
-    <application>
-        <meta-data android:name="NothingKey" android:value="test" />
-    </application>
+    <application />
 
 </manifest>

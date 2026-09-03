@@ -351,24 +351,38 @@ class RealActionExecutor(
         ActionResult.Failure(e.message ?: "copyText failed")
     }
 
-    private fun launchApp(pkg: String): ActionResult = try {
-        val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-            ?: return ActionResult.Failure("No launch intent for $pkg")
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "launchApp failed")
+    private fun launchApp(pkg: String): ActionResult {
+        return try {
+            // Validate package name format to prevent intent injection
+            if (!pkg.matches(Regex("^[A-Za-z0-9][A-Za-z0-9_.]*$"))) {
+                return ActionResult.Failure("Invalid package name: $pkg")
+            }
+            val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+                ?: return ActionResult.Failure("No launch intent for $pkg")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "launchApp failed")
+        }
     }
 
-    private fun openUrl(url: String): ActionResult = try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun openUrl(url: String): ActionResult {
+        return try {
+            val uri = Uri.parse(url)
+            val scheme = uri.scheme?.lowercase()
+            // Restrict to http/https to prevent arbitrary deep-link/intent injection
+            if (scheme != "http" && scheme != "https") {
+                return ActionResult.Failure("Only http/https URLs are allowed")
+            }
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "openUrl failed")
         }
-        context.startActivity(intent)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "openUrl failed")
     }
 
     private fun openSettings(screen: SettingsScreen, pkg: String?): ActionResult = try {
@@ -448,6 +462,10 @@ class RealActionExecutor(
     }
 
     private suspend fun writeSetting(action: Action.WriteSetting): ActionResult {
+        // Validate key/value form before any write path (shell or public API)
+        if (!com.tdvorak.nothingmodes.engine.model.WriteSettingPolicy.valid(action)) {
+            return ActionResult.Failure("Invalid setting key or value (rejected by policy)")
+        }
         // System namespace can use public Settings API with WRITE_SETTINGS permission
         if (action.namespace == SettingNamespace.SYSTEM) {
             return try {
@@ -575,13 +593,13 @@ class RealActionExecutor(
                 // Fallback: send media button broadcast intent
                 val intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
                     putExtra(
-                        android.intent.Intent.EXTRA_KEY_EVENT,
+                        Intent.EXTRA_KEY_EVENT,
                         android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
                     )
                 }
                 context.sendOrderedBroadcast(intent, null)
                 intent.putExtra(
-                    android.intent.Intent.EXTRA_KEY_EVENT,
+                    Intent.EXTRA_KEY_EVENT,
                     android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
                 )
                 context.sendOrderedBroadcast(intent, null)

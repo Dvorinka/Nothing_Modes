@@ -75,7 +75,7 @@ class PersistentMonitorService : Service() {
                                 putExtra(EXTRA_BATTERY_SOURCE, source)
                                 putExtra(EXTRA_BATTERY_TEMP, temperature)
                             }
-                            context.startService(serviceIntent)
+                            ContextCompat.startForegroundService(context, serviceIntent)
                         }
                     }
                 }
@@ -95,7 +95,7 @@ class PersistentMonitorService : Service() {
                     action = AutomationService.ACTION_SCREEN_STATE
                     putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, state.name)
                 }
-                context.startService(serviceIntent)
+                ContextCompat.startForegroundService(context, serviceIntent)
             }
         }
         val screenFilter = IntentFilter().apply {

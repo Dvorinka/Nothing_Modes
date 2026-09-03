@@ -54,12 +54,10 @@ internal class AndroidShizukuApi(context: Context) : ShizukuApi {
         ConcurrentHashMap<(Int, Int) -> Unit, Shizuku.OnRequestPermissionResultListener>()
 
     @Suppress("DEPRECATION")
-    override fun managerInstalled(): Boolean = try {
+    override fun managerInstalled(): Boolean = runCatching {
         packageManager.getPackageInfo(MANAGER_PACKAGE, 0)
         true
-    } catch (_: PackageManager.NameNotFoundException) {
-        false
-    }
+    }.getOrDefault(false)
 
     override fun binderAlive(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
     override fun preV11(): Boolean = runCatching { Shizuku.isPreV11() }.getOrDefault(true)

@@ -48,8 +48,8 @@ object GlyphPresets {
     /** Work focus: steady glow on zone C (the dot strip). */
     val workFocus = GlyphVisual.Stripe(zone = "C", periodMs = 0, cycles = 0, intervalMs = 0)
 
-    /** DND active: red fill on matrix / zone D on stripe. */
-    val dndActive = GlyphVisual.Stripe(zone = "D", periodMs = 0, cycles = 0, intervalMs = 0)
+    /** DND active: red fill on matrix / zone C on stripe (zone D not available on all devices). */
+    val dndActive = GlyphVisual.Stripe(zone = "C", periodMs = 0, cycles = 0, intervalMs = 0)
     val dndActiveMatrix = GlyphVisual.Matrix(color = Color.RED)
 
     /** DND off: brief flash then off. */
