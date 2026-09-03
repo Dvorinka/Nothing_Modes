@@ -15,9 +15,14 @@ class BootCompletedReceiver : BroadcastReceiver() {
             intent.action != Intent.ACTION_LOCKED_BOOT_COMPLETED
         ) return
 
+        // Start automation service for boot trigger + reschedule
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_BOOT
         }
         context.startForegroundService(serviceIntent)
+
+        // Start persistent monitor service for battery/screen state tracking
+        val monitorIntent = Intent(context, PersistentMonitorService::class.java)
+        context.startForegroundService(monitorIntent)
     }
 }

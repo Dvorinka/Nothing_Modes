@@ -38,10 +38,17 @@ class ConnectivityReceiver : BroadcastReceiver() {
         }
         Log.d(TAG, "WiFi state: $wifiEvent")
 
+        // Extract SSID if available for match-based triggers
+        val ssid = runCatching {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            wifiManager?.connectionInfo?.ssid?.removeSurrounding("\"")
+        }.getOrNull()
+
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_CONNECTIVITY
             putExtra(EXTRA_CONNECTIVITY_TYPE, "wifi")
             putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
+            if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
         }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
@@ -67,5 +74,6 @@ class ConnectivityReceiver : BroadcastReceiver() {
         private const val TAG = "ConnectivityReceiver"
         const val EXTRA_CONNECTIVITY_TYPE = "connectivity_type"
         const val EXTRA_CONNECTIVITY_STATE = "connectivity_state"
+        const val EXTRA_CONNECTIVITY_MATCH = "connectivity_match"
     }
 }

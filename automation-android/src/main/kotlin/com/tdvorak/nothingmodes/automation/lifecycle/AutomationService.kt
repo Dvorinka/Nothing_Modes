@@ -21,9 +21,11 @@ import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 /**
@@ -38,6 +40,8 @@ class AutomationService : Service() {
     @Inject lateinit var store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val activeJobs = mutableSetOf<Job>()
+    private var lastStartId = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -46,6 +50,7 @@ class AutomationService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
+        lastStartId = startId
 
         when (intent?.action) {
             ACTION_RESCHEDULE -> handleReschedule()
@@ -63,9 +68,16 @@ class AutomationService : Service() {
             ACTION_GEOFENCE -> handleGeofence(intent)
         }
 
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        // Stop only when all in-flight jobs are done
+        maybeStop()
         return START_NOT_STICKY
+    }
+
+    private fun maybeStop() {
+        if (activeJobs.isEmpty()) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf(lastStartId)
+        }
     }
 
     private fun handleReschedule() {
@@ -89,11 +101,16 @@ class AutomationService : Service() {
 
     private fun handleTimeFired(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        val id = AutomationId(automationId)
         dispatchEvent(TriggerEvent.TimeFired(
             eventId = "time:${System.currentTimeMillis()}",
-            automationId = AutomationId(automationId),
+            automationId = id,
             atMillis = System.currentTimeMillis(),
         ))
+        // Re-schedule next cron occurrence for recurring time triggers
+        scope.launch {
+            store.get(id)?.let { scheduler.schedule(it) }
+        }
     }
 
     private fun handleWindowStart(intent: Intent) {
@@ -107,11 +124,16 @@ class AutomationService : Service() {
 
     private fun handleWindowEnd(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        val id = AutomationId(automationId)
         dispatchEvent(TriggerEvent.ModeWindowEnd(
             eventId = "window_end:${System.currentTimeMillis()}",
-            automationId = AutomationId(automationId),
+            automationId = id,
             atMillis = System.currentTimeMillis(),
         ))
+        // Re-schedule next window for recurring time-window triggers
+        scope.launch {
+            store.get(id)?.let { scheduler.schedule(it) }
+        }
     }
 
     private fun handleBatteryChanged(intent: Intent) {
@@ -192,7 +214,7 @@ class AutomationService : Service() {
             eventId = "conn:${System.currentTimeMillis()}",
             medium = medium,
             state = state,
-            match = null,
+            match = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_MATCH),
         ))
     }
 
@@ -219,13 +241,22 @@ class AutomationService : Service() {
     }
 
     private fun dispatchEvent(event: TriggerEvent) {
-        scope.launch {
+        val job = scope.launch {
             val envelope = TriggerEnvelope(
                 id = event.eventId,
                 event = event,
                 receivedAtMillis = System.currentTimeMillis(),
             )
             engine.onTrigger(envelope)
+        }
+        synchronized(activeJobs) {
+            activeJobs.add(job)
+        }
+        job.invokeOnCompletion {
+            synchronized(activeJobs) {
+                activeJobs.remove(job)
+            }
+            maybeStop()
         }
     }
 

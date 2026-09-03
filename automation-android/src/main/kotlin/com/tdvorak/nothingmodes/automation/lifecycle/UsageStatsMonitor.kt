@@ -7,6 +7,10 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,6 +23,7 @@ import java.util.concurrent.TimeUnit
 class UsageStatsMonitor(private val context: Context) {
 
     private val handler = Handler(Looper.getMainLooper())
+    private val bgScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
     private var lastForegroundPackage: String? = null
     private var polling = false
@@ -26,7 +31,8 @@ class UsageStatsMonitor(private val context: Context) {
     private val pollRunnable = object : Runnable {
         override fun run() {
             if (!polling) return
-            checkForegroundApp()
+            // Run queryUsageStats on IO dispatcher to avoid blocking main thread
+            bgScope.launch { checkForegroundApp() }
             handler.postDelayed(this, POLL_INTERVAL_MS)
         }
     }

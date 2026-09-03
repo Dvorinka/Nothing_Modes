@@ -54,6 +54,10 @@ class PhoneStateReceiver : BroadcastReceiver() {
 
     private fun handleSms(context: Context, intent: Intent) {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        if (messages.isNullOrEmpty()) {
+            Log.w(TAG, "SMS_RECEIVED with no PDUs, ignoring")
+            return
+        }
         val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
 

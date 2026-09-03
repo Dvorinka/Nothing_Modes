@@ -145,8 +145,8 @@ class ConditionEvaluatorTest {
     }
 
     @Test
-    fun `BatteryLevel - CONTAINS is NOT_MET`() {
-        assertEquals(ConditionEvaluator.Result.NOT_MET,
+    fun `BatteryLevel - CONTAINS is STATE_UNAVAILABLE`() {
+        assertEquals(ConditionEvaluator.Result.STATE_UNAVAILABLE,
             evaluator.result(Condition.BatteryLevel(CmpOp.CONTAINS, 50), DeviceState(batteryLevel = 50)))
     }
 
