@@ -10,19 +10,19 @@ import com.dvoranka.nothingmodes.engine.runtime.AutomationStore
 
 class RoomAutomationStore(private val dao: AutomationDao) : AutomationStore {
 
-    override fun get(id: AutomationId): Automation? = dao.get(id.value)?.toDomain()
+    override suspend fun get(id: AutomationId): Automation? = dao.get(id.value)?.toDomain()
 
-    override fun armed(): List<Automation> = dao.armed().map { it.toDomain() }
+    override suspend fun armed(): List<Automation> = dao.armed().map { it.toDomain() }
 
-    override fun save(automation: Automation) {
+    override suspend fun save(automation: Automation) {
         dao.upsert(automation.toEntity())
     }
 
-    override fun delete(id: AutomationId) {
+    override suspend fun delete(id: AutomationId) {
         dao.delete(id.value)
     }
 
-    override fun all(): List<Automation> = dao.armed().map { it.toDomain() }
+    override suspend fun all(): List<Automation> = dao.armed().map { it.toDomain() }
 }
 
 private fun AutomationEntity.toDomain(): Automation =

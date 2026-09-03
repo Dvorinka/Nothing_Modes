@@ -8,24 +8,24 @@ import com.dvoranka.nothingmodes.engine.model.AutomationType
 
 /** Store interface for automation persistence. */
 interface AutomationStore {
-    fun get(id: AutomationId): Automation?
-    fun armed(): List<Automation>
-    fun save(automation: Automation)
-    fun delete(id: AutomationId)
-    fun all(): List<Automation>
+    suspend fun get(id: AutomationId): Automation?
+    suspend fun armed(): List<Automation>
+    suspend fun save(automation: Automation)
+    suspend fun delete(id: AutomationId)
+    suspend fun all(): List<Automation>
 }
 
 /** In-memory store for testing. */
 class InMemoryAutomationStore : AutomationStore {
     private val map = linkedMapOf<String, Automation>()
 
-    override fun get(id: AutomationId): Automation? = map[id.value]
-    override fun armed(): List<Automation> = map.values.filter {
+    override suspend fun get(id: AutomationId): Automation? = map[id.value]
+    override suspend fun armed(): List<Automation> = map.values.filter {
         it.status == AutomationStatus.ARMED && it.enabled
     }
-    override fun save(automation: Automation) { map[automation.id.value] = automation }
-    override fun delete(id: AutomationId) { map.remove(id.value) }
-    override fun all(): List<Automation> = map.values.toList()
+    override suspend fun save(automation: Automation) { map[automation.id.value] = automation }
+    override suspend fun delete(id: AutomationId) { map.remove(id.value) }
+    override suspend fun all(): List<Automation> = map.values.toList()
 }
 
 /** Audit event for the execution journal. */
