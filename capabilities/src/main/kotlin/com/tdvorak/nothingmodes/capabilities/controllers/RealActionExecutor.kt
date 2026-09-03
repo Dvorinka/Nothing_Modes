@@ -429,6 +429,7 @@ class RealActionExecutor(
         }
     }
 
+    @SuppressLint("MissingPermission")
     private suspend fun setBluetooth(on: Boolean): ActionResult {
         // Try public API first (deprecated on API 33+ but functional on most Nothing OS builds)
         return try {
