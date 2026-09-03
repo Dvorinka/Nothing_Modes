@@ -16,6 +16,9 @@ interface AutomationDao {
     @Query("SELECT * FROM automations WHERE status = 'ARMED' AND enabled = 1 ORDER BY priority DESC, id ASC")
     suspend fun armed(): List<AutomationEntity>
 
+    @Query("SELECT * FROM automations ORDER BY priority DESC, name ASC")
+    suspend fun all(): List<AutomationEntity>
+
     @Query("SELECT * FROM automations WHERE id = :id")
     suspend fun get(id: String): AutomationEntity?
 

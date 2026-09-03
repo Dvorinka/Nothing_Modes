@@ -10,9 +10,9 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 
 class RoomAutomationStore(private val dao: AutomationDao) : AutomationStore {
 
-    override suspend fun get(id: AutomationId): Automation? = dao.get(id.value)?.toDomain()
+    override suspend fun get(id: AutomationId): Automation? = dao.get(id.value)?.let { runCatching { it.toDomain() }.getOrNull() }
 
-    override suspend fun armed(): List<Automation> = dao.armed().map { it.toDomain() }
+    override suspend fun armed(): List<Automation> = dao.armed().mapNotNull { runCatching { it.toDomain() }.getOrNull() }
 
     override suspend fun save(automation: Automation) {
         dao.upsert(automation.toEntity())
@@ -22,7 +22,7 @@ class RoomAutomationStore(private val dao: AutomationDao) : AutomationStore {
         dao.delete(id.value)
     }
 
-    override suspend fun all(): List<Automation> = dao.armed().map { it.toDomain() }
+    override suspend fun all(): List<Automation> = dao.all().mapNotNull { runCatching { it.toDomain() }.getOrNull() }
 }
 
 private fun AutomationEntity.toDomain(): Automation =

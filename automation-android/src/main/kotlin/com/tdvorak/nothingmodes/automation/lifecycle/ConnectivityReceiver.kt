@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.wifi.WifiManager
 import android.bluetooth.BluetoothAdapter
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Receives connectivity state changes (WiFi, Bluetooth) and dispatches
@@ -42,7 +43,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
             putExtra(EXTRA_CONNECTIVITY_TYPE, "wifi")
             putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleBtState(context: Context, intent: Intent) {
@@ -59,7 +60,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
             putExtra(EXTRA_CONNECTIVITY_TYPE, "bluetooth")
             putExtra(EXTRA_CONNECTIVITY_STATE, btEvent)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {

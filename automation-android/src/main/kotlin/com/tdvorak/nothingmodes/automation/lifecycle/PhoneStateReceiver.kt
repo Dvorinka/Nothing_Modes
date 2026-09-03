@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Telephony
 import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Receives phone state changes (incoming call, offhook, idle) and SMS.
@@ -48,7 +49,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
             putExtra(EXTRA_PHONE_STATE, phoneEvent)
             putExtra(EXTRA_PHONE_NUMBER, incomingNumber)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleSms(context: Context, intent: Intent) {
@@ -63,7 +64,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
             putExtra(EXTRA_SMS_SENDER, sender)
             putExtra(EXTRA_SMS_BODY, body)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {

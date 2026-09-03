@@ -55,7 +55,7 @@ object AutomationModule {
     @Provides
     @Singleton
     fun provideExecutionJournal(db: NothingModesDatabase): ExecutionJournal =
-        RoomExecutionJournal(db.executionJournalDao())
+        RoomExecutionJournal(db.executionJournalDao(), db.fireClaimDao())
 
     @Provides
     @Singleton
@@ -103,7 +103,7 @@ object AutomationModule {
     @Provides
     @Singleton
     fun provideModeActivationSink(db: NothingModesDatabase): com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink =
-        com.tdvorak.nothingmodes.data.RoomModeActivationSink(db.modeActivationDao())
+        com.tdvorak.nothingmodes.data.RoomModeActivationSink(db.modeActivationDao(), db)
 
     @Provides
     @Singleton

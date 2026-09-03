@@ -5,6 +5,7 @@ import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * NotificationListenerService that dispatches notification trigger events.
@@ -39,7 +40,7 @@ class AutomationNotificationListener : NotificationListenerService() {
             putExtra(EXTRA_TEXT, text)
             putExtra(EXTRA_CATEGORY, category)
         }
-        startService(intent)
+        ContextCompat.startForegroundService(this, intent)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {

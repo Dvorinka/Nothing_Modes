@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import java.util.concurrent.TimeUnit
 
 /**
@@ -69,7 +70,7 @@ class UsageStatsMonitor(private val context: Context) {
                 action = AutomationService.ACTION_APP_FOREGROUND
                 putExtra(EXTRA_PACKAGE, pkg)
             }
-            context.startService(intent)
+            ContextCompat.startForegroundService(context, intent)
         }
     }
 

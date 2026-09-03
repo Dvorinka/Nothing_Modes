@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Receives flip-to-glyph events from Nothing OS.
@@ -30,7 +31,7 @@ class FlipReceiver : BroadcastReceiver() {
             action = AutomationService.ACTION_SCREEN_STATE
             putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {
