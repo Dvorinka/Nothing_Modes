@@ -116,7 +116,7 @@ object NoopSettingReader : SettingReader {
     override suspend fun read(key: String): String? = null
 }
 
-/** Fire policy: cooldown and duplicate suppression. */
+/** Fire policy: cooldown and duplicate suppression. Thread-safe. */
 class FirePolicy {
 
     sealed interface Decision {
@@ -124,7 +124,7 @@ class FirePolicy {
         data class Block(val code: String, val needsReview: Boolean = false) : Decision
     }
 
-    private val lastFired = mutableMapOf<AutomationId, Long>()
+    private val lastFired = java.util.concurrent.ConcurrentHashMap<AutomationId, Long>()
 
     fun evaluate(automation: Automation, event: TriggerEvent, now: Long): Decision {
         if (automation.cooldownMs <= 0) return Decision.Allow

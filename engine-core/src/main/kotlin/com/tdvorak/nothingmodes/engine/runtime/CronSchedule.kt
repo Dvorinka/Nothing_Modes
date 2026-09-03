@@ -69,7 +69,10 @@ class CronSchedule(val expression: String, val zone: ZoneId) {
                         val v = part.toIntOrNull()
                             ?: throw IllegalArgumentException("Invalid value: $part")
                         require(v in min..max) { "Value out of bounds: $part" }
-                        result.add(v)
+                        // Normalize Sunday: cron allows both 0 and 7 for Sunday.
+                        // Java DayOfWeek.SUNDAY.value=7, matched as 7%7=0.
+                        if (index == 4 && v == 7) result.add(0)
+                        else result.add(v)
                     }
                 }
             }

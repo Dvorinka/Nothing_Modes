@@ -67,10 +67,8 @@ class ConditionEvaluator {
         val zone = runCatching { ZoneId.of(condition.tz) }.getOrNull()
             ?: return Result.STATE_UNAVAILABLE
         val now = ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(state.now), zone)
-        val start = runCatching { LocalTime.parse(condition.startLocal, DateTimeFormatter.ofPattern("HH:mm")) }
-            .getOrNull() ?: return Result.STATE_UNAVAILABLE
-        val end = runCatching { LocalTime.parse(condition.endLocal, DateTimeFormatter.ofPattern("HH:mm")) }
-            .getOrNull() ?: return Result.STATE_UNAVAILABLE
+        val start = parseTime(condition.startLocal) ?: return Result.STATE_UNAVAILABLE
+        val end = parseTime(condition.endLocal) ?: return Result.STATE_UNAVAILABLE
         val current = now.toLocalTime()
         val inWindow = if (start <= end) {
             current >= start && current < end
@@ -79,6 +77,11 @@ class ConditionEvaluator {
         }
         return if (inWindow) Result.MET else Result.NOT_MET
     }
+
+    /** Parses "HH:mm" or "H:mm" leniently. */
+    private fun parseTime(text: String): LocalTime? = runCatching {
+        LocalTime.parse(text.padStart(5, '0'), DateTimeFormatter.ofPattern("HH:mm"))
+    }.getOrNull()
 
     private fun evaluateDayOfWeek(condition: Condition.DayOfWeekCondition, state: DeviceState): Result {
         val zone = ZoneId.systemDefault()
@@ -104,7 +107,7 @@ class ConditionEvaluator {
             CmpOp.LT -> if (state.batteryLevel < condition.level) Result.MET else Result.NOT_MET
             CmpOp.GTE -> if (state.batteryLevel >= condition.level) Result.MET else Result.NOT_MET
             CmpOp.LTE -> if (state.batteryLevel <= condition.level) Result.MET else Result.NOT_MET
-            CmpOp.CONTAINS -> Result.NOT_MET
+            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
         }
     }
 

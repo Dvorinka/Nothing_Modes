@@ -55,8 +55,14 @@ class AutomationScheduler(private val context: Context) {
 
     private fun scheduleTime(id: AutomationId, trigger: Trigger.Time) {
         val cron = trigger.cron ?: return
-        val zone = ZoneId.of(trigger.tz)
-        val schedule = CronSchedule(cron, zone)
+        val zone = runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: run {
+            Log.e(TAG, "Invalid timezone '${trigger.tz}' for automation ${id.value}")
+            return
+        }
+        val schedule = runCatching { CronSchedule(cron, zone) }.getOrNull() ?: run {
+            Log.e(TAG, "Invalid cron '$cron' for automation ${id.value}")
+            return
+        }
         val now = ZonedDateTime.now(zone)
         val next = schedule.nextFire(now) ?: return
         val triggerAtMillis = next.toInstant().toEpochMilli()
@@ -77,10 +83,19 @@ class AutomationScheduler(private val context: Context) {
     }
 
     private fun scheduleWindow(id: AutomationId, trigger: Trigger.TimeWindow) {
-        val zone = ZoneId.of(trigger.tz)
+        val zone = runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: run {
+            Log.e(TAG, "Invalid timezone '${trigger.tz}' for automation ${id.value}")
+            return
+        }
         val now = ZonedDateTime.now(zone)
-        val startToday = parseToday(trigger.startLocal, now)
-        val endToday = parseToday(trigger.endLocal, now)
+        val startToday = runCatching { parseToday(trigger.startLocal, now) }.getOrNull() ?: run {
+            Log.e(TAG, "Invalid start time '${trigger.startLocal}' for automation ${id.value}")
+            return
+        }
+        val endToday = runCatching { parseToday(trigger.endLocal, now) }.getOrNull() ?: run {
+            Log.e(TAG, "Invalid end time '${trigger.endLocal}' for automation ${id.value}")
+            return
+        }
 
         val nextStart = if (startToday.isAfter(now)) startToday else startToday.plusDays(1)
         val nextEnd = if (endToday.isAfter(now)) endToday else endToday.plusDays(1)
@@ -97,8 +112,10 @@ class AutomationScheduler(private val context: Context) {
 
     private fun parseToday(time: String, now: ZonedDateTime): ZonedDateTime {
         val parts = time.split(":")
+        require(parts.size >= 2) { "Invalid time format: $time" }
         val hour = parts[0].toInt()
-        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val minute = parts[1].toInt()
+        require(hour in 0..23 && minute in 0..59) { "Invalid hour/minute: $hour:$minute" }
         return now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
     }
 

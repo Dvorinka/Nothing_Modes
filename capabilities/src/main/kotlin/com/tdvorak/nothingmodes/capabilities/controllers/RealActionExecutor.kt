@@ -561,17 +561,32 @@ class RealActionExecutor(
                 MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
                 MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
             }
-            // dispatchMediaKeyEvent is the correct public API for media button dispatch.
-            // On Android 8+ it requires the caller to be the current media session owner
-            // or have the MEDIA_CONTENT_CONTROL permission. Fallback: send an ordered broadcast.
             val audioManager = context.getSystemService(android.media.AudioManager::class.java)
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
-            )
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
-            )
-            ActionResult.Success
+            // Try dispatchMediaKeyEvent first (works if app is media session owner)
+            try {
+                audioManager.dispatchMediaKeyEvent(
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
+                )
+                audioManager.dispatchMediaKeyEvent(
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
+                )
+                ActionResult.Success
+            } catch (_: Exception) {
+                // Fallback: send media button broadcast intent
+                val intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+                    putExtra(
+                        android.intent.Intent.EXTRA_KEY_EVENT,
+                        android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
+                    )
+                }
+                context.sendOrderedBroadcast(intent, null)
+                intent.putExtra(
+                    android.intent.Intent.EXTRA_KEY_EVENT,
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
+                )
+                context.sendOrderedBroadcast(intent, null)
+                ActionResult.Success
+            }
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "mediaControl failed")
         }

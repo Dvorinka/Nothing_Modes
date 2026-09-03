@@ -152,7 +152,6 @@ class AutomationService : Service() {
         val number = intent.getStringExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER) ?: ""
         val phoneEvent = when (stateStr) {
             "ringing" -> PhoneEvent.INCOMING_CALL
-            "offhook" -> PhoneEvent.INCOMING_CALL
             "idle" -> PhoneEvent.CALL_ENDED
             else -> return
         }

@@ -182,7 +182,9 @@ class Engine(
 
     private suspend fun restoreSnapshots(id: AutomationId, batchNow: Long) {
         val snapshots = snapshotStore.forAutomation(id)
-        for (snapshot in snapshots) {
+        // Deduplicate by setting key, keeping the newest snapshot per key
+        val latestByKey = snapshots.associateBy { it.settingKey }
+        for (snapshot in latestByKey.values) {
             val restoreAction = Action.WriteSetting(
                 namespace = com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM,
                 key = snapshot.settingKey,
