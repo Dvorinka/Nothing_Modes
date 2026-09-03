@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "99af7111abb9be9a6029c44b2b128774",
+    "identityHash": "0403f84057508691eb72de19fa31f8a7",
     "entities": [
       {
         "tableName": "automations",
@@ -398,7 +398,7 @@
       },
       {
         "tableName": "state_snapshots",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `automationId` TEXT NOT NULL, `settingKey` TEXT NOT NULL, `previousValue` TEXT NOT NULL, `capturedAtMillis` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `automationId` TEXT NOT NULL, `settingKey` TEXT NOT NULL, `previousValue` TEXT NOT NULL, `capturedAtMillis` INTEGER NOT NULL, `namespace` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -428,6 +428,12 @@
             "fieldPath": "capturedAtMillis",
             "columnName": "capturedAtMillis",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "namespace",
+            "columnName": "namespace",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -488,7 +494,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '99af7111abb9be9a6029c44b2b128774')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0403f84057508691eb72de19fa31f8a7')"
     ]
   }
 }
