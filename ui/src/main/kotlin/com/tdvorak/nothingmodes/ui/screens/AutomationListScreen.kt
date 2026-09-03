@@ -21,12 +21,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -143,38 +140,12 @@ fun AutomationListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items) { automation ->
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = {
-                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                viewModel.delete(automation)
-                                true
-                            } else false
-                        },
+                    AutomationCard(
+                        automation = automation,
+                        onClick = { onAutomationClick(automation.id.value) },
+                        onToggle = { viewModel.toggleEnabled(automation) },
+                        onDelete = { viewModel.delete(automation) },
                     )
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.CenterEnd,
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            }
-                        },
-                        enableDismissFromStartToStart = false,
-                    ) {
-                        AutomationCard(
-                            automation = automation,
-                            onClick = { onAutomationClick(automation.id.value) },
-                            onToggle = { viewModel.toggleEnabled(automation) },
-                        )
-                    }
                 }
             }
         }
@@ -187,6 +158,7 @@ private fun AutomationCard(
     automation: Automation,
     onClick: () -> Unit,
     onToggle: () -> Unit,
+    onDelete: () -> Unit = {},
 ) {
     Card(
         onClick = onClick,
@@ -215,6 +187,13 @@ private fun AutomationCard(
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Switch(
                 checked = automation.enabled,
