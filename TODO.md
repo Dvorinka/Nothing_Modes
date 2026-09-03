@@ -88,12 +88,15 @@
 
 ### UI (Compose)
 - [x] AutomationListScreen (real data, enable/disable, delete icon, FAB)
-- [x] AutomationDetailScreen (real data, delete button)
-- [x] CreateAutomationScreen (6 preset templates)
-- [x] SettingsScreen (device caps, permissions, Shizuku status + request)
+- [x] AutomationDetailScreen (real data, delete button, duplicate button)
+- [x] CreateAutomationScreen (6 preset templates + custom builder link)
+- [x] CustomAutomationBuilderScreen (WHEN/IF/THEN, 11 triggers, 47 actions, 11 conditions)
+- [x] SettingsScreen (device caps, permissions, Shizuku, import/export, onboarding link)
 - [x] ExecutionLogScreen (real audit data)
-- [x] NothingModesTheme (Nothing OS-inspired palette)
-- [x] NothingModesNavHost (5 routes)
+- [x] OnboardingScreen (7-step permission guide)
+- [x] NothingModesTheme (Nothing OS-inspired palette + typography + shapes + spacing)
+- [x] NothingComponents (NothingCard, NothingSectionHeader, NothingInfoRow, NothingDivider, NothingRedDot)
+- [x] NothingModesNavHost (8 routes)
 
 ### Manifest
 - [x] RECEIVE_BOOT_COMPLETED
@@ -117,16 +120,17 @@
 
 ### State & Conditions
 - [x] StateProvider interface in engine-core
-- [x] AndroidStateProvider (battery, charging, screen state)
+- [x] AndroidStateProvider (battery, charging, screen state, active mode IDs)
 - [x] Engine calls stateProvider.read() before condition evaluation
 - [x] SettingReader interface
 - [x] AndroidSettingReader (Settings.System)
 - [x] StateSnapshotStore + RoomStateSnapshotStore
 - [x] Restore-previous-state on ModeWindowEnd
+- [x] ModeActivationProvider + RoomModeActivationProvider
+- [x] ModeActivationSink + RoomModeActivationSink
 - [ ] Extend AndroidStateProvider: WiFi connection state (needs location permission)
 - [ ] Extend AndroidStateProvider: Bluetooth connection state
 - [ ] Extend AndroidStateProvider: foreground app (UsageStatsManager)
-- [ ] Extend AndroidStateProvider: active mode IDs (query ModeActivationDao)
 
 ### Trigger Dispatch
 - [x] Time trigger (AlarmManager)
@@ -145,11 +149,11 @@
 - [x] Create automations (6 preset templates)
 - [x] Delete automations (list + detail)
 - [x] Enable/disable toggle
-- [ ] Edit existing automations (pre-populate creation screen)
-- [ ] Duplicate automation
-- [ ] Import/export (JSON)
+- [x] Edit existing automations (custom builder edit mode)
+- [x] Duplicate automation
+- [x] Import/export (JSON)
+- [x] Custom automation builder (trigger picker + action picker + condition picker)
 - [ ] Reorder priority
-- [ ] Custom automation builder (trigger picker + action picker + condition picker)
 
 ---
 
@@ -264,7 +268,7 @@
 
 ### Usage Stats
 - [ ] UsageStatsManager polling for foreground app
-- [ ] PACKAGE_USAGE_STATS permission request
+- [ ] PACKAGE_USAGE_STATS permission request flow
 - [ ] App-opened trigger dispatch
 - [ ] Screen time tracking
 
@@ -299,12 +303,14 @@
 
 ---
 
-## Phase 5: Polish & Release (NOT STARTED)
+## Phase 5: Polish & Release (PARTIALLY DONE)
 
 ### UI/UX
-- [ ] Nothing OS design language (dot matrix font, monochrome + red accent)
-- [ ] Custom app icon (Nothing-style dot matrix)
-- [ ] Onboarding flow (permission requests, Shizuku setup, Glyph test)
+- [x] Nothing OS design language (typography, spacing, shapes, components)
+- [x] Custom app icon (Nothing-style dot matrix, adaptive)
+- [x] Onboarding flow (permission requests, Shizuku setup, Glyph test)
+- [x] Splash screen
+- [x] String resources (EN)
 - [ ] Automation visual editor (drag-and-drop trigger/action/condition)
 - [ ] Dark/light theme toggle
 - [ ] Glyph preview in app (simulate what glyph will show)
@@ -312,15 +318,17 @@
 - [ ] Statistics dashboard (automation fire count, success rate)
 
 ### Build & Distribution
-- [ ] Release build config (ProGuard/R8, signing)
-- [ ] App icon (adaptive + legacy)
-- [ ] Splash screen
-- [ ] String resources (i18n — at minimum EN)
+- [x] Release build config (ProGuard/R8, resource shrinking)
+- [x] App icon (adaptive + legacy)
+- [x] Splash screen
+- [x] String resources (i18n — at minimum EN)
+- [ ] Release signing config
 - [ ] F-Droid metadata
 - [ ] Google Play Store listing
 - [ ] GitHub Releases with APK
 
 ### Testing
+- [x] Engine unit tests (37 tests: engine, triggers, conditions, conflicts, restore, import/export)
 - [ ] Instrumented tests on CI (connectedCheck)
 - [ ] Glyph SDK integration tests (requires Nothing device)
 - [ ] Shizuku integration tests (requires Shizuku installed)
@@ -329,6 +337,8 @@
 - [ ] Battery impact profiling
 
 ### Documentation
+- [x] README (features, architecture, device matrix, build, setup)
+- [x] TASKS.md, DECISIONS.md, CHANGELOG.md, PROGRESS.md
 - [ ] User guide (how to set up Shizuku, create automations)
 - [ ] Developer guide (architecture, module structure)
 - [ ] Glyph SDK reference (which devices support what)
