@@ -12,29 +12,36 @@
 - [x] Package name `com.tdvorak`
 - [x] 9 Gradle modules + version catalog
 - [x] Hilt DI wired across all modules
-- [x] CI pipeline (self-hosted Android runner)
+- [x] CI pipeline (ci.yml + release.yml)
 
 ### Engine (engine-core — pure Kotlin)
 - [x] 12 trigger types
 - [x] 12 condition types + And/Or/Not composites
 - [x] 37 action types (23 base + 9 system toggles + 5 glyph advanced)
-- [x] TriggerMatcher, ConditionEvaluator, FirePolicy
-- [x] CronSchedule parsing
+- [x] TriggerMatcher, ConditionEvaluator, FirePolicy (thread-safe)
+- [x] CronSchedule parsing (Sunday=7 normalization)
 - [x] kotlinx.serialization (schema v1)
-- [x] State snapshot/restore on mode window
+- [x] State snapshot/restore on mode window (dedup by key, newest wins)
 - [x] Conflict detection (affectedSettings)
-- [x] 37 unit tests (all passing)
+- [x] 173 unit tests (all passing)
 
 ### Data Layer (Room)
 - [x] 8 entities, 8 DAOs
-- [x] RoomAutomationStore, RoomAuditSink, RoomExecutionJournal
-- [x] RoomStateSnapshotStore, RoomModeActivationProvider/Sink
+- [x] RoomAutomationStore (all() returns all automations, not just armed)
+- [x] RoomAuditSink, RoomExecutionJournal (implemented with FireClaimDao)
+- [x] RoomStateSnapshotStore, RoomModeActivationProvider/Sink (transaction-safe)
 - [x] Schema export enabled
+- [x] fallbackToDestructiveMigration for future schema changes
+- [x] Safe enum converters (no crash on stale DB values)
 
 ### Android Controllers (capabilities)
 - [x] 16 base controllers (brightness, DND, volume, flashlight, etc.)
 - [x] RealActionExecutor with Glyph + Shizuku wiring
-- [x] 9 new system toggle actions (auto-rotate, battery saver, airplane, data saver, hotspot, NFC, refresh rate, rotation, media control)
+- [x] 9 system toggle actions (auto-rotate, battery saver, airplane, data saver, hotspot, NFC, refresh rate, rotation, media control)
+- [x] WriteSettingPolicy validation before all write paths
+- [x] URL scheme restriction (http/https only)
+- [x] Package name validation for LaunchApp
+- [x] CapabilityDetector integrates NothingDeviceDetector + ShizukuGateway
 
 ### Shizuku Integration (core-shizuku)
 - [x] ShizukuGateway, ShizukuPrivilegedShell
@@ -49,17 +56,18 @@
 - [x] GlyphResult sealed interface
 
 ### Automation Lifecycle (automation-android)
-- [x] AutomationService (foreground, 10 action handlers)
-- [x] AutomationAlarmReceiver, AutomationScheduler (time + window + geofence)
-- [x] BootCompletedReceiver, DeviceStateReceiver
-- [x] PhoneStateReceiver (call + SMS with content reading)
-- [x] ConnectivityReceiver (WiFi + Bluetooth)
+- [x] AutomationService (foreground, tracks in-flight jobs, stopSelf after completion)
+- [x] AutomationAlarmReceiver, AutomationScheduler (time + window + geofence, re-schedules after firing)
+- [x] BootCompletedReceiver (starts AutomationService + PersistentMonitorService)
+- [x] DeviceStateReceiver
+- [x] PhoneStateReceiver (call + SMS with null-safe PDU handling)
+- [x] ConnectivityReceiver (WiFi + Bluetooth, SSID passed as match field)
 - [x] GeofenceReceiver + GeofenceMonitor (Play Services)
-- [x] UsageStatsMonitor (foreground app polling)
+- [x] UsageStatsMonitor (foreground app polling on IO dispatcher)
 - [x] PersistentMonitorService (battery + screen + charging source + temp)
 - [x] AutomationNotificationListener (notification triggers)
-- [x] FlipReceiver (Nothing flip-to-glyph)
-- [x] NothingModesToyService (Glyph Toy for Phone 3/4a Pro)
+- [x] FlipReceiver (Nothing flip-to-glyph, permission-protected)
+- [x] NothingModesToyService (Glyph Toy, permission-protected)
 - [x] SeedAutomations (Sleep + Morning)
 
 ### UI (Compose)
@@ -78,6 +86,9 @@
 ### Manifest
 - [x] All permissions declared
 - [x] All receivers + services declared
+- [x] Exported components permission-protected
+- [x] allowBackup=false
+- [x] No hardcoded secrets
 
 ---
 
@@ -87,21 +98,21 @@
 - [x] StateProvider + AndroidStateProvider (battery, charging, screen, WiFi, BT, foreground app, active modes)
 - [x] SettingReader + AndroidSettingReader
 - [x] StateSnapshotStore + RoomStateSnapshotStore
-- [x] ModeActivationProvider/Sink + Room implementations
+- [x] ModeActivationProvider/Sink + Room implementations (transaction-safe)
 
 ### Trigger Dispatch
 - [x] Time, TimeWindow, Boot, BatteryLevel, ScreenState
 - [x] Notification (NotificationListenerService)
-- [x] PhoneState (PhoneStateReceiver with SMS content reading)
-- [x] Connectivity (ConnectivityReceiver)
-- [x] AppOpened (UsageStatsMonitor)
+- [x] PhoneState (PhoneStateReceiver with SMS content reading, null-safe)
+- [x] Connectivity (ConnectivityReceiver with SSID match)
+- [x] AppOpened (UsageStatsMonitor on IO dispatcher)
 - [x] Geofence (GeofenceMonitor + GeofenceReceiver + scheduler integration)
-- [x] Persistent monitoring service
-- [x] Flip-to-glyph (FlipReceiver)
+- [x] Persistent monitoring service (started from boot)
+- [x] Flip-to-glyph (FlipReceiver, permission-protected)
 
 ### Automation Management
 - [x] Create, delete, enable/disable, edit, duplicate
-- [x] Import/export (JSON)
+- [x] Import/export (JSON, per-item error handling)
 - [x] Custom automation builder
 - [x] Reorder priority (up/down arrows)
 
@@ -125,17 +136,17 @@
 
 ### Glyph Toy Service
 - [x] NothingModesToyService (long press, AOD, touch events)
-- [x] Manifest registration with toy metadata
+- [x] Manifest registration with toy metadata + permission
 
 ---
 
 ## Phase 4: System Interaction (COMPLETE)
 
 - [x] NotificationListenerService + filtering
-- [x] PhoneStateReceiver + SMS content reading
-- [x] Connectivity monitoring (WiFi, Bluetooth)
+- [x] PhoneStateReceiver + SMS content reading (null-safe)
+- [x] Connectivity monitoring (WiFi, Bluetooth, SSID match)
 - [x] Location/geofencing integration (GeofenceMonitor + scheduler)
-- [x] Usage stats + foreground app detection
+- [x] Usage stats + foreground app detection (IO dispatcher)
 - [x] System settings toggles (airplane, hotspot, NFC, battery saver, data saver, auto-rotate, refresh rate, rotation)
 - [x] Media playback control (play/pause, next, previous, stop)
 - [x] Camera flip detection (FlipReceiver)
@@ -143,10 +154,10 @@
 
 ---
 
-## Phase 5: Polish & Release (COMPLETE)
+## Phase 5: Polish & Release (MOSTLY COMPLETE)
 
 ### UI/UX
-- [x] Nothing OS design language
+- [x] Nothing OS design language (dark theme, monochrome + red accent)
 - [x] Custom app icon (adaptive)
 - [x] Onboarding flow
 - [x] Splash screen
@@ -156,6 +167,7 @@
 - [x] Statistics dashboard
 - [x] Reorder priority UI
 - [x] String resources (EN)
+- [~] Dot-matrix typography (uses FontFamily.Monospace; full dot-matrix font asset TBD)
 
 ### Build & Distribution
 - [x] Release build config (R8, resource shrinking)
@@ -164,9 +176,16 @@
 - [x] GitHub release workflow
 - [x] Privacy policy
 - [x] Contributing guide
+- [x] CI pipeline (ci.yml)
+- [x] Release workflow (release.yml)
 
 ### Testing
-- [x] 37 engine unit tests (all passing)
+- [x] 173 engine unit tests (all passing)
+- [x] Engine edge case tests (empty, all-fail, mixed, exceptions)
+- [x] ConditionEvaluator tests (all types, nested composites)
+- [x] TriggerMatcher tests (all trigger types)
+- [x] FirePolicy tests (cooldown, thread safety)
+- [x] ImportExport edge case tests (corrupted JSON, schema version, duplicates)
 - [x] E2E instrumented test (AutomationFlowTest)
 - [x] Shizuku instrumented test
 - [x] Device tools instrumented test
@@ -177,7 +196,36 @@
 - [x] Developer guide (module architecture, engine flow, DI, testing)
 - [x] Privacy policy
 - [x] Contributing guide
-- [x] TASKS.md, DECISIONS.md, CHANGELOG.md, PROGRESS.md
+- [x] TASKS.md, TODO.md
+
+### Security
+- [x] Security review completed (receivers, WriteSettingPolicy, URL/package validation)
+- [x] Exported component permissions (FlipReceiver, ToyService)
+- [x] Hardcoded secrets removed
+- [x] allowBackup=false
+- [x] SECURITY.md policy
+
+### Open Source
+- [x] LICENSE (GPL-3.0)
+- [x] CONTRIBUTING.md
+- [x] CODE_OF_CONDUCT.md
+- [x] SECURITY.md
+- [x] .gitignore
+- [x] FUNDING.yml
+
+---
+
+## Remaining Work (Post-Release)
+
+- [ ] Dot-matrix font asset for full Nothing typography
+- [ ] Notification glyph patterns
+- [ ] Timer/countdown glyph presets
+- [ ] Media session tracking
+- [ ] Screen time tracking
+- [ ] Location-based mode activation
+- [ ] Dependency review
+- [ ] Final repository audit (TODO/FIXME/placeholder)
+- [ ] Release build verification
 
 ---
 
@@ -191,7 +239,7 @@
 - 12 condition types
 - 8 UI screens
 - 10 nav routes
-- 37 engine unit tests
+- 173 engine unit tests
 - 3 instrumented tests
 - 14 glyph visual presets
 - 8 Nothing device models supported

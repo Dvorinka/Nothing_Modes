@@ -23,33 +23,33 @@ All items verified complete. See TODO.md for historical record.
 - [x] SettingReader interface
 - [x] AndroidSettingReader (Settings.System)
 - [x] StateSnapshotStore + RoomStateSnapshotStore
-- [x] Restore-previous-state on ModeWindowEnd
+- [x] Restore-previous-state on ModeWindowEnd (dedup by key, newest wins)
 - [x] Extend AndroidStateProvider: WiFi connection state
 - [x] Extend AndroidStateProvider: Bluetooth connection state
 - [x] Extend AndroidStateProvider: foreground app (UsageStatsManager)
-- [ ] Extend AndroidStateProvider: active mode IDs (query ModeActivationDao)
+- [x] Extend AndroidStateProvider: active mode IDs (query ModeActivationDao)
 
 ### Trigger Dispatch
-- [x] Time trigger (AlarmManager)
-- [x] TimeWindow trigger (start + end alarms)
-- [x] Boot trigger (BootCompletedReceiver → AutomationService)
+- [x] Time trigger (AlarmManager) — re-schedules next cron occurrence after firing
+- [x] TimeWindow trigger (start + end alarms) — re-schedules after window end
+- [x] Boot trigger (BootCompletedReceiver → AutomationService + PersistentMonitorService)
 - [x] BatteryLevel trigger (DeviceStateReceiver)
 - [x] ScreenState trigger (DeviceStateReceiver)
 - [x] Notification trigger (NotificationListenerService)
-- [x] PhoneState trigger (PhoneStateReceiver)
-- [x] Connectivity trigger (ConnectivityReceiver)
-- [x] AppOpened trigger (UsageStatsMonitor)
+- [x] PhoneState trigger (PhoneStateReceiver) — null-safe SMS PDU handling
+- [x] Connectivity trigger (ConnectivityReceiver) — SSID passed as match field
+- [x] AppOpened trigger (UsageStatsMonitor) — queryUsageStats on IO dispatcher
 - [x] Geofence trigger (GeofencingClient)
-- [x] Persistent monitoring service
+- [x] Persistent monitoring service — started from BootCompletedReceiver
 
 ### Automation Management
 - [x] Create automations (6 preset templates)
 - [x] Delete automations (list + detail)
 - [x] Enable/disable toggle
 - [x] Edit existing automations (pre-populate creation screen)
-- [ ] Duplicate automation
-- [ ] Import/export (JSON)
-- [ ] Custom automation builder (trigger picker + action picker + condition picker)
+- [x] Duplicate automation
+- [x] Import/export (JSON) — per-item error handling, schema validation
+- [x] Custom automation builder (trigger picker + action picker + condition picker)
 
 ---
 
@@ -82,7 +82,7 @@ All items verified complete. See TODO.md for historical record.
 
 ### Glyph Toy
 - [x] GlyphToy service implementation
-- [x] Toy manifest registration
+- [x] Toy manifest registration (with permission protection)
 - [x] onBind/onUnbind lifecycle
 - [x] EVENT_CHANGE handler (long press)
 - [x] EVENT_AOD handler
@@ -122,13 +122,13 @@ All items verified complete. See TODO.md for historical record.
 
 ### Phone State
 - [x] PhoneStateReceiver (incoming call, offhook, idle)
-- [ ] SMS content reading (for text match triggers)
+- [x] SMS content reading (null-safe PDU handling)
 - [ ] Call glyph pattern (pulsing during ring)
 - [ ] SMS glyph pattern (brief flash)
 
 ### Connectivity
 - [x] ConnectivityManager broadcast receivers
-- [x] WiFi SSID detection
+- [x] WiFi SSID detection (passed as match field)
 - [x] Bluetooth device name detection
 - [ ] Airplane mode detection
 - [ ] Connectivity glyph visual
@@ -140,68 +140,76 @@ All items verified complete. See TODO.md for historical record.
 - [ ] Location-based mode activation (home/work)
 
 ### Usage Stats
-- [x] UsageStatsManager polling for foreground app
+- [x] UsageStatsManager polling for foreground app (IO dispatcher)
 - [x] PACKAGE_USAGE_STATS permission detection
 - [x] App-opened trigger dispatch
 - [ ] Screen time tracking
 
 ### System Settings (via Shizuku where needed)
-- [ ] Airplane mode toggle
-- [ ] Hotspot toggle
-- [ ] Location mode toggle
-- [ ] Auto-rotate toggle
-- [ ] Battery saver toggle
-- [ ] Data saver toggle
-- [ ] NFC toggle
+- [x] Airplane mode toggle
+- [x] Hotspot toggle
+- [x] Location mode toggle
+- [x] Auto-rotate toggle
+- [x] Battery saver toggle
+- [x] Data saver toggle
+- [x] NFC toggle
+- [x] WriteSetting policy validation
 
 ### Media & Audio
+- [x] Media playback control (play/pause/next/prev/stop)
 - [ ] Media session tracking (playing/paused state)
-- [ ] Media playback control (play/pause/next/prev)
 - [ ] Now playing info on Glyph Matrix
 - [ ] Per-app volume control
 
 ### Camera & Display
-- [ ] Camera flip detection
-- [ ] Always-on display control
-- [ ] Screen rotation lock
-- [ ] Refresh rate control
+- [x] Camera flip detection (FlipReceiver)
+- [x] Always-on display control (Glyph Toy AOD)
+- [x] Screen rotation lock
+- [x] Refresh rate control
 - [ ] Wallpaper change on mode activation
 
 ### Power & Battery
-- [ ] Battery saver auto-enable on low battery
-- [ ] Charging state tracking (AC/USB/wireless)
-- [ ] Battery temperature monitoring
+- [x] Battery saver auto-enable on low battery
+- [x] Charging state tracking (AC/USB/wireless)
+- [x] Battery temperature monitoring
 
 ---
 
 ## Phase 5: Polish & Release
 
 ### UI/UX
-- [ ] Nothing OS design language (dot matrix font, monochrome + red accent)
-- [ ] Centralized design primitives (NothingTheme, NothingTypography, NothingSpacing, etc.)
-- [ ] Custom app icon (Nothing-style dot matrix)
-- [ ] Onboarding flow (permission requests, Shizuku setup, Glyph test)
-- [ ] Custom automation builder UI (WHEN/IF/THEN)
-- [ ] Dark/light theme toggle
-- [ ] Glyph preview in app
-- [ ] Execution timeline view
-- [ ] Statistics dashboard
-- [ ] Compatibility/debug screen
+- [x] Nothing OS design language (dark theme, monochrome + red accent)
+- [x] Centralized design primitives (NothingTheme, NothingTypography, NothingSpacing, etc.)
+- [x] Custom app icon (Nothing-style dot matrix)
+- [x] Onboarding flow (permission requests, Shizuku setup, Glyph test)
+- [x] Custom automation builder UI (WHEN/IF/THEN)
+- [x] Dark/light theme toggle
+- [x] Glyph preview in app
+- [x] Execution timeline view
+- [x] Statistics dashboard
+- [x] Compatibility/debug screen
+- [~] Dot-matrix typography (uses FontFamily.Monospace for labels; full dot-matrix font TBD)
 
 ### Build & Distribution
-- [ ] Release build config (R8/ProGuard, signing)
-- [ ] App icon (adaptive + legacy)
-- [ ] Splash screen
-- [ ] String resources (i18n)
-- [ ] F-Droid metadata
-- [ ] GitHub Releases with APK
+- [x] Release build config (R8/ProGuard, signing)
+- [x] App icon (adaptive + legacy)
+- [x] Splash screen
+- [x] String resources (i18n)
+- [x] F-Droid metadata
+- [x] GitHub Releases with APK
+- [x] CI pipeline (ci.yml)
+- [x] Release workflow (release.yml)
 
 ### Testing
-- [ ] Engine: conflict management tests
-- [ ] Engine: restoration after reboot/process death
-- [ ] Engine: overlapping automations
+- [x] Engine: conflict management tests
+- [x] Engine: restoration after reboot/process death
+- [x] Engine: overlapping automations
+- [x] Engine: import/export validation (edge cases, corrupted JSON, schema version)
+- [x] Engine: condition evaluator (all condition types, nested composites)
+- [x] Engine: trigger matcher (all trigger types)
+- [x] Engine: fire policy (cooldown, thread safety)
+- [x] Engine: edge cases (empty actions, all-fail, mixed, exceptions)
 - [ ] Engine: duplicate automation
-- [ ] Engine: import/export validation
 - [ ] Android: boot, alarms, battery, screen tests
 - [ ] Nothing: Glyph, Glyph Matrix, unsupported devices
 - [ ] Shizuku: unavailable, denied, restart
@@ -210,19 +218,32 @@ All items verified complete. See TODO.md for historical record.
 - [ ] E2E: full Sleep → trigger → execute → restore cycle
 
 ### Documentation
+- [x] README (features, architecture, device matrix, build, setup)
+- [x] User guide
+- [x] Developer guide
+- [x] Privacy policy
+- [x] Contributing guide
+- [x] TASKS.md, TODO.md
 - [ ] Architecture document
 - [ ] Module guide
-- [ ] Setup/build guide
-- [ ] Proxmox worker guide
 - [ ] Shizuku integration guide
 - [ ] Nothing SDK reference
 - [ ] Supported device matrix
-- [ ] Privacy policy
-- [ ] Contributing guide
 
 ### Security & Review
-- [ ] Security review (secrets, permissions, exported components, intents)
+- [x] Security review (receivers, WriteSettingPolicy, URL/package validation, allowBackup)
+- [x] Exported component permissions (FlipReceiver, ToyService)
+- [x] Hardcoded secrets removed (NothingKey=test removed)
 - [ ] Dependency review (abandoned, duplicate, vulnerabilities)
 - [ ] Final repository audit (TODO/FIXME/placeholder/mock/dummy)
-- [ ] Clean build verification
+- [x] Clean build verification
 - [ ] Release build verification
+
+### Open Source Preparation
+- [x] LICENSE (GPL-3.0)
+- [x] CONTRIBUTING.md
+- [x] CODE_OF_CONDUCT.md
+- [x] SECURITY.md
+- [x] .gitignore
+- [x] FUNDING.yml
+- [x] PR template
