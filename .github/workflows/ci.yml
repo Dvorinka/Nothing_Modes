@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, linux, android]
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -22,17 +22,8 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Engine Core Tests (JVM)
-        run: ./gradlew :engine-core:test --no-daemon --stacktrace
-
-      - name: Build Debug
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
-
-      - name: Lint
-        run: ./gradlew lintDebug --no-daemon --stacktrace || true
+      - name: Build + Test (single invocation)
+        run: ./gradlew :engine-core:test assembleDebug testDebugUnitTest --no-daemon --parallel --build-cache --stacktrace
 
       - name: Upload APK
         if: always()
