@@ -47,6 +47,8 @@ fun NothingModesTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) NothingDark else NothingLight,
+        typography = NothingTypography.typography,
+        shapes = NothingShapes.shapes,
         content = content,
     )
 }
