@@ -3,17 +3,24 @@ package com.tdvorak.nothingmodes.capabilities.controllers
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.media.MediaMetadata
+import android.media.session.MediaSession
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.provider.Settings
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
@@ -65,11 +72,11 @@ class RealActionExecutor(
             delay(action.durationMs)
             ActionResult.Success
         }
-        // Shizuku-required actions
+        // Shizuku-required actions (with public-API fallbacks where possible)
         is Action.SetWifi -> executeShell(wifiCommand(action.on))
-        is Action.SetBluetooth -> executeShell(bluetoothCommand(action.on))
+        is Action.SetBluetooth -> setBluetooth(action.on)
         is Action.SetMobileData -> executeShell(mobileDataCommand(action.on))
-        is Action.WriteSetting -> executeShell(writeSettingCommand(action))
+        is Action.WriteSetting -> writeSetting(action)
 
         // Flashlight
         is Action.SetFlashlight -> setFlashlight(action.on)
@@ -78,7 +85,7 @@ class RealActionExecutor(
         is Action.SetGlyph -> setGlyph(action.on)
 
         // Glyph Matrix
-        is Action.SetGlyphMatrix -> setGlyphMatrix(action.restore)
+        is Action.SetGlyphMatrix -> setGlyphMatrix(action.colors?.toIntArray(), action.restore)
 
         // Advanced Glyph actions
         is Action.GlyphAnimate -> glyphAnimate(action)
@@ -91,7 +98,7 @@ class RealActionExecutor(
         // System settings toggles (Phase 4)
         is Action.SetAutoRotate -> setAutoRotate(action.on)
         is Action.SetBatterySaver -> executeShell(batterySaverCommand(action.on))
-        is Action.SetAirplaneMode -> executeShell(airplaneModeCommand(action.on))
+        is Action.SetAirplaneMode -> setAirplaneMode(action.on)
         is Action.SetDataSaver -> executeShell(dataSaverCommand(action.on))
         is Action.SetHotspot -> executeShell(hotspotCommand(action.on))
         is Action.SetNfc -> executeShell(nfcCommand(action.on))
@@ -162,12 +169,16 @@ class RealActionExecutor(
 
     // --- Glyph Matrix ---
 
-    private suspend fun setGlyphMatrix(restore: Boolean): ActionResult {
+    private suspend fun setGlyphMatrix(colors: IntArray?, restore: Boolean): ActionResult {
         val provider = glyphMatrixProvider
             ?: return ActionResult.Unsupported
         if (!provider.isAvailable()) return ActionResult.Unsupported
         return try {
-            val result = if (restore) provider.closeFrame() else provider.turnOff()
+            val result = when {
+                restore -> provider.closeFrame()
+                colors != null && colors.isNotEmpty() -> provider.setFrame(colors)
+                else -> provider.turnOff()
+            }
             glyphResultToActionResult(result)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "glyph matrix failed")
@@ -407,14 +418,69 @@ class RealActionExecutor(
     // --- System settings toggles (Phase 4) ---
 
     private fun setAutoRotate(on: Boolean): ActionResult = try {
-        android.provider.Settings.System.putInt(
+        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+        Settings.System.putInt(
             context.contentResolver,
-            android.provider.Settings.System.ACCELEROMETER_ROTATION,
+            Settings.System.ACCELEROMETER_ROTATION,
             if (on) 1 else 0,
         )
         ActionResult.Success
     } catch (e: Exception) {
         ActionResult.Failure(e.message ?: "setAutoRotate failed")
+    }
+
+    private suspend fun setBluetooth(on: Boolean): ActionResult {
+        // Try public API first (deprecated on API 33+ but functional on most Nothing OS builds)
+        return try {
+            val bm = context.getSystemService(BluetoothManager::class.java)
+            val adapter = bm.adapter
+                ?: return executeShell(bluetoothCommand(on))
+            val enabled = if (on) adapter.enable() else adapter.disable()
+            if (enabled) ActionResult.Success
+            else executeShell(bluetoothCommand(on))
+        } catch (_: SecurityException) {
+            executeShell(bluetoothCommand(on))
+        } catch (e: Exception) {
+            // Public API failed — fall back to Shizuku
+            executeShell(bluetoothCommand(on))
+        }
+    }
+
+    private suspend fun writeSetting(action: Action.WriteSetting): ActionResult {
+        // System namespace can use public Settings API with WRITE_SETTINGS permission
+        if (action.namespace == SettingNamespace.SYSTEM) {
+            return try {
+                if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+                val put = runCatching {
+                    Settings.System.putString(
+                        context.contentResolver,
+                        action.key,
+                        action.value,
+                    )
+                }.getOrDefault(false)
+                if (put) ActionResult.Success
+                else executeShell(writeSettingCommand(action))
+            } catch (_: Exception) {
+                executeShell(writeSettingCommand(action))
+            }
+        }
+        return executeShell(writeSettingCommand(action))
+    }
+
+    private suspend fun setAirplaneMode(on: Boolean): ActionResult {
+        // Write the setting via Shizuku, then broadcast the change so the radio actually toggles
+        val writeResult = executeShell(airplaneModeCommand(on))
+        if (writeResult !is ActionResult.Success) return writeResult
+        // Broadcast the change so TelephonyManager picks it up
+        return try {
+            val intent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+                .putExtra("state", on)
+                .addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING)
+            context.sendBroadcast(intent)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "airplane broadcast failed")
+        }
     }
 
     private fun batterySaverCommand(on: Boolean) = listOf(
@@ -427,58 +493,53 @@ class RealActionExecutor(
         "settings", "put", "global", "data_saver", if (on) "1" else "0",
     )
     private fun hotspotCommand(on: Boolean) = listOf(
-        "settings", "put", "global", "tether_dun_required", if (on) "1" else "0",
+        "svc", "wifi", "set-wifi-ap-enabled", if (on) "true" else "false",
     )
     private fun nfcCommand(on: Boolean) = listOf(
         "svc", "nfc", if (on) "enable" else "disable",
     )
 
     private fun setRefreshRate(hz: Int): ActionResult = try {
-        android.provider.Settings.System.putInt(
-            context.contentResolver,
-            "peak_refresh_rate",
-            hz,
-        )
-        android.provider.Settings.System.putInt(
-            context.contentResolver,
-            "min_refresh_rate",
-            hz,
-        )
+        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+        // peak_refresh_rate and min_refresh_rate are in Settings.System on Nothing OS
+        Settings.System.putInt(context.contentResolver, "peak_refresh_rate", hz)
+        Settings.System.putInt(context.contentResolver, "min_refresh_rate", hz)
         ActionResult.Success
     } catch (e: Exception) {
         ActionResult.Failure(e.message ?: "setRefreshRate failed")
     }
 
-    private fun setScreenRotation(orientation: com.tdvorak.nothingmodes.engine.model.ScreenOrientation): ActionResult = try {
+    private fun setScreenRotation(orientation: ScreenOrientation): ActionResult = try {
+        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
         when (orientation) {
-            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.AUTO -> {
-                android.provider.Settings.System.putInt(
+            ScreenOrientation.AUTO -> {
+                Settings.System.putInt(
                     context.contentResolver,
-                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    Settings.System.ACCELEROMETER_ROTATION,
                     1,
                 )
             }
-            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.PORTRAIT -> {
-                android.provider.Settings.System.putInt(
+            ScreenOrientation.PORTRAIT -> {
+                Settings.System.putInt(
                     context.contentResolver,
-                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    Settings.System.ACCELEROMETER_ROTATION,
                     0,
                 )
-                android.provider.Settings.System.putInt(
+                Settings.System.putInt(
                     context.contentResolver,
-                    android.provider.Settings.System.USER_ROTATION,
+                    Settings.System.USER_ROTATION,
                     0, // PORTRAIT
                 )
             }
-            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.LANDSCAPE -> {
-                android.provider.Settings.System.putInt(
+            ScreenOrientation.LANDSCAPE -> {
+                Settings.System.putInt(
                     context.contentResolver,
-                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    Settings.System.ACCELEROMETER_ROTATION,
                     0,
                 )
-                android.provider.Settings.System.putInt(
+                Settings.System.putInt(
                     context.contentResolver,
-                    android.provider.Settings.System.USER_ROTATION,
+                    Settings.System.USER_ROTATION,
                     1, // LANDSCAPE
                 )
             }
@@ -488,16 +549,22 @@ class RealActionExecutor(
         ActionResult.Failure(e.message ?: "setScreenRotation failed")
     }
 
-    private fun mediaControl(command: com.tdvorak.nothingmodes.engine.model.MediaCommand): ActionResult = try {
+    private fun mediaControl(command: MediaCommand): ActionResult = try {
         val keyCode = when (command) {
-            com.tdvorak.nothingmodes.engine.model.MediaCommand.PLAY_PAUSE -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-            com.tdvorak.nothingmodes.engine.model.MediaCommand.NEXT -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
-            com.tdvorak.nothingmodes.engine.model.MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
-            com.tdvorak.nothingmodes.engine.model.MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
+            MediaCommand.PLAY_PAUSE -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+            MediaCommand.NEXT -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+            MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
         }
-        val audioManager = context.getSystemService(android.media.AudioManager::class.java)
-        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
-        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+        // Use MediaSession for reliable dispatch on modern Android
+        val session = MediaSession(context, "NothingModesMediaControl")
+        session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS)
+        val keyEvent = android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode)
+        session.dispatchMediaButtonEvent(keyEvent)
+        session.dispatchMediaButtonEvent(
+            android.view.KeyEvent.changeAction(keyEvent, android.view.KeyEvent.ACTION_UP),
+        )
+        session.release()
         ActionResult.Success
     } catch (e: Exception) {
         ActionResult.Failure(e.message ?: "mediaControl failed")

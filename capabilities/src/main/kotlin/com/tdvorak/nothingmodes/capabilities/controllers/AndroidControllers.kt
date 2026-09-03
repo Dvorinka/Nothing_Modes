@@ -67,13 +67,17 @@ class AndroidExtraDimController(private val context: Context) : ExtraDimControll
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 return ControllerResult.Unsupported
             }
-            if (!Settings.System.canWrite(context)) return ControllerResult.PermissionRequired
+            // reduce_bright_colors_activated lives in Settings.Secure.
+            // WRITE_SECURE_SETTINGS is a system-grant permission (via adb or Shizuku).
+            // Attempt the write directly; SecurityException → PermissionRequired.
             Settings.Secure.putInt(
                 context.contentResolver,
                 "reduce_bright_colors_activated",
                 if (on) 1 else 0,
             )
             ControllerResult.Success
+        } catch (_: SecurityException) {
+            ControllerResult.PermissionRequired
         } catch (e: Exception) {
             ControllerResult.Failure(e.message ?: "setExtraDim failed")
         }
