@@ -6,15 +6,46 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.nothing.GlyphHardware
+import com.tdvorak.nothingmodes.nothing.NothingDeviceDetector
+import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
+import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 
 /** Detects device capabilities at runtime. */
-class CapabilityDetector(private val context: Context) {
+class CapabilityDetector(
+    private val context: Context,
+    private val shizukuGateway: ShizukuGateway? = null,
+) {
 
     fun detect(): DeviceCapabilities {
         val pm = context.packageManager
         val isNothing = Build.MANUFACTURER.equals("nothing", ignoreCase = true)
         val model = Build.MODEL ?: ""
         val deviceName = resolveDeviceName(model)
+
+        // Glyph detection via NothingDeviceDetector
+        val detector = NothingDeviceDetector(context)
+        val glyphHardware = if (isNothing) detector.detectGlyphHardware() else GlyphHardware.NONE
+        val hasLightStripe = glyphHardware.isLightStripe
+        val hasMatrix = glyphHardware.isMatrix
+        val matrixSize = glyphHardware.matrixSize
+        val hasGlyphTouch = if (isNothing) detector.hasGlyphTouch() else false
+
+        // Nothing SDK availability: check if GlyphManager class is loadable
+        val nothingSdkAvailable = runCatching {
+            Class.forName("com.nothing.ketchum.GlyphManager")
+            true
+        }.getOrDefault(false)
+
+        // Shizuku status
+        val shizukuStatus = when (shizukuGateway?.status()) {
+            ShizukuGatewayStatus.AUTHORIZED -> ShizukuCapabilityStatus.AUTHORIZED
+            ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> ShizukuCapabilityStatus.RUNNING_NOT_AUTHORIZED
+            ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> ShizukuCapabilityStatus.INSTALLED_NOT_RUNNING
+            ShizukuGatewayStatus.NOT_INSTALLED -> ShizukuCapabilityStatus.NOT_INSTALLED
+            ShizukuGatewayStatus.UNSUPPORTED -> ShizukuCapabilityStatus.UNSUPPORTED
+            null -> ShizukuCapabilityStatus.NOT_CHECKED
+        }
 
         return DeviceCapabilities(
             isNothingDevice = isNothing,
@@ -27,13 +58,15 @@ class CapabilityDetector(private val context: Context) {
             hasBluetooth = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH),
             hasLocation = pm.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
             hasVibrator = context.getSystemService(Context.VIBRATOR_SERVICE) != null,
-            // Glyph detection deferred to NothingIntegrations module
-            hasGlyphLightStripe = false,
-            hasGlyphMatrix = false,
-            glyphMatrixSize = 0,
-            hasGlyphTouch = false,
-            nothingSdkAvailable = false,
-            nothingSdkConnected = false,
+            // Glyph detection from NothingDeviceDetector
+            hasGlyphLightStripe = hasLightStripe,
+            hasGlyphMatrix = hasMatrix,
+            glyphMatrixSize = matrixSize,
+            hasGlyphTouch = hasGlyphTouch,
+            nothingSdkAvailable = nothingSdkAvailable,
+            nothingSdkConnected = false, // Updated at runtime after GlyphManager.init
+            // Shizuku
+            shizukuStatus = shizukuStatus,
             // Permissions
             hasNotificationPolicyAccess = checkNotificationPolicyAccess(),
             hasWriteSettings = android.provider.Settings.System.canWrite(context),
