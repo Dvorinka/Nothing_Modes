@@ -346,6 +346,7 @@ private fun TypeSelector(selected: AutomationType, onSelect: (AutomationType) ->
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
+
     var expanded by remember { mutableStateOf(false) }
     val triggerLabel = triggerDescription(trigger)
 
@@ -403,6 +404,7 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     when (trigger) {
