@@ -35,7 +35,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
-import com.tdvorak.nothingmodes.capabilities.ShizukuCapabilityStatus
+import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
+import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
+import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,14 +46,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor() : ViewModel() {
+class SettingsViewModel @Inject constructor(
+    private val shizukuGateway: ShizukuGateway,
+) : ViewModel() {
 
     private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
     val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
 
+    private val _shizukuStatus = MutableStateFlow(ShizukuGatewayStatus.NOT_INSTALLED)
+    val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
+
+    private val _permissionResult = MutableStateFlow<ShizukuPermissionResult?>(null)
+    val permissionResult: StateFlow<ShizukuPermissionResult?> = _permissionResult.asStateFlow()
+
     fun detect(context: android.content.Context) {
         viewModelScope.launch {
             _capabilities.value = CapabilityDetector(context).detect()
+            _shizukuStatus.value = shizukuGateway.status()
+        }
+    }
+
+    fun requestShizukuPermission() {
+        viewModelScope.launch {
+            _permissionResult.value = shizukuGateway.requestPermission(rationaleShown = true)
+            _shizukuStatus.value = shizukuGateway.status()
         }
     }
 }
@@ -64,6 +82,8 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val caps by viewModel.capabilities.collectAsState()
+    val shizukuStatus by viewModel.shizukuStatus.collectAsState()
+    val permissionResult by viewModel.permissionResult.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.detect(context) }
 
@@ -90,7 +110,11 @@ fun SettingsScreen(
             caps?.let { capabilities ->
                 DeviceCard(capabilities)
                 PermissionsCard(context, capabilities)
-                ShizukuCard(capabilities)
+                ShizukuCard(
+                    shizukuStatus = shizukuStatus,
+                    permissionResult = permissionResult,
+                    onRequestPermission = { viewModel.requestShizukuPermission() },
+                )
                 AboutCard(capabilities)
             }
         }
@@ -136,23 +160,44 @@ private fun PermissionsCard(context: android.content.Context, caps: DeviceCapabi
 }
 
 @Composable
-private fun ShizukuCard(caps: DeviceCapabilities) {
+private fun ShizukuCard(
+    shizukuStatus: ShizukuGatewayStatus,
+    permissionResult: ShizukuPermissionResult?,
+    onRequestPermission: () -> Unit,
+) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Shizuku", style = MaterialTheme.typography.titleMedium)
-            val statusText = when (caps.shizukuStatus) {
-                ShizukuCapabilityStatus.NOT_CHECKED -> "Not checked"
-                ShizukuCapabilityStatus.NOT_INSTALLED -> "Not installed"
-                ShizukuCapabilityStatus.INSTALLED_NOT_RUNNING -> "Installed, not running"
-                ShizukuCapabilityStatus.RUNNING_NOT_AUTHORIZED -> "Running, not authorized"
-                ShizukuCapabilityStatus.AUTHORIZED -> "Authorized"
-                ShizukuCapabilityStatus.UNSUPPORTED -> "Unsupported"
+            val statusText = when (shizukuStatus) {
+                ShizukuGatewayStatus.NOT_INSTALLED -> "Not installed"
+                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Installed, not running"
+                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Running, not authorized"
+                ShizukuGatewayStatus.AUTHORIZED -> "Authorized"
+                ShizukuGatewayStatus.UNSUPPORTED -> "Unsupported"
             }
-            val statusColor = if (caps.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED)
+            val statusColor = if (shizukuStatus == ShizukuGatewayStatus.AUTHORIZED)
                 MaterialTheme.colorScheme.primary
             else
                 MaterialTheme.colorScheme.onSurfaceVariant
             Text(statusText, style = MaterialTheme.typography.bodyMedium, color = statusColor)
+
+            if (shizukuStatus == ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED) {
+                TextButton(onClick = onRequestPermission) { Text("Request Permission") }
+            }
+
+            permissionResult?.let { result ->
+                val resultText = when (result) {
+                    ShizukuPermissionResult.GRANTED -> "Permission granted"
+                    ShizukuPermissionResult.DENIED -> "Permission denied"
+                    ShizukuPermissionResult.RATIONALE_REQUIRED -> "Rationale required"
+                    ShizukuPermissionResult.UNAVAILABLE -> "Unavailable"
+                }
+                Text(
+                    resultText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

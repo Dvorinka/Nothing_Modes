@@ -26,6 +26,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":automation-android"))
     implementation(project(":capabilities"))
+    implementation(project(":core-shizuku"))
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(platform(libs.compose.bom))
