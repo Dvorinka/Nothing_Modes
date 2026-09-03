@@ -48,6 +48,12 @@ object CapabilityIds {
     const val ACTION_SET_SCREEN_TIMEOUT = "action_set_screen_timeout"
     const val ACTION_SET_GLYPH = "action_set_glyph"
     const val ACTION_SET_GLYPH_MATRIX = "action_set_glyph_matrix"
+    const val ACTION_GLYPH_ANIMATE = "action_glyph_animate"
+    const val ACTION_GLYPH_PROGRESS = "action_glyph_progress"
+    const val ACTION_GLYPH_TEXT = "action_glyph_text"
+    const val ACTION_GLYPH_SCROLLING_TEXT = "action_glyph_scrolling_text"
+    const val ACTION_GLYPH_PRESET = "action_glyph_preset"
+    const val ACTION_GLYPH_TURNOFF = "action_glyph_turnoff"
     const val ACTION_COPY_TEXT = "action_copy_text"
     const val ACTION_WAIT = "action_wait"
     const val ACTION_WRITE_SETTING = "action_write_setting"
@@ -111,6 +117,12 @@ object CapabilityRequirements {
         is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
         is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)
         is Action.SetGlyphMatrix -> setOf(CapabilityIds.ACTION_SET_GLYPH_MATRIX)
+        is Action.GlyphAnimate -> setOf(CapabilityIds.ACTION_GLYPH_ANIMATE)
+        is Action.GlyphProgress -> setOf(CapabilityIds.ACTION_GLYPH_PROGRESS)
+        is Action.GlyphText -> setOf(CapabilityIds.ACTION_GLYPH_TEXT)
+        is Action.GlyphScrollingText -> setOf(CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT)
+        is Action.GlyphPreset -> setOf(CapabilityIds.ACTION_GLYPH_PRESET)
+        is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
         is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
         is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
         is Action.WriteSetting -> setOf(CapabilityIds.ACTION_WRITE_SETTING, CapabilityIds.SHIZUKU_REQUIRED)

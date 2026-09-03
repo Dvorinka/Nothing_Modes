@@ -135,20 +135,40 @@ class CreateAutomationViewModel @Inject constructor(
     private val _saved = MutableStateFlow(false)
     val saved: StateFlow<Boolean> = _saved.asStateFlow()
 
+    private val _editingAutomation = MutableStateFlow<Automation?>(null)
+    val editingAutomation: StateFlow<Automation?> = _editingAutomation.asStateFlow()
+
+    fun loadForEdit(automationId: String) {
+        viewModelScope.launch {
+            val automation = store.get(AutomationId(automationId))
+            _editingAutomation.value = automation
+        }
+    }
+
     fun save(name: String, template: AutomationTemplate) {
         viewModelScope.launch {
-            val id = AutomationId("auto-${System.currentTimeMillis()}")
+            val existing = _editingAutomation.value
+            val id = existing?.id ?: AutomationId("auto-${System.currentTimeMillis()}")
             val automation = Automation(
                 id = id,
                 name = name.ifBlank { template.name },
                 type = template.type,
-                createdBy = CreatedBy.USER,
-                status = AutomationStatus.ARMED,
+                createdBy = existing?.createdBy ?: CreatedBy.USER,
+                status = existing?.status ?: AutomationStatus.ARMED,
                 trigger = Trigger.Time(cron = template.cron, tz = "Europe/Prague"),
                 actions = template.actions,
                 priority = if (template.type == AutomationType.MODE) 10 else 5,
             )
             store.save(automation)
+            _saved.value = true
+        }
+    }
+
+    fun saveEdit(name: String) {
+        viewModelScope.launch {
+            val existing = _editingAutomation.value ?: return@launch
+            val updated = existing.copy(name = name.ifBlank { existing.name })
+            store.save(updated)
             _saved.value = true
         }
     }
@@ -159,11 +179,29 @@ class CreateAutomationViewModel @Inject constructor(
 fun CreateAutomationScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    automationId: String? = null,
     viewModel: CreateAutomationViewModel = hiltViewModel(),
 ) {
     val saved by viewModel.saved.collectAsState()
+    val editing by viewModel.editingAutomation.collectAsState()
     var name by remember { mutableStateOf("") }
     var selectedTemplate by remember { mutableStateOf<AutomationTemplate?>(null) }
+
+    // Load existing automation for editing
+    androidx.compose.runtime.LaunchedEffect(automationId) {
+        if (automationId != null) {
+            viewModel.loadForEdit(automationId)
+        }
+    }
+
+    // Pre-populate name when editing
+    androidx.compose.runtime.LaunchedEffect(editing) {
+        if (editing != null && name.isBlank()) {
+            name = editing!!.name
+        }
+    }
+
+    val isEditing = automationId != null
 
     if (saved) {
         onSaved()
@@ -173,7 +211,7 @@ fun CreateAutomationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Automation") },
+                title = { Text(if (isEditing) "Edit Automation" else "New Automation") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -199,24 +237,30 @@ fun CreateAutomationScreen(
                 singleLine = true,
             )
 
-            Text("Choose a template:", style = MaterialTheme.typography.titleMedium)
+            if (!isEditing) {
+                Text("Choose a template:", style = MaterialTheme.typography.titleMedium)
 
-            AutomationTemplates.templates.forEach { template ->
-                TemplateCard(
-                    template = template,
-                    selected = selectedTemplate == template,
-                    onSelect = { selectedTemplate = template },
-                )
+                AutomationTemplates.templates.forEach { template ->
+                    TemplateCard(
+                        template = template,
+                        selected = selectedTemplate == template,
+                        onSelect = { selectedTemplate = template },
+                    )
+                }
             }
 
             Button(
                 onClick = {
-                    selectedTemplate?.let { viewModel.save(name, it) }
+                    if (isEditing) {
+                        viewModel.saveEdit(name)
+                    } else {
+                        selectedTemplate?.let { viewModel.save(name, it) }
+                    }
                 },
-                enabled = selectedTemplate != null,
+                enabled = if (isEditing) name.isNotBlank() else selectedTemplate != null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Create Automation")
+                Text(if (isEditing) "Save Changes" else "Create Automation")
             }
         }
     }

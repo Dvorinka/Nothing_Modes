@@ -34,6 +34,12 @@ object ActionTypeIds {
     const val SET_SCREEN_TIMEOUT = "set_screen_timeout"
     const val SET_GLYPH = "set_glyph"
     const val SET_GLYPH_MATRIX = "set_glyph_matrix"
+    const val GLYPH_ANIMATE = "glyph_animate"
+    const val GLYPH_PROGRESS = "glyph_progress"
+    const val GLYPH_TEXT = "glyph_text"
+    const val GLYPH_SCROLLING_TEXT = "glyph_scrolling_text"
+    const val GLYPH_PRESET = "glyph_preset"
+    const val GLYPH_TURNOFF = "glyph_turnoff"
     const val SET_MOBILE_DATA = "set_mobile_data"
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
@@ -84,6 +90,42 @@ sealed interface Action {
     /** Glyph Matrix frame. colors = 25x25 (or 13x13) int array. restore = turn off / restore. */
     @Serializable @SerialName(ActionTypeIds.SET_GLYPH_MATRIX)
     data class SetGlyphMatrix(val colors: List<Int>? = null, val restore: Boolean = false) : Action
+
+    /** Animate glyph channels with breathing effect. zone = A/B/C/D/E (null = all). */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_ANIMATE)
+    data class GlyphAnimate(
+        val zone: String? = null,
+        val channels: List<Int>? = null,
+        val periodMs: Int = 3000,
+        val cycles: Int = 3,
+        val intervalMs: Int = 10,
+    ) : Action
+
+    /** Display progress bar on glyph (0-100). reverse = fill from top. */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_PROGRESS)
+    data class GlyphProgress(val progress: Int, val reverse: Boolean = false) : Action
+
+    /** Display text on Glyph Matrix. */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_TEXT)
+    data class GlyphText(
+        val text: String,
+        val x: Int = 0,
+        val y: Int = 0,
+        val scale: Int = 100,
+        val brightness: Int = 255,
+    ) : Action
+
+    /** Display scrolling text (marquee) on Glyph Matrix. */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_SCROLLING_TEXT)
+    data class GlyphScrollingText(val text: String) : Action
+
+    /** Display a named visual preset (sleep, morning, charging, timer, etc.). */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_PRESET)
+    data class GlyphPreset(val preset: String) : Action
+
+    /** Turn off all glyphs. */
+    @Serializable @SerialName(ActionTypeIds.GLYPH_TURNOFF)
+    data object GlyphTurnOff : Action
 
     @Serializable @SerialName(ActionTypeIds.COPY_TEXT) data class CopyText(val text: String) : Action
 

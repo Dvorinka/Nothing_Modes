@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.capabilities.controllers
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ClipData
@@ -18,6 +19,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
+import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShell
@@ -77,6 +79,14 @@ class RealActionExecutor(
 
         // Glyph Matrix
         is Action.SetGlyphMatrix -> setGlyphMatrix(action.restore)
+
+        // Advanced Glyph actions
+        is Action.GlyphAnimate -> glyphAnimate(action)
+        is Action.GlyphProgress -> glyphProgress(action.progress, action.reverse)
+        is Action.GlyphText -> glyphText(action)
+        is Action.GlyphScrollingText -> glyphScrollingText(action.text)
+        is Action.GlyphPreset -> glyphPreset(action.preset)
+        is Action.GlyphTurnOff -> glyphTurnOff()
     }
 
     // --- Shizuku shell actions ---
@@ -153,6 +163,138 @@ class RealActionExecutor(
         }
     }
 
+    // --- Advanced Glyph actions ---
+
+    private suspend fun glyphAnimate(action: Action.GlyphAnimate): ActionResult {
+        val provider = glyphProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val zone = action.zone
+            val result = if (zone != null) {
+                provider.animateZone(zone, action.periodMs, action.cycles, action.intervalMs)
+            } else {
+                provider.animate(action.channels ?: emptyList(), action.periodMs, action.cycles, action.intervalMs)
+            }
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph animate failed")
+        }
+    }
+
+    private suspend fun glyphProgress(progress: Int, reverse: Boolean): ActionResult {
+        val provider = glyphProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val result = provider.displayProgress(progress, reverse)
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph progress failed")
+        }
+    }
+
+    private suspend fun glyphText(action: Action.GlyphText): ActionResult {
+        val provider = glyphMatrixProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val result = provider.displayText(action.text, action.x, action.y, action.scale, action.brightness)
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph text failed")
+        }
+    }
+
+    private suspend fun glyphScrollingText(text: String): ActionResult {
+        val provider = glyphMatrixProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val result = provider.displayScrollingText(text)
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph scrolling text failed")
+        }
+    }
+
+    private suspend fun glyphPreset(preset: String): ActionResult {
+        val visual = presetFor(preset) ?: return ActionResult.Failure("Unknown preset: $preset")
+        return renderGlyphVisual(visual)
+    }
+
+    private suspend fun glyphTurnOff(): ActionResult {
+        val stripeResult = glyphProvider?.takeIf { it.isAvailable() }?.turnOff()
+        val matrixResult = glyphMatrixProvider?.takeIf { it.isAvailable() }?.turnOff()
+        return when {
+            stripeResult != null -> glyphResultToActionResult(stripeResult)
+            matrixResult != null -> glyphResultToActionResult(matrixResult)
+            else -> ActionResult.Unsupported
+        }
+    }
+
+    private fun presetFor(name: String): GlyphPresets.GlyphVisual? = when (name.lowercase()) {
+        "sleep", "sleep_mode" -> GlyphPresets.sleepMode
+        "morning" -> GlyphPresets.morning
+        "work", "work_focus" -> GlyphPresets.workFocus
+        "dnd", "dnd_active" -> GlyphPresets.dndActive
+        "dnd_off" -> GlyphPresets.dndOff
+        "automation_fired", "fired" -> GlyphPresets.automationFired
+        "error" -> GlyphPresets.error
+        "success" -> GlyphPresets.success
+        "charging", "charging_start" -> GlyphPresets.chargingStart
+        "charging_complete" -> GlyphPresets.chargingComplete
+        "incoming_call", "call" -> GlyphPresets.incomingCall
+        "sms", "sms_received" -> GlyphPresets.smsReceived
+        "timer", "timer_fired" -> GlyphPresets.timerFired
+        "off" -> GlyphPresets.off
+        else -> null
+    }
+
+    private suspend fun renderGlyphVisual(visual: GlyphPresets.GlyphVisual): ActionResult {
+        return when (visual) {
+            is GlyphPresets.GlyphVisual.Stripe -> {
+                val provider = glyphProvider ?: return ActionResult.Unsupported
+                if (!provider.isAvailable()) return ActionResult.Unsupported
+                val progress = visual.progress
+                val zone = visual.zone
+                val channels = visual.channels
+                val result = when {
+                    progress != null -> provider.displayProgress(progress)
+                    visual.periodMs > 0 || visual.cycles > 0 -> {
+                        if (zone != null) {
+                            provider.animateZone(zone, visual.periodMs, visual.cycles, visual.intervalMs)
+                        } else {
+                            provider.animate(channels ?: emptyList(), visual.periodMs, visual.cycles, visual.intervalMs)
+                        }
+                    }
+                    zone != null -> provider.toggleZone(zone)
+                    else -> provider.toggle(channels)
+                }
+                glyphResultToActionResult(result)
+            }
+            is GlyphPresets.GlyphVisual.Matrix -> {
+                val provider = glyphMatrixProvider ?: return ActionResult.Unsupported
+                if (!provider.isAvailable()) return ActionResult.Unsupported
+                val color = visual.color
+                val text = visual.text
+                val scrollingText = visual.scrollingText
+                val percentFill = visual.percentFill
+                val number = visual.number
+                val result = when {
+                    color != null -> provider.fillMatrix(color)
+                    text != null -> provider.displayText(text)
+                    scrollingText != null -> provider.displayScrollingText(scrollingText)
+                    percentFill != null -> provider.displayPercentFill(percentFill, visual.fillColor)
+                    number != null -> provider.displayNumber(number)
+                    else -> provider.turnOff()
+                }
+                glyphResultToActionResult(result)
+            }
+            GlyphPresets.GlyphVisual.Off -> glyphTurnOff()
+        }
+    }
+
     private fun glyphResultToActionResult(result: com.tdvorak.nothingmodes.nothing.GlyphResult): ActionResult = when (result) {
         com.tdvorak.nothingmodes.nothing.GlyphResult.Success -> ActionResult.Success
         is com.tdvorak.nothingmodes.nothing.GlyphResult.Failure -> ActionResult.Failure(result.reason)
@@ -163,6 +305,7 @@ class RealActionExecutor(
 
     // --- Local actions ---
 
+    @SuppressLint("MissingPermission")
     private fun vibrate(durationMs: Int): ActionResult {
         return try {
             if (durationMs <= 0) return ActionResult.Success
@@ -232,14 +375,12 @@ class RealActionExecutor(
 
     private fun showNotification(title: String, text: String): ActionResult = try {
         val nm = context.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "Automation Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT,
-            )
-            nm.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            "Automation Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        )
+        nm.createNotificationChannel(channel)
         val notification = androidx.core.app.NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)

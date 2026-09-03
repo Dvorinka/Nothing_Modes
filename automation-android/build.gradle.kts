@@ -36,6 +36,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

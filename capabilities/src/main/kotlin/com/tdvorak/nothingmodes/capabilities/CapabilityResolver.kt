@@ -37,8 +37,8 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
         CapabilityIds.TRIGGER_CONNECTIVITY_POWER -> true
         CapabilityIds.TRIGGER_BATTERY_LEVEL -> true
         CapabilityIds.TRIGGER_SCREEN_STATE -> true
-        CapabilityIds.TRIGGER_APP_OPENED -> true
-        CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation
+        CapabilityIds.TRIGGER_APP_OPENED -> capabilities.hasUsageAccess
+        CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
 
         // State readers
         CapabilityIds.STATE_READER_BUILTIN -> true
@@ -48,8 +48,8 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
         CapabilityIds.STATE_READER_DUMPSYS_FIELD,
         -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
 
-        CapabilityIds.STATE_FOREGROUND_APP -> true
-        CapabilityIds.STATE_LOCATION -> capabilities.hasLocation
+        CapabilityIds.STATE_FOREGROUND_APP -> capabilities.hasUsageAccess
+        CapabilityIds.STATE_LOCATION -> capabilities.hasLocation && capabilities.hasLocationPermission
 
         // Actions
         CapabilityIds.ACTION_SET_WIFI -> capabilities.hasWifi
@@ -74,6 +74,12 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
         CapabilityIds.ACTION_VIBRATE -> capabilities.hasVibrator
         CapabilityIds.ACTION_SET_GLYPH -> capabilities.hasGlyphLightStripe
         CapabilityIds.ACTION_SET_GLYPH_MATRIX -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_ANIMATE -> capabilities.hasGlyphLightStripe
+        CapabilityIds.ACTION_GLYPH_PROGRESS -> capabilities.hasGlyphLightStripe
+        CapabilityIds.ACTION_GLYPH_TEXT -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_PRESET -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_TURNOFF -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
         CapabilityIds.ACTION_COPY_TEXT -> true
         CapabilityIds.ACTION_WAIT -> true
 
@@ -99,8 +105,17 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
 
         CapabilityIds.ACTION_SET_GLYPH -> "No Glyph light stripe on this device"
         CapabilityIds.ACTION_SET_GLYPH_MATRIX -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_ANIMATE -> "No Glyph light stripe on this device"
+        CapabilityIds.ACTION_GLYPH_PROGRESS -> "No Glyph light stripe on this device"
+        CapabilityIds.ACTION_GLYPH_TEXT -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_PRESET -> "No Glyph hardware on this device"
+        CapabilityIds.ACTION_GLYPH_TURNOFF -> "No Glyph hardware on this device"
         CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access required"
-        CapabilityIds.TRIGGER_GEOFENCE -> "Location services required"
+        CapabilityIds.TRIGGER_APP_OPENED -> "Usage access required (Settings > Usage Access)"
+        CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"
+        CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
+        CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
         else -> "Capability not available: $capability"
     }
 }
