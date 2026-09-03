@@ -6,21 +6,29 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.VibratorManager
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
+import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
+import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
+import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
+import com.tdvorak.nothingmodes.shizuku.PrivilegedShell
+import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import kotlinx.coroutines.delay
 
 /**
  * Real ActionExecutor that maps typed actions to Android API controllers.
  * Shizuku-required actions (WiFi, Bluetooth, MobileData, WriteSetting) are
- * delegated to DeviceTools via Shizuku when authorized.
+ * delegated to PrivilegedShell when available.
+ * Glyph actions use NothingGlyphProvider / NothingGlyphMatrixProvider.
  */
 class RealActionExecutor(
     private val context: Context,
@@ -31,6 +39,9 @@ class RealActionExecutor(
     private val screenTimeout: ScreenTimeoutController,
     private val darkMode: DarkModeController,
     private val ringer: RingerController,
+    private val shell: PrivilegedShell? = null,
+    private val glyphProvider: NothingGlyphProvider? = null,
+    private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
 ) : ActionExecutor {
 
     override suspend fun execute(action: Action, context: FireContext): ActionResult = when (action) {
@@ -52,33 +63,115 @@ class RealActionExecutor(
             delay(action.durationMs)
             ActionResult.Success
         }
-        // Shizuku-required actions — return ShizukuRequired for now
-        is Action.SetWifi,
-        is Action.SetBluetooth,
-        is Action.SetMobileData,
-        is Action.WriteSetting,
-        -> ActionResult.ShizukuRequired
+        // Shizuku-required actions
+        is Action.SetWifi -> executeShell(wifiCommand(action.on))
+        is Action.SetBluetooth -> executeShell(bluetoothCommand(action.on))
+        is Action.SetMobileData -> executeShell(mobileDataCommand(action.on))
+        is Action.WriteSetting -> executeShell(writeSettingCommand(action))
 
-        // Nothing-specific — return Unsupported until NothingIntegrations wired
-        is Action.SetGlyph,
-        is Action.SetGlyphMatrix,
-        -> ActionResult.Unsupported
+        // Flashlight
+        is Action.SetFlashlight -> setFlashlight(action.on)
 
-        // Flashlight — needs camera service, deferred
-        is Action.SetFlashlight -> ActionResult.Unsupported
+        // Glyph light stripe
+        is Action.SetGlyph -> setGlyph(action.on)
+
+        // Glyph Matrix
+        is Action.SetGlyphMatrix -> setGlyphMatrix(action.restore)
     }
+
+    // --- Shizuku shell actions ---
+
+    private suspend fun executeShell(command: List<String>): ActionResult {
+        val sh = shell ?: return ActionResult.ShizukuRequired
+        return try {
+            val result = sh.run(command, priority = 0, timeoutMillis = 10_000)
+            if (result.successful) ActionResult.Success
+            else ActionResult.Failure("exit=${result.exitCode} stderr=${result.stderrText.take(200)}")
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "shell command failed")
+        }
+    }
+
+    private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
+    private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
+    private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
+
+    private fun writeSettingCommand(action: Action.WriteSetting): List<String> {
+        val namespace = when (action.namespace) {
+            SettingNamespace.SYSTEM -> "system"
+            SettingNamespace.SECURE -> "secure"
+            SettingNamespace.GLOBAL -> "global"
+        }
+        return listOf("settings", "put", namespace, action.key, action.value)
+    }
+
+    // --- Flashlight via CameraManager ---
+
+    private var torchCameraId: String? = null
+
+    private suspend fun setFlashlight(on: Boolean): ActionResult = try {
+        val cm = context.getSystemService(CameraManager::class.java)
+        if (torchCameraId == null) {
+            torchCameraId = cm.cameraIdList.firstOrNull { id ->
+                val chars = cm.getCameraCharacteristics(id)
+                chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            } ?: return ActionResult.Unsupported
+        }
+        cm.setTorchMode(torchCameraId!!, on)
+        ActionResult.Success
+    } catch (e: Exception) {
+        ActionResult.Failure(e.message ?: "flashlight failed")
+    }
+
+    // --- Glyph light stripe ---
+
+    private suspend fun setGlyph(on: Boolean): ActionResult {
+        val provider = glyphProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val result = if (on) provider.toggle() else provider.turnOff()
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph failed")
+        }
+    }
+
+    // --- Glyph Matrix ---
+
+    private suspend fun setGlyphMatrix(restore: Boolean): ActionResult {
+        val provider = glyphMatrixProvider
+            ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            val result = if (restore) provider.closeFrame() else provider.turnOff()
+            glyphResultToActionResult(result)
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph matrix failed")
+        }
+    }
+
+    private fun glyphResultToActionResult(result: com.tdvorak.nothingmodes.nothing.GlyphResult): ActionResult = when (result) {
+        com.tdvorak.nothingmodes.nothing.GlyphResult.Success -> ActionResult.Success
+        is com.tdvorak.nothingmodes.nothing.GlyphResult.Failure -> ActionResult.Failure(result.reason)
+        com.tdvorak.nothingmodes.nothing.GlyphResult.Unsupported -> ActionResult.Unsupported
+        com.tdvorak.nothingmodes.nothing.GlyphResult.PermissionRequired -> ActionResult.PermissionRequired
+        com.tdvorak.nothingmodes.nothing.GlyphResult.ServiceUnavailable -> ActionResult.Failure("glyph service unavailable")
+    }
+
+    // --- Local actions ---
 
     private fun vibrate(durationMs: Int): ActionResult {
         return try {
             if (durationMs <= 0) return ActionResult.Success
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = context.getSystemService(VibratorManager::class.java)
-            vm.defaultVibrator.vibrate(VibrationEffect.createOneShot(durationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
-        }
+                val vm = context.getSystemService(VibratorManager::class.java)
+                vm.defaultVibrator.vibrate(VibrationEffect.createOneShot(durationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                vibrator.vibrate(VibrationEffect.createOneShot(durationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+            }
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "vibrate failed")
@@ -122,9 +215,7 @@ class RealActionExecutor(
             SettingsScreen.LOCATION -> android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
             SettingsScreen.BATTERY -> Intent.ACTION_POWER_USAGE_SUMMARY
             SettingsScreen.DATE -> android.provider.Settings.ACTION_DATE_SETTINGS
-            SettingsScreen.APP_DETAILS -> {
-                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-            }
+            SettingsScreen.APP_DETAILS -> android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
             SettingsScreen.SETTINGS -> android.provider.Settings.ACTION_SETTINGS
         }
         val intent = Intent(action).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
@@ -164,7 +255,12 @@ class RealActionExecutor(
         private const val NOTIFICATION_ID_BASE = 2000
 
         /** Factory: creates a RealActionExecutor with all Android controllers. */
-        fun create(context: Context): RealActionExecutor = RealActionExecutor(
+        fun create(
+            context: Context,
+            shell: PrivilegedShell? = null,
+            glyphProvider: NothingGlyphProvider? = null,
+            glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
+        ): RealActionExecutor = RealActionExecutor(
             context = context.applicationContext,
             brightness = AndroidBrightnessController(context),
             extraDim = AndroidExtraDimController(context),
@@ -173,6 +269,9 @@ class RealActionExecutor(
             screenTimeout = AndroidScreenTimeoutController(context),
             darkMode = AndroidDarkModeController(context),
             ringer = AndroidRingerController(context),
+            shell = shell,
+            glyphProvider = glyphProvider,
+            glyphMatrixProvider = glyphMatrixProvider,
         )
     }
 }

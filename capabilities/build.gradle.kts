@@ -18,6 +18,7 @@ android {
 
 dependencies {
     implementation(project(":engine-core"))
+    implementation(project(":core-shizuku"))
     implementation(project(":device-tools"))
     implementation(project(":nothing-integrations"))
     implementation(libs.androidx.core.ktx)
