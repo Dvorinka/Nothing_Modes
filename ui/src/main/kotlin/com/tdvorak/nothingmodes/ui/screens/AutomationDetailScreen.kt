@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
@@ -76,6 +77,21 @@ class AutomationDetailViewModel @Inject constructor(
             onDeleted()
         }
     }
+
+    fun duplicate(onDuplicated: () -> Unit) {
+        val current = _automation.value ?: return
+        viewModelScope.launch {
+            val copy = current.copy(
+                id = com.tdvorak.nothingmodes.engine.model.AutomationId(
+                    "${current.id.value}-copy-${System.currentTimeMillis()}"
+                ),
+                name = "${current.name} (copy)",
+                enabled = false,
+            )
+            store.save(copy)
+            onDuplicated()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,6 +117,9 @@ fun AutomationDetailScreen(
                 actions = {
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = { viewModel.duplicate(onBack) }) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate")
                     }
                     IconButton(onClick = { viewModel.delete(onBack) }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")

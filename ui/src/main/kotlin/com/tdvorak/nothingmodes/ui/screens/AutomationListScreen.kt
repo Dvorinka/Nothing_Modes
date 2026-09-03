@@ -79,6 +79,20 @@ class AutomationListViewModel @Inject constructor(
             load()
         }
     }
+
+    fun duplicate(automation: Automation) {
+        viewModelScope.launch {
+            val copy = automation.copy(
+                id = com.tdvorak.nothingmodes.engine.model.AutomationId(
+                    "${automation.id.value}-copy-${System.currentTimeMillis()}"
+                ),
+                name = "${automation.name} (copy)",
+                enabled = false,
+            )
+            store.save(copy)
+            load()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
