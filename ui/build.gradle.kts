@@ -26,6 +26,8 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":automation-android"))
     implementation(project(":capabilities"))
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
