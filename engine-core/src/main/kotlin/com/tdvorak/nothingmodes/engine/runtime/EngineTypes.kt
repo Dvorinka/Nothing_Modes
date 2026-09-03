@@ -77,6 +77,15 @@ object NoopExecutionJournal : ExecutionJournal {
     override suspend fun finish(completion: ExecutionCompletion) = Unit
 }
 
+/** Provides device state for condition evaluation. */
+fun interface StateProvider {
+    suspend fun read(): DeviceState
+}
+
+object NoopStateProvider : StateProvider {
+    override suspend fun read(): DeviceState = DeviceState()
+}
+
 /** Fire policy: cooldown and duplicate suppression. */
 class FirePolicy {
 

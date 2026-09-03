@@ -11,7 +11,6 @@ import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
-import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -46,6 +45,7 @@ class AutomationService : Service() {
 
         when (intent?.action) {
             ACTION_RESCHEDULE -> handleReschedule()
+            ACTION_BOOT -> handleBoot()
             AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
@@ -61,6 +61,17 @@ class AutomationService : Service() {
             store.armed().forEach { automation ->
                 scheduler.schedule(automation)
             }
+        }
+    }
+
+    private fun handleBoot() {
+        scope.launch {
+            store.armed().forEach { automation ->
+                scheduler.schedule(automation)
+            }
+            dispatchEvent(TriggerEvent.BootCompleted(
+                eventId = "boot:${System.currentTimeMillis()}",
+            ))
         }
     }
 
@@ -131,6 +142,7 @@ class AutomationService : Service() {
 
     companion object {
         const val ACTION_RESCHEDULE = "com.tdvorak.nothingmodes.RESCHEDULE"
+        const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }

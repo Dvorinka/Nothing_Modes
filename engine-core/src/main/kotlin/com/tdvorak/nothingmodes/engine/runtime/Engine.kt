@@ -16,6 +16,7 @@ class Engine(
     private val firePolicy: FirePolicy = FirePolicy(),
     private val audit: AuditSink = NoopAuditSink,
     private val journal: ExecutionJournal = NoopExecutionJournal,
+    private val stateProvider: StateProvider = NoopStateProvider,
     private val executionIds: ExecutionIdFactory = StableExecutionIdFactory,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -56,7 +57,7 @@ class Engine(
                 }
 
                 if (automation.conditions != null) {
-                    val state = DeviceState(now = batchNow)
+                    val state = runCatching { stateProvider.read() }.getOrDefault(DeviceState(now = batchNow))
                     when (evaluator.result(automation.conditions, state)) {
                         ConditionEvaluator.Result.MET -> Unit
                         ConditionEvaluator.Result.NOT_MET,

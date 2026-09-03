@@ -12,6 +12,7 @@ import com.tdvorak.nothingmodes.engine.runtime.AuditSink
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.ExecutionJournal
+import com.tdvorak.nothingmodes.engine.runtime.StateProvider
 import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
@@ -93,16 +94,23 @@ object AutomationModule {
 
     @Provides
     @Singleton
+    fun provideStateProvider(@ApplicationContext context: Context): StateProvider =
+        com.tdvorak.nothingmodes.capabilities.controllers.AndroidStateProvider(context)
+
+    @Provides
+    @Singleton
     fun provideEngine(
         store: AutomationStore,
         executor: ActionExecutor,
         audit: AuditSink,
         journal: ExecutionJournal,
+        stateProvider: StateProvider,
     ): Engine = Engine(
         store = store,
         executor = executor,
         audit = audit,
         journal = journal,
+        stateProvider = stateProvider,
         executionIds = StableExecutionIdFactory,
     )
 

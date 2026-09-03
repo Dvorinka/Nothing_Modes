@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -20,9 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,6 +72,13 @@ class AutomationListViewModel @Inject constructor(
         viewModelScope.launch {
             val updated = automation.copy(enabled = !automation.enabled)
             store.save(updated)
+            load()
+        }
+    }
+
+    fun delete(automation: Automation) {
+        viewModelScope.launch {
+            store.delete(automation.id)
             load()
         }
     }
@@ -132,11 +143,38 @@ fun AutomationListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items) { automation ->
-                    AutomationCard(
-                        automation = automation,
-                        onClick = { onAutomationClick(automation.id.value) },
-                        onToggle = { viewModel.toggleEnabled(automation) },
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.delete(automation)
+                                true
+                            } else false
+                        },
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        },
+                        enableDismissFromStartToStart = false,
+                    ) {
+                        AutomationCard(
+                            automation = automation,
+                            onClick = { onAutomationClick(automation.id.value) },
+                            onToggle = { viewModel.toggleEnabled(automation) },
+                        )
+                    }
                 }
             }
         }
