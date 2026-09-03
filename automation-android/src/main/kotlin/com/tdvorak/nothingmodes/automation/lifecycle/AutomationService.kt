@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -49,6 +50,8 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
+            ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
+            ACTION_SCREEN_STATE -> handleScreenState(intent)
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -102,6 +105,26 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleBatteryChanged(intent: Intent) {
+        val level = intent.getIntExtra(DeviceStateReceiver.EXTRA_BATTERY_LEVEL, -1)
+        if (level < 0) return
+        val isCharging = intent.getBooleanExtra(DeviceStateReceiver.EXTRA_BATTERY_CHARGING, false)
+        dispatchEvent(TriggerEvent.BatteryLevelChanged(
+            eventId = "battery:${System.currentTimeMillis()}",
+            level = level,
+            isCharging = isCharging,
+        ))
+    }
+
+    private fun handleScreenState(intent: Intent) {
+        val stateName = intent.getStringExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE) ?: return
+        val state = runCatching { ScreenState.valueOf(stateName) }.getOrNull() ?: return
+        dispatchEvent(TriggerEvent.ScreenStateChanged(
+            eventId = "screen:${System.currentTimeMillis()}",
+            state = state,
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         scope.launch {
             val envelope = TriggerEnvelope(
@@ -143,6 +166,8 @@ class AutomationService : Service() {
     companion object {
         const val ACTION_RESCHEDULE = "com.tdvorak.nothingmodes.RESCHEDULE"
         const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
+        const val ACTION_BATTERY_CHANGED = "com.tdvorak.nothingmodes.BATTERY_CHANGED"
+        const val ACTION_SCREEN_STATE = "com.tdvorak.nothingmodes.SCREEN_STATE"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }
