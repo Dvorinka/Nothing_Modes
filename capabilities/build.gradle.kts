@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dvoranka.nothingmodes.capabilities"
+    namespace = "com.tdvorak.nothingmodes.capabilities"
     compileSdk = 36
 
     defaultConfig { minSdk = 28 }

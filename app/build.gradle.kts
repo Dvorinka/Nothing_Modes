@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.dvoranka.nothingmodes"
+    namespace = "com.tdvorak.nothingmodes"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.dvoranka.nothingmodes"
+        applicationId = "com.tdvorak.nothingmodes"
         minSdk = 28
         targetSdk = 36
         versionCode = 1

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dvoranka.nothingmodes.shizuku"
+    namespace = "com.tdvorak.nothingmodes.shizuku"
     compileSdk = 36
 
     defaultConfig {

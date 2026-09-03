@@ -12,7 +12,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 ### engine-core (REUSE — port directly)
 
-**Package:** `dev.argus.engine` → rename to `com.dvoranka.nothingmodes.engine`
+**Package:** `dev.argus.engine` → rename to `com.tdvorak.nothingmodes.engine`
 
 **What it is:** Pure JVM Kotlin, zero Android dependencies. Domain models, runtime, validation, scheduling, fingerprinting.
 
@@ -45,7 +45,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 ### automation-android (REUSE — adapt heavily)
 
-**Package:** `dev.argus.automation` → rename to `com.dvoranka.nothingmodes.automation`
+**Package:** `dev.argus.automation` → rename to `com.tdvorak.nothingmodes.automation`
 
 **Key components:**
 
@@ -68,7 +68,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 ### core-shizuku (REUSE — port directly)
 
-**Package:** `dev.argus.shizuku` → rename to `com.dvoranka.nothingmodes.shizuku`
+**Package:** `dev.argus.shizuku` → rename to `com.tdvorak.nothingmodes.shizuku`
 
 | Component | Role | Reuse? |
 |---|---|---|
@@ -79,7 +79,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 ### device-tools (REUSE — adapt)
 
-**Package:** `dev.argus.device` → rename to `com.dvoranka.nothingmodes.device`
+**Package:** `dev.argus.device` → rename to `com.tdvorak.nothingmodes.device`
 
 | Component | Role | Reuse? |
 |---|---|---|
@@ -89,7 +89,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 ### data (REUSE — adapt schema)
 
-**Package:** `dev.argus.data` → rename to `com.dvoranka.nothingmodes.data`
+**Package:** `dev.argus.data` → rename to `com.tdvorak.nothingmodes.data`
 
 | Component | Role | Reuse? |
 |---|---|---|
@@ -141,7 +141,7 @@ Argus UI is Material 3, Italian language, 6 stateless screens. We replace it com
 
 ### app (REUSE — adapt)
 
-**Package:** `dev.argus` → rename to `com.dvoranka.nothingmodes`
+**Package:** `dev.argus` → rename to `com.tdvorak.nothingmodes`
 
 | Component | Role | Reuse? |
 |---|---|---|
