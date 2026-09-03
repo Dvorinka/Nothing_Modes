@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.tdvorak.nothingmodes.ui.screens.AutomationDetailScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
 import com.tdvorak.nothingmodes.ui.screens.CreateAutomationScreen
+import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 
@@ -17,11 +18,14 @@ object Routes {
     const val AUTOMATION_DETAIL = "automation/{id}"
     const val CREATE_AUTOMATION = "create"
     const val EDIT_AUTOMATION = "edit/{id}"
+    const val CUSTOM_BUILDER = "builder"
+    const val CUSTOM_BUILDER_EDIT = "builder/edit/{id}"
     const val EXECUTION_LOG = "log"
     const val SETTINGS = "settings"
 
     fun automationDetail(id: String) = "automation/$id"
     fun editAutomation(id: String) = "edit/$id"
+    fun builderEdit(id: String) = "builder/edit/$id"
 }
 
 @Composable
@@ -49,12 +53,36 @@ fun NothingModesNavHost() {
             AutomationDetailScreen(
                 automationId = id,
                 onBack = { navController.popBackStack() },
-                onEdit = { navController.navigate(Routes.editAutomation(id)) },
+                onEdit = { navController.navigate(Routes.builderEdit(id)) },
             )
         }
 
         composable(Routes.CREATE_AUTOMATION) {
             CreateAutomationScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
+                onCustomBuilder = { navController.navigate(Routes.CUSTOM_BUILDER) },
+            )
+        }
+
+        composable(Routes.CUSTOM_BUILDER) {
+            CustomAutomationBuilderScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
+            )
+        }
+
+        composable(
+            route = Routes.CUSTOM_BUILDER_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            CustomAutomationBuilderScreen(
+                automationId = id,
                 onBack = { navController.popBackStack() },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)

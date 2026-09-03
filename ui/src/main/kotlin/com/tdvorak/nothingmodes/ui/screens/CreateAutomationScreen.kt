@@ -180,6 +180,7 @@ fun CreateAutomationScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     automationId: String? = null,
+    onCustomBuilder: () -> Unit = {},
     viewModel: CreateAutomationViewModel = hiltViewModel(),
 ) {
     val saved by viewModel.saved.collectAsState()
@@ -246,6 +247,13 @@ fun CreateAutomationScreen(
                         selected = selectedTemplate == template,
                         onSelect = { selectedTemplate = template },
                     )
+                }
+
+                androidx.compose.material3.TextButton(
+                    onClick = onCustomBuilder,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Or build a custom automation →")
                 }
             }
 
