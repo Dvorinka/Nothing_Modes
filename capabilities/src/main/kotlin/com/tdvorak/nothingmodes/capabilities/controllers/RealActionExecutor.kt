@@ -109,18 +109,20 @@ class RealActionExecutor(
 
     private var torchCameraId: String? = null
 
-    private suspend fun setFlashlight(on: Boolean): ActionResult = try {
-        val cm = context.getSystemService(CameraManager::class.java)
-        if (torchCameraId == null) {
-            torchCameraId = cm.cameraIdList.firstOrNull { id ->
-                val chars = cm.getCameraCharacteristics(id)
-                chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-            } ?: return ActionResult.Unsupported
+    private suspend fun setFlashlight(on: Boolean): ActionResult {
+        return try {
+            val cm = context.getSystemService(CameraManager::class.java)
+            if (torchCameraId == null) {
+                torchCameraId = cm.cameraIdList.firstOrNull { id ->
+                    val chars = cm.getCameraCharacteristics(id)
+                    chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                } ?: return ActionResult.Unsupported
+            }
+            cm.setTorchMode(torchCameraId!!, on)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "flashlight failed")
         }
-        cm.setTorchMode(torchCameraId!!, on)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "flashlight failed")
     }
 
     // --- Glyph light stripe ---
