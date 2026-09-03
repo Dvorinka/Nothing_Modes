@@ -1,8 +1,11 @@
 package com.tdvorak.nothingmodes.capabilities
 
+import android.app.AppOpsManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 
 /** Detects device capabilities at runtime. */
 class CapabilityDetector(private val context: Context) {
@@ -31,12 +34,50 @@ class CapabilityDetector(private val context: Context) {
             hasGlyphTouch = false,
             nothingSdkAvailable = false,
             nothingSdkConnected = false,
-            // Permissions checked separately
-            hasNotificationPolicyAccess = false,
-            hasWriteSettings = false,
-            hasNotificationListenerAccess = false,
+            // Permissions
+            hasNotificationPolicyAccess = checkNotificationPolicyAccess(),
+            hasWriteSettings = android.provider.Settings.System.canWrite(context),
+            hasNotificationListenerAccess = checkNotificationListenerAccess(),
+            hasUsageAccess = checkUsageAccess(),
+            hasLocationPermission = checkLocationPermission(),
         )
     }
+
+    private fun checkNotificationPolicyAccess(): Boolean {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        return nm?.isNotificationPolicyAccessGranted == true
+    }
+
+    private fun checkNotificationListenerAccess(): Boolean {
+        val enabledListeners = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners",
+        ) ?: return false
+        return enabledListeners.contains(context.packageName)
+    }
+
+    private fun checkUsageAccess(): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName,
+            )
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun checkLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun resolveDeviceName(model: String): String = when {
         model.startsWith("A063") -> "Phone (1)"

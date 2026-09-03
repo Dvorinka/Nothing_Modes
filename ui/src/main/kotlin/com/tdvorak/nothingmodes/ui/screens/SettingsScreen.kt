@@ -155,6 +155,17 @@ private fun PermissionsCard(context: android.content.Context, caps: DeviceCapabi
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             }
+            PermissionRow("Usage Access", caps.hasUsageAccess) {
+                context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            }
+            PermissionRow("Location", caps.hasLocationPermission) {
+                context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            }
         }
     }
 }
