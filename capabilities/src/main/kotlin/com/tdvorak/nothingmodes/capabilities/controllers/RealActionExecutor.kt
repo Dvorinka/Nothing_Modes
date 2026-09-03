@@ -11,8 +11,6 @@ import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.media.MediaMetadata
-import android.media.session.MediaSession
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -417,16 +415,18 @@ class RealActionExecutor(
 
     // --- System settings toggles (Phase 4) ---
 
-    private fun setAutoRotate(on: Boolean): ActionResult = try {
-        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
-        Settings.System.putInt(
-            context.contentResolver,
-            Settings.System.ACCELEROMETER_ROTATION,
-            if (on) 1 else 0,
-        )
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "setAutoRotate failed")
+    private fun setAutoRotate(on: Boolean): ActionResult {
+        return try {
+            if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+            Settings.System.putInt(
+                context.contentResolver,
+                Settings.System.ACCELEROMETER_ROTATION,
+                if (on) 1 else 0,
+            )
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setAutoRotate failed")
+        }
     }
 
     private suspend fun setBluetooth(on: Boolean): ActionResult {
@@ -499,75 +499,81 @@ class RealActionExecutor(
         "svc", "nfc", if (on) "enable" else "disable",
     )
 
-    private fun setRefreshRate(hz: Int): ActionResult = try {
-        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
-        // peak_refresh_rate and min_refresh_rate are in Settings.System on Nothing OS
-        Settings.System.putInt(context.contentResolver, "peak_refresh_rate", hz)
-        Settings.System.putInt(context.contentResolver, "min_refresh_rate", hz)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "setRefreshRate failed")
+    private fun setRefreshRate(hz: Int): ActionResult {
+        return try {
+            if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+            Settings.System.putInt(context.contentResolver, "peak_refresh_rate", hz)
+            Settings.System.putInt(context.contentResolver, "min_refresh_rate", hz)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setRefreshRate failed")
+        }
     }
 
-    private fun setScreenRotation(orientation: ScreenOrientation): ActionResult = try {
-        if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
-        when (orientation) {
-            ScreenOrientation.AUTO -> {
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.ACCELEROMETER_ROTATION,
-                    1,
-                )
+    private fun setScreenRotation(orientation: ScreenOrientation): ActionResult {
+        return try {
+            if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+            when (orientation) {
+                ScreenOrientation.AUTO -> {
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.ACCELEROMETER_ROTATION,
+                        1,
+                    )
+                }
+                ScreenOrientation.PORTRAIT -> {
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.ACCELEROMETER_ROTATION,
+                        0,
+                    )
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.USER_ROTATION,
+                        0, // PORTRAIT
+                    )
+                }
+                ScreenOrientation.LANDSCAPE -> {
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.ACCELEROMETER_ROTATION,
+                        0,
+                    )
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.USER_ROTATION,
+                        1, // LANDSCAPE
+                    )
+                }
             }
-            ScreenOrientation.PORTRAIT -> {
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.ACCELEROMETER_ROTATION,
-                    0,
-                )
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.USER_ROTATION,
-                    0, // PORTRAIT
-                )
-            }
-            ScreenOrientation.LANDSCAPE -> {
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.ACCELEROMETER_ROTATION,
-                    0,
-                )
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.USER_ROTATION,
-                    1, // LANDSCAPE
-                )
-            }
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setScreenRotation failed")
         }
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "setScreenRotation failed")
     }
 
-    private fun mediaControl(command: MediaCommand): ActionResult = try {
-        val keyCode = when (command) {
-            MediaCommand.PLAY_PAUSE -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-            MediaCommand.NEXT -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
-            MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
-            MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
+    private fun mediaControl(command: MediaCommand): ActionResult {
+        return try {
+            val keyCode = when (command) {
+                MediaCommand.PLAY_PAUSE -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                MediaCommand.NEXT -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
+            }
+            // dispatchMediaKeyEvent is the correct public API for media button dispatch.
+            // On Android 8+ it requires the caller to be the current media session owner
+            // or have the MEDIA_CONTENT_CONTROL permission. Fallback: send an ordered broadcast.
+            val audioManager = context.getSystemService(android.media.AudioManager::class.java)
+            audioManager.dispatchMediaKeyEvent(
+                android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
+            )
+            audioManager.dispatchMediaKeyEvent(
+                android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
+            )
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "mediaControl failed")
         }
-        // Use MediaSession for reliable dispatch on modern Android
-        val session = MediaSession(context, "NothingModesMediaControl")
-        session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS)
-        val keyEvent = android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode)
-        session.dispatchMediaButtonEvent(keyEvent)
-        session.dispatchMediaButtonEvent(
-            android.view.KeyEvent.changeAction(keyEvent, android.view.KeyEvent.ACTION_UP),
-        )
-        session.release()
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "mediaControl failed")
     }
 
     companion object {
