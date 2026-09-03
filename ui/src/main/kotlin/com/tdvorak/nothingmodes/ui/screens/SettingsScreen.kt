@@ -3,6 +3,8 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings as AndroidSettings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +37,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
+import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
@@ -48,7 +53,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val shizukuGateway: ShizukuGateway,
+    private val store: AutomationStore,
 ) : ViewModel() {
+
+    private val importExportService = ImportExportService(store)
 
     private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
     val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
@@ -58,6 +66,12 @@ class SettingsViewModel @Inject constructor(
 
     private val _permissionResult = MutableStateFlow<ShizukuPermissionResult?>(null)
     val permissionResult: StateFlow<ShizukuPermissionResult?> = _permissionResult.asStateFlow()
+
+    private val _importResult = MutableStateFlow<ImportResult?>(null)
+    val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
+
+    private val _exportReady = MutableStateFlow<String?>(null)
+    val exportReady: StateFlow<String?> = _exportReady.asStateFlow()
 
     fun detect(context: android.content.Context) {
         viewModelScope.launch {
@@ -72,6 +86,22 @@ class SettingsViewModel @Inject constructor(
             _shizukuStatus.value = shizukuGateway.status()
         }
     }
+
+    fun export() {
+        viewModelScope.launch {
+            val result = importExportService.export()
+            _exportReady.value = result.json
+        }
+    }
+
+    fun import(json: String) {
+        viewModelScope.launch {
+            _importResult.value = importExportService.import(json)
+        }
+    }
+
+    fun clearExportReady() { _exportReady.value = null }
+    fun clearImportResult() { _importResult.value = null }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,8 +114,32 @@ fun SettingsScreen(
     val caps by viewModel.capabilities.collectAsState()
     val shizukuStatus by viewModel.shizukuStatus.collectAsState()
     val permissionResult by viewModel.permissionResult.collectAsState()
+    val importResult by viewModel.importResult.collectAsState()
+    val exportReady by viewModel.exportReady.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.detect(context) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri: Uri? ->
+        if (uri != null && exportReady != null) {
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(exportReady!!.toByteArray(Charsets.UTF_8))
+            }
+            viewModel.clearExportReady()
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val json = context.contentResolver.openInputStream(uri)?.use { input ->
+                input.readBytes().toString(Charsets.UTF_8)
+            }
+            if (json != null) viewModel.import(json)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -116,6 +170,17 @@ fun SettingsScreen(
                     onRequestPermission = { viewModel.requestShizukuPermission() },
                 )
                 AboutCard(capabilities)
+                ImportExportCard(
+                    onExport = {
+                        viewModel.export()
+                        exportLauncher.launch("nothing-modes-export.json")
+                    },
+                    onImport = {
+                        importLauncher.launch(arrayOf("application/json"))
+                    },
+                    importResult = importResult,
+                    onDismissResult = { viewModel.clearImportResult() },
+                )
             }
         }
     }
@@ -248,6 +313,46 @@ private fun PermissionRow(label: String, granted: Boolean, onOpenSettings: () ->
         )
         if (!granted) {
             TextButton(onClick = onOpenSettings) { Text("Grant") }
+        }
+    }
+}
+
+@Composable
+private fun ImportExportCard(
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    importResult: ImportResult?,
+    onDismissResult: () -> Unit,
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Backup", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Export automations to a JSON file or import from a backup.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onExport) { Text("Export") }
+                TextButton(onClick = onImport) { Text("Import") }
+            }
+            importResult?.let { result ->
+                HorizontalDivider()
+                Text(
+                    "Imported: ${result.imported}, Skipped: ${result.skipped}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (result.errors.isNotEmpty()) {
+                    result.errors.forEach { error ->
+                        Text(
+                            error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                TextButton(onClick = onDismissResult) { Text("Dismiss") }
+            }
         }
     }
 }
