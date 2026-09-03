@@ -74,6 +74,12 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
         CapabilityIds.ACTION_VIBRATE -> capabilities.hasVibrator
         CapabilityIds.ACTION_SET_GLYPH -> capabilities.hasGlyphLightStripe
         CapabilityIds.ACTION_SET_GLYPH_MATRIX -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_ANIMATE -> capabilities.hasGlyphLightStripe
+        CapabilityIds.ACTION_GLYPH_PROGRESS -> capabilities.hasGlyphLightStripe
+        CapabilityIds.ACTION_GLYPH_TEXT -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_PRESET -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
+        CapabilityIds.ACTION_GLYPH_TURNOFF -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
         CapabilityIds.ACTION_COPY_TEXT -> true
         CapabilityIds.ACTION_WAIT -> true
 
@@ -99,6 +105,12 @@ class CapabilityResolver(private val capabilities: DeviceCapabilities) {
 
         CapabilityIds.ACTION_SET_GLYPH -> "No Glyph light stripe on this device"
         CapabilityIds.ACTION_SET_GLYPH_MATRIX -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_ANIMATE -> "No Glyph light stripe on this device"
+        CapabilityIds.ACTION_GLYPH_PROGRESS -> "No Glyph light stripe on this device"
+        CapabilityIds.ACTION_GLYPH_TEXT -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> "No Glyph Matrix on this device"
+        CapabilityIds.ACTION_GLYPH_PRESET -> "No Glyph hardware on this device"
+        CapabilityIds.ACTION_GLYPH_TURNOFF -> "No Glyph hardware on this device"
         CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access required"
         CapabilityIds.TRIGGER_GEOFENCE -> "Location services required"
         else -> "Capability not available: $capability"
