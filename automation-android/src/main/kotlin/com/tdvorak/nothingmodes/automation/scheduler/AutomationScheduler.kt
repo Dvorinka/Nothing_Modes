@@ -68,17 +68,21 @@ class AutomationScheduler(private val context: Context) {
         val triggerAtMillis = next.toInstant().toEpochMilli()
 
         val pendingIntent = timePendingIntent(id, isStart = true)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(triggerAtMillis, null),
-                pendingIntent,
-            )
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent,
-            )
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerAtMillis, null),
+                    pendingIntent,
+                )
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent,
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Cannot schedule exact alarm for ${id.value}: ${e.message}")
         }
     }
 
@@ -100,14 +104,18 @@ class AutomationScheduler(private val context: Context) {
         val nextStart = if (startToday.isAfter(now)) startToday else startToday.plusDays(1)
         val nextEnd = if (endToday.isAfter(now)) endToday else endToday.plusDays(1)
 
-        alarmManager.setAlarmClock(
-            AlarmManager.AlarmClockInfo(nextStart.toInstant().toEpochMilli(), null),
-            windowPendingIntent(id, isStart = true),
-        )
-        alarmManager.setAlarmClock(
-            AlarmManager.AlarmClockInfo(nextEnd.toInstant().toEpochMilli(), null),
-            windowPendingIntent(id, isStart = false),
-        )
+        try {
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(nextStart.toInstant().toEpochMilli(), null),
+                windowPendingIntent(id, isStart = true),
+            )
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(nextEnd.toInstant().toEpochMilli(), null),
+                windowPendingIntent(id, isStart = false),
+            )
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Cannot schedule window alarms for ${id.value}: ${e.message}")
+        }
     }
 
     private fun parseToday(time: String, now: ZonedDateTime): ZonedDateTime {

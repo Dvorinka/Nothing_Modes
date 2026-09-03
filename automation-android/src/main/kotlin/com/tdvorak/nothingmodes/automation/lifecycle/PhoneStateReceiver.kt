@@ -35,7 +35,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
         val incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER) ?: ""
 
-        Log.d(TAG, "Phone state: $state number=$incomingNumber")
+        Log.d(TAG, "Phone state: $state")
 
         val phoneEvent = when (state) {
             TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
@@ -61,7 +61,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
 
-        Log.d(TAG, "SMS received: from=$sender body=${body.take(80)}")
+        Log.d(TAG, "SMS received: from=$sender")
 
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_SMS
