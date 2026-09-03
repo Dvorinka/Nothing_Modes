@@ -21,6 +21,7 @@ data class DeviceState(
     val screenState: ScreenState = ScreenState.OFF,
     val foregroundApp: String? = null,
     val activeModeIds: Set<String> = emptySet(),
+    val values: Map<String, String> = emptyMap(),
     val now: Long = System.currentTimeMillis(),
 )
 
