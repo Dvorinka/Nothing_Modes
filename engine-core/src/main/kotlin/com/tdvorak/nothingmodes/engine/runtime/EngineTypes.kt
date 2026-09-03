@@ -86,6 +86,36 @@ object NoopStateProvider : StateProvider {
     override suspend fun read(): DeviceState = DeviceState()
 }
 
+/** Snapshot of a single setting value for later restoration. */
+data class StateSnapshot(
+    val automationId: AutomationId,
+    val settingKey: String,
+    val previousValue: String,
+    val capturedAtMillis: Long,
+)
+
+/** Stores and retrieves state snapshots for mode restoration. */
+interface StateSnapshotStore {
+    suspend fun save(snapshot: StateSnapshot)
+    suspend fun forAutomation(id: AutomationId): List<StateSnapshot>
+    suspend fun deleteForAutomation(id: AutomationId)
+}
+
+object NoopStateSnapshotStore : StateSnapshotStore {
+    override suspend fun save(snapshot: StateSnapshot) = Unit
+    override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> = emptyList()
+    override suspend fun deleteForAutomation(id: AutomationId) = Unit
+}
+
+/** Reads a single setting value for snapshotting (before mode activation). */
+fun interface SettingReader {
+    suspend fun read(key: String): String?
+}
+
+object NoopSettingReader : SettingReader {
+    override suspend fun read(key: String): String? = null
+}
+
 /** Fire policy: cooldown and duplicate suppression. */
 class FirePolicy {
 

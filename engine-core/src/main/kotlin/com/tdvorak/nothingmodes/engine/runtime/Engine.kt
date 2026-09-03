@@ -5,6 +5,8 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.affectedSettings
+import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import kotlinx.coroutines.CancellationException
 
 /** Core engine: matches triggers, evaluates conditions, executes actions. */
@@ -17,6 +19,8 @@ class Engine(
     private val audit: AuditSink = NoopAuditSink,
     private val journal: ExecutionJournal = NoopExecutionJournal,
     private val stateProvider: StateProvider = NoopStateProvider,
+    private val snapshotStore: StateSnapshotStore = NoopStateSnapshotStore,
+    private val settingReader: SettingReader = NoopSettingReader,
     private val executionIds: ExecutionIdFactory = StableExecutionIdFactory,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -73,6 +77,16 @@ class Engine(
                     }
                 }
 
+                // Mode window-end: restore snapshots before executing actions
+                if (event is TriggerEvent.ModeWindowEnd && automation.type == AutomationType.MODE) {
+                    restoreSnapshots(automation.id, batchNow)
+                }
+
+                // Mode window-start: snapshot affected settings before executing
+                if (event is TriggerEvent.ModeWindowStart && automation.type == AutomationType.MODE) {
+                    snapshotSettings(automation, batchNow)
+                }
+
                 automation.actions.forEachIndexed { index, action ->
                     val context = FireContext(
                         eventId = envelope.id,
@@ -101,7 +115,10 @@ class Engine(
 
                 audit.record(AuditEvent(
                     automationId = automation.id,
-                    kind = if (automation.type == AutomationType.MODE) AuditKind.MODE_ACTIVATED else AuditKind.FIRED,
+                    kind = if (event is TriggerEvent.ModeWindowEnd && automation.type == AutomationType.MODE)
+                        AuditKind.MODE_DEACTIVATED
+                    else if (automation.type == AutomationType.MODE) AuditKind.MODE_ACTIVATED
+                    else AuditKind.FIRED,
                     atMillis = batchNow,
                     eventId = envelope.id,
                     executionId = executionId,
@@ -136,5 +153,38 @@ class Engine(
             }
         }
         return outcomes
+    }
+
+    private suspend fun snapshotSettings(automation: Automation, batchNow: Long) {
+        val keys = automation.actions.filter { it.supportsRestore }.flatMap { it.affectedSettings }.toSet()
+        for (key in keys) {
+            val value = runCatching { settingReader.read(key) }.getOrNull() ?: continue
+            snapshotStore.save(StateSnapshot(
+                automationId = automation.id,
+                settingKey = key,
+                previousValue = value,
+                capturedAtMillis = batchNow,
+            ))
+        }
+    }
+
+    private suspend fun restoreSnapshots(id: AutomationId, batchNow: Long) {
+        val snapshots = snapshotStore.forAutomation(id)
+        for (snapshot in snapshots) {
+            val restoreAction = Action.WriteSetting(
+                namespace = com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM,
+                key = snapshot.settingKey,
+                value = snapshot.previousValue,
+            )
+            val context = FireContext(
+                eventId = "restore:${id.value}",
+                executionId = "restore:${id.value}:$batchNow",
+                automationId = id,
+                actionIndex = -1,
+                priority = 100,
+            )
+            runCatching { executor.execute(restoreAction, context) }
+        }
+        snapshotStore.deleteForAutomation(id)
     }
 }

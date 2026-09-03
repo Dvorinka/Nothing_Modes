@@ -7,12 +7,15 @@ import com.tdvorak.nothingmodes.data.NothingModesDatabase
 import com.tdvorak.nothingmodes.data.RoomAuditSink
 import com.tdvorak.nothingmodes.data.RoomAutomationStore
 import com.tdvorak.nothingmodes.data.RoomExecutionJournal
+import com.tdvorak.nothingmodes.data.RoomStateSnapshotStore
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.AuditSink
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.ExecutionJournal
+import com.tdvorak.nothingmodes.engine.runtime.SettingReader
 import com.tdvorak.nothingmodes.engine.runtime.StateProvider
+import com.tdvorak.nothingmodes.engine.runtime.StateSnapshotStore
 import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
@@ -99,18 +102,32 @@ object AutomationModule {
 
     @Provides
     @Singleton
+    fun provideSettingReader(@ApplicationContext context: Context): SettingReader =
+        com.tdvorak.nothingmodes.capabilities.controllers.AndroidSettingReader(context)
+
+    @Provides
+    @Singleton
+    fun provideSnapshotStore(db: NothingModesDatabase): StateSnapshotStore =
+        RoomStateSnapshotStore(db.stateSnapshotDao())
+
+    @Provides
+    @Singleton
     fun provideEngine(
         store: AutomationStore,
         executor: ActionExecutor,
         audit: AuditSink,
         journal: ExecutionJournal,
         stateProvider: StateProvider,
+        snapshotStore: StateSnapshotStore,
+        settingReader: SettingReader,
     ): Engine = Engine(
         store = store,
         executor = executor,
         audit = audit,
         journal = journal,
         stateProvider = stateProvider,
+        snapshotStore = snapshotStore,
+        settingReader = settingReader,
         executionIds = StableExecutionIdFactory,
     )
 
