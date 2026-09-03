@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -12,85 +11,87 @@ import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Foreground service that processes trigger events.
  * Receives alarm broadcasts, loads the automation, runs the engine.
  */
+@AndroidEntryPoint
 class AutomationService : Service() {
 
+    @Inject lateinit var engine: Engine
+    @Inject lateinit var scheduler: AutomationScheduler
+    @Inject lateinit var store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    @Volatile private var engine: Engine? = null
-    @Volatile private var scheduler: AutomationScheduler? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        scheduler = AutomationScheduler(this)
-        // engine will be injected by Hilt in Phase 3
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
 
         when (intent?.action) {
-            AutomationService.ACTION_RESCHEDULE -> handleReschedule()
+            ACTION_RESCHEDULE -> handleReschedule()
             AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
         }
 
-        // Stop foreground when done — we only need to be alive during execution
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         return START_NOT_STICKY
     }
 
     private fun handleReschedule() {
-        // TODO: load all armed automations from store and reschedule
-        // Will be wired when Hilt DI provides the store
+        scope.launch {
+            store.armed().forEach { automation ->
+                scheduler.schedule(automation)
+            }
+        }
     }
 
     private fun handleTimeFired(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        val event = TriggerEvent.TimeFired(
+        dispatchEvent(TriggerEvent.TimeFired(
             eventId = "time:${System.currentTimeMillis()}",
             automationId = AutomationId(automationId),
             atMillis = System.currentTimeMillis(),
-        )
-        dispatchEvent(event)
+        ))
     }
 
     private fun handleWindowStart(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        val event = TriggerEvent.ModeWindowStart(
+        dispatchEvent(TriggerEvent.ModeWindowStart(
             eventId = "window_start:${System.currentTimeMillis()}",
             automationId = AutomationId(automationId),
             atMillis = System.currentTimeMillis(),
-        )
-        dispatchEvent(event)
+        ))
     }
 
     private fun handleWindowEnd(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        val event = TriggerEvent.ModeWindowEnd(
+        dispatchEvent(TriggerEvent.ModeWindowEnd(
             eventId = "window_end:${System.currentTimeMillis()}",
             automationId = AutomationId(automationId),
             atMillis = System.currentTimeMillis(),
-        )
-        dispatchEvent(event)
+        ))
     }
 
     private fun dispatchEvent(event: TriggerEvent) {
-        val engine = engine ?: return
         scope.launch {
             val envelope = TriggerEnvelope(
                 id = event.eventId,
