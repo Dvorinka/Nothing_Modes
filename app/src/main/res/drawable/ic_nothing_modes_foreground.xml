@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Nothing-style dot matrix "NM" monogram -->
+    <!-- Red accent dot -->
+    <path
+        android:fillColor="@color/nothing_red"
+        android:pathData="M54,30 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <!-- N shape using dots -->
+    <path
+        android:fillColor="@color/nothing_white"
+        android:pathData="M40,40 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M40,50 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M40,60 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M50,40 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M50,50 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M50,60 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M60,40 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M60,50 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M60,60 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>
