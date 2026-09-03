@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
-import com.tdvorak.nothingmodes.prefs.ThemeManager
+import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 
 // Nothing OS-inspired palette: monochrome with red accent
 private val NothingDark = darkColorScheme(

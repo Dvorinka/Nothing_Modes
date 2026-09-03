@@ -61,7 +61,7 @@ fun GlyphPreviewScreen(
             "Off" to GlyphPresets.off,
         )
     }
-    var selected by remember { mutableStateOf(GlyphPresets.sleepMode) }
+    var selected by remember { mutableStateOf<GlyphPresets.GlyphVisual>(GlyphPresets.sleepMode) }
 
     Scaffold(
         topBar = {
@@ -147,7 +147,8 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
                     visual.zone == "D" -> (7..14).toList()
                     visual.zone == "E" -> listOf(6)
                     visual.progress != null -> {
-                        val count = (channelCount * visual.progress / 100).coerceIn(0, channelCount)
+                        val p = visual.progress!!
+                        val count = (channelCount * p / 100).coerceIn(0, channelCount)
                         (0 until count).toList()
                     }
                     else -> (0 until channelCount).toList()
@@ -167,17 +168,19 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
                 val size = 25
                 val cellW = w / size
                 val cellH = h / size
+                val matrixColor = visual.color?.let(::intColorToCompose) ?: intColorToCompose(visual.fillColor)
                 for (row in 0 until size) {
                     for (col in 0 until size) {
                         val lit = when {
                             visual.color != null -> true
                             visual.percentFill != null -> {
-                                val fillRows = (size * visual.percentFill / 100)
+                                val pf = visual.percentFill!!
+                                val fillRows = (size * pf / 100)
                                 (size - 1 - row) < fillRows
                             }
                             else -> false
                         }
-                        val color = if (lit) (visual.color ?: visual.fillColor) else Color(0xFF111111)
+                        val color = if (lit) matrixColor else Color(0xFF111111)
                         drawRect(
                             color = color,
                             topLeft = Offset(col * cellW, row * cellH),
@@ -214,3 +217,10 @@ private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String = when (vis
 }
 
 private fun periodMs(v: GlyphPresets.GlyphVisual.Stripe) = v.periodMs
+
+private fun intColorToCompose(color: Int): Color = Color(
+    red = ((color shr 16) and 0xFF) / 255f,
+    green = ((color shr 8) and 0xFF) / 255f,
+    blue = (color and 0xFF) / 255f,
+    alpha = ((color shr 24) and 0xFF) / 255f,
+)

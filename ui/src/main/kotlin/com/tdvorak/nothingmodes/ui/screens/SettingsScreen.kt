@@ -40,7 +40,7 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
-import com.tdvorak.nothingmodes.prefs.ThemeManager
+import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
