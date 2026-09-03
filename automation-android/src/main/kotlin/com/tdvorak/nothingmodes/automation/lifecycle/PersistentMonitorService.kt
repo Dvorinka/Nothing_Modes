@@ -58,12 +58,21 @@ class PersistentMonitorService : Service() {
                         val percent = if (scale > 0) (level * 100) / scale else -1
                         val status = intent.getIntExtra("status", -1)
                         val isCharging = status == 2 || status == 3 // BATTERY_STATUS_CHARGING or FULL
+                        val source = when (intent.getIntExtra("plugged", -1)) {
+                            1 -> "ac"
+                            2 -> "usb"
+                            4 -> "wireless"
+                            else -> "unknown"
+                        }
+                        val temperature = intent.getIntExtra("temperature", -1) / 10.0f
 
                         if (percent >= 0) {
                             val serviceIntent = Intent(context, AutomationService::class.java).apply {
                                 action = AutomationService.ACTION_BATTERY_CHANGED
                                 putExtra(DeviceStateReceiver.EXTRA_BATTERY_LEVEL, percent)
                                 putExtra(DeviceStateReceiver.EXTRA_BATTERY_CHARGING, isCharging)
+                                putExtra(EXTRA_BATTERY_SOURCE, source)
+                                putExtra(EXTRA_BATTERY_TEMP, temperature)
                             }
                             context.startService(serviceIntent)
                         }
@@ -127,5 +136,7 @@ class PersistentMonitorService : Service() {
         private const val TAG = "PersistentMonitor"
         private const val CHANNEL_ID = "persistent_monitor"
         private const val NOTIFICATION_ID = 1002
+        const val EXTRA_BATTERY_SOURCE = "battery_source"
+        const val EXTRA_BATTERY_TEMP = "battery_temp"
     }
 }

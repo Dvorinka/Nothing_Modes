@@ -64,6 +64,14 @@
             android:name=".lifecycle.GeofenceReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".lifecycle.FlipReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.nothing.action.FLIP_TO_GLYPH" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".lifecycle.AutomationService"
             android:exported="false"
