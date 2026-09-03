@@ -2,7 +2,6 @@ package com.dvoranka.nothingmodes.nothing
 
 import android.content.Context
 import android.os.Build
-import com.dvoranka.nothingmodes.nothing.GlyphHardware.Companion.NONE
 
 /** Detects Nothing device model and Glyph hardware at runtime. */
 class NothingDeviceDetector(private val context: Context) {
