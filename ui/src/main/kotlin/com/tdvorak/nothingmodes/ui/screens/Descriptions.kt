@@ -56,4 +56,13 @@ fun actionDescription(action: Action): String = when (action) {
     is Action.CopyText -> "Copy: ${action.text.take(30)}"
     is Action.Wait -> "Wait: ${action.durationMs}ms"
     is Action.WriteSetting -> "Write: ${action.namespace.name.lowercase()}/${action.key}=${action.value}"
+    is Action.SetAutoRotate -> "Auto-rotate: ${if (action.on) "On" else "Off"}"
+    is Action.SetBatterySaver -> "Battery Saver: ${if (action.on) "On" else "Off"}"
+    is Action.SetAirplaneMode -> "Airplane Mode: ${if (action.on) "On" else "Off"}"
+    is Action.SetDataSaver -> "Data Saver: ${if (action.on) "On" else "Off"}"
+    is Action.SetHotspot -> "Hotspot: ${if (action.on) "On" else "Off"}"
+    is Action.SetNfc -> "NFC: ${if (action.on) "On" else "Off"}"
+    is Action.SetRefreshRate -> "Refresh Rate: ${action.hz}Hz"
+    is Action.SetScreenRotation -> "Rotation: ${action.orientation.name.lowercase()}"
+    is Action.MediaControl -> "Media: ${action.command.name.lowercase().replace("_", " ")}"
 }

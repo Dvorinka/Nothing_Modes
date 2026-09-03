@@ -1,0 +1,1 @@
+Automation and mode manager for Nothing Phone devices with Glyph Interface support.

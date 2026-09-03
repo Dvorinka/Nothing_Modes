@@ -1,0 +1,49 @@
+Nothing Modes is an automation and mode manager for Nothing Phone devices with Glyph Interface support.
+
+Create automations that trigger on time, location, battery level, notifications, phone calls, connectivity changes, and more. Actions include changing system settings, controlling the Glyph Interface, launching apps, and displaying information on the Glyph Matrix.
+
+FEATURES
+
+- Time-based automations with cron scheduling
+- Time window modes (activate at a start time, deactivate at an end time)
+- Location-based geofence triggers
+- Battery level and charging state triggers
+- Screen on/off triggers
+- Notification triggers (with package filtering)
+- Phone call and SMS triggers
+- WiFi and Bluetooth connectivity triggers
+- App foreground detection triggers
+- Boot completed trigger
+- 40+ actions including brightness, DND, dark mode, volume, flashlight, vibrate
+- Glyph light stripe control (toggle, animate, progress, zone presets)
+- Glyph Matrix control (text, images, scrolling text, structured frames)
+- Glyph Toy service for Nothing Phone 3/4a Pro
+- Shizuku integration for privileged operations (WiFi, Bluetooth, mobile data, airplane mode)
+- State restoration on mode deactivation
+- Conflict detection between concurrent automations
+- Cooldown suppression to prevent excessive firing
+- Execution audit log with statistics
+- JSON import/export for backup and sharing
+- Custom automation builder with trigger/condition/action picker
+- Nothing OS-inspired dark/light theme
+- No internet permission required — fully offline
+
+PERMISSIONS
+
+- WRITE_SETTINGS: Change system settings (brightness, screen timeout, auto-rotate)
+- ACCESS_NOTIFICATION_POLICY: Enable Do Not Disturb
+- RECEIVE_BOOT_COMPLETED: Reschedule automations after reboot
+- SCHEDULE_EXACT_ALARM: Fire time-based triggers precisely
+- FOREGROUND_SERVICE: Process triggers in the background
+- POST_NOTIFICATIONS: Show automation notifications
+- CAMERA: Toggle flashlight
+- VIBRATE: Vibration feedback
+- READ_PHONE_STATE: Detect incoming calls
+- RECEIVE_SMS: SMS trigger content reading
+- ACCESS_FINE_LOCATION: Geofence triggers
+- PACKAGE_USAGE_STATS: Detect foreground app
+- BIND_NOTIFICATION_LISTENER_SERVICE: Notification triggers (optional, user grants in Settings)
+
+Shizuku (optional) is required for: WiFi toggle, Bluetooth toggle, Mobile data toggle, airplane mode, hotspot, NFC, battery saver, data saver.
+
+The app does not request internet permission and does not transmit any data.

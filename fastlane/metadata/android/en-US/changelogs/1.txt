@@ -1,0 +1,12 @@
+- Initial release
+- 12 trigger types (time, time window, notification, phone, connectivity, boot, battery, screen, app, geofence, immediate)
+- 40+ action types including Glyph light stripe and Matrix control
+- Shizuku integration for privileged operations
+- Custom automation builder with condition support
+- State restoration on mode deactivation
+- Conflict detection and cooldown suppression
+- Execution audit log with statistics
+- JSON import/export
+- Nothing OS-inspired theme with dark/light toggle
+- Glyph Toy service for Phone 3/4a Pro
+- Onboarding flow with permission guide

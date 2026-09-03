@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: [self-hosted, linux, android]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --parallel --build-cache --stacktrace
+        env:
+          NOTHING_MODES_KEYSTORE: ${{ secrets.NOTHING_MODES_KEYSTORE }}
+          NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
+          NOTHING_MODES_KEY_ALIAS: ${{ secrets.NOTHING_MODES_KEY_ALIAS }}
+          NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
+
+      - name: Build debug APK (fallback if no signing key)
+        if: failure()
+        run: ./gradlew assembleDebug --no-daemon --parallel --build-cache
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
+          draft: true
+          generate_release_notes: true

@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
@@ -60,7 +62,7 @@ class AutomationListViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _loading.value = true
-            _items.value = store.all()
+            _items.value = store.all().sortedBy { it.priority }
             _loading.value = false
         }
     }
@@ -90,6 +92,32 @@ class AutomationListViewModel @Inject constructor(
                 enabled = false,
             )
             store.save(copy)
+            load()
+        }
+    }
+
+    fun moveUp(automation: Automation) {
+        viewModelScope.launch {
+            val list = _items.value.toMutableList()
+            val index = list.indexOfFirst { it.id == automation.id }
+            if (index <= 0) return@launch
+            val prev = list[index - 1]
+            val current = list[index]
+            store.save(prev.copy(priority = current.priority))
+            store.save(current.copy(priority = prev.priority))
+            load()
+        }
+    }
+
+    fun moveDown(automation: Automation) {
+        viewModelScope.launch {
+            val list = _items.value.toMutableList()
+            val index = list.indexOfFirst { it.id == automation.id }
+            if (index < 0 || index >= list.size - 1) return@launch
+            val next = list[index + 1]
+            val current = list[index]
+            store.save(next.copy(priority = current.priority))
+            store.save(current.copy(priority = next.priority))
             load()
         }
     }
@@ -159,6 +187,8 @@ fun AutomationListScreen(
                         onClick = { onAutomationClick(automation.id.value) },
                         onToggle = { viewModel.toggleEnabled(automation) },
                         onDelete = { viewModel.delete(automation) },
+                        onMoveUp = { viewModel.moveUp(automation) },
+                        onMoveDown = { viewModel.moveDown(automation) },
                     )
                 }
             }
@@ -173,6 +203,8 @@ private fun AutomationCard(
     onClick: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit = {},
+    onMoveUp: () -> Unit = {},
+    onMoveDown: () -> Unit = {},
 ) {
     Card(
         onClick = onClick,
@@ -201,6 +233,20 @@ private fun AutomationCard(
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
+            }
+            IconButton(onClick = onMoveUp) {
+                Icon(
+                    Icons.Default.ArrowUpward,
+                    contentDescription = "Move up",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onMoveDown) {
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    contentDescription = "Move down",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             IconButton(onClick = onDelete) {
                 Icon(

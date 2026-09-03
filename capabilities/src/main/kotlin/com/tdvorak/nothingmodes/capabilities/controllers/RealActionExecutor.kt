@@ -87,6 +87,17 @@ class RealActionExecutor(
         is Action.GlyphScrollingText -> glyphScrollingText(action.text)
         is Action.GlyphPreset -> glyphPreset(action.preset)
         is Action.GlyphTurnOff -> glyphTurnOff()
+
+        // System settings toggles (Phase 4)
+        is Action.SetAutoRotate -> setAutoRotate(action.on)
+        is Action.SetBatterySaver -> executeShell(batterySaverCommand(action.on))
+        is Action.SetAirplaneMode -> executeShell(airplaneModeCommand(action.on))
+        is Action.SetDataSaver -> executeShell(dataSaverCommand(action.on))
+        is Action.SetHotspot -> executeShell(hotspotCommand(action.on))
+        is Action.SetNfc -> executeShell(nfcCommand(action.on))
+        is Action.SetRefreshRate -> setRefreshRate(action.hz)
+        is Action.SetScreenRotation -> setScreenRotation(action.orientation)
+        is Action.MediaControl -> mediaControl(action.command)
     }
 
     // --- Shizuku shell actions ---
@@ -391,6 +402,105 @@ class RealActionExecutor(
         ActionResult.Success
     } catch (e: Exception) {
         ActionResult.Failure(e.message ?: "showNotification failed")
+    }
+
+    // --- System settings toggles (Phase 4) ---
+
+    private fun setAutoRotate(on: Boolean): ActionResult = try {
+        android.provider.Settings.System.putInt(
+            context.contentResolver,
+            android.provider.Settings.System.ACCELEROMETER_ROTATION,
+            if (on) 1 else 0,
+        )
+        ActionResult.Success
+    } catch (e: Exception) {
+        ActionResult.Failure(e.message ?: "setAutoRotate failed")
+    }
+
+    private fun batterySaverCommand(on: Boolean) = listOf(
+        "settings", "put", "global", "low_power", if (on) "1" else "0",
+    )
+    private fun airplaneModeCommand(on: Boolean) = listOf(
+        "settings", "put", "global", "airplane_mode_on", if (on) "1" else "0",
+    )
+    private fun dataSaverCommand(on: Boolean) = listOf(
+        "settings", "put", "global", "data_saver", if (on) "1" else "0",
+    )
+    private fun hotspotCommand(on: Boolean) = listOf(
+        "settings", "put", "global", "tether_dun_required", if (on) "1" else "0",
+    )
+    private fun nfcCommand(on: Boolean) = listOf(
+        "svc", "nfc", if (on) "enable" else "disable",
+    )
+
+    private fun setRefreshRate(hz: Int): ActionResult = try {
+        android.provider.Settings.System.putInt(
+            context.contentResolver,
+            "peak_refresh_rate",
+            hz,
+        )
+        android.provider.Settings.System.putInt(
+            context.contentResolver,
+            "min_refresh_rate",
+            hz,
+        )
+        ActionResult.Success
+    } catch (e: Exception) {
+        ActionResult.Failure(e.message ?: "setRefreshRate failed")
+    }
+
+    private fun setScreenRotation(orientation: com.tdvorak.nothingmodes.engine.model.ScreenOrientation): ActionResult = try {
+        when (orientation) {
+            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.AUTO -> {
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    1,
+                )
+            }
+            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.PORTRAIT -> {
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    0,
+                )
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.USER_ROTATION,
+                    0, // PORTRAIT
+                )
+            }
+            com.tdvorak.nothingmodes.engine.model.ScreenOrientation.LANDSCAPE -> {
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                    0,
+                )
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.USER_ROTATION,
+                    1, // LANDSCAPE
+                )
+            }
+        }
+        ActionResult.Success
+    } catch (e: Exception) {
+        ActionResult.Failure(e.message ?: "setScreenRotation failed")
+    }
+
+    private fun mediaControl(command: com.tdvorak.nothingmodes.engine.model.MediaCommand): ActionResult = try {
+        val keyCode = when (command) {
+            com.tdvorak.nothingmodes.engine.model.MediaCommand.PLAY_PAUSE -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+            com.tdvorak.nothingmodes.engine.model.MediaCommand.NEXT -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+            com.tdvorak.nothingmodes.engine.model.MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            com.tdvorak.nothingmodes.engine.model.MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
+        }
+        val audioManager = context.getSystemService(android.media.AudioManager::class.java)
+        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+        ActionResult.Success
+    } catch (e: Exception) {
+        ActionResult.Failure(e.message ?: "mediaControl failed")
     }
 
     companion object {

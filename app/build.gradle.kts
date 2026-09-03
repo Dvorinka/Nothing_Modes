@@ -19,6 +19,21 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            // Read from environment variables. Set in CI secrets or ~/.gradle/gradle.properties:
+            // NOTHING_MODES_KEYSTORE, NOTHING_MODES_KEYSTORE_PASSWORD,
+            // NOTHING_MODES_KEY_ALIAS, NOTHING_MODES_KEY_PASSWORD
+            val keystorePath = System.getenv("NOTHING_MODES_KEYSTORE")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("NOTHING_MODES_KEYSTORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("NOTHING_MODES_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("NOTHING_MODES_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildFeatures { compose = true }
 
     buildTypes {
@@ -28,6 +43,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

@@ -5,7 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import com.tdvorak.nothingmodes.prefs.ThemeManager
 
 // Nothing OS-inspired palette: monochrome with red accent
 private val NothingDark = darkColorScheme(
@@ -51,4 +54,23 @@ fun NothingModesTheme(
         shapes = NothingShapes.shapes,
         content = content,
     )
+}
+
+/**
+ * Theme wrapper that reads the persisted theme mode from [ThemeManager].
+ * Use this at the top of the activity instead of [NothingModesTheme] to
+ * get automatic theme switching based on user preference.
+ */
+@Composable
+fun NothingModesThemeDynamic(
+    content: @Composable () -> Unit,
+) {
+    val themeManager = ThemeManager.instance
+    val mode by themeManager.mode.collectAsState()
+    val isDark = when (mode) {
+        ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeManager.ThemeMode.DARK -> true
+        ThemeManager.ThemeMode.LIGHT -> false
+    }
+    NothingModesTheme(darkTheme = isDark, content = content)
 }

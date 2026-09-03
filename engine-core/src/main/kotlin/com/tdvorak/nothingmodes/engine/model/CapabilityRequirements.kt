@@ -57,6 +57,15 @@ object CapabilityIds {
     const val ACTION_COPY_TEXT = "action_copy_text"
     const val ACTION_WAIT = "action_wait"
     const val ACTION_WRITE_SETTING = "action_write_setting"
+    const val ACTION_SET_AUTO_ROTATE = "action_set_auto_rotate"
+    const val ACTION_SET_BATTERY_SAVER = "action_set_battery_saver"
+    const val ACTION_SET_AIRPLANE_MODE = "action_set_airplane_mode"
+    const val ACTION_SET_DATA_SAVER = "action_set_data_saver"
+    const val ACTION_SET_HOTSPOT = "action_set_hotspot"
+    const val ACTION_SET_NFC = "action_set_nfc"
+    const val ACTION_SET_REFRESH_RATE = "action_set_refresh_rate"
+    const val ACTION_SET_SCREEN_ROTATION = "action_set_screen_rotation"
+    const val ACTION_MEDIA_CONTROL = "action_media_control"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -126,6 +135,15 @@ object CapabilityRequirements {
         is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
         is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
         is Action.WriteSetting -> setOf(CapabilityIds.ACTION_WRITE_SETTING, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetAutoRotate -> setOf(CapabilityIds.ACTION_SET_AUTO_ROTATE)
+        is Action.SetBatterySaver -> setOf(CapabilityIds.ACTION_SET_BATTERY_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetAirplaneMode -> setOf(CapabilityIds.ACTION_SET_AIRPLANE_MODE, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetDataSaver -> setOf(CapabilityIds.ACTION_SET_DATA_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetHotspot -> setOf(CapabilityIds.ACTION_SET_HOTSPOT, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetNfc -> setOf(CapabilityIds.ACTION_SET_NFC, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetRefreshRate -> setOf(CapabilityIds.ACTION_SET_REFRESH_RATE)
+        is Action.SetScreenRotation -> setOf(CapabilityIds.ACTION_SET_SCREEN_ROTATION)
+        is Action.MediaControl -> setOf(CapabilityIds.ACTION_MEDIA_CONTROL)
     }
 
     private fun conditionCapabilities(condition: Condition): Set<String> = when (condition) {

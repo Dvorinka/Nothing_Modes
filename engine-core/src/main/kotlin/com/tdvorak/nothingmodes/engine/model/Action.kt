@@ -44,6 +44,15 @@ object ActionTypeIds {
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
     const val WRITE_SETTING = "write_setting"
+    const val SET_AUTO_ROTATE = "set_auto_rotate"
+    const val SET_BATTERY_SAVER = "set_battery_saver"
+    const val SET_AIRPLANE_MODE = "set_airplane_mode"
+    const val SET_DATA_SAVER = "set_data_saver"
+    const val SET_HOTSPOT = "set_hotspot"
+    const val SET_NFC = "set_nfc"
+    const val SET_REFRESH_RATE = "set_refresh_rate"
+    const val SET_SCREEN_ROTATION = "set_screen_rotation"
+    const val MEDIA_CONTROL = "media_control"
 }
 
 @Serializable
@@ -134,7 +143,51 @@ sealed interface Action {
     /** Parametric settings write (system|secure|global). Always PRIVILEGED (Shizuku). */
     @Serializable @SerialName(ActionTypeIds.WRITE_SETTING)
     data class WriteSetting(val namespace: SettingNamespace, val key: String, val value: String) : Action
+
+    // ── System settings toggles (Phase 4) ──
+
+    /** Toggle auto-rotate. Uses Settings.System.ACCELEROMETER_ROTATION. */
+    @Serializable @SerialName(ActionTypeIds.SET_AUTO_ROTATE)
+    data class SetAutoRotate(val on: Boolean) : Action
+
+    /** Toggle battery saver. Uses Settings.Global.LOW_POWER_MODE (requires Shizuku or WRITE_SECURE_SETTINGS). */
+    @Serializable @SerialName(ActionTypeIds.SET_BATTERY_SAVER)
+    data class SetBatterySaver(val on: Boolean) : Action
+
+    /** Toggle airplane mode. Requires Shizuku (settings put global airplane_mode_on). */
+    @Serializable @SerialName(ActionTypeIds.SET_AIRPLANE_MODE)
+    data class SetAirplaneMode(val on: Boolean) : Action
+
+    /** Toggle data saver. Uses Settings.Global.DATA_SAVER (requires Shizuku). */
+    @Serializable @SerialName(ActionTypeIds.SET_DATA_SAVER)
+    data class SetDataSaver(val on: Boolean) : Action
+
+    /** Toggle hotspot. Requires Shizuku. */
+    @Serializable @SerialName(ActionTypeIds.SET_HOTSPOT)
+    data class SetHotspot(val on: Boolean) : Action
+
+    /** Toggle NFC. Requires Shizuku. */
+    @Serializable @SerialName(ActionTypeIds.SET_NFC)
+    data class SetNfc(val on: Boolean) : Action
+
+    /** Set display refresh rate (Hz). Uses Settings.System. */
+    @Serializable @SerialName(ActionTypeIds.SET_REFRESH_RATE)
+    data class SetRefreshRate(val hz: Int) : Action
+
+    /** Lock screen rotation to a specific orientation. */
+    @Serializable @SerialName(ActionTypeIds.SET_SCREEN_ROTATION)
+    data class SetScreenRotation(val orientation: ScreenOrientation) : Action
+
+    /** Media playback control. */
+    @Serializable @SerialName(ActionTypeIds.MEDIA_CONTROL)
+    data class MediaControl(val command: MediaCommand) : Action
 }
+
+@Serializable
+enum class ScreenOrientation { AUTO, PORTRAIT, LANDSCAPE }
+
+@Serializable
+enum class MediaCommand { PLAY_PAUSE, NEXT, PREVIOUS, STOP }
 
 /** Actions that support state restoration (snapshot previous value before applying). */
 val Action.supportsRestore: Boolean
@@ -159,5 +212,11 @@ val Action.affectedSettings: Set<String>
         is Action.SetVolume -> setOf("volume_${stream.name.lowercase()}")
         is Action.SetGlyph -> setOf("glyph_state")
         is Action.SetGlyphMatrix -> setOf("glyph_matrix_state")
+        is Action.SetAutoRotate -> setOf("accelerometer_rotation")
+        is Action.SetBatterySaver -> setOf("low_power")
+        is Action.SetAirplaneMode -> setOf("airplane_mode_on")
+        is Action.SetDataSaver -> setOf("data_saver")
+        is Action.SetRefreshRate -> setOf("peak_refresh_rate", "min_refresh_rate")
+        is Action.SetScreenRotation -> setOf("accelerometer_rotation", "user_rotation")
         else -> emptySet()
     }

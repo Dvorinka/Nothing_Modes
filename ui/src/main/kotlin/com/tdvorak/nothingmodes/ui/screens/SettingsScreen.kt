@@ -40,6 +40,7 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.prefs.ThemeManager
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
@@ -109,6 +110,7 @@ class SettingsViewModel @Inject constructor(
 fun SettingsScreen(
     onBack: () -> Unit,
     onOnboarding: () -> Unit = {},
+    onGlyphPreview: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -171,6 +173,7 @@ fun SettingsScreen(
                     onRequestPermission = { viewModel.requestShizukuPermission() },
                 )
                 AboutCard(capabilities)
+                ThemeCard()
                 ImportExportCard(
                     onExport = {
                         viewModel.export()
@@ -183,6 +186,7 @@ fun SettingsScreen(
                     onDismissResult = { viewModel.clearImportResult() },
                 )
                 TextButton(onClick = onOnboarding) { Text("Review setup guide") }
+                TextButton(onClick = onGlyphPreview) { Text("Glyph preview") }
             }
         }
     }
@@ -315,6 +319,28 @@ private fun PermissionRow(label: String, granted: Boolean, onOpenSettings: () ->
         )
         if (!granted) {
             TextButton(onClick = onOpenSettings) { Text("Grant") }
+        }
+    }
+}
+
+@Composable
+private fun ThemeCard() {
+    val themeManager = ThemeManager.instance
+    val mode by themeManager.mode.collectAsState()
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Theme", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ThemeManager.ThemeMode.entries.forEach { entry ->
+                    val selected = mode == entry
+                    TextButton(onClick = { themeManager.setMode(entry) }) {
+                        Text(
+                            entry.name.lowercase().replaceFirstChar { it.uppercase() },
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }

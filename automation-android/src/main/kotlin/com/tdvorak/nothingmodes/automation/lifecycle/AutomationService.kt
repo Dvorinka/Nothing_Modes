@@ -165,11 +165,13 @@ class AutomationService : Service() {
     }
 
     private fun handleSms(intent: Intent) {
+        val sender = intent.getStringExtra(PhoneStateReceiver.EXTRA_SMS_SENDER)
+        val body = intent.getStringExtra(PhoneStateReceiver.EXTRA_SMS_BODY)
         dispatchEvent(TriggerEvent.PhoneStateChanged(
             eventId = "sms:${System.currentTimeMillis()}",
             event = PhoneEvent.SMS_RECEIVED,
-            number = null,
-            smsText = null,
+            number = sender,
+            smsText = body,
         ))
     }
 

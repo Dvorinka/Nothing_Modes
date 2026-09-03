@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.automation.lifecycle
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.provider.Telephony
 import android.telephony.TelephonyManager
 import android.util.Log
 
@@ -51,12 +52,16 @@ class PhoneStateReceiver : BroadcastReceiver() {
     }
 
     private fun handleSms(context: Context, intent: Intent) {
-        // SMS content extraction requires RECEIVE_SMS permission
-        // The actual message body is in the SMS pdus extra
-        Log.d(TAG, "SMS received")
+        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
+        val body = messages.joinToString("") { it.displayMessageBody ?: "" }
+
+        Log.d(TAG, "SMS received: from=$sender body=${body.take(80)}")
 
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_SMS
+            putExtra(EXTRA_SMS_SENDER, sender)
+            putExtra(EXTRA_SMS_BODY, body)
         }
         context.startService(serviceIntent)
     }
@@ -67,5 +72,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         private const val ACTION_PHONE_STATE = "android.intent.action.PHONE_STATE"
         const val EXTRA_PHONE_STATE = "phone_state"
         const val EXTRA_PHONE_NUMBER = "phone_number"
+        const val EXTRA_SMS_SENDER = "sms_sender"
+        const val EXTRA_SMS_BODY = "sms_body"
     }
 }
