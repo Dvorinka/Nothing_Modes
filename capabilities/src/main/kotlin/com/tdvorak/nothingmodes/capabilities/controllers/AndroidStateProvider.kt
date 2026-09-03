@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.capabilities.controllers
 
+import android.annotation.SuppressLint
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.Context
@@ -72,6 +73,7 @@ class AndroidStateProvider(private val context: Context) : StateProvider {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun readBluetoothState(): Pair<Boolean, String?> {
         return try {
             val bluetoothManager = context.getSystemService(BluetoothManager::class.java)

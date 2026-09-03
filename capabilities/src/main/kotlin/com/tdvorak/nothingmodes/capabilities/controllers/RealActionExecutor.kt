@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.capabilities.controllers
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ClipData
@@ -304,6 +305,7 @@ class RealActionExecutor(
 
     // --- Local actions ---
 
+    @SuppressLint("MissingPermission")
     private fun vibrate(durationMs: Int): ActionResult {
         return try {
             if (durationMs <= 0) return ActionResult.Success
@@ -373,14 +375,12 @@ class RealActionExecutor(
 
     private fun showNotification(title: String, text: String): ActionResult = try {
         val nm = context.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "Automation Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT,
-            )
-            nm.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            "Automation Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        )
+        nm.createNotificationChannel(channel)
         val notification = androidx.core.app.NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
