@@ -8,12 +8,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tdvorak.nothingmodes.ui.screens.AutomationDetailScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
+import com.tdvorak.nothingmodes.ui.screens.CreateAutomationScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 
 object Routes {
     const val AUTOMATION_LIST = "automations"
     const val AUTOMATION_DETAIL = "automation/{id}"
+    const val CREATE_AUTOMATION = "create"
     const val EXECUTION_LOG = "log"
     const val SETTINGS = "settings"
 
@@ -33,6 +35,7 @@ fun NothingModesNavHost() {
                 onAutomationClick = { id -> navController.navigate(Routes.automationDetail(id)) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 onLogClick = { navController.navigate(Routes.EXECUTION_LOG) },
+                onCreateClick = { navController.navigate(Routes.CREATE_AUTOMATION) },
             )
         }
 
@@ -44,6 +47,15 @@ fun NothingModesNavHost() {
             AutomationDetailScreen(
                 automationId = id,
                 onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.CREATE_AUTOMATION) {
+            CreateAutomationScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
             )
         }
 

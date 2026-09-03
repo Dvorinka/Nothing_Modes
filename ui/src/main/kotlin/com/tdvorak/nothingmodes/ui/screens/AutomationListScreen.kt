@@ -79,6 +79,7 @@ fun AutomationListScreen(
     onAutomationClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onLogClick: () -> Unit,
+    onCreateClick: () -> Unit = {},
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
     val items by viewModel.items.collectAsState()
@@ -99,7 +100,7 @@ fun AutomationListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: create new automation */ }) {
+            FloatingActionButton(onClick = onCreateClick) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
         },
