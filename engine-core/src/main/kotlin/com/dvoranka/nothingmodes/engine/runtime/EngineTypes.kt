@@ -5,6 +5,12 @@ import com.dvoranka.nothingmodes.engine.model.Automation
 import com.dvoranka.nothingmodes.engine.model.AutomationId
 import com.dvoranka.nothingmodes.engine.model.AutomationStatus
 import com.dvoranka.nothingmodes.engine.model.AutomationType
+import kotlinx.serialization.Serializable
+
+/** Typed wrapper for an execution identifier. */
+@JvmInline
+@Serializable
+value class ExecutionId(val value: String)
 
 /** Store interface for automation persistence. */
 interface AutomationStore {
