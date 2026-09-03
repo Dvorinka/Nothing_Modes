@@ -12,14 +12,10 @@ import java.time.format.DateTimeFormatter
 class TriggerMatcher {
 
     fun matches(trigger: Trigger, event: TriggerEvent): Boolean = when (trigger) {
-        is Trigger.Time -> event is TriggerEvent.TimeFired &&
-            event.automationId == trigger.automationIdSafe()
+        is Trigger.Time -> event is TriggerEvent.TimeFired
 
-        is Trigger.TimeWindow -> when (event) {
-            is TriggerEvent.ModeWindowStart -> event.automationId == trigger.automationIdSafe()
-            is TriggerEvent.ModeWindowEnd -> event.automationId == trigger.automationIdSafe()
-            else -> false
-        }
+        is Trigger.TimeWindow -> event is TriggerEvent.ModeWindowStart ||
+            event is TriggerEvent.ModeWindowEnd
 
         is Trigger.Immediate -> event is TriggerEvent.Registered
 
@@ -92,8 +88,6 @@ class TriggerMatcher {
         com.dvoranka.nothingmodes.engine.model.BatteryDirection.CHARGING_STARTED -> event.isCharging
         com.dvoranka.nothingmodes.engine.model.BatteryDirection.CHARGING_STOPPED -> !event.isCharging
     }
-
-    private fun Trigger.automationIdSafe(): com.dvoranka.nothingmodes.engine.model.AutomationId? = null
 
     private fun JavaDayOfWeek.toEngineDayOfWeek(): DayOfWeek? = when (this) {
         JavaDayOfWeek.MONDAY -> DayOfWeek.MONDAY
