@@ -150,10 +150,10 @@ val Action.supportsRestore: Boolean
 /** All settings keys this action modifies (for conflict detection and snapshot). */
 val Action.affectedSettings: Set<String>
     get() = when (this) {
-        is Action.SetBrightness -> if (restore) emptySet() else setOf("screen_brightness")
+        is Action.SetBrightness -> setOf("screen_brightness")
         is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
-        is Action.SetExtraDim -> if (restore) emptySet() else setOf("reduce_bright_colors_activated")
-        is Action.SetScreenTimeout -> if (restore) emptySet() else setOf("screen_off_timeout")
+        is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
+        is Action.SetScreenTimeout -> setOf("screen_off_timeout")
         is Action.SetDarkMode -> setOf("night_mode")
         is Action.SetDnd -> setOf("dnd_mode")
         is Action.SetVolume -> setOf("volume_${stream.name.lowercase()}")
