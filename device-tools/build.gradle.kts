@@ -17,10 +17,13 @@ android {
 }
 
 dependencies {
+    implementation(project(":engine-core"))
+    implementation(project(":core-shizuku"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
 }

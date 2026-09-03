@@ -37,6 +37,7 @@ object ActionTypeIds {
     const val SET_MOBILE_DATA = "set_mobile_data"
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
+    const val WRITE_SETTING = "write_setting"
 }
 
 @Serializable
@@ -87,6 +88,10 @@ sealed interface Action {
     @Serializable @SerialName(ActionTypeIds.COPY_TEXT) data class CopyText(val text: String) : Action
 
     @Serializable @SerialName(ActionTypeIds.WAIT) data class Wait(val durationMs: Long) : Action
+
+    /** Parametric settings write (system|secure|global). Always PRIVILEGED (Shizuku). */
+    @Serializable @SerialName(ActionTypeIds.WRITE_SETTING)
+    data class WriteSetting(val namespace: SettingNamespace, val key: String, val value: String) : Action
 }
 
 /** Actions that support state restoration (snapshot previous value before applying). */
