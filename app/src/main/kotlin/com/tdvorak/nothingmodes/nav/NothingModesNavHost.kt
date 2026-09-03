@@ -16,10 +16,12 @@ object Routes {
     const val AUTOMATION_LIST = "automations"
     const val AUTOMATION_DETAIL = "automation/{id}"
     const val CREATE_AUTOMATION = "create"
+    const val EDIT_AUTOMATION = "edit/{id}"
     const val EXECUTION_LOG = "log"
     const val SETTINGS = "settings"
 
     fun automationDetail(id: String) = "automation/$id"
+    fun editAutomation(id: String) = "edit/$id"
 }
 
 @Composable
@@ -47,11 +49,26 @@ fun NothingModesNavHost() {
             AutomationDetailScreen(
                 automationId = id,
                 onBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Routes.editAutomation(id)) },
             )
         }
 
         composable(Routes.CREATE_AUTOMATION) {
             CreateAutomationScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
+            )
+        }
+
+        composable(
+            route = Routes.EDIT_AUTOMATION,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            CreateAutomationScreen(
+                automationId = id,
                 onBack = { navController.popBackStack() },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)

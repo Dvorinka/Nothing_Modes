@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -82,6 +83,7 @@ class AutomationDetailViewModel @Inject constructor(
 fun AutomationDetailScreen(
     automationId: String,
     onBack: () -> Unit,
+    onEdit: () -> Unit = {},
     viewModel: AutomationDetailViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(automationId) { viewModel.load(automationId) }
@@ -97,6 +99,9 @@ fun AutomationDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
                     IconButton(onClick = { viewModel.delete(onBack) }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }

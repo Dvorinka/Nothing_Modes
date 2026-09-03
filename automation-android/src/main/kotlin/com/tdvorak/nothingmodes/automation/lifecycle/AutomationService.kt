@@ -11,6 +11,9 @@ import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.ConnMedium
+import com.tdvorak.nothingmodes.engine.model.ConnState
+import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
@@ -52,6 +55,10 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
             ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
             ACTION_SCREEN_STATE -> handleScreenState(intent)
+            ACTION_NOTIFICATION -> handleNotification(intent)
+            ACTION_PHONE_STATE -> handlePhoneState(intent)
+            ACTION_SMS -> handleSms(intent)
+            ACTION_CONNECTIVITY -> handleConnectivity(intent)
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -125,6 +132,66 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleNotification(intent: Intent) {
+        val pkg = intent.getStringExtra(AutomationNotificationListener.EXTRA_PACKAGE) ?: return
+        val title = intent.getStringExtra(AutomationNotificationListener.EXTRA_TITLE) ?: ""
+        val text = intent.getStringExtra(AutomationNotificationListener.EXTRA_TEXT) ?: ""
+        dispatchEvent(TriggerEvent.NotificationPosted(
+            eventId = "notif:${System.currentTimeMillis()}",
+            pkg = pkg,
+            title = title,
+            text = text,
+            sender = null,
+        ))
+    }
+
+    private fun handlePhoneState(intent: Intent) {
+        val stateStr = intent.getStringExtra(PhoneStateReceiver.EXTRA_PHONE_STATE) ?: return
+        val number = intent.getStringExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER) ?: ""
+        val phoneEvent = when (stateStr) {
+            "ringing" -> PhoneEvent.INCOMING_CALL
+            "offhook" -> PhoneEvent.INCOMING_CALL
+            "idle" -> PhoneEvent.CALL_ENDED
+            else -> return
+        }
+        dispatchEvent(TriggerEvent.PhoneStateChanged(
+            eventId = "phone:${System.currentTimeMillis()}",
+            event = phoneEvent,
+            number = number,
+            smsText = null,
+        ))
+    }
+
+    private fun handleSms(intent: Intent) {
+        dispatchEvent(TriggerEvent.PhoneStateChanged(
+            eventId = "sms:${System.currentTimeMillis()}",
+            event = PhoneEvent.SMS_RECEIVED,
+            number = null,
+            smsText = null,
+        ))
+    }
+
+    private fun handleConnectivity(intent: Intent) {
+        val type = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_TYPE) ?: return
+        val stateStr = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_STATE) ?: return
+        val medium = when (type) {
+            "wifi" -> ConnMedium.WIFI
+            "bluetooth" -> ConnMedium.BT
+            else -> return
+        }
+        val state = when (stateStr) {
+            "wifi_enabled", "bt_enabled" -> ConnState.CONNECTED
+            "wifi_disabled", "bt_disabled" -> ConnState.DISCONNECTED
+            else -> return
+        }
+        dispatchEvent(TriggerEvent.ConnectivityChanged(
+            eventId = "conn:${System.currentTimeMillis()}",
+            medium = medium,
+            state = state,
+            match = null,
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         scope.launch {
             val envelope = TriggerEnvelope(
@@ -168,6 +235,10 @@ class AutomationService : Service() {
         const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
         const val ACTION_BATTERY_CHANGED = "com.tdvorak.nothingmodes.BATTERY_CHANGED"
         const val ACTION_SCREEN_STATE = "com.tdvorak.nothingmodes.SCREEN_STATE"
+        const val ACTION_NOTIFICATION = "com.tdvorak.nothingmodes.NOTIFICATION"
+        const val ACTION_PHONE_STATE = "com.tdvorak.nothingmodes.PHONE_STATE"
+        const val ACTION_SMS = "com.tdvorak.nothingmodes.SMS"
+        const val ACTION_CONNECTIVITY = "com.tdvorak.nothingmodes.CONNECTIVITY"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }
