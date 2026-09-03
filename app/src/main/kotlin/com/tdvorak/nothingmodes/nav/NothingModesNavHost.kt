@@ -11,9 +11,11 @@ import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
 import com.tdvorak.nothingmodes.ui.screens.CreateAutomationScreen
 import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
+import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 
 object Routes {
+    const val ONBOARDING = "onboarding"
     const val AUTOMATION_LIST = "automations"
     const val AUTOMATION_DETAIL = "automation/{id}"
     const val CREATE_AUTOMATION = "create"
@@ -36,6 +38,14 @@ fun NothingModesNavHost() {
         navController = navController,
         startDestination = Routes.AUTOMATION_LIST,
     ) {
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(
+                onComplete = {
+                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
+            )
+        }
+
         composable(Routes.AUTOMATION_LIST) {
             AutomationListScreen(
                 onAutomationClick = { id -> navController.navigate(Routes.automationDetail(id)) },
@@ -109,7 +119,10 @@ fun NothingModesNavHost() {
         }
 
         composable(Routes.SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOnboarding = { navController.navigate(Routes.ONBOARDING) },
+            )
         }
     }
 }

@@ -108,6 +108,7 @@ class SettingsViewModel @Inject constructor(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOnboarding: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -181,6 +182,7 @@ fun SettingsScreen(
                     importResult = importResult,
                     onDismissResult = { viewModel.clearImportResult() },
                 )
+                TextButton(onClick = onOnboarding) { Text("Review setup guide") }
             }
         }
     }
