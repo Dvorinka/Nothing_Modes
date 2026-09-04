@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.engine.model.Transition
 
 /**
@@ -30,7 +31,7 @@ class GeofenceReceiver : BroadcastReceiver() {
             putExtra(EXTRA_LNG, lng)
             putExtra(EXTRA_TRANSITION, transition.name)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {

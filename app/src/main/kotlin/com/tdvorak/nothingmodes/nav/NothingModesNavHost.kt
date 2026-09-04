@@ -1,6 +1,10 @@
 package com.tdvorak.nothingmodes.nav
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,14 +39,19 @@ object Routes {
 @Composable
 fun NothingModesNavHost() {
     val navController = rememberNavController()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
+    val onboardingCompleted = remember { prefs.getBoolean("onboarding_completed", false) }
+    val startDestination = if (onboardingCompleted) Routes.AUTOMATION_LIST else Routes.ONBOARDING
 
     NavHost(
         navController = navController,
-        startDestination = Routes.AUTOMATION_LIST,
+        startDestination = startDestination,
     ) {
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onComplete = {
+                    prefs.edit().putBoolean("onboarding_completed", true).apply()
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
             )

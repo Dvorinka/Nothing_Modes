@@ -67,7 +67,7 @@ class ConflictAndRestoreTest {
         val engine = Engine(store = store, executor = executor)
         engine.onTrigger(envelope("evt1", TriggerEvent.BootCompleted("evt1")))
 
-        assertEquals(listOf("mode-low", "mode-high"), executionOrder)
+        assertEquals(listOf("mode-high", "mode-low"), executionOrder)
     }
 
     @Test

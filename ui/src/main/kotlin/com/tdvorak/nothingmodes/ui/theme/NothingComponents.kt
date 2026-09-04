@@ -86,10 +86,10 @@ fun NothingDivider() {
 fun NothingRedDot(
     modifier: Modifier = Modifier,
 ) {
+    val color = androidx.compose.material3.MaterialTheme.colorScheme.tertiary
     androidx.compose.foundation.Canvas(modifier = modifier) {
-        androidx.compose.ui.geometry.Offset
         drawCircle(
-            color = androidx.compose.ui.graphics.Color.Red,
+            color = color,
             radius = 3.dp.toPx(),
         )
     }

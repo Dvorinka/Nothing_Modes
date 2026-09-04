@@ -11,4 +11,5 @@ data class StateSnapshotEntity(
     val settingKey: String,
     val previousValue: String,
     val capturedAtMillis: Long,
+    val namespace: String = "system",
 )

@@ -30,7 +30,6 @@ class NothingGlyphProvider(private val context: Context) {
             manager = GlyphManager.getInstance(context)
             manager?.init(object : GlyphManager.Callback {
                 override fun onServiceConnected(componentName: android.content.ComponentName) {
-                    connected = true
                     val model = detector.detectModel()
                     try {
                         val targetDevice = mapToDevice(model)
@@ -41,13 +40,14 @@ class NothingGlyphProvider(private val context: Context) {
                         }
                         manager?.openSession()
                         sessionOpen = true
+                        connected = true
                         deviceChannels = model?.let { GlyphChannels.forDevice(it) }
+                        onConnected()
                     } catch (e: GlyphException) {
                         Log.e(TAG, "register/session failed", e)
                     } catch (e: Exception) {
                         Log.e(TAG, "register failed", e)
                     }
-                    onConnected()
                 }
 
                 override fun onServiceDisconnected(componentName: android.content.ComponentName) {

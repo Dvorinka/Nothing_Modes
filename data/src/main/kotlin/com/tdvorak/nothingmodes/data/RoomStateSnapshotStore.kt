@@ -16,6 +16,7 @@ class RoomStateSnapshotStore(
             settingKey = snapshot.settingKey,
             previousValue = snapshot.previousValue,
             capturedAtMillis = snapshot.capturedAtMillis,
+            namespace = snapshot.namespace,
         ))
     }
 
@@ -26,6 +27,7 @@ class RoomStateSnapshotStore(
                 settingKey = entity.settingKey,
                 previousValue = entity.previousValue,
                 capturedAtMillis = entity.capturedAtMillis,
+                namespace = entity.namespace,
             )
         }
 

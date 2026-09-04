@@ -5,9 +5,13 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.affectedSettings
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import kotlinx.coroutines.CancellationException
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /** Core engine: matches triggers, evaluates conditions, executes actions. */
 class Engine(
@@ -35,7 +39,7 @@ class Engine(
             is TriggerEvent.ModeWindowEnd -> listOfNotNull(store.get(event.automationId))
             else -> store.armed()
         }.filter { it.status == AutomationStatus.ARMED && it.enabled }
-            .sortedWith(compareBy({ it.priority }, { it.id.value }))
+            .sortedWith(compareByDescending<Automation> { it.priority }.thenBy { it.id.value })
 
         val batchNow = now()
         val outcomes = mutableListOf<FireOutcome>()
@@ -46,6 +50,9 @@ class Engine(
 
             try {
                 if (!matcher.matches(automation.trigger, event)) continue
+
+                // Check day-of-week filter for time-based triggers
+                if (!shouldFireOnDay(automation.trigger, batchNow)) continue
 
                 when (val decision = firePolicy.evaluate(automation, event, batchNow)) {
                     FirePolicy.Decision.Allow -> Unit
@@ -176,15 +183,23 @@ class Engine(
                 settingKey = key,
                 previousValue = value,
                 capturedAtMillis = batchNow,
+                namespace = namespaceForKey(key),
             ))
         }
     }
 
     private suspend fun restoreSnapshots(id: AutomationId, batchNow: Long) {
         val snapshots = snapshotStore.forAutomation(id)
-        for (snapshot in snapshots) {
+        // Deduplicate by setting key, keeping the newest snapshot per key
+        val latestByKey = snapshots.associateBy { it.settingKey }
+        for (snapshot in latestByKey.values) {
+            val ns = when (snapshot.namespace) {
+                "secure" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SECURE
+                "global" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL
+                else -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM
+            }
             val restoreAction = Action.WriteSetting(
-                namespace = com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM,
+                namespace = ns,
                 key = snapshot.settingKey,
                 value = snapshot.previousValue,
             )
@@ -198,5 +213,38 @@ class Engine(
             runCatching { executor.execute(restoreAction, context) }
         }
         snapshotStore.deleteForAutomation(id)
+    }
+
+    /** Maps a setting key to its Android Settings namespace. */
+    private fun namespaceForKey(key: String): String = when (key) {
+        "reduce_bright_colors_activated" -> "secure"
+        "airplane_mode_on", "low_power", "data_saver" -> "global"
+        else -> "system"
+    }
+
+    /** Checks if a time-based trigger should fire on the current day. */
+    private fun shouldFireOnDay(trigger: Trigger, nowMillis: Long): Boolean {
+        val days = when (trigger) {
+            is Trigger.Time -> trigger.days
+            is Trigger.TimeWindow -> trigger.days
+            else -> return true
+        } ?: return true
+        val tz = when (trigger) {
+            is Trigger.Time -> trigger.tz
+            is Trigger.TimeWindow -> trigger.tz
+            else -> return true
+        }
+        val zone = runCatching { ZoneId.of(tz) }.getOrNull() ?: return true
+        val javaDay = ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowMillis), zone).dayOfWeek
+        val engineDay = when (javaDay) {
+            java.time.DayOfWeek.MONDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.MONDAY
+            java.time.DayOfWeek.TUESDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.TUESDAY
+            java.time.DayOfWeek.WEDNESDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.WEDNESDAY
+            java.time.DayOfWeek.THURSDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.THURSDAY
+            java.time.DayOfWeek.FRIDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.FRIDAY
+            java.time.DayOfWeek.SATURDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.SATURDAY
+            java.time.DayOfWeek.SUNDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.SUNDAY
+        }
+        return engineDay in days
     }
 }

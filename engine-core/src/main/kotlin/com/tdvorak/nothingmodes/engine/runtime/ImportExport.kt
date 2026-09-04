@@ -86,19 +86,23 @@ class ImportExportService(
         }
 
         for (automation in bundle.automations) {
-            val existing = store.get(automation.id)
-            if (existing != null && !overwrite) {
-                skipped++
-                errors.add("Skipped '${automation.name}' (ID ${automation.id.value} already exists)")
-                continue
-            }
+            try {
+                val existing = store.get(automation.id)
+                if (existing != null && !overwrite) {
+                    skipped++
+                    errors.add("Skipped '${automation.name}' (ID ${automation.id.value} already exists)")
+                    continue
+                }
 
-            val toSave = automation.copy(
-                createdBy = CreatedBy.IMPORT,
-                enabled = false,
-            )
-            store.save(toSave)
-            imported++
+                val toSave = automation.copy(
+                    createdBy = CreatedBy.IMPORT,
+                    enabled = false,
+                )
+                store.save(toSave)
+                imported++
+            } catch (e: Exception) {
+                errors.add("Failed to import '${automation.name}' (${automation.id.value}): ${e.message}")
+            }
         }
 
         return ImportResult(imported = imported, skipped = skipped, errors = errors)

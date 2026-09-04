@@ -5,6 +5,7 @@ import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * NotificationListenerService that dispatches notification trigger events.
@@ -28,8 +29,9 @@ class AutomationNotificationListener : NotificationListenerService() {
         val title = extras.getString(Notification.EXTRA_TITLE, "") ?: ""
         val text = extras.getString(Notification.EXTRA_TEXT, "") ?: ""
         val category = notification.category ?: ""
+        val sender = extras.getString(Notification.EXTRA_SUB_TEXT, "") ?: ""
 
-        Log.d(TAG, "Notification: pkg=$pkg title=$title cat=$category")
+        Log.d(TAG, "Notification: pkg=$pkg cat=$category")
 
         // Dispatch to AutomationService
         val intent = Intent(this, AutomationService::class.java).apply {
@@ -38,8 +40,9 @@ class AutomationNotificationListener : NotificationListenerService() {
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_TEXT, text)
             putExtra(EXTRA_CATEGORY, category)
+            putExtra(EXTRA_SENDER, sender)
         }
-        startService(intent)
+        ContextCompat.startForegroundService(this, intent)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
@@ -52,5 +55,6 @@ class AutomationNotificationListener : NotificationListenerService() {
         const val EXTRA_TITLE = "notification_title"
         const val EXTRA_TEXT = "notification_text"
         const val EXTRA_CATEGORY = "notification_category"
+        const val EXTRA_SENDER = "notification_sender"
     }
 }

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Telephony
 import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Receives phone state changes (incoming call, offhook, idle) and SMS.
@@ -34,7 +35,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
         val incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER) ?: ""
 
-        Log.d(TAG, "Phone state: $state number=$incomingNumber")
+        Log.d(TAG, "Phone state: $state")
 
         val phoneEvent = when (state) {
             TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
@@ -48,22 +49,26 @@ class PhoneStateReceiver : BroadcastReceiver() {
             putExtra(EXTRA_PHONE_STATE, phoneEvent)
             putExtra(EXTRA_PHONE_NUMBER, incomingNumber)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleSms(context: Context, intent: Intent) {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        if (messages.isNullOrEmpty()) {
+            Log.w(TAG, "SMS_RECEIVED with no PDUs, ignoring")
+            return
+        }
         val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
 
-        Log.d(TAG, "SMS received: from=$sender body=${body.take(80)}")
+        Log.d(TAG, "SMS received: from=$sender")
 
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_SMS
             putExtra(EXTRA_SMS_SENDER, sender)
             putExtra(EXTRA_SMS_BODY, body)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {

@@ -107,8 +107,8 @@ object CapabilityRequirements {
     }
 
     private fun actionCapabilities(action: Action): Set<String> = when (action) {
-        is Action.SetWifi -> setOf(CapabilityIds.ACTION_SET_WIFI)
-        is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH)
+        is Action.SetWifi -> setOf(CapabilityIds.ACTION_SET_WIFI, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH, CapabilityIds.SHIZUKU_REQUIRED)
         is Action.SetMobileData -> setOf(CapabilityIds.ACTION_SET_MOBILE_DATA, CapabilityIds.SHIZUKU_REQUIRED)
         is Action.SetDnd -> setOf(CapabilityIds.ACTION_SET_DND)
         is Action.SetRinger -> setOf(CapabilityIds.ACTION_SET_RINGER)
@@ -117,7 +117,7 @@ object CapabilityRequirements {
         is Action.ShowNotification -> setOf(CapabilityIds.ACTION_SHOW_NOTIFICATION)
         is Action.SetVolume -> setOf(CapabilityIds.ACTION_SET_VOLUME)
         is Action.SetFlashlight -> setOf(CapabilityIds.ACTION_SET_FLASHLIGHT)
-        is Action.SetDarkMode -> setOf(CapabilityIds.ACTION_SET_DARK_MODE, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.SetDarkMode -> setOf(CapabilityIds.ACTION_SET_DARK_MODE)
         is Action.OpenSettingsScreen -> setOf(CapabilityIds.ACTION_OPEN_SETTINGS_SCREEN)
         is Action.Vibrate -> setOf(CapabilityIds.ACTION_VIBRATE)
         is Action.SetBrightness -> setOf(CapabilityIds.ACTION_SET_BRIGHTNESS)

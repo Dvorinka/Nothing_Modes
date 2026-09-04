@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.wifi.WifiManager
 import android.bluetooth.BluetoothAdapter
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Receives connectivity state changes (WiFi, Bluetooth) and dispatches
@@ -37,12 +38,19 @@ class ConnectivityReceiver : BroadcastReceiver() {
         }
         Log.d(TAG, "WiFi state: $wifiEvent")
 
+        // Extract SSID if available for match-based triggers
+        val ssid = runCatching {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            wifiManager?.connectionInfo?.ssid?.removeSurrounding("\"")
+        }.getOrNull()
+
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_CONNECTIVITY
             putExtra(EXTRA_CONNECTIVITY_TYPE, "wifi")
             putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
+            if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleBtState(context: Context, intent: Intent) {
@@ -59,12 +67,13 @@ class ConnectivityReceiver : BroadcastReceiver() {
             putExtra(EXTRA_CONNECTIVITY_TYPE, "bluetooth")
             putExtra(EXTRA_CONNECTIVITY_STATE, btEvent)
         }
-        context.startService(serviceIntent)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     companion object {
         private const val TAG = "ConnectivityReceiver"
         const val EXTRA_CONNECTIVITY_TYPE = "connectivity_type"
         const val EXTRA_CONNECTIVITY_STATE = "connectivity_state"
+        const val EXTRA_CONNECTIVITY_MATCH = "connectivity_match"
     }
 }

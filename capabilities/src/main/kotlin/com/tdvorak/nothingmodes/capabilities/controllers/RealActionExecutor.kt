@@ -56,7 +56,7 @@ class RealActionExecutor(
         is Action.SetDarkMode -> darkMode.setDarkMode(action.mode).toActionResult()
         is Action.SetBrightness -> brightness.setBrightness(action.level).toActionResult()
         is Action.SetAutoBrightness -> brightness.setAutoBrightness(action.on).toActionResult()
-        is Action.SetExtraDim -> extraDim.setExtraDim(action.on).toActionResult()
+        is Action.SetExtraDim -> setExtraDim(action.on)
         is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
         is Action.SetVolume -> volume.setVolume(action.stream, action.level).toActionResult()
         is Action.SetRinger -> ringer.setRinger(action.mode).toActionResult()
@@ -67,8 +67,8 @@ class RealActionExecutor(
         is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
         is Action.ShowNotification -> showNotification(action.title, action.text)
         is Action.Wait -> {
-            delay(action.durationMs)
-            ActionResult.Success
+            if (action.durationMs <= 0) ActionResult.Success
+            else { delay(action.durationMs); ActionResult.Success }
         }
         // Shizuku-required actions (with public-API fallbacks where possible)
         is Action.SetWifi -> executeShell(wifiCommand(action.on))
@@ -80,7 +80,7 @@ class RealActionExecutor(
         is Action.SetFlashlight -> setFlashlight(action.on)
 
         // Glyph light stripe
-        is Action.SetGlyph -> setGlyph(action.on)
+        is Action.SetGlyph -> setGlyph(action.on, action.channels)
 
         // Glyph Matrix
         is Action.SetGlyphMatrix -> setGlyphMatrix(action.colors?.toIntArray(), action.restore)
@@ -153,16 +153,26 @@ class RealActionExecutor(
 
     // --- Glyph light stripe ---
 
-    private suspend fun setGlyph(on: Boolean): ActionResult {
+    private suspend fun setGlyph(on: Boolean, channels: List<Int>?): ActionResult {
         val provider = glyphProvider
             ?: return ActionResult.Unsupported
         if (!provider.isAvailable()) return ActionResult.Unsupported
         return try {
-            val result = if (on) provider.toggle() else provider.turnOff()
+            val result = if (on) provider.toggle(channels) else provider.turnOff()
             glyphResultToActionResult(result)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "glyph failed")
         }
+    }
+
+    // --- Extra Dim with Shizuku fallback ---
+
+    private suspend fun setExtraDim(on: Boolean): ActionResult {
+        val result = extraDim.setExtraDim(on).toActionResult()
+        if (result !is ActionResult.PermissionRequired) return result
+        return executeShell(listOf(
+            "settings", "put", "secure", "reduce_bright_colors_activated", if (on) "1" else "0",
+        ))
     }
 
     // --- Glyph Matrix ---
@@ -351,24 +361,38 @@ class RealActionExecutor(
         ActionResult.Failure(e.message ?: "copyText failed")
     }
 
-    private fun launchApp(pkg: String): ActionResult = try {
-        val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-            ?: return ActionResult.Failure("No launch intent for $pkg")
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "launchApp failed")
+    private fun launchApp(pkg: String): ActionResult {
+        return try {
+            // Validate package name format to prevent intent injection
+            if (!pkg.matches(Regex("^[A-Za-z0-9][A-Za-z0-9_.]*$"))) {
+                return ActionResult.Failure("Invalid package name: $pkg")
+            }
+            val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+                ?: return ActionResult.Failure("No launch intent for $pkg")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "launchApp failed")
+        }
     }
 
-    private fun openUrl(url: String): ActionResult = try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun openUrl(url: String): ActionResult {
+        return try {
+            val uri = Uri.parse(url)
+            val scheme = uri.scheme?.lowercase()
+            // Restrict to http/https to prevent arbitrary deep-link/intent injection
+            if (scheme != "http" && scheme != "https") {
+                return ActionResult.Failure("Only http/https URLs are allowed")
+            }
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "openUrl failed")
         }
-        context.startActivity(intent)
-        ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "openUrl failed")
     }
 
     private fun openSettings(screen: SettingsScreen, pkg: String?): ActionResult = try {
@@ -393,8 +417,14 @@ class RealActionExecutor(
         ActionResult.Failure(e.message ?: "openSettings failed")
     }
 
-    private fun showNotification(title: String, text: String): ActionResult = try {
-        val nm = context.getSystemService(NotificationManager::class.java)
+    private fun showNotification(title: String, text: String): ActionResult {
+        return try {
+            val nm = context.getSystemService(NotificationManager::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) return ActionResult.PermissionRequired
+            }
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
             "Automation Notifications",
@@ -409,8 +439,9 @@ class RealActionExecutor(
             .build()
         nm.notify(NOTIFICATION_ID_BASE + (title.hashCode() and 0xFFF), notification)
         ActionResult.Success
-    } catch (e: Exception) {
-        ActionResult.Failure(e.message ?: "showNotification failed")
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "showNotification failed")
+        }
     }
 
     // --- System settings toggles (Phase 4) ---
@@ -448,6 +479,10 @@ class RealActionExecutor(
     }
 
     private suspend fun writeSetting(action: Action.WriteSetting): ActionResult {
+        // Validate key/value form before any write path (shell or public API)
+        if (!com.tdvorak.nothingmodes.engine.model.WriteSettingPolicy.valid(action)) {
+            return ActionResult.Failure("Invalid setting key or value (rejected by policy)")
+        }
         // System namespace can use public Settings API with WRITE_SETTINGS permission
         if (action.namespace == SettingNamespace.SYSTEM) {
             return try {
@@ -469,19 +504,15 @@ class RealActionExecutor(
     }
 
     private suspend fun setAirplaneMode(on: Boolean): ActionResult {
-        // Write the setting via Shizuku, then broadcast the change so the radio actually toggles
+        // Write the setting via Shizuku, then broadcast via shell so the radio toggles.
+        // ACTION_AIRPLANE_MODE_CHANGED is a protected broadcast that third-party apps cannot send
+        // on Android 12+, so we use `am broadcast` through the privileged shell.
         val writeResult = executeShell(airplaneModeCommand(on))
         if (writeResult !is ActionResult.Success) return writeResult
-        // Broadcast the change so TelephonyManager picks it up
-        return try {
-            val intent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-                .putExtra("state", on)
-                .addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING)
-            context.sendBroadcast(intent)
-            ActionResult.Success
-        } catch (e: Exception) {
-            ActionResult.Failure(e.message ?: "airplane broadcast failed")
-        }
+        return executeShell(listOf(
+            "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE",
+            "--ez", "state", on.toString(),
+        ))
     }
 
     private fun batterySaverCommand(on: Boolean) = listOf(
@@ -494,7 +525,7 @@ class RealActionExecutor(
         "settings", "put", "global", "data_saver", if (on) "1" else "0",
     )
     private fun hotspotCommand(on: Boolean) = listOf(
-        "svc", "wifi", "set-wifi-ap-enabled", if (on) "true" else "false",
+        "settings", "put", "global", "wifi_ap_state", if (on) "1" else "0",
     )
     private fun nfcCommand(on: Boolean) = listOf(
         "svc", "nfc", if (on) "enable" else "disable",
@@ -561,17 +592,32 @@ class RealActionExecutor(
                 MediaCommand.PREVIOUS -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
                 MediaCommand.STOP -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
             }
-            // dispatchMediaKeyEvent is the correct public API for media button dispatch.
-            // On Android 8+ it requires the caller to be the current media session owner
-            // or have the MEDIA_CONTENT_CONTROL permission. Fallback: send an ordered broadcast.
             val audioManager = context.getSystemService(android.media.AudioManager::class.java)
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
-            )
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
-            )
-            ActionResult.Success
+            // Try dispatchMediaKeyEvent first (works if app is media session owner)
+            try {
+                audioManager.dispatchMediaKeyEvent(
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
+                )
+                audioManager.dispatchMediaKeyEvent(
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
+                )
+                ActionResult.Success
+            } catch (_: Exception) {
+                // Fallback: send media button broadcast intent
+                val intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+                    putExtra(
+                        Intent.EXTRA_KEY_EVENT,
+                        android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode),
+                    )
+                }
+                context.sendOrderedBroadcast(intent, null)
+                intent.putExtra(
+                    Intent.EXTRA_KEY_EVENT,
+                    android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode),
+                )
+                context.sendOrderedBroadcast(intent, null)
+                ActionResult.Success
+            }
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "mediaControl failed")
         }
