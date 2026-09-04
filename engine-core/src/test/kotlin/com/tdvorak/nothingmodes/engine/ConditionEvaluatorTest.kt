@@ -402,6 +402,42 @@ class ConditionEvaluatorTest {
 
     // --- Nested composites ---
 
+    // --- Values-based conditions ---
+
+    @Test
+    fun `DarkModeActive - MET when value matches`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.DarkModeActive(true),
+                DeviceState(values = mapOf("dark_mode" to "true"))))
+    }
+
+    @Test
+    fun `DarkModeActive - NOT_MET when value mismatches`() {
+        assertEquals(ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.DarkModeActive(true),
+                DeviceState(values = mapOf("dark_mode" to "false"))))
+    }
+
+    @Test
+    fun `PowerSaving - STATE_UNAVAILABLE when value missing`() {
+        assertEquals(ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.PowerSaving(true), DeviceState()))
+    }
+
+    @Test
+    fun `RingerMode - MET on matching mode`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.RingerMode("vibrate"),
+                DeviceState(values = mapOf("ringer_mode" to "vibrate"))))
+    }
+
+    @Test
+    fun `MediaPlaying - MET when value is on`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.MediaPlaying(true),
+                DeviceState(values = mapOf("media_playing" to "on"))))
+    }
+
     @Test
     fun `nested And-Or-Not evaluates correctly`() {
         val cond = Condition.And(listOf(

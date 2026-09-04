@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
+import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.PowerManager
@@ -50,6 +52,7 @@ class AndroidStateProvider(
         val (btConnected, btName) = readBluetoothState()
         val foregroundApp = readForegroundApp()
         val activeModeIds = modeActivationProvider?.activeModeIds()?.toSet() ?: emptySet()
+        val values = readValues(powerManager)
 
         return DeviceState(
             batteryLevel = batteryLevel,
@@ -61,8 +64,33 @@ class AndroidStateProvider(
             screenState = screenState,
             foregroundApp = foregroundApp,
             activeModeIds = activeModeIds,
+            values = values,
             now = System.currentTimeMillis(),
         )
+    }
+
+    private fun readValues(powerManager: PowerManager): Map<String, String> {
+        val values = mutableMapOf<String, String>()
+
+        // Dark mode is derived from the current UI mode configuration.
+        val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        values["dark_mode"] = (nightMode == Configuration.UI_MODE_NIGHT_YES).toString()
+
+        // Power save mode is exposed directly by PowerManager.
+        values["power_saving"] = powerManager.isPowerSaveMode.toString()
+
+        // Media playback and ringer mode come from AudioManager.
+        val audioManager = context.getSystemService(AudioManager::class.java)
+        if (audioManager != null) {
+            values["media_playing"] = audioManager.isMusicActive.toString()
+            values["ringer_mode"] = when (audioManager.ringerMode) {
+                AudioManager.RINGER_MODE_SILENT -> "silent"
+                AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
+                else -> "normal"
+            }
+        }
+
+        return values
     }
 
     private fun readWifiState(): Pair<Boolean, String?> {
