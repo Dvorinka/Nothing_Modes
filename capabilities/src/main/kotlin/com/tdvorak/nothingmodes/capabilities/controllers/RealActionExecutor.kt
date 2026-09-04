@@ -105,6 +105,15 @@ class RealActionExecutor(
         is Action.SetRefreshRate -> setRefreshRate(action.hz)
         is Action.SetScreenRotation -> setScreenRotation(action.orientation)
         is Action.MediaControl -> mediaControl(action.command)
+
+        // Extended actions (Phase 5)
+        is Action.SendSms -> sendSms(action.number, action.text)
+        is Action.LockScreen -> lockScreen()
+        is Action.SetLocationMode -> setLocationMode(action.mode)
+        is Action.SetAutoSync -> executeShell(autoSyncCommand(action.on))
+        is Action.ClearNotifications -> clearNotifications()
+        is Action.SetAlwaysOnDisplay -> executeShell(aodCommand(action.on))
+        is Action.TakeScreenshot -> ActionResult.Unsupported
     }
 
     // --- Shizuku shell actions ---
@@ -123,6 +132,8 @@ class RealActionExecutor(
     private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
     private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
     private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
+    private fun autoSyncCommand(on: Boolean) = listOf("settings", "put", "global", "auto_sync", if (on) "1" else "0")
+    private fun aodCommand(on: Boolean) = listOf("settings", "put", "secure", "doze_always_on", if (on) "1" else "0")
 
     private fun writeSettingCommand(action: Action.WriteSetting): List<String> {
         val namespace = when (action.namespace) {
@@ -642,6 +653,62 @@ class RealActionExecutor(
             }
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "mediaControl failed")
+        }
+    }
+
+    // --- Extended actions (Phase 5) ---
+
+    @SuppressLint("MissingPermission")
+    private fun sendSms(number: String, text: String): ActionResult {
+        return try {
+            val smsManager = context.getSystemService(android.telephony.SmsManager::class.java)
+            smsManager.sendTextMessage(number, null, text, null, null)
+            ActionResult.Success
+        } catch (e: SecurityException) {
+            ActionResult.PermissionRequired
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "sendSms failed")
+        }
+    }
+
+    private fun lockScreen(): ActionResult {
+        return try {
+            val dm = context.getSystemService(android.app.admin.DevicePolicyManager::class.java)
+            val comp = android.content.ComponentName(context, android.app.admin.DeviceAdminReceiver::class.java)
+            if (dm.isAdminActive(comp)) {
+                dm.lockNow()
+                ActionResult.Success
+            } else {
+                ActionResult.PermissionRequired
+            }
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "lockScreen failed")
+        }
+    }
+
+    private fun setLocationMode(mode: com.tdvorak.nothingmodes.engine.model.LocationMode): ActionResult {
+        val value = when (mode) {
+            com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY -> "3"
+            com.tdvorak.nothingmodes.engine.model.LocationMode.BATTERY_SAVING -> "2"
+            com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY -> "1"
+            com.tdvorak.nothingmodes.engine.model.LocationMode.OFF -> "0"
+        }
+        return try {
+            if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
+            Settings.System.putInt(context.contentResolver, Settings.System.LOCATION_MODE, value.toInt())
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setLocationMode failed")
+        }
+    }
+
+    private fun clearNotifications(): ActionResult {
+        return try {
+            val nm = context.getSystemService(NotificationManager::class.java)
+            nm.cancelAll()
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "clearNotifications failed")
         }
     }
 

@@ -66,6 +66,9 @@ class AutomationService : Service() {
             ACTION_CONNECTIVITY -> handleConnectivity(intent)
             ACTION_APP_FOREGROUND -> handleAppForeground(intent)
             ACTION_GEOFENCE -> handleGeofence(intent)
+            ACTION_BT_DEVICE -> handleBtDevice(intent)
+            ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
+            ACTION_MANUAL -> handleManual(intent)
         }
 
         // Stop only when all in-flight jobs are done
@@ -240,6 +243,38 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleBtDevice(intent: Intent) {
+        val stateStr = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_STATE) ?: return
+        val state = when (stateStr) {
+            "connected" -> ConnState.CONNECTED
+            "disconnected" -> ConnState.DISCONNECTED
+            else -> return
+        }
+        dispatchEvent(TriggerEvent.BluetoothDeviceChanged(
+            eventId = "bt_dev:${System.currentTimeMillis()}",
+            state = state,
+            deviceName = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_NAME),
+            deviceAddress = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_ADDRESS),
+        ))
+    }
+
+    private fun handleWifiConnected(intent: Intent) {
+        val ssid = intent.getStringExtra(ConnectivityReceiver.EXTRA_WIFI_SSID) ?: return
+        dispatchEvent(TriggerEvent.WifiConnectedChanged(
+            eventId = "wifi_conn:${System.currentTimeMillis()}",
+            ssid = ssid,
+        ))
+    }
+
+    private fun handleManual(intent: Intent) {
+        val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
+        val automationId = AutomationId(idStr)
+        dispatchEvent(TriggerEvent.ManualFired(
+            eventId = "manual:${System.currentTimeMillis()}",
+            automationId = automationId,
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         val job = scope.launch {
             val envelope = TriggerEnvelope(
@@ -298,6 +333,10 @@ class AutomationService : Service() {
         const val ACTION_CONNECTIVITY = "com.tdvorak.nothingmodes.CONNECTIVITY"
         const val ACTION_APP_FOREGROUND = "com.tdvorak.nothingmodes.APP_FOREGROUND"
         const val ACTION_GEOFENCE = "com.tdvorak.nothingmodes.GEOFENCE"
+        const val ACTION_BT_DEVICE = "com.tdvorak.nothingmodes.BT_DEVICE"
+        const val ACTION_WIFI_CONNECTED = "com.tdvorak.nothingmodes.WIFI_CONNECTED"
+        const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
+        const val EXTRA_MANUAL_ID = "manual_automation_id"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }

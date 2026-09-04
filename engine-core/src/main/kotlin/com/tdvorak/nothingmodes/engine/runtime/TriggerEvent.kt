@@ -77,6 +77,30 @@ sealed interface TriggerEvent {
         val lng: Double,
         val transition: com.tdvorak.nothingmodes.engine.model.Transition,
     ) : TriggerEvent
+
+    data class ManualFired(
+        override val eventId: String,
+        val automationId: com.tdvorak.nothingmodes.engine.model.AutomationId,
+    ) : TriggerEvent
+
+    data class BluetoothDeviceChanged(
+        override val eventId: String,
+        val state: com.tdvorak.nothingmodes.engine.model.ConnState,
+        val deviceName: String?,
+        val deviceAddress: String?,
+    ) : TriggerEvent
+
+    data class WifiConnectedChanged(
+        override val eventId: String,
+        val ssid: String?,
+    ) : TriggerEvent
+
+    data class CalendarEventChanged(
+        override val eventId: String,
+        val direction: com.tdvorak.nothingmodes.engine.model.CalendarDirection,
+        val title: String?,
+        val calendarId: String?,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

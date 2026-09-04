@@ -395,6 +395,18 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
                     DropdownMenuItem(text = { Text("Geofence") }, onClick = {
                         onUpdate(Trigger.Geofence(50.0755, 14.4378, 100.0, com.tdvorak.nothingmodes.engine.model.Transition.ENTER)); expanded = false
                     })
+                    DropdownMenuItem(text = { Text("Manual") }, onClick = {
+                        onUpdate(Trigger.Manual); expanded = false
+                    })
+                    DropdownMenuItem(text = { Text("Bluetooth Device") }, onClick = {
+                        onUpdate(Trigger.BluetoothDevice(com.tdvorak.nothingmodes.engine.model.ConnState.CONNECTED)); expanded = false
+                    })
+                    DropdownMenuItem(text = { Text("WiFi Connected") }, onClick = {
+                        onUpdate(Trigger.WifiConnected()); expanded = false
+                    })
+                    DropdownMenuItem(text = { Text("Calendar Event") }, onClick = {
+                        onUpdate(Trigger.CalendarEvent()); expanded = false
+                    })
                 }
             }
 
@@ -577,7 +589,31 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
             )
         }
-        is Trigger.Immediate, is Trigger.Boot -> {}
+        is Trigger.Immediate, is Trigger.Boot, is Trigger.Manual -> {}
+        is Trigger.BluetoothDevice -> {
+            OutlinedTextField(
+                value = trigger.deviceName ?: "",
+                onValueChange = { onUpdate(trigger.copy(deviceName = it.ifBlank { null })) },
+                label = { Text("Device name (blank = any)") },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+            )
+        }
+        is Trigger.WifiConnected -> {
+            OutlinedTextField(
+                value = trigger.ssid ?: "",
+                onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
+                label = { Text("SSID (blank = any)") },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+            )
+        }
+        is Trigger.CalendarEvent -> {
+            OutlinedTextField(
+                value = trigger.titleMatch ?: "",
+                onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
+                label = { Text("Title contains (blank = any)") },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+            )
+        }
     }
 }
 
@@ -690,6 +726,18 @@ private fun ActionPickerDialog(
         "Media Next" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.NEXT),
         "Media Previous" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.PREVIOUS),
         "Media Stop" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.STOP),
+        "Send SMS" to Action.SendSms(number = "", text = ""),
+        "Lock Screen" to Action.LockScreen,
+        "Location High Accuracy" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY),
+        "Location Battery Saving" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.BATTERY_SAVING),
+        "Location Device Only" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY),
+        "Location Off" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.OFF),
+        "Auto-sync On" to Action.SetAutoSync(on = true),
+        "Auto-sync Off" to Action.SetAutoSync(on = false),
+        "Clear Notifications" to Action.ClearNotifications,
+        "AOD On" to Action.SetAlwaysOnDisplay(on = true),
+        "AOD Off" to Action.SetAlwaysOnDisplay(on = false),
+        "Screenshot" to Action.TakeScreenshot,
     )
 
     AlertDialog(

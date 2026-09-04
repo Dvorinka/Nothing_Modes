@@ -25,6 +25,10 @@ fun triggerDescription(trigger: Trigger): String = when (trigger) {
     is Trigger.ScreenStateTrigger -> "Screen ${trigger.state}"
     is Trigger.AppOpened -> "App opened: ${trigger.pkg}"
     is Trigger.Geofence -> "Geofence (${trigger.lat}, ${trigger.lng}) r=${trigger.radiusM}m"
+    is Trigger.Manual -> "Manual"
+    is Trigger.BluetoothDevice -> "BT device ${trigger.state}${trigger.deviceName?.let { ": $it" } ?: ""}"
+    is Trigger.WifiConnected -> "WiFi connected${trigger.ssid?.let { ": $it" } ?: ""}"
+    is Trigger.CalendarEvent -> "Calendar ${trigger.direction.name.lowercase()}${trigger.titleMatch?.let { ": $it" } ?: ""}"
 }
 
 fun actionDescription(action: Action): String = when (action) {
@@ -65,4 +69,11 @@ fun actionDescription(action: Action): String = when (action) {
     is Action.SetRefreshRate -> "Refresh Rate: ${action.hz}Hz"
     is Action.SetScreenRotation -> "Rotation: ${action.orientation.name.lowercase()}"
     is Action.MediaControl -> "Media: ${action.command.name.lowercase().replace("_", " ")}"
+    is Action.SendSms -> "SMS to ${action.number}"
+    is Action.LockScreen -> "Lock screen"
+    is Action.SetLocationMode -> "Location: ${action.mode.name.lowercase().replace("_", " ")}"
+    is Action.SetAutoSync -> "Auto-sync: ${if (action.on) "On" else "Off"}"
+    is Action.ClearNotifications -> "Clear notifications"
+    is Action.SetAlwaysOnDisplay -> "AOD: ${if (action.on) "On" else "Off"}"
+    is Action.TakeScreenshot -> "Screenshot"
 }

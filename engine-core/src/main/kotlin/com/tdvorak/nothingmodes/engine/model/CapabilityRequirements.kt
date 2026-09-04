@@ -18,6 +18,10 @@ object CapabilityIds {
     const val TRIGGER_SCREEN_STATE = "trigger_screen_state"
     const val TRIGGER_APP_OPENED = "trigger_app_opened"
     const val TRIGGER_GEOFENCE = "trigger_geofence"
+    const val TRIGGER_MANUAL = "trigger_manual"
+    const val TRIGGER_BT_DEVICE = "trigger_bt_device"
+    const val TRIGGER_WIFI_CONNECTED = "trigger_wifi_connected"
+    const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
 
     // State readers
     const val STATE_READER_BUILTIN = "state_reader_builtin"
@@ -66,6 +70,13 @@ object CapabilityIds {
     const val ACTION_SET_REFRESH_RATE = "action_set_refresh_rate"
     const val ACTION_SET_SCREEN_ROTATION = "action_set_screen_rotation"
     const val ACTION_MEDIA_CONTROL = "action_media_control"
+    const val ACTION_SEND_SMS = "action_send_sms"
+    const val ACTION_LOCK_SCREEN = "action_lock_screen"
+    const val ACTION_SET_LOCATION_MODE = "action_set_location_mode"
+    const val ACTION_SET_AUTO_SYNC = "action_set_auto_sync"
+    const val ACTION_CLEAR_NOTIFICATIONS = "action_clear_notifications"
+    const val ACTION_SET_AOD = "action_set_aod"
+    const val ACTION_TAKE_SCREENSHOT = "action_take_screenshot"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -104,6 +115,10 @@ object CapabilityRequirements {
         is Trigger.ScreenStateTrigger -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
         is Trigger.AppOpened -> setOf(CapabilityIds.TRIGGER_APP_OPENED)
         is Trigger.Geofence -> setOf(CapabilityIds.TRIGGER_GEOFENCE)
+        is Trigger.Manual -> setOf(CapabilityIds.TRIGGER_MANUAL)
+        is Trigger.BluetoothDevice -> setOf(CapabilityIds.TRIGGER_BT_DEVICE)
+        is Trigger.WifiConnected -> setOf(CapabilityIds.TRIGGER_WIFI_CONNECTED)
+        is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
     }
 
     private fun actionCapabilities(action: Action): Set<String> = when (action) {
@@ -144,6 +159,13 @@ object CapabilityRequirements {
         is Action.SetRefreshRate -> setOf(CapabilityIds.ACTION_SET_REFRESH_RATE)
         is Action.SetScreenRotation -> setOf(CapabilityIds.ACTION_SET_SCREEN_ROTATION)
         is Action.MediaControl -> setOf(CapabilityIds.ACTION_MEDIA_CONTROL)
+        is Action.SendSms -> setOf(CapabilityIds.ACTION_SEND_SMS)
+        is Action.LockScreen -> setOf(CapabilityIds.ACTION_LOCK_SCREEN)
+        is Action.SetLocationMode -> setOf(CapabilityIds.ACTION_SET_LOCATION_MODE)
+        is Action.SetAutoSync -> setOf(CapabilityIds.ACTION_SET_AUTO_SYNC, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
+        is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
+        is Action.TakeScreenshot -> setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT)
     }
 
     private fun conditionCapabilities(condition: Condition): Set<String> = when (condition) {

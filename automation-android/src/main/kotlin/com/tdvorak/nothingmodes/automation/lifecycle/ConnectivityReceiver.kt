@@ -3,8 +3,10 @@ package com.tdvorak.nothingmodes.automation.lifecycle
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.NetworkInfo
 import android.net.wifi.WifiManager
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.util.Log
 import androidx.core.content.ContextCompat
 
@@ -25,8 +27,41 @@ class ConnectivityReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             WifiManager.WIFI_STATE_CHANGED_ACTION -> handleWifiState(context, intent)
+            android.net.ConnectivityManager.CONNECTIVITY_ACTION -> handleWifiConnected(context, intent)
             BluetoothAdapter.ACTION_STATE_CHANGED -> handleBtState(context, intent)
+            BluetoothDevice.ACTION_ACL_CONNECTED -> handleBtDevice(context, intent, true)
+            BluetoothDevice.ACTION_ACL_DISCONNECTED -> handleBtDevice(context, intent, false)
         }
+    }
+
+    private fun handleWifiConnected(context: Context, intent: Intent) {
+        val networkInfo = intent.getParcelableExtra<NetworkInfo>(android.net.ConnectivityManager.EXTRA_NETWORK_INFO)
+        if (networkInfo?.type != android.net.ConnectivityManager.TYPE_WIFI) return
+        if (networkInfo.state != NetworkInfo.State.CONNECTED) return
+        val ssid = runCatching {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            wifiManager?.connectionInfo?.ssid?.removeSurrounding("\"")
+        }.getOrNull() ?: return
+        Log.d(TAG, "WiFi connected: ssid=$ssid")
+        val serviceIntent = Intent(context, AutomationService::class.java).apply {
+            action = AutomationService.ACTION_WIFI_CONNECTED
+            putExtra(EXTRA_WIFI_SSID, ssid)
+        }
+        ContextCompat.startForegroundService(context, serviceIntent)
+    }
+
+    private fun handleBtDevice(context: Context, intent: Intent, connected: Boolean) {
+        val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+        val name = device?.name
+        val address = device?.address
+        Log.d(TAG, "BT device ${if (connected) "connected" else "disconnected"}")
+        val serviceIntent = Intent(context, AutomationService::class.java).apply {
+            action = AutomationService.ACTION_BT_DEVICE
+            putExtra(EXTRA_BT_DEVICE_STATE, if (connected) "connected" else "disconnected")
+            if (name != null) putExtra(EXTRA_BT_DEVICE_NAME, name)
+            if (address != null) putExtra(EXTRA_BT_DEVICE_ADDRESS, address)
+        }
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleWifiState(context: Context, intent: Intent) {
@@ -75,5 +110,9 @@ class ConnectivityReceiver : BroadcastReceiver() {
         const val EXTRA_CONNECTIVITY_TYPE = "connectivity_type"
         const val EXTRA_CONNECTIVITY_STATE = "connectivity_state"
         const val EXTRA_CONNECTIVITY_MATCH = "connectivity_match"
+        const val EXTRA_WIFI_SSID = "wifi_ssid"
+        const val EXTRA_BT_DEVICE_STATE = "bt_device_state"
+        const val EXTRA_BT_DEVICE_NAME = "bt_device_name"
+        const val EXTRA_BT_DEVICE_ADDRESS = "bt_device_address"
     }
 }

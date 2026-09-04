@@ -49,6 +49,20 @@ class TriggerMatcher {
 
         is Trigger.Geofence -> event is TriggerEvent.GeofenceTriggered &&
             event.transition == trigger.transition
+
+        is Trigger.Manual -> event is TriggerEvent.ManualFired
+
+        is Trigger.BluetoothDevice -> event is TriggerEvent.BluetoothDeviceChanged &&
+            event.state == trigger.state &&
+            (trigger.deviceName == null || event.deviceName?.equals(trigger.deviceName, ignoreCase = true) == true) &&
+            (trigger.deviceAddress == null || event.deviceAddress?.equals(trigger.deviceAddress, ignoreCase = true) == true)
+
+        is Trigger.WifiConnected -> event is TriggerEvent.WifiConnectedChanged &&
+            (trigger.ssid == null || event.ssid?.contains(trigger.ssid, ignoreCase = true) == true)
+
+        is Trigger.CalendarEvent -> event is TriggerEvent.CalendarEventChanged &&
+            event.direction == trigger.direction &&
+            (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true)
     }
 
     /** Checks if a time trigger should fire on the given day. */

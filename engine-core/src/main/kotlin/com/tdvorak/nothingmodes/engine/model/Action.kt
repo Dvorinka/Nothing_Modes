@@ -53,6 +53,13 @@ object ActionTypeIds {
     const val SET_REFRESH_RATE = "set_refresh_rate"
     const val SET_SCREEN_ROTATION = "set_screen_rotation"
     const val MEDIA_CONTROL = "media_control"
+    const val SEND_SMS = "send_sms"
+    const val LOCK_SCREEN = "lock_screen"
+    const val SET_LOCATION_MODE = "set_location_mode"
+    const val SET_AUTO_SYNC = "set_auto_sync"
+    const val CLEAR_NOTIFICATIONS = "clear_notifications"
+    const val SET_AOD = "set_aod"
+    const val TAKE_SCREENSHOT = "take_screenshot"
 }
 
 @Serializable
@@ -181,6 +188,36 @@ sealed interface Action {
     /** Media playback control. */
     @Serializable @SerialName(ActionTypeIds.MEDIA_CONTROL)
     data class MediaControl(val command: MediaCommand) : Action
+
+    // ── Extended actions (Phase 5) ──
+
+    /** Send an SMS to a phone number. Requires SEND_SMS permission. */
+    @Serializable @SerialName(ActionTypeIds.SEND_SMS)
+    data class SendSms(val number: String, val text: String) : Action
+
+    /** Lock the screen. Requires Device Admin or accessibility service. */
+    @Serializable @SerialName(ActionTypeIds.LOCK_SCREEN)
+    data object LockScreen : Action
+
+    /** Set location mode (high accuracy, battery saving, device only, off). Requires Shizuku. */
+    @Serializable @SerialName(ActionTypeIds.SET_LOCATION_MODE)
+    data class SetLocationMode(val mode: LocationMode) : Action
+
+    /** Toggle auto-sync (background data sync). Requires Shizuku. */
+    @Serializable @SerialName(ActionTypeIds.SET_AUTO_SYNC)
+    data class SetAutoSync(val on: Boolean) : Action
+
+    /** Clear all notifications. Requires notification listener access. */
+    @Serializable @SerialName(ActionTypeIds.CLEAR_NOTIFICATIONS)
+    data object ClearNotifications : Action
+
+    /** Toggle Always-On Display. Requires Shizuku. */
+    @Serializable @SerialName(ActionTypeIds.SET_AOD)
+    data class SetAlwaysOnDisplay(val on: Boolean) : Action
+
+    /** Take a screenshot. Requires MediaProjection (user consent per capture). */
+    @Serializable @SerialName(ActionTypeIds.TAKE_SCREENSHOT)
+    data object TakeScreenshot : Action
 }
 
 @Serializable
@@ -188,6 +225,9 @@ enum class ScreenOrientation { AUTO, PORTRAIT, LANDSCAPE }
 
 @Serializable
 enum class MediaCommand { PLAY_PAUSE, NEXT, PREVIOUS, STOP }
+
+@Serializable
+enum class LocationMode { HIGH_ACCURACY, BATTERY_SAVING, DEVICE_ONLY, OFF }
 
 /** Actions that support state restoration (snapshot previous value before applying). */
 val Action.supportsRestore: Boolean

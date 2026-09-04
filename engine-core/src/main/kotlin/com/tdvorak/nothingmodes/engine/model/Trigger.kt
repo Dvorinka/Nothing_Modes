@@ -93,6 +93,35 @@ sealed interface Trigger {
         val transition: Transition,
         @EncodeDefault(EncodeDefault.Mode.NEVER) val loiteringDelayMs: Long = 0,
     ) : Trigger
+
+    /** Manual trigger: fires when the user taps a "Run" button in the app. */
+    @Serializable @SerialName("manual")
+    data object Manual : Trigger
+
+    /** Bluetooth device connected/disconnected (ACL connection, not adapter state). */
+    @Serializable @SerialName("bt_device")
+    data class BluetoothDevice(
+        val state: ConnState,
+        val deviceName: String? = null,
+        val deviceAddress: String? = null,
+    ) : Trigger
+
+    /** WiFi connected to a specific network (SSID). */
+    @Serializable @SerialName("wifi_connected")
+    data class WifiConnected(
+        val ssid: String? = null,
+    ) : Trigger
+
+    /** Calendar event starts or ends. Requires calendar read permission. */
+    @Serializable @SerialName("calendar_event")
+    data class CalendarEvent(
+        val calendarId: String? = null,
+        val titleMatch: String? = null,
+        val direction: CalendarDirection = CalendarDirection.START,
+    ) : Trigger
 }
+
+@Serializable
+enum class CalendarDirection { START, END }
 
 fun Trigger.Time.isOneShot(): Boolean = at != null || afterMs != null
