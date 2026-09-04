@@ -266,9 +266,9 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
-    // Handle action config result.
-    // jarvis: ceiling — same pattern as condition; consider a builder-scoped ViewModel if more result slots are added.
+    // Handle action result from catalog (all actions use the bottom sheet).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
+    var actionSheetAction by remember { mutableStateOf<Action?>(null) }
     val actionResultFlow = remember(navController) {
         navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
             ?: MutableStateFlow("")
@@ -277,13 +277,9 @@ fun CustomAutomationBuilderScreen(
     androidx.compose.runtime.LaunchedEffect(actionResult) {
         if (actionResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<Action>(actionResult) }.getOrNull()?.let { action ->
-                if (editingActionIndex >= 0) {
-                    viewModel.updateAction(editingActionIndex, action)
-                } else {
-                    viewModel.addAction(action)
-                }
+                editingActionIndex = -1
+                actionSheetAction = action
             }
-            editingActionIndex = -1
             navController?.currentBackStackEntry?.savedStateHandle?.set("action_result", "")
         }
     }
@@ -453,9 +449,9 @@ fun CustomAutomationBuilderScreen(
                                     index = index,
                                     onRemove = { viewModel.removeAction(index) },
                                     onUpdate = { viewModel.updateAction(index, it) },
-                                    onConfigure = { json ->
+                                    onConfigure = { action ->
                                         editingActionIndex = index
-                                        onEditAction?.invoke(json)
+                                        actionSheetAction = action
                                     },
                                 )
                             }
@@ -530,6 +526,25 @@ fun CustomAutomationBuilderScreen(
                 onDismiss = {
                     conditionSheetCondition = null
                     editingConditionIndex = -1
+                },
+            )
+        }
+
+        actionSheetAction?.let { action ->
+            ActionConfigSheet(
+                action = action,
+                onDone = { updated ->
+                    if (editingActionIndex >= 0) {
+                        viewModel.updateAction(editingActionIndex, updated)
+                    } else {
+                        viewModel.addAction(updated)
+                    }
+                    actionSheetAction = null
+                    editingActionIndex = -1
+                },
+                onDismiss = {
+                    actionSheetAction = null
+                    editingActionIndex = -1
                 },
             )
         }
@@ -668,7 +683,7 @@ private fun ReorderableListItemScope.ActionRow(
     index: Int,
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
-    onConfigure: (String) -> Unit = {},
+    onConfigure: (Action) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -708,7 +723,7 @@ private fun ReorderableListItemScope.ActionRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
                 modifier = Modifier
-                    .clickable { onConfigure(Json.encodeToString(action)) }
+                    .clickable { onConfigure(action) }
                     .padding(horizontal = NothingSpacing.xs),
             )
             Text(
