@@ -40,11 +40,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
-import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import android.os.Build
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -65,7 +66,6 @@ import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
-import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
@@ -90,6 +90,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
 // ─── Builder State ───────────────────────────────────────────────────────────
 
@@ -218,6 +221,8 @@ fun CustomAutomationBuilderScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     automationId: String? = null,
+    navController: NavController? = null,
+    onConfigureTrigger: ((String) -> Unit)? = null,
     viewModel: CustomBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -225,6 +230,23 @@ fun CustomAutomationBuilderScreen(
 
     androidx.compose.runtime.LaunchedEffect(automationId) {
         if (automationId != null) viewModel.loadForEdit(automationId)
+    }
+
+    // Handle trigger config result.
+    // ponytail: using savedStateHandle to pass the trigger JSON back avoids a shared ViewModel for now.
+    //          If more cross-screen state appears, introduce a builder-scoped ViewModel.
+    val resultFlow = remember(navController) {
+        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("trigger_result", "")
+            ?: MutableStateFlow("")
+    }
+    val result by resultFlow.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(result) {
+        if (result.isNotEmpty()) {
+            runCatching { Json.decodeFromString<Trigger>(result) }.getOrNull()?.let {
+                viewModel.updateTrigger(it)
+            }
+            navController?.currentBackStackEntry?.savedStateHandle?.set("trigger_result", "")
+        }
     }
 
     if (saved) { onSaved(); return }
@@ -286,6 +308,13 @@ fun CustomAutomationBuilderScreen(
                             viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
                         },
                     )
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    Text(
+                        text = if (state.type == AutomationType.MODE) "Mode stays active during the trigger window." else "Routine runs actions once when the trigger fires.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                    )
                 }
             }
 
@@ -299,7 +328,11 @@ fun CustomAutomationBuilderScreen(
                         fontFamily = Doto,
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
-                    TriggerEditor(state.trigger, viewModel::updateTrigger)
+                    TriggerEditor(
+                        trigger = state.trigger,
+                        onUpdate = viewModel::updateTrigger,
+                        onConfigure = { onConfigureTrigger?.invoke(Json.encodeToString(state.trigger)) },
+                    )
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
@@ -464,7 +497,11 @@ fun CustomAutomationBuilderScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
+private fun TriggerEditor(
+    trigger: Trigger,
+    onUpdate: (Trigger) -> Unit,
+    onConfigure: () -> Unit,
+) {
 
     var expanded by remember { mutableStateOf(false) }
     val triggerLabel = triggerDescription(trigger)
@@ -552,205 +589,32 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     NothingDivider()
     Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
-    // Trigger-specific parameter fields
-    TriggerParams(trigger, onUpdate)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
-    when (trigger) {
-        is Trigger.Time -> {
-            CustomTimePicker(
-                trigger = trigger,
-                onUpdate = onUpdate,
+    // Trigger summary — tapping opens the config page
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onConfigure)
+            .padding(vertical = NothingSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        NothingLabel(text = "Configuration")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = triggerDescription(trigger).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SpaceMono,
             )
-        }
-        is Trigger.TimeWindow -> {
-            NothingInput(
-                value = trigger.startLocal,
-                onValueChange = { onUpdate(trigger.copy(startLocal = it)) },
-                label = "Start (HH:mm)",
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.endLocal,
-                onValueChange = { onUpdate(trigger.copy(endLocal = it)) },
-                label = "End (HH:mm)",
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.tz,
-                onValueChange = { onUpdate(trigger.copy(tz = it)) },
-                label = "Timezone",
-            )
-        }
-        is Trigger.Notification -> {
-            NothingInput(
-                value = trigger.pkg,
-                onValueChange = { onUpdate(trigger.copy(pkg = it)) },
-                label = "Package name",
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.titleMatch ?: "",
-                onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-                label = "Title match (optional)",
-            )
-        }
-        is Trigger.PhoneState -> {
-            NothingEnumSelector(
-                label = "Event",
-                value = trigger.event.name,
-                options = PhoneEvent.entries.map { it.name },
-                onSelect = { event ->
-                    onUpdate(trigger.copy(event = PhoneEvent.valueOf(event)))
-                },
-            )
-        }
-        is Trigger.Connectivity -> {
-            Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    NothingEnumSelector(
-                        label = "Medium",
-                        value = trigger.medium.name,
-                        options = ConnMedium.entries.map { it.name },
-                        onSelect = { medium ->
-                            onUpdate(trigger.copy(medium = ConnMedium.valueOf(medium)))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    NothingEnumSelector(
-                        label = "State",
-                        value = trigger.state.name,
-                        options = ConnState.entries.map { it.name },
-                        onSelect = { state ->
-                            onUpdate(trigger.copy(state = ConnState.valueOf(state)))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        }
-        is Trigger.BatteryLevel -> {
-            NothingInput(
-                value = trigger.level.toString(),
-                onValueChange = { onUpdate(trigger.copy(level = it.toIntOrNull() ?: 0)) },
-                label = "Battery level %",
-            )
-        }
-        is Trigger.ScreenStateTrigger -> {
-            NothingEnumSelector(
-                label = "Screen state",
-                value = trigger.state.name,
-                options = ScreenState.entries.map { it.name },
-                onSelect = { state ->
-                    onUpdate(trigger.copy(state = ScreenState.valueOf(state)))
-                },
-            )
-        }
-        is Trigger.AppOpened -> {
-            NothingInput(
-                value = trigger.pkg,
-                onValueChange = { onUpdate(trigger.copy(pkg = it)) },
-                label = "Package name",
-            )
-        }
-        is Trigger.Geofence -> {
-            Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
-                NothingInput(
-                    value = trigger.lat.toString(),
-                    onValueChange = { onUpdate(trigger.copy(lat = it.toDoubleOrNull() ?: 0.0)) },
-                    label = "Latitude",
-                    modifier = Modifier.weight(1f),
-                )
-                NothingInput(
-                    value = trigger.lng.toString(),
-                    onValueChange = { onUpdate(trigger.copy(lng = it.toDoubleOrNull() ?: 0.0)) },
-                    label = "Longitude",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.radiusM.toString(),
-                onValueChange = { onUpdate(trigger.copy(radiusM = it.toDoubleOrNull() ?: 100.0)) },
-                label = "Radius (meters)",
-            )
-        }
-        is Trigger.Immediate, is Trigger.Boot, is Trigger.Manual -> {}
-        is Trigger.BluetoothDevice -> {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            val bondedDevices = remember {
-                val hasBtConnect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-                } else {
-                    true
-                }
-                if (!hasBtConnect) {
-                    emptyList()
-                } else {
-                    @SuppressLint("MissingPermission")
-                    runCatching {
-                        val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
-                        bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
-                    }.getOrDefault(emptyList())
-                }
-            }
-            NothingInput(
-                value = trigger.deviceName ?: "",
-                onValueChange = { onUpdate(trigger.copy(deviceName = it.ifBlank { null })) },
-                label = "Device name (blank = any)",
-            )
-            if (bondedDevices.isNotEmpty()) {
-                NothingLabel(
-                    text = "Paired devices",
-                    modifier = Modifier.padding(top = NothingSpacing.md),
-                )
-                bondedDevices.forEach { (name, address) ->
-                    NothingDivider()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onUpdate(trigger.copy(deviceName = name, deviceAddress = address))
-                            }
-                            .padding(vertical = NothingSpacing.sm),
-                    ) {
-                        Column {
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = address,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        is Trigger.WifiConnected -> {
-            NothingInput(
-                value = trigger.ssid ?: "",
-                onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
-                label = "SSID (blank = any)",
-            )
-        }
-        is Trigger.CalendarEvent -> {
-            NothingInput(
-                value = trigger.titleMatch ?: "",
-                onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-                label = "Title contains (blank = any)",
+            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+            Text(
+                text = ">",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+    NothingDivider()
 }
 
 // ─── Action Row & Picker ─────────────────────────────────────────────────────

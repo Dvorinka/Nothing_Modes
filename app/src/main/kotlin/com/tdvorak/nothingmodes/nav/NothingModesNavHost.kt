@@ -17,6 +17,7 @@ import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
+import com.tdvorak.nothingmodes.ui.screens.TriggerConfigScreen
 
 object Routes {
     const val ONBOARDING = "onboarding"
@@ -26,6 +27,7 @@ object Routes {
     const val EDIT_AUTOMATION = "edit/{id}"
     const val CUSTOM_BUILDER = "builder"
     const val CUSTOM_BUILDER_EDIT = "builder/edit/{id}"
+    const val TRIGGER_CONFIG = "trigger_config?trigger={trigger_json}"
     const val EXECUTION_LOG = "log"
     const val GLYPH_PREVIEW = "glyph_preview"
     const val SETTINGS = "settings"
@@ -33,6 +35,7 @@ object Routes {
     fun automationDetail(id: String) = "automation/$id"
     fun editAutomation(id: String) = "edit/$id"
     fun builderEdit(id: String) = "builder/edit/$id"
+    fun triggerConfig(triggerJson: String) = "trigger_config?trigger=$triggerJson"
 }
 
 @Composable
@@ -83,6 +86,10 @@ fun NothingModesNavHost() {
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
+                navController = navController,
+                onConfigureTrigger = { json ->
+                    navController.navigate(Routes.triggerConfig(json))
+                },
             )
         }
 
@@ -91,6 +98,10 @@ fun NothingModesNavHost() {
                 onBack = { navController.popBackStack() },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                },
+                navController = navController,
+                onConfigureTrigger = { json ->
+                    navController.navigate(Routes.triggerConfig(json))
                 },
             )
         }
@@ -106,6 +117,10 @@ fun NothingModesNavHost() {
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
+                navController = navController,
+                onConfigureTrigger = { json ->
+                    navController.navigate(Routes.triggerConfig(json))
+                },
             )
         }
 
@@ -120,6 +135,21 @@ fun NothingModesNavHost() {
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
+                navController = navController,
+                onConfigureTrigger = { json ->
+                    navController.navigate(Routes.triggerConfig(json))
+                },
+            )
+        }
+
+        composable(
+            route = Routes.TRIGGER_CONFIG,
+            arguments = listOf(navArgument("trigger_json") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val json = backStackEntry.arguments?.getString("trigger_json") ?: ""
+            TriggerConfigScreen(
+                triggerJson = json,
+                navController = navController,
             )
         }
 
