@@ -33,6 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -612,7 +615,12 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
         is Trigger.BluetoothDevice -> {
             val context = androidx.compose.ui.platform.LocalContext.current
             val bondedDevices = remember {
-                runCatching {
+                val hasBtConnect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+                if (!hasBtConnect) emptyList() else runCatching {
                     val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
                     bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
                 }.getOrDefault(emptyList())
