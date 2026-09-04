@@ -17,12 +17,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +49,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -123,6 +135,78 @@ fun ConditionCatalogScreen(
                 iconBg = Color(0xFF9B9B9B),
                 condition = Condition.AppInForeground("com.example.app"),
             ),
+            ConditionItem(
+                label = "Current mode active",
+                category = "Device status",
+                icon = Icons.Default.Star,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.CurrentModeActive("mode-id"),
+            ),
+            // ── Device status (extended) ──
+            ConditionItem(
+                label = "Power saving",
+                category = "Device status",
+                icon = Icons.Default.PowerSettingsNew,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.PowerSaving(true),
+            ),
+            ConditionItem(
+                label = "Dark mode",
+                category = "Device status",
+                icon = Icons.Default.DarkMode,
+                iconBg = Color(0xFF5B9BF6),
+                condition = Condition.DarkModeActive(true),
+            ),
+            ConditionItem(
+                label = "Media playing",
+                category = "Device status",
+                icon = Icons.Default.GraphicEq,
+                iconBg = Color(0xFFD4A843),
+                condition = Condition.MediaPlaying(true),
+            ),
+            ConditionItem(
+                label = "Ringer mode",
+                category = "Device status",
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                iconBg = Color(0xFF4A9E5C),
+                condition = Condition.RingerMode("normal"),
+            ),
+            // ── Connections / system ──
+            ConditionItem(
+                label = "Airplane mode",
+                category = "Connections",
+                icon = Icons.Default.Flight,
+                iconBg = Color(0xFF9B9B9B),
+                condition = Condition.AirplaneModeOn(true),
+            ),
+            ConditionItem(
+                label = "NFC",
+                category = "Connections",
+                icon = Icons.Default.Bluetooth,
+                iconBg = Color(0xFF5B9BF6),
+                condition = Condition.NfcEnabled(true),
+            ),
+            ConditionItem(
+                label = "Location",
+                category = "Connections",
+                icon = Icons.Default.LocationOn,
+                iconBg = Color(0xFF4A9E5C),
+                condition = Condition.LocationEnabled(true),
+            ),
+            ConditionItem(
+                label = "Call state",
+                category = "Device status",
+                icon = Icons.Default.PhoneAndroid,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.CallStateCondition(CallState.INCOMING),
+            ),
+            ConditionItem(
+                label = "Alarm ringing",
+                category = "Time",
+                icon = Icons.Default.Alarm,
+                iconBg = Color(0xFFD4A843),
+                condition = Condition.AlarmRinging(),
+            ),
         )
     }
 
@@ -141,12 +225,20 @@ fun ConditionCatalogScreen(
             )
         },
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = NothingSpacing.md),
+                .padding(padding),
         ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NothingSpacing.md),
+            ) {
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 NothingInput(
@@ -190,6 +282,7 @@ fun ConditionCatalogScreen(
             }
         }
     }
+}
 }
 
 @Composable

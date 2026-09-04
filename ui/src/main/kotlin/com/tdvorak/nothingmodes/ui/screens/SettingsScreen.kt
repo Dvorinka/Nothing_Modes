@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
@@ -42,6 +43,7 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -179,13 +181,21 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = NothingSpacing.md),
+                .padding(padding),
         ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = NothingSpacing.md),
+            ) {
             // Hero — title in Doto
             Text(
                 text = "SETTINGS",
@@ -405,10 +415,39 @@ fun SettingsScreen(
                 )
                 NothingDivider()
 
+                // ── About ─────────────────────────────────────────────────
+                val packageInfo = remember {
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0)
+                    }.getOrNull()
+                }
+                val versionName = packageInfo?.versionName ?: "unknown"
+                val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    packageInfo?.longVersionCode?.toString() ?: "?"
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo?.versionCode?.toString() ?: "?"
+                }
+                NothingSectionHeader(text = "About")
+                NothingDivider()
+                NothingInfoRow(label = "Version", value = versionName)
+                NothingDivider()
+                NothingInfoRow(label = "Build", value = versionCode)
+                NothingDivider()
+                NothingInfoRow(label = "Application ID", value = context.packageName)
+                NothingDivider()
+                Text(
+                    text = "Nothing Modes is open-source software released under GPL-3.0.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                )
+
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
             }
         }
     }
+}
 }
 
 @Composable
@@ -521,7 +560,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
         )
     } else {
         NothingSecondaryButton(
@@ -538,7 +577,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
         )
     }
 }

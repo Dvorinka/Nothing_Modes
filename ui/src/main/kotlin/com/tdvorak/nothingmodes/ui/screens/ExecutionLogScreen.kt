@@ -24,12 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
+import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -124,15 +126,23 @@ fun ExecutionLogScreen(
             NothingTopBar(title = "Execution Log", onBack = onBack)
         },
     ) { padding ->
-        if (entries.isEmpty()) {
-            NothingEmptyState(
-                title = "No executions yet",
-                description = "Automations will appear here when they fire",
-                modifier = Modifier.padding(padding),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+            if (entries.isEmpty()) {
+                NothingEmptyState(
+                    title = "No executions yet",
+                    description = "Automations will appear here when they fire",
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = NothingSpacing.md,
                     end = NothingSpacing.md,
@@ -146,15 +156,12 @@ fun ExecutionLogScreen(
                         text = "LOG",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
-                        letterSpacing = 2.sp,
                     )
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     Text(
                         text = "%.0f%%".format(stats.successRate * 100),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
                     )
                     NothingLabel(text = "Success Rate")
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -246,6 +253,7 @@ fun ExecutionLogScreen(
                                 text = entry.automationId,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                             if (entry.detail.isNotEmpty()) {
@@ -253,6 +261,7 @@ fun ExecutionLogScreen(
                                     text = entry.detail,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = SpaceMono,
                                     modifier = Modifier.padding(top = 2.dp),
                                 )
                             }
@@ -268,4 +277,5 @@ fun ExecutionLogScreen(
             }
         }
     }
+}
 }

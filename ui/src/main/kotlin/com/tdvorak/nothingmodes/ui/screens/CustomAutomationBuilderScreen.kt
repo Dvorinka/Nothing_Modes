@@ -1,9 +1,11 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,10 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,11 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -53,24 +59,18 @@ import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Condition
-import com.tdvorak.nothingmodes.engine.model.ConnMedium
-import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
-import com.tdvorak.nothingmodes.engine.model.PhoneEvent
-import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
-import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
-import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -183,9 +183,16 @@ class CustomBuilderViewModel @Inject constructor(
         _state.value = _state.value.copy(conditions = conditions)
     }
 
-    fun save() {
+    // ponytail: save() accepts icon/color directly to eliminate any state-propagation race
+    //          between the picker sheet and the async store write.
+    fun save(icon: String? = null, color: String? = null) {
         viewModelScope.launch {
-            val s = _state.value
+            val current = _state.value
+            val s = if (icon != null || color != null) current.copy(
+                icon = icon ?: current.icon,
+                iconBackground = color ?: current.iconBackground,
+            ) else current
+            _state.value = s
             val existingId = _editingId.value
             val id = existingId?.let { AutomationId(it) } ?: AutomationId("auto-${System.currentTimeMillis()}")
             val conditions = when {
@@ -206,6 +213,42 @@ class CustomBuilderViewModel @Inject constructor(
                 priority = s.priority,
                 quickAction = true,
                 enabled = existing?.enabled ?: true,
+                icon = s.icon,
+                iconBackground = s.iconBackground,
+            )
+            store.save(automation)
+            WidgetRefreshHelper.refresh(context)
+            _saved.value = true
+        }
+    }
+
+    /** Save a copy as a new automation (Save as). Leaves the original untouched. */
+    fun saveAs(icon: String? = null, color: String? = null) {
+        viewModelScope.launch {
+            val current = _state.value
+            val s = if (icon != null || color != null) current.copy(
+                icon = icon ?: current.icon,
+                iconBackground = color ?: current.iconBackground,
+            ) else current
+            _state.value = s
+            val id = AutomationId("auto-${System.currentTimeMillis()}")
+            val conditions = when {
+                s.conditions.isEmpty() -> null
+                s.conditions.size == 1 -> s.conditions[0]
+                else -> Condition.And(s.conditions)
+            }
+            val automation = Automation(
+                id = id,
+                name = "${s.name.ifBlank { "Untitled" }} (copy)",
+                type = s.type,
+                createdBy = CreatedBy.USER,
+                status = AutomationStatus.ARMED,
+                trigger = s.trigger,
+                actions = s.actions,
+                conditions = conditions,
+                priority = s.priority,
+                quickAction = true,
+                enabled = true,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
             )
@@ -307,6 +350,29 @@ fun CustomAutomationBuilderScreen(
                 ),
             )
         },
+        // Sticky bottom bar — save button always visible, not clipped by system insets.
+        bottomBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.background,
+                tonalElevation = 0.dp,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = NothingSpacing.md)
+                        .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+                ) {
+                    NothingPillButton(
+                        text = if (automationId != null) "Save Changes" else "Create Automation",
+                        onClick = { showSaveSheet = true },
+                        enabled = state.actions.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -316,7 +382,7 @@ fun CustomAutomationBuilderScreen(
                 start = NothingSpacing.md,
                 end = NothingSpacing.md,
                 top = NothingSpacing.lg,
-                bottom = NothingSpacing.md,
+                bottom = NothingSpacing.xxl,
             ),
         ) {
             // Hero — screen title in Doto
@@ -330,33 +396,22 @@ fun CustomAutomationBuilderScreen(
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
             }
 
-            // Name + Type
+            // Name (Mode/Routine type selector removed — keep If/Then semantics only)
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    NothingInput(
-                        value = state.name,
-                        onValueChange = viewModel::updateName,
-                        label = "Name",
-                        placeholder = "Untitled",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.md))
-                    NothingLabel(text = "Type")
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                    NothingSegmentedControl(
-                        segments = listOf("Mode", "Routine"),
-                        selectedIndex = if (state.type == AutomationType.MODE) 0 else 1,
-                        onSelected = { index ->
-                            viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
-                        },
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                    Text(
-                        text = if (state.type == AutomationType.MODE) "Mode stays active during the trigger window." else "Routine runs actions once when the trigger fires.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                    )
-                }
+                NothingInput(
+                    value = state.name,
+                    onValueChange = viewModel::updateName,
+                    label = "Name",
+                    placeholder = "Untitled",
+                )
+            }
+
+            // Preview tile — live visual of the saved routine card
+            item {
+                AutomationPreviewTile(
+                    state = state,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                )
             }
 
             // IF: Trigger + Conditions
@@ -439,13 +494,20 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.actions.isEmpty()) {
                         Text(
-                            "NO ACTIONS — ADD AT LEAST ONE",
+                            "0 ACTIONS",
                             style = MaterialTheme.typography.labelSmall,
                             color = NothingColors.accent,
                             fontFamily = SpaceMono,
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                     } else {
+                        Text(
+                            text = "${state.actions.size} ACTION${if (state.actions.size > 1) "S" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
                         ReorderableColumn(
                             list = state.actions,
                             onSettle = { fromIndex, toIndex ->
@@ -504,20 +566,6 @@ fun CustomAutomationBuilderScreen(
                     )
                 }
             }
-
-            // Save button
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-                    NothingPillButton(
-                        text = if (automationId != null) "Save Changes" else "Create Automation",
-                        onClick = { showSaveSheet = true },
-                        enabled = state.actions.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-                }
-            }
         }
 
         conditionSheetCondition?.let { condition ->
@@ -559,16 +607,20 @@ fun CustomAutomationBuilderScreen(
         }
 
         if (showSaveSheet) {
-            IconColorPickerSheet(
+            SaveSheet(
                 initialIcon = state.icon,
                 initialColor = state.iconBackground,
-                onDone = { icon, color ->
-                    viewModel.updateIcon(icon)
-                    viewModel.updateIconBackground(color)
-                    viewModel.save()
+                isEditing = automationId != null,
+                onSave = { icon, color ->
+                    viewModel.save(icon, color)
                     showSaveSheet = false
                 },
-                onDismiss = { showSaveSheet = false },
+                onSaveAs = { icon, color ->
+                    viewModel.saveAs(icon, color)
+                    showSaveSheet = false
+                },
+                onGoBack = { showSaveSheet = false },
+                onCancel = { onBack() },
             )
         }
     }
@@ -576,101 +628,18 @@ fun CustomAutomationBuilderScreen(
 
 // ─── Trigger Editor ──────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TriggerEditor(
     trigger: Trigger,
     onUpdate: (Trigger) -> Unit,
     onConfigure: () -> Unit,
 ) {
-
-    var expanded by remember { mutableStateOf(false) }
     val triggerLabel = triggerDescription(trigger)
 
     NothingDivider()
 
-    // Trigger type — simple tappable row, not a dropdown box
-    Box {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(vertical = NothingSpacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NothingLabel(text = "Trigger type")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = triggerLabel.uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
-                )
-                Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                Text(
-                    text = "▾",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(text = { Text("TIME (SCHEDULE)") }, onClick = {
-                onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())); expanded = false
-            })
-            DropdownMenuItem(text = { Text("TIME WINDOW (MODE)") }, onClick = {
-                onUpdate(Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())); expanded = false
-            })
-            DropdownMenuItem(text = { Text("IMMEDIATE (FIRE ONCE)") }, onClick = {
-                onUpdate(Trigger.Immediate); expanded = false
-            })
-            DropdownMenuItem(text = { Text("NOTIFICATION") }, onClick = {
-                onUpdate(Trigger.Notification(pkg = "com.example.app")); expanded = false
-            })
-            DropdownMenuItem(text = { Text("PHONE STATE") }, onClick = {
-                onUpdate(Trigger.PhoneState(PhoneEvent.INCOMING_CALL)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("CONNECTIVITY") }, onClick = {
-                onUpdate(Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BOOT") }, onClick = {
-                onUpdate(Trigger.Boot); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BATTERY LEVEL") }, onClick = {
-                onUpdate(Trigger.BatteryLevel(20)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("SCREEN STATE") }, onClick = {
-                onUpdate(Trigger.ScreenStateTrigger(ScreenState.OFF)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("APP OPENED") }, onClick = {
-                onUpdate(Trigger.AppOpened("com.example.app")); expanded = false
-            })
-            DropdownMenuItem(text = { Text("GEOFENCE") }, onClick = {
-                onUpdate(Trigger.Geofence(50.0755, 14.4378, 100.0, com.tdvorak.nothingmodes.engine.model.Transition.ENTER)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("MANUAL") }, onClick = {
-                onUpdate(Trigger.Manual); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BLUETOOTH DEVICE") }, onClick = {
-                onUpdate(Trigger.BluetoothDevice(com.tdvorak.nothingmodes.engine.model.ConnState.CONNECTED)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("WIFI CONNECTED") }, onClick = {
-                onUpdate(Trigger.WifiConnected()); expanded = false
-            })
-            DropdownMenuItem(text = { Text("CALENDAR EVENT") }, onClick = {
-                onUpdate(Trigger.CalendarEvent()); expanded = false
-            })
-        }
-    }
-
-    NothingDivider()
-    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-    // Trigger summary — tapping opens the config page
+    // Single tappable row — opens the dedicated trigger config page.
+    // Trigger type selection happens inside the config page, not inline.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -679,10 +648,10 @@ private fun TriggerEditor(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        NothingLabel(text = "Configuration")
+        NothingLabel(text = "Trigger")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = triggerDescription(trigger).uppercase(),
+                text = triggerLabel.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = SpaceMono,
@@ -925,33 +894,123 @@ private fun PrioritySegmentedBar(
     filled: Int,
     onSegmentClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: Float = 16f,
+    height: Float = 20f,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            for (i in 0 until total) {
+                val active = i < filled
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(NothingShapes.technical)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        .clickable { onSegmentClick(i + 1) }
+                        .semantics { contentDescription = "Priority level ${i + 1} of $total" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = (i + 1).toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (active) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "LOW",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+            )
+            Text(
+                text = "HIGH",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AutomationPreviewTile(
+    state: BuilderState,
+    modifier: Modifier = Modifier,
+) {
+    val iconColor = if (state.iconBackground.isNotBlank()) colorForHex(state.iconBackground) else NothingColors.accent
+    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.card,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        for (i in 0 until total) {
-            val active = i < filled
+        Row(
+            modifier = Modifier.padding(NothingSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(NothingShapes.technical)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    .clickable { onSegmentClick(i + 1) },
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(iconColor),
                 contentAlignment = Alignment.Center,
             ) {
+                if (state.icon.isNotBlank()) {
+                    Icon(
+                        imageVector = iconForName(state.icon),
+                        contentDescription = null,
+                        tint = iconTextColor,
+                        modifier = Modifier.size(28.dp),
+                    )
+                } else {
+                    Text(
+                        text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = iconTextColor,
+                        fontFamily = Doto,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(NothingSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = (i + 1).toString(),
+                    text = state.name.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = triggerDescription(state.trigger),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${state.actions.size} actions · ${state.conditions.size} conditions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = SpaceMono,
                 )
             }
@@ -969,6 +1028,15 @@ internal fun conditionDescription(condition: Condition): String = when (conditio
     is Condition.ScreenStateCondition -> "Screen ${condition.state.name}"
     is Condition.CurrentModeActive -> "Mode ${condition.modeId} active"
     is Condition.AppInForeground -> "App ${condition.pkg} in foreground"
+    is Condition.DarkModeActive -> "Dark mode ${if (condition.active) "on" else "off"}"
+    is Condition.PowerSaving -> "Power saving ${if (condition.on) "on" else "off"}"
+    is Condition.MediaPlaying -> "Media ${if (condition.playing) "playing" else "not playing"}"
+    is Condition.RingerMode -> "Ringer: ${condition.mode}"
+    is Condition.AirplaneModeOn -> "Airplane mode ${if (condition.on) "on" else "off"}"
+    is Condition.NfcEnabled -> "NFC ${if (condition.enabled) "enabled" else "disabled"}"
+    is Condition.LocationEnabled -> "Location ${if (condition.enabled) "enabled" else "disabled"}"
+    is Condition.CallStateCondition -> "Call: ${condition.state.name.lowercase()}"
+    is Condition.AlarmRinging -> "Alarm ringing${condition.titleMatch?.let { " ($it)" } ?: ""}"
     is Condition.And -> "AND (${condition.all.size} conditions)"
     is Condition.Or -> "OR (${condition.any.size} conditions)"
     is Condition.Not -> "NOT"

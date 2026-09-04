@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Textsms
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.ui.theme.NothingDestructiveButton
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -73,7 +74,7 @@ private val iconOptions = listOf(
     "brightness" to Icons.Default.Brightness6,
     "lightbulb" to Icons.Default.Lightbulb,
     "notification" to Icons.Default.Notifications,
-    "volume" to Icons.Default.VolumeUp,
+    "volume" to Icons.AutoMirrored.Filled.VolumeUp,
     "music" to Icons.Default.MusicNote,
     "alarm" to Icons.Default.Alarm,
     "timer" to Icons.Default.Timer,
@@ -276,4 +277,158 @@ private fun ColorOption(
             )
             .clickable(onClick = onClick),
     )
+}
+
+// ─── Save Sheet (icon/color + save actions) ──────────────────────────────────
+
+/**
+ * Save bottom sheet: icon/color selection plus save action options.
+ * Actions: Save, Save as, Go back, Cancel, Cancel this card.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun SaveSheet(
+    initialIcon: String,
+    initialColor: String,
+    isEditing: Boolean,
+    onSave: (String, String) -> Unit,
+    onSaveAs: (String, String) -> Unit,
+    onGoBack: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    var selectedIcon by remember { mutableStateOf(initialIcon.ifBlank { "star" }) }
+    var selectedColor by remember { mutableStateOf(initialColor.ifBlank { colorOptions.first() }) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onGoBack,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp,
+        scrimColor = Color.Black.copy(alpha = 0.6f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(NothingSpacing.md)
+                .padding(bottom = NothingSpacing.xl)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "SAVE",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SpaceMono,
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(colorForHex(selectedColor), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = iconForName(selectedIcon),
+                    contentDescription = selectedIcon,
+                    tint = if (colorForHex(selectedColor).luminance() > 0.5f) Color.Black else Color.White,
+                    modifier = Modifier.size(40.dp),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            Text(
+                text = "ICON",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                maxItemsInEachRow = 6,
+            ) {
+                iconOptions.forEach { (name, icon) ->
+                    IconOption(
+                        icon = icon,
+                        selected = selectedIcon == name,
+                        onClick = { selectedIcon = name },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            Text(
+                text = "COLOR",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                maxItemsInEachRow = 6,
+            ) {
+                colorOptions.forEach { hex ->
+                    ColorOption(
+                        color = colorForHex(hex),
+                        selected = selectedColor == hex,
+                        onClick = { selectedColor = hex },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+            // Primary save action
+            NothingPillButton(
+                text = if (isEditing) "Save" else "Save",
+                onClick = { onSave(selectedIcon, selectedColor) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            // Save as copy
+            NothingPillButton(
+                text = "Save As",
+                onClick = { onSaveAs(selectedIcon, selectedColor) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            ) {
+                NothingPillButton(
+                    text = "Go Back",
+                    onClick = onGoBack,
+                    modifier = Modifier.weight(1f),
+                )
+                NothingPillButton(
+                    text = "Cancel Card",
+                    onClick = onGoBack,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            NothingDestructiveButton(
+                text = "Cancel",
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }

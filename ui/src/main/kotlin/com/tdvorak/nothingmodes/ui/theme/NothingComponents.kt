@@ -22,7 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -469,6 +471,7 @@ fun NothingEmptyState(
 
 data class TopBarAction(
     val label: String,
+    val icon: ImageVector? = null,
     val onClick: () -> Unit,
 )
 
@@ -480,13 +483,14 @@ fun NothingTopBar(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: List<TopBarAction> = emptyList(),
+    showLeadingDot: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(88.dp)
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = NothingSpacing.md),
+            .padding(horizontal = NothingSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Back button — circular, thin chevron
@@ -508,26 +512,46 @@ fun NothingTopBar(
             Spacer(modifier = Modifier.width(NothingSpacing.md))
         }
 
-        // Title — Space Mono ALL CAPS
+        // Optional leading red dot — Nothing brand mark for the home screen
+        if (showLeadingDot) {
+            NothingRedDot(size = 8f)
+            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+        }
+
+        // Title — Space Mono ALL CAPS, larger for visibility
         Text(
             text = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.5.sp,
             modifier = Modifier.weight(1f),
         )
 
-        // Actions — text labels with larger tap targets
+        // Actions — text labels with optional icon and larger tap targets
         actions.forEach { action ->
-            Text(
-                text = action.label.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.0.sp,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable(onClick = action.onClick)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-            )
+                    .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.sm),
+            ) {
+                action.icon?.let { icon ->
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(NothingSpacing.xs))
+                }
+                Text(
+                    text = action.label.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.0.sp,
+                    modifier = Modifier.padding(horizontal = NothingSpacing.xs),
+                )
+            }
         }
     }
 }

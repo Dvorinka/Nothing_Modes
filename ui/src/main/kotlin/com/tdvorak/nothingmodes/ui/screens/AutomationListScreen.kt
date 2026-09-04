@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -36,7 +40,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
@@ -48,12 +52,12 @@ import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingCircleButton
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
-import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -221,12 +225,13 @@ fun AutomationListScreen(
         topBar = {
             NothingTopBar(
                 title = if (inSelection) "${selected.size} SELECTED" else "Nothing Modes",
+                showLeadingDot = !inSelection,
                 actions = if (inSelection) {
                     emptyList()
                 } else {
                     listOf(
-                        TopBarAction("LOG", onLogClick),
-                        TopBarAction("SETTINGS", onSettingsClick),
+                        TopBarAction("LOG", icon = Icons.AutoMirrored.Default.List, onLogClick),
+                        TopBarAction("SETTINGS", icon = Icons.Default.Settings, onSettingsClick),
                     )
                 },
             )
@@ -281,15 +286,17 @@ fun AutomationListScreen(
                     onDelete = viewModel::deleteSelected,
                     onRun = viewModel::runSelected,
                     onClear = viewModel::clearSelection,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding(),
                 )
             } else {
-                NothingPillButton(
-                    text = "+",
+                NothingAddCircle(
                     onClick = onCreateClick,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(NothingSpacing.md),
+                        .navigationBarsPadding()
+                        .padding(NothingSpacing.lg),
                 )
             }
         }
@@ -448,19 +455,27 @@ private fun MultiSelectBottomBar(
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.cardLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md)
-            .background(MaterialTheme.colorScheme.background),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.Bottom,
+            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
     ) {
-        NothingCircleButton(icon = "A", label = "All", onClick = onSelectAll)
-        NothingCircleButton(icon = "1", label = "On", onClick = onEnable)
-        NothingCircleButton(icon = "0", label = "Off", onClick = onDisable)
-        NothingCircleButton(icon = "D", label = "Del", onClick = onDelete, color = NothingColors.accent)
-        NothingCircleButton(icon = "R", label = "Run", onClick = onRun, color = NothingColors.success)
-        NothingCircleButton(icon = "X", label = "X", onClick = onClear)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            NothingCircleButton(icon = "A", label = "All", onClick = onSelectAll)
+            NothingCircleButton(icon = "1", label = "On", onClick = onEnable)
+            NothingCircleButton(icon = "0", label = "Off", onClick = onDisable)
+            NothingCircleButton(icon = "D", label = "Del", onClick = onDelete, color = NothingColors.accent)
+            NothingCircleButton(icon = "R", label = "Run", onClick = onRun, color = NothingColors.success)
+            NothingCircleButton(icon = "X", label = "X", onClick = onClear)
+        }
     }
 }

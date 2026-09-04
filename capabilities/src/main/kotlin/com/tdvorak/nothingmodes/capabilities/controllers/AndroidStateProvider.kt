@@ -6,9 +6,17 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.location.LocationManager
+import android.media.AudioManager
 import android.net.wifi.WifiManager
+import android.nfc.NfcManager
 import android.os.BatteryManager
+import android.os.Build
 import android.os.PowerManager
+import android.provider.Settings
+import android.telephony.TelephonyManager
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
@@ -50,6 +58,7 @@ class AndroidStateProvider(
         val (btConnected, btName) = readBluetoothState()
         val foregroundApp = readForegroundApp()
         val activeModeIds = modeActivationProvider?.activeModeIds()?.toSet() ?: emptySet()
+        val values = readValues(powerManager)
 
         return DeviceState(
             batteryLevel = batteryLevel,
@@ -61,8 +70,84 @@ class AndroidStateProvider(
             screenState = screenState,
             foregroundApp = foregroundApp,
             activeModeIds = activeModeIds,
+            values = values,
             now = System.currentTimeMillis(),
         )
+    }
+
+    private fun readValues(powerManager: PowerManager): Map<String, String> {
+        val values = mutableMapOf<String, String>()
+
+        // Dark mode is derived from the current UI mode configuration.
+        val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        values["dark_mode"] = (nightMode == Configuration.UI_MODE_NIGHT_YES).toString()
+
+        // Power save mode is exposed directly by PowerManager.
+        values["power_saving"] = powerManager.isPowerSaveMode.toString()
+
+        // Media playback and ringer mode come from AudioManager.
+        val audioManager = context.getSystemService(AudioManager::class.java)
+        if (audioManager != null) {
+            values["media_playing"] = audioManager.isMusicActive.toString()
+            values["ringer_mode"] = when (audioManager.ringerMode) {
+                AudioManager.RINGER_MODE_SILENT -> "silent"
+                AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
+                else -> "normal"
+            }
+        }
+
+        values["airplane_mode"] = readAirplaneMode().toString()
+        values["nfc_enabled"] = readNfcEnabled().toString()
+        values["location_enabled"] = readLocationEnabled().toString()
+
+        readCallState()?.let { values["call_state"] = it }
+
+        return values
+    }
+
+    // State readers for value-based conditions.
+    // Missing permission is treated as unavailable (the value is omitted).
+
+    private fun readAirplaneMode(): Boolean = try {
+        Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) == 1
+    } catch (e: SecurityException) {
+        false
+    }
+
+    private fun readNfcEnabled(): Boolean = try {
+        val nfcManager = context.getSystemService(NfcManager::class.java)
+        val adapter = nfcManager?.defaultAdapter
+        adapter != null && adapter.isEnabled
+    } catch (e: SecurityException) {
+        false
+    }
+
+    private fun readLocationEnabled(): Boolean = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val locationManager = context.getSystemService(LocationManager::class.java)
+            locationManager?.isLocationEnabled ?: false
+        } else {
+            val mode = Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF)
+            mode != Settings.Secure.LOCATION_MODE_OFF
+        }
+    } catch (e: SecurityException) {
+        false
+    }
+
+    private fun readCallState(): String? {
+        if (context.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            return null
+        }
+        return try {
+            val telephonyManager = context.getSystemService(TelephonyManager::class.java)
+            when (telephonyManager?.callState) {
+                TelephonyManager.CALL_STATE_RINGING -> "incoming"
+                TelephonyManager.CALL_STATE_OFFHOOK -> "active"
+                else -> "idle"
+            }
+        } catch (e: SecurityException) {
+            null
+        }
     }
 
     private fun readWifiState(): Pair<Boolean, String?> {

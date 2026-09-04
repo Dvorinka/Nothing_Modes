@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.engine
 
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -401,6 +402,78 @@ class ConditionEvaluatorTest {
     }
 
     // --- Nested composites ---
+
+    // --- Values-based conditions ---
+
+    @Test
+    fun `DarkModeActive - MET when value matches`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.DarkModeActive(true),
+                DeviceState(values = mapOf("dark_mode" to "true"))))
+    }
+
+    @Test
+    fun `DarkModeActive - NOT_MET when value mismatches`() {
+        assertEquals(ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.DarkModeActive(true),
+                DeviceState(values = mapOf("dark_mode" to "false"))))
+    }
+
+    @Test
+    fun `PowerSaving - STATE_UNAVAILABLE when value missing`() {
+        assertEquals(ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.PowerSaving(true), DeviceState()))
+    }
+
+    @Test
+    fun `RingerMode - MET on matching mode`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.RingerMode("vibrate"),
+                DeviceState(values = mapOf("ringer_mode" to "vibrate"))))
+    }
+
+    @Test
+    fun `MediaPlaying - MET when value is on`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.MediaPlaying(true),
+                DeviceState(values = mapOf("media_playing" to "on"))))
+    }
+
+    // --- Connections / system ---
+
+    @Test
+    fun `AirplaneModeOn - MET when value matches`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.AirplaneModeOn(true),
+                DeviceState(values = mapOf("airplane_mode" to "true"))))
+    }
+
+    @Test
+    fun `NfcEnabled - MET when value matches`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.NfcEnabled(true),
+                DeviceState(values = mapOf("nfc_enabled" to "1"))))
+    }
+
+    @Test
+    fun `LocationEnabled - STATE_UNAVAILABLE when value missing`() {
+        assertEquals(ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.LocationEnabled(true), DeviceState()))
+    }
+
+    @Test
+    fun `CallStateCondition - MET on incoming call`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.CallStateCondition(CallState.INCOMING),
+                DeviceState(values = mapOf("call_state" to "incoming"))))
+    }
+
+    @Test
+    fun `AlarmRinging - MET when title matches`() {
+        assertEquals(ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.AlarmRinging("work"),
+                DeviceState(values = mapOf("alarm_ringing" to "work alarm,home"))))
+    }
 
     @Test
     fun `nested And-Or-Not evaluates correctly`() {

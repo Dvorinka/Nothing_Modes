@@ -23,10 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -58,13 +60,21 @@ fun ConditionConfigScreen(
             )
         },
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(NothingSpacing.md),
+                .padding(padding),
         ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(NothingSpacing.md),
+            ) {
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
             when (val c = condition) {
@@ -168,6 +178,105 @@ fun ConditionConfigScreen(
                     )
                 }
 
+                is Condition.CurrentModeActive -> {
+                    NothingInput(
+                        value = c.modeId,
+                        onValueChange = { condition = c.copy(modeId = it) },
+                        label = "Mode ID",
+                    )
+                }
+
+                is Condition.AppInForeground -> {
+                    NothingInput(
+                        value = c.pkg,
+                        onValueChange = { condition = c.copy(pkg = it) },
+                        label = "Package name",
+                    )
+                }
+
+                is Condition.DarkModeActive -> {
+                    BooleanRow(
+                        label = "Dark mode active",
+                        checked = c.active,
+                        onChange = { condition = c.copy(active = it) },
+                    )
+                }
+
+                is Condition.PowerSaving -> {
+                    BooleanRow(
+                        label = "Power saving on",
+                        checked = c.on,
+                        onChange = { condition = c.copy(on = it) },
+                    )
+                }
+
+                is Condition.MediaPlaying -> {
+                    BooleanRow(
+                        label = "Media playing",
+                        checked = c.playing,
+                        onChange = { condition = c.copy(playing = it) },
+                    )
+                }
+
+                is Condition.RingerMode -> {
+                    RingerModeSelector(
+                        mode = c.mode,
+                        onChange = { condition = c.copy(mode = it) },
+                    )
+                }
+
+                is Condition.AirplaneModeOn -> {
+                    BooleanRow(
+                        label = "Airplane mode on",
+                        checked = c.on,
+                        onChange = { condition = c.copy(on = it) },
+                    )
+                }
+
+                is Condition.NfcEnabled -> {
+                    BooleanRow(
+                        label = "NFC enabled",
+                        checked = c.enabled,
+                        onChange = { condition = c.copy(enabled = it) },
+                    )
+                }
+
+                is Condition.LocationEnabled -> {
+                    BooleanRow(
+                        label = "Location enabled",
+                        checked = c.enabled,
+                        onChange = { condition = c.copy(enabled = it) },
+                    )
+                }
+
+                is Condition.CallStateCondition -> {
+                    CallState.entries.forEach { s ->
+                        RadioOption(
+                            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+                            selected = c.state == s,
+                            onClick = { condition = c.copy(state = s) },
+                        )
+                    }
+                }
+
+                is Condition.AlarmRinging -> {
+                    Text(
+                        text = "Match alarm title (optional)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    NothingInput(
+                        value = c.titleMatch ?: "",
+                        onValueChange = { condition = c.copy(titleMatch = it.ifBlank { null }) },
+                        label = "Title contains",
+                        placeholder = "Leave blank for any alarm",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
                 else -> {
                     Text(
                         text = conditionDescription(condition),
@@ -192,6 +301,7 @@ fun ConditionConfigScreen(
             )
         }
     }
+}
 }
 
 @Composable
@@ -222,5 +332,31 @@ private fun DayOfWeekSelector(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun BooleanRow(
+    label: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onChange(!checked) }
+            .padding(vertical = NothingSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontFamily = SpaceMono,
+        )
+        NothingToggle(
+            checked = checked,
+            onCheckedChange = onChange,
+        )
     }
 }

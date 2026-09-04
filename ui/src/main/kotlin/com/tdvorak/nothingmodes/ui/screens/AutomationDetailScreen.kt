@@ -21,7 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.engine.model.Action
@@ -110,9 +110,9 @@ fun AutomationDetailScreen(
                 title = "Detail",
                 onBack = onBack,
                 actions = listOf(
-                    TopBarAction("EDIT", onEdit),
-                    TopBarAction("COPY", { viewModel.duplicate(onBack) }),
-                    TopBarAction("DEL", { viewModel.delete(onBack) }),
+                    TopBarAction("EDIT", onClick = onEdit),
+                    TopBarAction("COPY", onClick = { viewModel.duplicate(onBack) }),
+                    TopBarAction("DEL", onClick = { viewModel.delete(onBack) }),
                 ),
             )
         },

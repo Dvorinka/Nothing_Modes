@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -37,6 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,6 +111,57 @@ fun ConditionConfigSheet(
                     onChange = { current = c.copy(modeId = it) },
                 )
 
+                is Condition.DarkModeActive -> BooleanConditionContent(
+                    label = "Dark mode active",
+                    checked = c.active,
+                    onChange = { current = c.copy(active = it) },
+                )
+
+                is Condition.PowerSaving -> BooleanConditionContent(
+                    label = "Power saving on",
+                    checked = c.on,
+                    onChange = { current = c.copy(on = it) },
+                )
+
+                is Condition.MediaPlaying -> BooleanConditionContent(
+                    label = "Media playing",
+                    checked = c.playing,
+                    onChange = { current = c.copy(playing = it) },
+                )
+
+                is Condition.RingerMode -> RingerModeSheetContent(
+                    mode = c.mode,
+                    onChange = { current = c.copy(mode = it) },
+                )
+
+                is Condition.AirplaneModeOn -> BooleanConditionContent(
+                    label = "Airplane mode on",
+                    checked = c.on,
+                    onChange = { current = c.copy(on = it) },
+                )
+
+                is Condition.NfcEnabled -> BooleanConditionContent(
+                    label = "NFC enabled",
+                    checked = c.enabled,
+                    onChange = { current = c.copy(enabled = it) },
+                )
+
+                is Condition.LocationEnabled -> BooleanConditionContent(
+                    label = "Location enabled",
+                    checked = c.enabled,
+                    onChange = { current = c.copy(enabled = it) },
+                )
+
+                is Condition.CallStateCondition -> CallStateSheetContent(
+                    state = c.state,
+                    onChange = { current = c.copy(state = it) },
+                )
+
+                is Condition.AlarmRinging -> AlarmRingingSheetContent(
+                    titleMatch = c.titleMatch ?: "",
+                    onChange = { current = c.copy(titleMatch = it.ifBlank { null }) },
+                )
+
                 is Condition.TimeWindow -> TimeWindowSheetContent(
                     condition = c,
                     onChange = { current = it },
@@ -170,6 +223,10 @@ private fun conditionTitle(condition: Condition): String = when (condition) {
     is Condition.DayOfWeekCondition -> "Day of week"
     is Condition.AppInForeground -> "App in foreground"
     is Condition.CurrentModeActive -> "Mode active"
+    is Condition.DarkModeActive -> "Dark mode"
+    is Condition.PowerSaving -> "Power saving"
+    is Condition.MediaPlaying -> "Media playing"
+    is Condition.RingerMode -> "Ringer mode"
     else -> "Condition"
 }
 
@@ -354,7 +411,7 @@ private fun DayOfWeekSheetContent(
 }
 
 @Composable
-private fun RadioOption(
+internal fun RadioOption(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -375,4 +432,83 @@ private fun RadioOption(
             fontFamily = SpaceMono,
         )
     }
+}
+
+@Composable
+private fun BooleanConditionContent(
+    label: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onChange(!checked) }
+            .padding(vertical = NothingSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontFamily = SpaceMono,
+        )
+        NothingToggle(
+            checked = checked,
+            onCheckedChange = onChange,
+        )
+    }
+}
+
+@Composable
+private fun RingerModeSheetContent(
+    mode: String,
+    onChange: (String) -> Unit,
+) {
+    val modes = listOf("silent", "vibrate", "normal")
+    modes.forEach { m ->
+        RadioOption(
+            text = m.replaceFirstChar { it.uppercase() },
+            selected = mode == m,
+            onClick = { onChange(m) },
+        )
+    }
+}
+
+@Composable
+private fun CallStateSheetContent(
+    state: CallState,
+    onChange: (CallState) -> Unit,
+) {
+    CallState.entries.forEach { s ->
+        RadioOption(
+            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+            selected = state == s,
+            onClick = { onChange(s) },
+        )
+    }
+}
+
+@Composable
+private fun AlarmRingingSheetContent(
+    titleMatch: String,
+    onChange: (String) -> Unit,
+) {
+    // ponytail: Alarm title matching is not yet wired to a live alarm provider.
+    //          This input is stored for when the broadcast receiver is added.
+    Text(
+        text = "Match alarm title (optional)",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontFamily = SpaceMono,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+    NothingInput(
+        value = titleMatch,
+        onValueChange = onChange,
+        label = "Title contains",
+        placeholder = "Leave blank for any alarm",
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

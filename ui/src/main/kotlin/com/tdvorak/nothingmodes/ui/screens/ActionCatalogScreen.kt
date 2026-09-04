@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.MobileScreenShare
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Campaign
@@ -28,7 +30,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MobileScreenShare
+
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -66,6 +68,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -169,7 +172,7 @@ fun ActionCatalogScreen(
             ActionItem(
                 label = "Volume",
                 category = "Sound",
-                icon = Icons.Default.VolumeUp,
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
                 iconBg = Color(0xFF5B9BF6),
                 action = Action.SetVolume(VolumeStream.MEDIA, 8),
             ),
@@ -179,6 +182,13 @@ fun ActionCatalogScreen(
                 icon = Icons.Default.Vibration,
                 iconBg = Color(0xFFD4A843),
                 action = Action.Vibrate(500),
+            ),
+            ActionItem(
+                label = "Ringer mode",
+                category = "Sound",
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                iconBg = Color(0xFF4A9E5C),
+                action = Action.SetRinger("normal"),
             ),
             ActionItem(
                 label = "Flashlight",
@@ -260,7 +270,7 @@ fun ActionCatalogScreen(
             ActionItem(
                 label = "Screenshot",
                 category = "System",
-                icon = Icons.Default.MobileScreenShare,
+                icon = Icons.AutoMirrored.Filled.MobileScreenShare,
                 iconBg = Color(0xFF5B9BF6),
                 action = Action.TakeScreenshot,
             ),
@@ -309,7 +319,7 @@ fun ActionCatalogScreen(
             ActionItem(
                 label = "Media control",
                 category = "Apps",
-                icon = Icons.Default.VolumeUp,
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
                 iconBg = Color(0xFFD71921),
                 action = Action.MediaControl(MediaCommand.PLAY_PAUSE),
             ),
@@ -335,6 +345,13 @@ fun ActionCatalogScreen(
                 action = Action.SetGlyph(true),
             ),
             ActionItem(
+                label = "Glyph matrix",
+                category = "Glyph",
+                icon = Icons.Default.PhoneAndroid,
+                iconBg = Color(0xFF5B9BF6),
+                action = Action.SetGlyphMatrix(null, restore = false),
+            ),
+            ActionItem(
                 label = "Glyph preset",
                 category = "Glyph",
                 icon = Icons.Default.Lightbulb,
@@ -354,6 +371,27 @@ fun ActionCatalogScreen(
                 icon = Icons.Default.PhoneAndroid,
                 iconBg = Color(0xFF4A9E5C),
                 action = Action.GlyphScrollingText(""),
+            ),
+            ActionItem(
+                label = "Glyph progress",
+                category = "Glyph",
+                icon = Icons.Default.Timer,
+                iconBg = Color(0xFFD71921),
+                action = Action.GlyphProgress(50),
+            ),
+            ActionItem(
+                label = "Glyph animate",
+                category = "Glyph",
+                icon = Icons.Default.Lightbulb,
+                iconBg = Color(0xFF5B9BF6),
+                action = Action.GlyphAnimate(),
+            ),
+            ActionItem(
+                label = "Glyph turn off",
+                category = "Glyph",
+                icon = Icons.Default.PowerSettingsNew,
+                iconBg = Color(0xFF9B9B9B),
+                action = Action.GlyphTurnOff,
             ),
             ActionItem(
                 label = "Write setting",
@@ -380,12 +418,20 @@ fun ActionCatalogScreen(
             )
         },
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = NothingSpacing.md),
+                .padding(padding),
         ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NothingSpacing.md),
+            ) {
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 NothingInput(
@@ -429,6 +475,7 @@ fun ActionCatalogScreen(
             }
         }
     }
+}
 }
 
 @Composable
