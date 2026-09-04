@@ -110,9 +110,9 @@ fun AutomationDetailScreen(
                 title = "Detail",
                 onBack = onBack,
                 actions = listOf(
-                    TopBarAction("EDIT", onEdit),
-                    TopBarAction("COPY", { viewModel.duplicate(onBack) }),
-                    TopBarAction("DEL", { viewModel.delete(onBack) }),
+                    TopBarAction("EDIT", onClick = onEdit),
+                    TopBarAction("COPY", onClick = { viewModel.duplicate(onBack) }),
+                    TopBarAction("DEL", onClick = { viewModel.delete(onBack) }),
                 ),
             )
         },

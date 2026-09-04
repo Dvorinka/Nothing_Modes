@@ -147,14 +147,14 @@ fun ExecutionLogScreen(
                         text = "LOG",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
+                        fontFamily = SpaceMono,
                     )
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     Text(
                         text = "%.0f%%".format(stats.successRate * 100),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
+                        fontFamily = SpaceMono,
                     )
                     NothingLabel(text = "Success Rate")
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -246,6 +246,7 @@ fun ExecutionLogScreen(
                                 text = entry.automationId,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                             if (entry.detail.isNotEmpty()) {
@@ -253,6 +254,7 @@ fun ExecutionLogScreen(
                                     text = entry.detail,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = SpaceMono,
                                     modifier = Modifier.padding(top = 2.dp),
                                 )
                             }

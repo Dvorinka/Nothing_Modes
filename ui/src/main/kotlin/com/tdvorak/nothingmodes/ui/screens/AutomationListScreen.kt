@@ -21,6 +21,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -227,8 +230,8 @@ fun AutomationListScreen(
                     emptyList()
                 } else {
                     listOf(
-                        TopBarAction("LOG", onLogClick),
-                        TopBarAction("SETTINGS", onSettingsClick),
+                        TopBarAction("LOG", icon = Icons.AutoMirrored.Default.List, onLogClick),
+                        TopBarAction("SETTINGS", icon = Icons.Default.Settings, onSettingsClick),
                     )
                 },
             )

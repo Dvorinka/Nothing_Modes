@@ -480,13 +480,20 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.actions.isEmpty()) {
                         Text(
-                            "NO ACTIONS — ADD AT LEAST ONE",
+                            "0 ACTIONS",
                             style = MaterialTheme.typography.labelSmall,
                             color = NothingColors.accent,
                             fontFamily = SpaceMono,
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                     } else {
+                        Text(
+                            text = "${state.actions.size} ACTION${if (state.actions.size > 1) "S" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
                         ReorderableColumn(
                             list = state.actions,
                             onSettle = { fromIndex, toIndex ->
@@ -873,37 +880,57 @@ private fun PrioritySegmentedBar(
     filled: Int,
     onSegmentClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: Float = 16f,
+    height: Float = 20f,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        for (i in 0 until total) {
-            val active = i < filled
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(NothingShapes.technical)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant,
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            for (i in 0 until total) {
+                val active = i < filled
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(NothingShapes.technical)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        .clickable { onSegmentClick(i + 1) }
+                        .semantics { contentDescription = "Priority level ${i + 1} of $total" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = (i + 1).toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (active) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
                     )
-                    .clickable { onSegmentClick(i + 1) }
-                    .semantics { contentDescription = "Priority level ${i + 1} of $total" },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = (i + 1).toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
-                )
+                }
             }
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "LOW",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+            )
+            Text(
+                text = "HIGH",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+            )
         }
     }
 }
