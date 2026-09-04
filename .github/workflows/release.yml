@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -32,25 +35,29 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Build release APK
-        id: release_build
-        continue-on-error: true
+      - name: Decode signing keystore
+        run: |
+          echo "${{ secrets.NOTHING_MODES_KEYSTORE_BASE64 }}" | base64 -d > $HOME/nothing-modes-release.jks
+          echo "NOTHING_MODES_KEYSTORE=$HOME/nothing-modes-release.jks" >> $GITHUB_ENV
+
+      - name: Build signed release APK
         run: ./gradlew assembleRelease --no-daemon --parallel --build-cache --stacktrace
         env:
-          NOTHING_MODES_KEYSTORE: ${{ secrets.NOTHING_MODES_KEYSTORE }}
+          NOTHING_MODES_KEYSTORE: ${{ env.NOTHING_MODES_KEYSTORE }}
           NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
           NOTHING_MODES_KEY_ALIAS: ${{ secrets.NOTHING_MODES_KEY_ALIAS }}
           NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
 
-      - name: Build debug APK (fallback if no signing key)
-        if: steps.release_build.outcome == 'failure'
-        run: ./gradlew assembleDebug --no-daemon --parallel --build-cache
+      - name: Rename APK
+        id: apk
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          cp app/build/outputs/apk/release/app-release.apk "nothing-modes-v${VERSION}.apk"
+          echo "path=nothing-modes-v${VERSION}.apk" >> $GITHUB_OUTPUT
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/debug/*.apk
-          draft: true
+          files: ${{ steps.apk.outputs.path }}
+          draft: false
           generate_release_notes: true
