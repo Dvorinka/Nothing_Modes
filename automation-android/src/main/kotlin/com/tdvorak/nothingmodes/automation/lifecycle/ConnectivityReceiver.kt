@@ -52,8 +52,8 @@ class ConnectivityReceiver : BroadcastReceiver() {
 
     private fun handleBtDevice(context: Context, intent: Intent, connected: Boolean) {
         val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-        val name = device?.name
-        val address = device?.address
+        val name = runCatching { device?.name }.getOrNull()
+        val address = runCatching { device?.address }.getOrNull()
         Log.d(TAG, "BT device ${if (connected) "connected" else "disconnected"}")
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_BT_DEVICE
