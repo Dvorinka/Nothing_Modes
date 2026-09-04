@@ -27,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +50,7 @@ import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.flow.MutableStateFlow
 
 private data class ConditionItem(
     val label: String,
@@ -62,6 +65,21 @@ fun ConditionCatalogScreen(
     navController: NavController,
 ) {
     var search by remember { mutableStateOf("") }
+
+    // Forward condition result from config back to the builder, then pop.
+    // jarvis: catalog is an intermediate hop so the user picks a default and configures it before returning.
+    val resultFlow = remember(navController) {
+        navController.currentBackStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
+            ?: MutableStateFlow("")
+    }
+    val result by resultFlow.collectAsState()
+    LaunchedEffect(result) {
+        if (result.isNotEmpty()) {
+            navController.previousBackStackEntry?.savedStateHandle?.set("condition_result", result)
+            navController.currentBackStackEntry?.savedStateHandle?.set("condition_result", "")
+            navController.popBackStack()
+        }
+    }
 
     val items = remember {
         listOf(
@@ -122,10 +140,7 @@ fun ConditionCatalogScreen(
                             icon = item.icon,
                             onClick = {
                                 val json = Json.encodeToString(item.condition)
-                                navController.previousBackStackEntry
-                                    ?.savedStateHandle
-                                    ?.set("condition_result", json)
-                                navController.popBackStack()
+                                navController.navigate("condition_config?condition=$json")
                             },
                         )
                     }
