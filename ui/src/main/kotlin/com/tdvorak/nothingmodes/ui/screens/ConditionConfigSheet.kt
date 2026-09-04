@@ -411,7 +411,7 @@ private fun DayOfWeekSheetContent(
 }
 
 @Composable
-private fun RadioOption(
+internal fun RadioOption(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
