@@ -1,39 +1,28 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +34,16 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
+import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
+import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -139,7 +138,6 @@ class AutomationListViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutomationListScreen(
     onAutomationClick: (String) -> Unit,
@@ -151,72 +149,114 @@ fun AutomationListScreen(
     val items by viewModel.items.collectAsState()
     val loading by viewModel.loading.collectAsState()
 
+    val enabled = items.filter { it.enabled }
+    val disabled = items.filter { !it.enabled }
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Nothing Modes") },
-                actions = {
-                    IconButton(onClick = onLogClick) {
-                        Icon(Icons.Default.History, contentDescription = "Execution Log")
-                    }
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                },
+            NothingTopBar(
+                title = "Nothing Modes",
+                actions = listOf(
+                    TopBarAction("LOG", onLogClick),
+                    TopBarAction("SETTINGS", onSettingsClick),
+                ),
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateClick) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        },
     ) { padding ->
-        if (items.isEmpty() && !loading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            // Subtle dot-grid background
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+
+            if (items.isEmpty() && !loading) {
+                NothingEmptyState(
+                    title = "No modes yet",
+                    description = "Create your first automation to get started",
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = NothingSpacing.md,
+                        end = NothingSpacing.md,
+                        top = NothingSpacing.lg,
+                        bottom = 120.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                 ) {
-                    Text(
-                        "No modes or routines yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        "Tap + to create your first automation",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // Active section
+                    if (enabled.isNotEmpty()) {
+                        item {
+                            NothingLabel(
+                                text = "Active",
+                                modifier = Modifier.padding(
+                                    bottom = NothingSpacing.sm,
+                                    top = NothingSpacing.sm,
+                                ),
+                            )
+                        }
+                        items(enabled) { automation ->
+                            AutomationRow(
+                                automation = automation,
+                                isActive = true,
+                                onClick = { onAutomationClick(automation.id.value) },
+                                onToggle = { viewModel.toggleEnabled(automation) },
+                                onDelete = { viewModel.delete(automation) },
+                                onMoveUp = { viewModel.moveUp(automation) },
+                                onMoveDown = { viewModel.moveDown(automation) },
+                                onRunNow = { viewModel.runNow(automation) },
+                            )
+                        }
+                    }
+
+                    // Inactive section — vast gap = new context
+                    if (disabled.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+                            NothingLabel(
+                                text = "Inactive",
+                                modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                            )
+                        }
+                        items(disabled) { automation ->
+                            AutomationRow(
+                                automation = automation,
+                                isActive = false,
+                                onClick = { onAutomationClick(automation.id.value) },
+                                onToggle = { viewModel.toggleEnabled(automation) },
+                                onDelete = { viewModel.delete(automation) },
+                                onMoveUp = { viewModel.moveUp(automation) },
+                                onMoveDown = { viewModel.moveDown(automation) },
+                                onRunNow = { viewModel.runNow(automation) },
+                            )
+                        }
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(items) { automation ->
-                    AutomationCard(
-                        automation = automation,
-                        onClick = { onAutomationClick(automation.id.value) },
-                        onToggle = { viewModel.toggleEnabled(automation) },
-                        onDelete = { viewModel.delete(automation) },
-                        onMoveUp = { viewModel.moveUp(automation) },
-                        onMoveDown = { viewModel.moveDown(automation) },
-                        onRunNow = { viewModel.runNow(automation) },
-                    )
-                }
-            }
+
+            // Pill button pinned bottom — replaces FAB
+            NothingPillButton(
+                text = "+ New Mode",
+                onClick = onCreateClick,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = NothingSpacing.lg),
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AutomationCard(
+private fun AutomationRow(
     automation: Automation,
+    isActive: Boolean,
     onClick: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit = {},
@@ -224,68 +264,66 @@ private fun AutomationCard(
     onMoveDown: () -> Unit = {},
     onRunNow: () -> Unit = {},
 ) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(automation.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    when (automation.type) {
-                        AutomationType.MODE -> "Mode"
-                        AutomationType.ROUTINE -> "Routine"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (automation.status == AutomationStatus.PENDING_APPROVAL) {
-                    Text(
-                        "Pending approval",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-            }
-            if (automation.trigger is Trigger.Manual) {
-                IconButton(onClick = onRunNow) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "Run now",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            IconButton(onClick = onMoveUp) {
-                Icon(
-                    Icons.Default.ArrowUpward,
-                    contentDescription = "Move up",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        // Red accent dot for active automations
+        if (isActive) {
+            NothingRedDot(
+                size = 6f,
+                modifier = Modifier.padding(end = NothingSpacing.sm),
+            )
+        } else {
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            // Name — display size for active, title for inactive (hierarchy)
+            Text(
+                text = automation.name,
+                style = if (isActive) MaterialTheme.typography.headlineSmall
+                else MaterialTheme.typography.titleMedium,
+                color = if (isActive) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = if (isActive) Doto else null,
+            )
+            // Type label — Space Mono ALL CAPS
+            NothingLabel(
+                text = when (automation.type) {
+                    AutomationType.MODE -> "Mode"
+                    AutomationType.ROUTINE -> "Routine"
+                },
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            if (automation.status == AutomationStatus.PENDING_APPROVAL) {
+                NothingLabel(
+                    text = "Pending Approval",
+                    color = NothingColors.accent,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            IconButton(onClick = onMoveDown) {
-                Icon(
-                    Icons.Default.ArrowDownward,
-                    contentDescription = "Move down",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(
-                checked = automation.enabled,
-                onCheckedChange = { onToggle() },
+        }
+
+        // Run now for manual triggers
+        if (automation.trigger is Trigger.Manual) {
+            Text(
+                text = "RUN",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onRunNow)
+                    .padding(horizontal = NothingSpacing.sm),
             )
         }
+
+        // Toggle
+        NothingToggle(
+            checked = automation.enabled,
+            onCheckedChange = { onToggle() },
+        )
     }
 }

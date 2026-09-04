@@ -8,40 +8,75 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
-import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 
-// Nothing OS-inspired palette: monochrome with red accent
+/**
+ * Nothing Design System color palette.
+ *
+ * Dark mode: OLED black background, white data glowing.
+ * Light mode: off-white paper (#F5F5F5), black ink.
+ *
+ * Gray scale IS the hierarchy:
+ *   text-display   100% → hero numbers, headlines
+ *   text-primary    90% → body text
+ *   text-secondary  60% → labels, captions
+ *   text-disabled   40% → disabled, hints
+ *
+ * Red (#D71921) is an interrupt, not decoration. One per screen max.
+ */
+
+// ── Dark Mode ────────────────────────────────────────────────────────────────
 private val NothingDark = darkColorScheme(
-    primary = Color(0xFFFFFFFF),
-    onPrimary = Color(0xFF000000),
-    secondary = Color(0xFFD0D0D0),
+    primary = Color(0xFFFFFFFF),       // text-display
+    onPrimary = Color(0xFF000000),     // black
+    secondary = Color(0xFFE8E8E8),     // text-primary
     onSecondary = Color(0xFF000000),
-    tertiary = Color(0xFFFF0000),
+    tertiary = Color(0xFFD71921),      // accent red
     onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFF000000),
+    background = Color(0xFF000000),    // OLED black
     onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF111111),
-    onSurface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFF1A1A1A),
-    onSurfaceVariant = Color(0xFFCCCCCC),
-    outline = Color(0xFF333333),
+    surface = Color(0xFF111111),       // elevated surfaces
+    onSurface = Color(0xFFE8E8E8),     // text-primary on surface
+    surfaceVariant = Color(0xFF1A1A1A),// surface-raised
+    onSurfaceVariant = Color(0xFF999999), // text-secondary
+    outline = Color(0xFF333333),       // border-visible
+    outlineVariant = Color(0xFF222222),// border (subtle)
+    error = Color(0xFFD71921),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFF1A0A0A),
+    onErrorContainer = Color(0xFFD71921),
 )
 
+// ── Light Mode ───────────────────────────────────────────────────────────────
 private val NothingLight = lightColorScheme(
-    primary = Color(0xFF000000),
+    primary = Color(0xFF000000),       // text-display (black ink)
     onPrimary = Color(0xFFFFFFFF),
-    secondary = Color(0xFF333333),
+    secondary = Color(0xFF1A1A1A),     // text-primary
     onSecondary = Color(0xFFFFFFFF),
-    tertiary = Color(0xFFFF0000),
+    tertiary = Color(0xFFD71921),      // accent red (same in both modes)
     onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFFFFFFFF),
+    background = Color(0xFFF5F5F5),    // warm off-white
     onBackground = Color(0xFF000000),
-    surface = Color(0xFFF5F5F5),
-    onSurface = Color(0xFF000000),
-    surfaceVariant = Color(0xFFEEEEEE),
-    onSurfaceVariant = Color(0xFF333333),
-    outline = Color(0xFFCCCCCC),
+    surface = Color(0xFFFFFFFF),       // white cards on off-white
+    onSurface = Color(0xFF1A1A1A),     // text-primary
+    surfaceVariant = Color(0xFFF0F0F0),// surface-raised
+    onSurfaceVariant = Color(0xFF666666), // text-secondary
+    outline = Color(0xFFCCCCCC),       // border-visible
+    outlineVariant = Color(0xFFE8E8E8),// border (subtle)
+    error = Color(0xFFD71921),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFF0F0),
+    onErrorContainer = Color(0xFFD71921),
 )
+
+// ── Semantic Colors (identical in both modes) ────────────────────────────────
+object NothingColors {
+    val accent = Color(0xFFD71921)
+    val accentSubtle = Color(0x28D71921)
+    val success = Color(0xFF4A9E5C)
+    val warning = Color(0xFFD4A843)
+    val interactive = Color(0xFF5B9BF6)
+    val interactiveLight = Color(0xFF007AFF)
+}
 
 @Composable
 fun NothingModesTheme(
@@ -58,8 +93,6 @@ fun NothingModesTheme(
 
 /**
  * Theme wrapper that reads the persisted theme mode from [ThemeManager].
- * Use this at the top of the activity instead of [NothingModesTheme] to
- * get automatic theme switching based on user preference.
  */
 @Composable
 fun NothingModesThemeDynamic(
