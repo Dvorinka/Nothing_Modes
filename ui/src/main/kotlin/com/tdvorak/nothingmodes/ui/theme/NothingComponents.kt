@@ -244,7 +244,7 @@ fun NothingToggle(
     ) {
         Box(
             modifier = Modifier
-                .padding(start = thumbPadding + (thumbOffset * (trackWidth - thumbSize - thumbPadding * 2)))
+                .padding(start = thumbPadding + ((trackWidth - thumbSize - thumbPadding * 2) * thumbOffset))
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(
