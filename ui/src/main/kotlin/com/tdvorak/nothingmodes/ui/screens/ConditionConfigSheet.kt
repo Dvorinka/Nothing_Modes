@@ -37,6 +37,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,6 +110,29 @@ fun ConditionConfigSheet(
                     onChange = { current = c.copy(modeId = it) },
                 )
 
+                is Condition.DarkModeActive -> BooleanConditionContent(
+                    label = "Dark mode active",
+                    checked = c.active,
+                    onChange = { current = c.copy(active = it) },
+                )
+
+                is Condition.PowerSaving -> BooleanConditionContent(
+                    label = "Power saving on",
+                    checked = c.on,
+                    onChange = { current = c.copy(on = it) },
+                )
+
+                is Condition.MediaPlaying -> BooleanConditionContent(
+                    label = "Media playing",
+                    checked = c.playing,
+                    onChange = { current = c.copy(playing = it) },
+                )
+
+                is Condition.RingerMode -> RingerModeSheetContent(
+                    mode = c.mode,
+                    onChange = { current = c.copy(mode = it) },
+                )
+
                 is Condition.TimeWindow -> TimeWindowSheetContent(
                     condition = c,
                     onChange = { current = it },
@@ -170,6 +194,10 @@ private fun conditionTitle(condition: Condition): String = when (condition) {
     is Condition.DayOfWeekCondition -> "Day of week"
     is Condition.AppInForeground -> "App in foreground"
     is Condition.CurrentModeActive -> "Mode active"
+    is Condition.DarkModeActive -> "Dark mode"
+    is Condition.PowerSaving -> "Power saving"
+    is Condition.MediaPlaying -> "Media playing"
+    is Condition.RingerMode -> "Ringer mode"
     else -> "Condition"
 }
 
@@ -373,6 +401,47 @@ private fun RadioOption(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontFamily = SpaceMono,
+        )
+    }
+}
+
+@Composable
+private fun BooleanConditionContent(
+    label: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onChange(!checked) }
+            .padding(vertical = NothingSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontFamily = SpaceMono,
+        )
+        NothingToggle(
+            checked = checked,
+            onCheckedChange = onChange,
+        )
+    }
+}
+
+@Composable
+private fun RingerModeSheetContent(
+    mode: String,
+    onChange: (String) -> Unit,
+) {
+    val modes = listOf("silent", "vibrate", "normal")
+    modes.forEach { m ->
+        RadioOption(
+            text = m.replaceFirstChar { it.uppercase() },
+            selected = mode == m,
+            onClick = { onChange(m) },
         )
     }
 }

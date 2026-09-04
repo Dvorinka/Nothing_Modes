@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
+import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
@@ -146,15 +147,14 @@ fun ExecutionLogScreen(
                         text = "LOG",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
-                        letterSpacing = 2.sp,
+                        fontFamily = Doto,
                     )
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     Text(
                         text = "%.0f%%".format(stats.successRate * 100),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
+                        fontFamily = Doto,
                     )
                     NothingLabel(text = "Success Rate")
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))

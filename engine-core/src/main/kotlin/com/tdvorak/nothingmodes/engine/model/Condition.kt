@@ -34,6 +34,22 @@ sealed interface Condition {
     @Serializable @SerialName("app_in_foreground")
     data class AppInForeground(val pkg: String) : Condition
 
+    /** Dark mode (night mode) is active or not. Reads values["dark_mode"]. */
+    @Serializable @SerialName("dark_mode_active")
+    data class DarkModeActive(val active: Boolean) : Condition
+
+    /** Battery saver / power saving mode is on or off. Reads values["power_saving"]. */
+    @Serializable @SerialName("power_saving")
+    data class PowerSaving(val on: Boolean) : Condition
+
+    /** Media is currently playing. Reads values["media_playing"]. */
+    @Serializable @SerialName("media_playing")
+    data class MediaPlaying(val playing: Boolean) : Condition
+
+    /** Ringer mode is one of: silent, vibrate, normal. Reads values["ringer_mode"]. */
+    @Serializable @SerialName("ringer_mode")
+    data class RingerMode(val mode: String) : Condition
+
     @Serializable @SerialName("and")
     data class And(val all: List<Condition>) : Condition
 

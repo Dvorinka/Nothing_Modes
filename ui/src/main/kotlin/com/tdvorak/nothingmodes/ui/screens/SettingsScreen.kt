@@ -521,7 +521,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
         )
     } else {
         NothingSecondaryButton(
@@ -538,7 +538,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
         )
     }
 }

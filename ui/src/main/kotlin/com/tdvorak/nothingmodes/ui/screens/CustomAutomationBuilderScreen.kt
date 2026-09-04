@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,10 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
@@ -53,24 +53,18 @@ import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Condition
-import com.tdvorak.nothingmodes.engine.model.ConnMedium
-import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
-import com.tdvorak.nothingmodes.engine.model.PhoneEvent
-import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
-import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
-import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -183,9 +177,16 @@ class CustomBuilderViewModel @Inject constructor(
         _state.value = _state.value.copy(conditions = conditions)
     }
 
-    fun save() {
+    // ponytail: save() accepts icon/color directly to eliminate any state-propagation race
+    //          between the picker sheet and the async store write.
+    fun save(icon: String? = null, color: String? = null) {
         viewModelScope.launch {
-            val s = _state.value
+            val current = _state.value
+            val s = if (icon != null || color != null) current.copy(
+                icon = icon ?: current.icon,
+                iconBackground = color ?: current.iconBackground,
+            ) else current
+            _state.value = s
             val existingId = _editingId.value
             val id = existingId?.let { AutomationId(it) } ?: AutomationId("auto-${System.currentTimeMillis()}")
             val conditions = when {
@@ -206,6 +207,42 @@ class CustomBuilderViewModel @Inject constructor(
                 priority = s.priority,
                 quickAction = true,
                 enabled = existing?.enabled ?: true,
+                icon = s.icon,
+                iconBackground = s.iconBackground,
+            )
+            store.save(automation)
+            WidgetRefreshHelper.refresh(context)
+            _saved.value = true
+        }
+    }
+
+    /** Save a copy as a new automation (Save as). Leaves the original untouched. */
+    fun saveAs(icon: String? = null, color: String? = null) {
+        viewModelScope.launch {
+            val current = _state.value
+            val s = if (icon != null || color != null) current.copy(
+                icon = icon ?: current.icon,
+                iconBackground = color ?: current.iconBackground,
+            ) else current
+            _state.value = s
+            val id = AutomationId("auto-${System.currentTimeMillis()}")
+            val conditions = when {
+                s.conditions.isEmpty() -> null
+                s.conditions.size == 1 -> s.conditions[0]
+                else -> Condition.And(s.conditions)
+            }
+            val automation = Automation(
+                id = id,
+                name = "${s.name.ifBlank { "Untitled" }} (copy)",
+                type = s.type,
+                createdBy = CreatedBy.USER,
+                status = AutomationStatus.ARMED,
+                trigger = s.trigger,
+                actions = s.actions,
+                conditions = conditions,
+                priority = s.priority,
+                quickAction = true,
+                enabled = true,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
             )
@@ -307,6 +344,29 @@ fun CustomAutomationBuilderScreen(
                 ),
             )
         },
+        // Sticky bottom bar — save button always visible, not clipped by system insets.
+        bottomBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.background,
+                tonalElevation = 0.dp,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = NothingSpacing.md)
+                        .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+                ) {
+                    NothingPillButton(
+                        text = if (automationId != null) "Save Changes" else "Create Automation",
+                        onClick = { showSaveSheet = true },
+                        enabled = state.actions.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -316,7 +376,7 @@ fun CustomAutomationBuilderScreen(
                 start = NothingSpacing.md,
                 end = NothingSpacing.md,
                 top = NothingSpacing.lg,
-                bottom = NothingSpacing.md,
+                bottom = NothingSpacing.xxl,
             ),
         ) {
             // Hero — screen title in Doto
@@ -330,33 +390,14 @@ fun CustomAutomationBuilderScreen(
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
             }
 
-            // Name + Type
+            // Name (Mode/Routine type selector removed — keep If/Then semantics only)
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    NothingInput(
-                        value = state.name,
-                        onValueChange = viewModel::updateName,
-                        label = "Name",
-                        placeholder = "Untitled",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.md))
-                    NothingLabel(text = "Type")
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                    NothingSegmentedControl(
-                        segments = listOf("Mode", "Routine"),
-                        selectedIndex = if (state.type == AutomationType.MODE) 0 else 1,
-                        onSelected = { index ->
-                            viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
-                        },
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                    Text(
-                        text = if (state.type == AutomationType.MODE) "Mode stays active during the trigger window." else "Routine runs actions once when the trigger fires.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                    )
-                }
+                NothingInput(
+                    value = state.name,
+                    onValueChange = viewModel::updateName,
+                    label = "Name",
+                    placeholder = "Untitled",
+                )
             }
 
             // IF: Trigger + Conditions
@@ -504,20 +545,6 @@ fun CustomAutomationBuilderScreen(
                     )
                 }
             }
-
-            // Save button
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-                    NothingPillButton(
-                        text = if (automationId != null) "Save Changes" else "Create Automation",
-                        onClick = { showSaveSheet = true },
-                        enabled = state.actions.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-                }
-            }
         }
 
         conditionSheetCondition?.let { condition ->
@@ -559,16 +586,20 @@ fun CustomAutomationBuilderScreen(
         }
 
         if (showSaveSheet) {
-            IconColorPickerSheet(
+            SaveSheet(
                 initialIcon = state.icon,
                 initialColor = state.iconBackground,
-                onDone = { icon, color ->
-                    viewModel.updateIcon(icon)
-                    viewModel.updateIconBackground(color)
-                    viewModel.save()
+                isEditing = automationId != null,
+                onSave = { icon, color ->
+                    viewModel.save(icon, color)
                     showSaveSheet = false
                 },
-                onDismiss = { showSaveSheet = false },
+                onSaveAs = { icon, color ->
+                    viewModel.saveAs(icon, color)
+                    showSaveSheet = false
+                },
+                onGoBack = { showSaveSheet = false },
+                onCancel = { onBack() },
             )
         }
     }
@@ -576,101 +607,18 @@ fun CustomAutomationBuilderScreen(
 
 // ─── Trigger Editor ──────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TriggerEditor(
     trigger: Trigger,
     onUpdate: (Trigger) -> Unit,
     onConfigure: () -> Unit,
 ) {
-
-    var expanded by remember { mutableStateOf(false) }
     val triggerLabel = triggerDescription(trigger)
 
     NothingDivider()
 
-    // Trigger type — simple tappable row, not a dropdown box
-    Box {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(vertical = NothingSpacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NothingLabel(text = "Trigger type")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = triggerLabel.uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
-                )
-                Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                Text(
-                    text = "▾",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(text = { Text("TIME (SCHEDULE)") }, onClick = {
-                onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())); expanded = false
-            })
-            DropdownMenuItem(text = { Text("TIME WINDOW (MODE)") }, onClick = {
-                onUpdate(Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())); expanded = false
-            })
-            DropdownMenuItem(text = { Text("IMMEDIATE (FIRE ONCE)") }, onClick = {
-                onUpdate(Trigger.Immediate); expanded = false
-            })
-            DropdownMenuItem(text = { Text("NOTIFICATION") }, onClick = {
-                onUpdate(Trigger.Notification(pkg = "com.example.app")); expanded = false
-            })
-            DropdownMenuItem(text = { Text("PHONE STATE") }, onClick = {
-                onUpdate(Trigger.PhoneState(PhoneEvent.INCOMING_CALL)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("CONNECTIVITY") }, onClick = {
-                onUpdate(Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BOOT") }, onClick = {
-                onUpdate(Trigger.Boot); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BATTERY LEVEL") }, onClick = {
-                onUpdate(Trigger.BatteryLevel(20)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("SCREEN STATE") }, onClick = {
-                onUpdate(Trigger.ScreenStateTrigger(ScreenState.OFF)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("APP OPENED") }, onClick = {
-                onUpdate(Trigger.AppOpened("com.example.app")); expanded = false
-            })
-            DropdownMenuItem(text = { Text("GEOFENCE") }, onClick = {
-                onUpdate(Trigger.Geofence(50.0755, 14.4378, 100.0, com.tdvorak.nothingmodes.engine.model.Transition.ENTER)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("MANUAL") }, onClick = {
-                onUpdate(Trigger.Manual); expanded = false
-            })
-            DropdownMenuItem(text = { Text("BLUETOOTH DEVICE") }, onClick = {
-                onUpdate(Trigger.BluetoothDevice(com.tdvorak.nothingmodes.engine.model.ConnState.CONNECTED)); expanded = false
-            })
-            DropdownMenuItem(text = { Text("WIFI CONNECTED") }, onClick = {
-                onUpdate(Trigger.WifiConnected()); expanded = false
-            })
-            DropdownMenuItem(text = { Text("CALENDAR EVENT") }, onClick = {
-                onUpdate(Trigger.CalendarEvent()); expanded = false
-            })
-        }
-    }
-
-    NothingDivider()
-    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-    // Trigger summary — tapping opens the config page
+    // Single tappable row — opens the dedicated trigger config page.
+    // Trigger type selection happens inside the config page, not inline.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -679,10 +627,10 @@ private fun TriggerEditor(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        NothingLabel(text = "Configuration")
+        NothingLabel(text = "Trigger")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = triggerDescription(trigger).uppercase(),
+                text = triggerLabel.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = SpaceMono,
@@ -944,7 +892,8 @@ private fun PrioritySegmentedBar(
                         if (active) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.outlineVariant,
                     )
-                    .clickable { onSegmentClick(i + 1) },
+                    .clickable { onSegmentClick(i + 1) }
+                    .semantics { contentDescription = "Priority level ${i + 1} of $total" },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -969,6 +918,10 @@ internal fun conditionDescription(condition: Condition): String = when (conditio
     is Condition.ScreenStateCondition -> "Screen ${condition.state.name}"
     is Condition.CurrentModeActive -> "Mode ${condition.modeId} active"
     is Condition.AppInForeground -> "App ${condition.pkg} in foreground"
+    is Condition.DarkModeActive -> "Dark mode ${if (condition.active) "on" else "off"}"
+    is Condition.PowerSaving -> "Power saving ${if (condition.on) "on" else "off"}"
+    is Condition.MediaPlaying -> "Media ${if (condition.playing) "playing" else "not playing"}"
+    is Condition.RingerMode -> "Ringer: ${condition.mode}"
     is Condition.And -> "AND (${condition.all.size} conditions)"
     is Condition.Or -> "OR (${condition.any.size} conditions)"
     is Condition.Not -> "NOT"

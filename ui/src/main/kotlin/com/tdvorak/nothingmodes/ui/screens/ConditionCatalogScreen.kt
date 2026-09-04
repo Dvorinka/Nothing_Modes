@@ -20,9 +20,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -122,6 +126,35 @@ fun ConditionCatalogScreen(
                 icon = Icons.Default.Devices,
                 iconBg = Color(0xFF9B9B9B),
                 condition = Condition.AppInForeground("com.example.app"),
+            ),
+            // ── Device status (extended) ──
+            ConditionItem(
+                label = "Power saving",
+                category = "Device status",
+                icon = Icons.Default.PowerSettingsNew,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.PowerSaving(true),
+            ),
+            ConditionItem(
+                label = "Dark mode",
+                category = "Device status",
+                icon = Icons.Default.DarkMode,
+                iconBg = Color(0xFF5B9BF6),
+                condition = Condition.DarkModeActive(true),
+            ),
+            ConditionItem(
+                label = "Media playing",
+                category = "Device status",
+                icon = Icons.Default.GraphicEq,
+                iconBg = Color(0xFFD4A843),
+                condition = Condition.MediaPlaying(true),
+            ),
+            ConditionItem(
+                label = "Ringer mode",
+                category = "Device status",
+                icon = Icons.Default.VolumeUp,
+                iconBg = Color(0xFF4A9E5C),
+                condition = Condition.RingerMode("normal"),
             ),
         )
     }

@@ -480,13 +480,14 @@ fun NothingTopBar(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: List<TopBarAction> = emptyList(),
+    showLeadingDot: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(72.dp)
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = NothingSpacing.md),
+            .padding(horizontal = NothingSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Back button — circular, thin chevron
@@ -508,10 +509,16 @@ fun NothingTopBar(
             Spacer(modifier = Modifier.width(NothingSpacing.md))
         }
 
-        // Title — Space Mono ALL CAPS
+        // Optional leading red dot — Nothing brand mark for the home screen
+        if (showLeadingDot) {
+            NothingRedDot(size = 8f)
+            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+        }
+
+        // Title — Space Mono ALL CAPS, larger for visibility
         Text(
             text = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.5.sp,
             modifier = Modifier.weight(1f),
@@ -521,7 +528,7 @@ fun NothingTopBar(
         actions.forEach { action ->
             Text(
                 text = action.label.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.0.sp,
                 modifier = Modifier

@@ -52,9 +52,10 @@ class NothingModesWidget : GlanceAppWidget() {
 
         val automations = withContext(Dispatchers.IO) {
             runCatching {
+                // quickAction is always enabled — show enabled armed manual automations as tiles.
                 store.all().filter {
-                    it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
-                }
+                    it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
+                }.take(2) // allow up to 2 tiles
             }.getOrDefault(emptyList())
         }
 
@@ -139,10 +140,6 @@ private fun QuickActionItem(
             Text(
                 text = automation.name.ifBlank { "Untitled" },
                 style = TextStyle(color = onSurface, fontSize = 13.sp),
-            )
-            Text(
-                text = if (automation.type == com.tdvorak.nothingmodes.engine.model.AutomationType.MODE) "Mode" else "Routine",
-                style = TextStyle(color = ColorProvider(Color(0xFF7E7E7E)), fontSize = 10.sp),
             )
         }
         if (automation.trigger is Trigger.Manual) {

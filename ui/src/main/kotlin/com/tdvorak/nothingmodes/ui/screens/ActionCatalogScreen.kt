@@ -181,6 +181,13 @@ fun ActionCatalogScreen(
                 action = Action.Vibrate(500),
             ),
             ActionItem(
+                label = "Ringer mode",
+                category = "Sound",
+                icon = Icons.Default.VolumeUp,
+                iconBg = Color(0xFF4A9E5C),
+                action = Action.SetRinger("normal"),
+            ),
+            ActionItem(
                 label = "Flashlight",
                 category = "Sound",
                 icon = Icons.Default.FlashlightOn,
@@ -354,6 +361,27 @@ fun ActionCatalogScreen(
                 icon = Icons.Default.PhoneAndroid,
                 iconBg = Color(0xFF4A9E5C),
                 action = Action.GlyphScrollingText(""),
+            ),
+            ActionItem(
+                label = "Glyph progress",
+                category = "Glyph",
+                icon = Icons.Default.Timer,
+                iconBg = Color(0xFFD71921),
+                action = Action.GlyphProgress(50),
+            ),
+            ActionItem(
+                label = "Glyph animate",
+                category = "Glyph",
+                icon = Icons.Default.Lightbulb,
+                iconBg = Color(0xFF5B9BF6),
+                action = Action.GlyphAnimate(),
+            ),
+            ActionItem(
+                label = "Glyph turn off",
+                category = "Glyph",
+                icon = Icons.Default.PowerSettingsNew,
+                iconBg = Color(0xFF9B9B9B),
+                action = Action.GlyphTurnOff,
             ),
             ActionItem(
                 label = "Write setting",

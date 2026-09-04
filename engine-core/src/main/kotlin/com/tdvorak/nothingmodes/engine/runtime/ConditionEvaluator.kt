@@ -40,6 +40,10 @@ class ConditionEvaluator {
         is Condition.ScreenStateCondition -> evaluateScreenState(condition, state)
         is Condition.CurrentModeActive -> evaluateCurrentMode(condition, state)
         is Condition.AppInForeground -> evaluateAppInForeground(condition, state)
+        is Condition.DarkModeActive -> evaluateDarkMode(condition, state)
+        is Condition.PowerSaving -> evaluatePowerSaving(condition, state)
+        is Condition.MediaPlaying -> evaluateMediaPlaying(condition, state)
+        is Condition.RingerMode -> evaluateRingerMode(condition, state)
         is Condition.And -> {
             val results = condition.all.map { result(it, state) }
             when {
@@ -143,4 +147,27 @@ class ConditionEvaluator {
 
     private fun evaluateAppInForeground(condition: Condition.AppInForeground, state: DeviceState): Result =
         if (state.foregroundApp == condition.pkg) Result.MET else Result.NOT_MET
+
+    private fun evaluateDarkMode(condition: Condition.DarkModeActive, state: DeviceState): Result {
+        val raw = state.values["dark_mode"] ?: return Result.STATE_UNAVAILABLE
+        val active = raw.trim().lowercase() in setOf("true", "1", "on", "yes")
+        return if (active == condition.active) Result.MET else Result.NOT_MET
+    }
+
+    private fun evaluatePowerSaving(condition: Condition.PowerSaving, state: DeviceState): Result {
+        val raw = state.values["power_saving"] ?: return Result.STATE_UNAVAILABLE
+        val on = raw.trim().lowercase() in setOf("true", "1", "on", "yes")
+        return if (on == condition.on) Result.MET else Result.NOT_MET
+    }
+
+    private fun evaluateMediaPlaying(condition: Condition.MediaPlaying, state: DeviceState): Result {
+        val raw = state.values["media_playing"] ?: return Result.STATE_UNAVAILABLE
+        val playing = raw.trim().lowercase() in setOf("true", "1", "on", "yes")
+        return if (playing == condition.playing) Result.MET else Result.NOT_MET
+    }
+
+    private fun evaluateRingerMode(condition: Condition.RingerMode, state: DeviceState): Result {
+        val raw = state.values["ringer_mode"] ?: return Result.STATE_UNAVAILABLE
+        return if (raw.trim().lowercase() == condition.mode.trim().lowercase()) Result.MET else Result.NOT_MET
+    }
 }

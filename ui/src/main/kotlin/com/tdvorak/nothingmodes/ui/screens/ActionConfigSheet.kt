@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -148,12 +150,37 @@ fun ActionConfigContent(
         }
 
         is Action.SetBrightness -> {
-            NothingInput(
-                value = a.level.toString(),
-                onValueChange = { onActionChange(a.copy(level = it.toIntOrNull() ?: a.level)) },
-                label = "Level (0..255)",
-                modifier = Modifier.fillMaxWidth(),
+            // Percentage slider (0-100) mapped to 0-255 internally.
+            val percent = (a.level.toFloat() / 255f * 100f).toInt().coerceIn(0, 100)
+            Text(
+                text = "BRIGHTNESS",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
             )
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            ) {
+                Text(
+                    text = "${percent}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier.width(56.dp),
+                )
+                androidx.compose.material3.Slider(
+                    value = percent.toFloat(),
+                    onValueChange = { v ->
+                        onActionChange(a.copy(level = (v / 100f * 255f).toInt().coerceIn(0, 255)))
+                    },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
             BooleanRow(
                 label = "Restore previous",
                 checked = a.restore,
