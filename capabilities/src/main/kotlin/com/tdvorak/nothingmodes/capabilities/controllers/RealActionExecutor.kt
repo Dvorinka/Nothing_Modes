@@ -659,10 +659,12 @@ class RealActionExecutor(
     // --- Extended actions (Phase 5) ---
 
     @SuppressLint("MissingPermission")
-    private fun sendSms(number: String, text: String): ActionResult {
+    private suspend fun sendSms(number: String, text: String): ActionResult {
         return try {
-            val smsManager = context.getSystemService(android.telephony.SmsManager::class.java)
-            smsManager.sendTextMessage(number, null, text, null, null)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val smsManager = context.getSystemService(android.telephony.SmsManager::class.java)
+                smsManager.sendTextMessage(number, null, text, null, null)
+            }
             ActionResult.Success
         } catch (e: SecurityException) {
             ActionResult.PermissionRequired
@@ -688,15 +690,17 @@ class RealActionExecutor(
 
     private fun setLocationMode(mode: com.tdvorak.nothingmodes.engine.model.LocationMode): ActionResult {
         val value = when (mode) {
-            com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY -> "3"
-            com.tdvorak.nothingmodes.engine.model.LocationMode.BATTERY_SAVING -> "2"
-            com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY -> "1"
-            com.tdvorak.nothingmodes.engine.model.LocationMode.OFF -> "0"
+            com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY -> 3
+            com.tdvorak.nothingmodes.engine.model.LocationMode.BATTERY_SAVING -> 2
+            com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY -> 1
+            com.tdvorak.nothingmodes.engine.model.LocationMode.OFF -> 0
         }
         return try {
-            if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
-            Settings.System.putInt(context.contentResolver, Settings.System.LOCATION_MODE, value.toInt())
+            // LOCATION_MODE moved to Settings.Secure in API 28+; requires Shizuku or WRITE_SECURE_SETTINGS
+            Settings.Secure.putInt(context.contentResolver, Settings.Secure.LOCATION_MODE, value)
             ActionResult.Success
+        } catch (e: SecurityException) {
+            ActionResult.PermissionRequired
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "setLocationMode failed")
         }
