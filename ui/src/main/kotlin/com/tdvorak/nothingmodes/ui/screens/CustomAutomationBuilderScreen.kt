@@ -248,9 +248,9 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
-    // Handle condition config result.
-    // jarvis: ceiling — single result slot; if more cross-screen results are added, move to a builder-scoped ViewModel.
+    // Handle condition result from catalog (all conditions use the bottom sheet).
     var editingConditionIndex by rememberSaveable { mutableStateOf(-1) }
+    var conditionSheetCondition by remember { mutableStateOf<Condition?>(null) }
     val conditionResultFlow = remember(navController) {
         navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
             ?: MutableStateFlow("")
@@ -259,13 +259,9 @@ fun CustomAutomationBuilderScreen(
     androidx.compose.runtime.LaunchedEffect(conditionResult) {
         if (conditionResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<Condition>(conditionResult) }.getOrNull()?.let { condition ->
-                if (editingConditionIndex >= 0) {
-                    viewModel.updateCondition(editingConditionIndex, condition)
-                } else {
-                    viewModel.addCondition(condition)
-                }
+                editingConditionIndex = -1
+                conditionSheetCondition = condition
             }
-            editingConditionIndex = -1
             navController?.currentBackStackEntry?.savedStateHandle?.set("condition_result", "")
         }
     }
@@ -404,9 +400,9 @@ fun CustomAutomationBuilderScreen(
                                     index = index,
                                     onRemove = { viewModel.removeCondition(index) },
                                     onUpdate = { viewModel.updateCondition(index, it) },
-                                    onConfigure = { json ->
+                                    onConfigure = { condition ->
                                         editingConditionIndex = index
-                                        onEditCondition?.invoke(json)
+                                        conditionSheetCondition = condition
                                     },
                                 )
                             }
@@ -517,6 +513,25 @@ fun CustomAutomationBuilderScreen(
                     Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
                 }
             }
+        }
+
+        conditionSheetCondition?.let { condition ->
+            ConditionConfigSheet(
+                condition = condition,
+                onDone = { updated ->
+                    if (editingConditionIndex >= 0) {
+                        viewModel.updateCondition(editingConditionIndex, updated)
+                    } else {
+                        viewModel.addCondition(updated)
+                    }
+                    conditionSheetCondition = null
+                    editingConditionIndex = -1
+                },
+                onDismiss = {
+                    conditionSheetCondition = null
+                    editingConditionIndex = -1
+                },
+            )
         }
     }
 }
@@ -719,7 +734,7 @@ private fun ReorderableListItemScope.ConditionRow(
     index: Int,
     onRemove: () -> Unit,
     onUpdate: (Condition) -> Unit = {},
-    onConfigure: (String) -> Unit = {},
+    onConfigure: (Condition) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -759,7 +774,7 @@ private fun ReorderableListItemScope.ConditionRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
                 modifier = Modifier
-                    .clickable { onConfigure(Json.encodeToString(condition)) }
+                    .clickable { onConfigure(condition) }
                     .padding(horizontal = NothingSpacing.xs),
             )
             Text(

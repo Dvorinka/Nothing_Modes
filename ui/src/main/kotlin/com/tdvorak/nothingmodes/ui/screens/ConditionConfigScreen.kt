@@ -185,7 +185,7 @@ fun ConditionConfigScreen(
                     val result = Json.encodeToString(condition)
                     navController.previousBackStackEntry
                         ?.savedStateHandle
-                        ?.set("condition_result", result)
+                        ?.set("condition_config_result", result)
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth(),
