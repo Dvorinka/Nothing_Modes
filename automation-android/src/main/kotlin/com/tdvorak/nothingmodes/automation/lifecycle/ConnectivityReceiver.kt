@@ -3,8 +3,10 @@ package com.tdvorak.nothingmodes.automation.lifecycle
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.NetworkInfo
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.util.Log
@@ -52,8 +54,13 @@ class ConnectivityReceiver : BroadcastReceiver() {
 
     private fun handleBtDevice(context: Context, intent: Intent, connected: Boolean) {
         val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-        val name = runCatching { device?.name }.getOrNull()
-        val address = runCatching { device?.address }.getOrNull()
+        val hasBtConnect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val name = if (hasBtConnect) runCatching { device?.name }.getOrNull() else null
+        val address = if (hasBtConnect) runCatching { device?.address }.getOrNull() else null
         Log.d(TAG, "BT device ${if (connected) "connected" else "disconnected"}")
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_BT_DEVICE
