@@ -169,6 +169,22 @@ class Engine(
                     eventId = envelope.id,
                     executionId = executionId,
                 ))
+            } catch (e: StackOverflowError) {
+                journal.finish(ExecutionCompletion(
+                    executionId = executionId,
+                    automationId = automation.id,
+                    atMillis = batchNow,
+                    status = ExecutionStatus.FAILED,
+                    actionCount = actionResults.size,
+                ))
+                audit.record(AuditEvent(
+                    automationId = automation.id,
+                    kind = AuditKind.ERROR,
+                    atMillis = batchNow,
+                    detail = "stack_overflow: condition nesting too deep",
+                    eventId = envelope.id,
+                    executionId = executionId,
+                ))
             }
         }
         return outcomes
@@ -229,6 +245,7 @@ class Engine(
             is Trigger.TimeWindow -> trigger.days
             else -> return true
         } ?: return true
+        if (days.isEmpty()) return true
         val tz = when (trigger) {
             is Trigger.Time -> trigger.tz
             is Trigger.TimeWindow -> trigger.tz

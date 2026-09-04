@@ -15,7 +15,7 @@
 - [x] CI pipeline (ci.yml + release.yml)
 
 ### Engine (engine-core — pure Kotlin)
-- [x] 12 trigger types
+- [x] 11 trigger types
 - [x] 12 condition types + And/Or/Not composites
 - [x] 37 action types (23 base + 9 system toggles + 5 glyph advanced)
 - [x] TriggerMatcher, ConditionEvaluator, FirePolicy (thread-safe)
@@ -235,7 +235,7 @@
 - 109 Kotlin files
 - 13,163 lines of code
 - 37 action types
-- 12 trigger types
+- 11 trigger types
 - 12 condition types
 - 8 UI screens
 - 10 nav routes

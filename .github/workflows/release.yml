@@ -7,10 +7,21 @@ on:
 
 jobs:
   release:
-    runs-on: [self-hosted, linux, android]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Gradle Cache
         uses: actions/cache@v4
@@ -22,6 +33,8 @@ jobs:
           restore-keys: gradle-
 
       - name: Build release APK
+        id: release_build
+        continue-on-error: true
         run: ./gradlew assembleRelease --no-daemon --parallel --build-cache --stacktrace
         env:
           NOTHING_MODES_KEYSTORE: ${{ secrets.NOTHING_MODES_KEYSTORE }}
@@ -30,7 +43,7 @@ jobs:
           NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
 
       - name: Build debug APK (fallback if no signing key)
-        if: failure()
+        if: steps.release_build.outcome == 'failure'
         run: ./gradlew assembleDebug --no-daemon --parallel --build-cache
 
       - name: Upload to GitHub Release

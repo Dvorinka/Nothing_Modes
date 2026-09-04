@@ -1,6 +1,10 @@
 package com.tdvorak.nothingmodes
 
 import android.app.Application
+import android.content.Intent
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
 import com.tdvorak.nothingmodes.automation.seed.SeedAutomations
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
@@ -22,5 +26,10 @@ class NothingModesApplication : Application() {
         super.onCreate()
         ThemeManager.init(this)
         appScope.launch { SeedAutomations.seedIfEmpty(store) }
+        // Start persistent monitor on fresh install (not just on boot)
+        runCatching {
+            val intent = Intent(this, PersistentMonitorService::class.java)
+            ContextCompat.startForegroundService(this, intent)
+        }
     }
 }

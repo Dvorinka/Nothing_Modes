@@ -31,7 +31,7 @@ class AutomationNotificationListener : NotificationListenerService() {
         val category = notification.category ?: ""
         val sender = extras.getString(Notification.EXTRA_SUB_TEXT, "") ?: ""
 
-        Log.d(TAG, "Notification: pkg=$pkg cat=$category")
+        Log.d(TAG, "Notification posted from $pkg")
 
         // Dispatch to AutomationService
         val intent = Intent(this, AutomationService::class.java).apply {

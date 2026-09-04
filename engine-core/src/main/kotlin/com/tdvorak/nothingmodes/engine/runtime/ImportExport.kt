@@ -75,6 +75,12 @@ class ImportExportService(
                 skipped = 0,
                 errors = listOf("Failed to parse JSON: ${e.message}"),
             )
+        } catch (e: StackOverflowError) {
+            return ImportResult(
+                imported = 0,
+                skipped = 0,
+                errors = listOf("JSON nesting too deep (possible malformed input)"),
+            )
         }
 
         if (!AutomationSchema.isSupportedVersion(bundle.schemaVersion)) {

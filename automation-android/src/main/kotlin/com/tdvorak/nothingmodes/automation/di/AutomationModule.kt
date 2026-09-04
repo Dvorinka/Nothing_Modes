@@ -64,12 +64,10 @@ object AutomationModule {
 
     @Provides
     @Singleton
-    fun providePrivilegedShell(
+    fun providePrivilegedShellFactory(
         @ApplicationContext context: Context,
         gateway: ShizukuGateway,
-    ): PrivilegedShell? = if (gateway.status() == ShizukuGatewayStatus.AUTHORIZED) {
-        ShizukuPrivilegedShell(context, gateway, CoroutineScope(SupervisorJob() + Dispatchers.IO))
-    } else null
+    ): PrivilegedShellFactory = PrivilegedShellFactory(context, gateway)
 
     @Provides
     @Singleton
@@ -85,12 +83,12 @@ object AutomationModule {
     @Singleton
     fun provideActionExecutor(
         @ApplicationContext context: Context,
-        shell: PrivilegedShell?,
+        shellFactory: PrivilegedShellFactory,
         glyphProvider: NothingGlyphProvider,
         glyphMatrixProvider: NothingGlyphMatrixProvider,
     ): ActionExecutor = RealActionExecutor.create(
         context = context,
-        shell = shell,
+        shellFactory = shellFactory,
         glyphProvider = glyphProvider,
         glyphMatrixProvider = glyphMatrixProvider,
     )

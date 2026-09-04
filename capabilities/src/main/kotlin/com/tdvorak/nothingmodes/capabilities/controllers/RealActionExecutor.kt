@@ -28,6 +28,7 @@ import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShell
+import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import kotlinx.coroutines.delay
 
@@ -46,7 +47,7 @@ class RealActionExecutor(
     private val screenTimeout: ScreenTimeoutController,
     private val darkMode: DarkModeController,
     private val ringer: RingerController,
-    private val shell: PrivilegedShell? = null,
+    private val shellFactory: PrivilegedShellFactory? = null,
     private val glyphProvider: NothingGlyphProvider? = null,
     private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
 ) : ActionExecutor {
@@ -67,11 +68,12 @@ class RealActionExecutor(
         is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
         is Action.ShowNotification -> showNotification(action.title, action.text)
         is Action.Wait -> {
-            if (action.durationMs <= 0) ActionResult.Success
-            else { delay(action.durationMs); ActionResult.Success }
+            val capped = action.durationMs.coerceIn(0, 300_000)
+            if (capped <= 0) ActionResult.Success
+            else { delay(capped); ActionResult.Success }
         }
         // Shizuku-required actions (with public-API fallbacks where possible)
-        is Action.SetWifi -> executeShell(wifiCommand(action.on))
+        is Action.SetWifi -> setWifi(action.on)
         is Action.SetBluetooth -> setBluetooth(action.on)
         is Action.SetMobileData -> executeShell(mobileDataCommand(action.on))
         is Action.WriteSetting -> writeSetting(action)
@@ -108,7 +110,7 @@ class RealActionExecutor(
     // --- Shizuku shell actions ---
 
     private suspend fun executeShell(command: List<String>): ActionResult {
-        val sh = shell ?: return ActionResult.ShizukuRequired
+        val sh = shellFactory?.resolve() ?: return ActionResult.ShizukuRequired
         return try {
             val result = sh.run(command, priority = 0, timeoutMillis = 10_000)
             if (result.successful) ActionResult.Success
@@ -138,13 +140,13 @@ class RealActionExecutor(
     private suspend fun setFlashlight(on: Boolean): ActionResult {
         return try {
             val cm = context.getSystemService(CameraManager::class.java)
-            if (torchCameraId == null) {
-                torchCameraId = cm.cameraIdList.firstOrNull { id ->
-                    val chars = cm.getCameraCharacteristics(id)
-                    chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-                } ?: return ActionResult.Unsupported
+            val cameraId = torchCameraId ?: cm.cameraIdList.firstOrNull { id ->
+                val chars = cm.getCameraCharacteristics(id)
+                chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
             }
-            cm.setTorchMode(torchCameraId!!, on)
+            if (cameraId == null) return ActionResult.Unsupported
+            torchCameraId = cameraId
+            cm.setTorchMode(cameraId, on)
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "flashlight failed")
@@ -478,6 +480,26 @@ class RealActionExecutor(
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private suspend fun setWifi(on: Boolean): ActionResult {
+        // WifiManager.setWifiEnabled() works on API <29. On API 29+ it throws or returns false.
+        // Try public API first, fall back to Shizuku shell command.
+        return try {
+            val wm = context.getSystemService(android.net.wifi.WifiManager::class.java)
+            @Suppress("DEPRECATION")
+            val enabled = wm.setWifiEnabled(on)
+            if (enabled) ActionResult.Success
+            else executeShell(wifiCommand(on))
+        } catch (_: SecurityException) {
+            executeShell(wifiCommand(on))
+        } catch (_: NoSuchMethodError) {
+            // Method removed on newer API levels — Shizuku required
+            executeShell(wifiCommand(on))
+        } catch (e: Exception) {
+            executeShell(wifiCommand(on))
+        }
+    }
+
     private suspend fun writeSetting(action: Action.WriteSetting): ActionResult {
         // Validate key/value form before any write path (shell or public API)
         if (!com.tdvorak.nothingmodes.engine.model.WriteSettingPolicy.valid(action)) {
@@ -630,7 +652,7 @@ class RealActionExecutor(
         /** Factory: creates a RealActionExecutor with all Android controllers. */
         fun create(
             context: Context,
-            shell: PrivilegedShell? = null,
+            shellFactory: PrivilegedShellFactory? = null,
             glyphProvider: NothingGlyphProvider? = null,
             glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
         ): RealActionExecutor = RealActionExecutor(
@@ -642,7 +664,7 @@ class RealActionExecutor(
             screenTimeout = AndroidScreenTimeoutController(context),
             darkMode = AndroidDarkModeController(context),
             ringer = AndroidRingerController(context),
-            shell = shell,
+            shellFactory = shellFactory,
             glyphProvider = glyphProvider,
             glyphMatrixProvider = glyphMatrixProvider,
         )

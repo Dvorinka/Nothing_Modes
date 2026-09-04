@@ -14,7 +14,7 @@ enum class VolumeStream { MEDIA, RING, ALARM, NOTIFICATION }
 
 enum class SettingsScreen { WIFI, BLUETOOTH, DISPLAY, SOUND, LOCATION, BATTERY, DATE, APP_DETAILS, SETTINGS }
 
-/** Discriminatori wire stabili condivisi da JSON, manifest capability e journal. */
+/** Stable wire discriminators shared by JSON, manifest capability, and journal. */
 object ActionTypeIds {
     const val SET_WIFI = "set_wifi"
     const val SET_BLUETOOTH = "set_bluetooth"

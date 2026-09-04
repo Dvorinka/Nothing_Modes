@@ -27,16 +27,17 @@
 -keep @androidx.room.Entity class * { *; }
 -keep @androidx.room.Dao class * { *; }
 
-# Shizuku
+# Shizuku — only the UserService class and AIDL need keeping
 -keep class rikka.shizuku.** { *; }
--keep class com.tdvorak.nothingmodes.shizuku.** { *; }
+-keep class com.tdvorak.nothingmodes.shizuku.PrivilegedShellUserService { *; }
+-keep class com.tdvorak.nothingmodes.shizuku.IPrivilegedShellService { *; }
+-keep class com.tdvorak.nothingmodes.shizuku.PrivilegedShell { *; }
+-keep class com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory { *; }
+-keep class com.tdvorak.nothingmodes.shizuku.ShizukuGateway { *; }
 
 # Nothing Glyph SDK
 -keep class com.nothing.ketchum.** { *; }
 -keep class com.tdvorak.nothingmodes.nothing.** { *; }
 
-# Compose
--keep class androidx.compose.** { *; }
-
-# Keep model classes for serialization
--keep @kotlinx.serialization.Serializable class com.tdvorak.nothingmodes.** { *; }
+# Keep model classes for serialization (serializers + constructors only)
+-keep,includedescriptorclasses @kotlinx.serialization.Serializable class com.tdvorak.nothingmodes.** { *; }

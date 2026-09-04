@@ -41,7 +41,7 @@ class AutomationService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeJobs = mutableSetOf<Job>()
-    private var lastStartId = 0
+    @Volatile private var lastStartId = 0
 
     override fun onCreate() {
         super.onCreate()

@@ -50,7 +50,7 @@ abstract class NothingModesDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context, name: String = "nothing_modes.db"): NothingModesDatabase =
             Room.databaseBuilder(context, NothingModesDatabase::class.java, name)
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
 
         fun inMemory(context: Context): NothingModesDatabase =

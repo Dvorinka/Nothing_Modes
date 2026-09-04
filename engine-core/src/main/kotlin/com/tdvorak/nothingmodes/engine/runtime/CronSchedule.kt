@@ -11,13 +11,37 @@ class CronSchedule(val expression: String, val zone: ZoneId) {
 
     private val fields: List<Set<Int>> = parse(expression)
 
-    /** Next fire time after [after], exclusive. */
+    /** Next fire time after [after], exclusive.
+     *  Optimized: jumps by hour when minute doesn't match, by day when hour doesn't match. */
     fun nextFire(after: ZonedDateTime): ZonedDateTime? {
         var candidate = after.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1)
         val limit = after.plusYears(1)
         while (candidate.isBefore(limit)) {
-            if (matches(candidate)) return candidate
-            candidate = candidate.plusMinutes(1)
+            val local = candidate.withZoneSameInstant(zone)
+            if (local.minute !in fields[0]) {
+                // Skip to next hour if minute set is small and current minute past max
+                val maxMin = fields[0].max()
+                if (local.minute > maxMin) {
+                    candidate = candidate.plusHours(1).withMinute(0).truncatedTo(ChronoUnit.HOURS)
+                } else {
+                    val nextMin = fields[0].firstOrNull { it > local.minute }
+                    if (nextMin != null) {
+                        candidate = candidate.withMinute(nextMin).withSecond(0).withNano(0)
+                    } else {
+                        candidate = candidate.plusHours(1).withMinute(0).truncatedTo(ChronoUnit.HOURS)
+                    }
+                }
+                continue
+            }
+            if (local.hour !in fields[1]) {
+                candidate = candidate.plusHours(1).withMinute(0).truncatedTo(ChronoUnit.HOURS)
+                continue
+            }
+            if (local.dayOfMonth !in fields[2] || local.monthValue !in fields[3] || local.dayOfWeek.value % 7 !in fields[4]) {
+                candidate = candidate.plusDays(1).withHour(0).withMinute(0).truncatedTo(ChronoUnit.DAYS)
+                continue
+            }
+            return candidate
         }
         return null
     }

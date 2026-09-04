@@ -16,7 +16,7 @@ Open-source automation app for Nothing phones. Samsung Modes & Routines simplici
 - **Import/Export** — portable JSON automation format with schema versioning
 - **11 trigger types** — Time, TimeWindow, Notification, PhoneState, Connectivity, Boot, BatteryLevel, ScreenState, AppOpened, Geofence, Immediate
 - **12 condition types** — TimeWindow, DayOfWeek, BatteryLevel, Charging, WiFi, Bluetooth, ScreenState, CurrentModeActive, AppInForeground, AND, OR, NOT
-- **28 action types** — WiFi, Bluetooth, MobileData, DND, Ringer, Volume, Flashlight, DarkMode, Brightness, AutoBrightness, ExtraDim, ScreenTimeout, Glyph (7 types), Vibrate, CopyText, Wait, WriteSetting, LaunchApp, OpenUrl, OpenSettings, ShowNotification
+- **37 action types** — WiFi, Bluetooth, MobileData, DND, Ringer, Volume, Flashlight, DarkMode, Brightness, AutoBrightness, ExtraDim, ScreenTimeout, Glyph (7 types), Vibrate, CopyText, Wait, WriteSetting, LaunchApp, OpenUrl, OpenSettings, ShowNotification
 - **Nothing OS design language** — monochrome, geometric, technical, red accent
 
 ## Target Devices
@@ -114,7 +114,7 @@ Install Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or 
 ./gradlew connectedCheck
 ```
 
-37 unit tests covering: engine execution, trigger matching, condition evaluation, conflict management, state restoration, cooldown suppression, import/export, serialization round-trips.
+173 unit tests covering: engine execution, trigger matching, condition evaluation, conflict management, state restoration, cooldown suppression, import/export, serialization round-trips.
 
 ## Proxmox Build Worker
 

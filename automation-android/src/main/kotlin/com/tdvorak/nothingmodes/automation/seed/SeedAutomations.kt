@@ -10,12 +10,15 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import java.time.ZoneId
 
 /**
  * Seeds default Sleep and Morning automations on first launch.
  * Idempotent: only inserts if the store is empty.
  */
 object SeedAutomations {
+
+    private val systemTz = ZoneId.systemDefault().id
 
     suspend fun seedIfEmpty(store: AutomationStore) {
         if (store.all().isNotEmpty()) return
@@ -31,7 +34,7 @@ object SeedAutomations {
         status = AutomationStatus.ARMED,
         trigger = Trigger.Time(
             cron = "30 22 * * *",
-            tz = "Europe/Prague",
+            tz = systemTz,
         ),
         actions = listOf(
             Action.SetDnd(DndMode.PRIORITY),
@@ -51,7 +54,7 @@ object SeedAutomations {
         status = AutomationStatus.ARMED,
         trigger = Trigger.Time(
             cron = "0 7 * * *",
-            tz = "Europe/Prague",
+            tz = systemTz,
         ),
         actions = listOf(
             Action.SetDnd(DndMode.OFF),

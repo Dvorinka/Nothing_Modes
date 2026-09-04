@@ -61,7 +61,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
 
-        Log.d(TAG, "SMS received: from=$sender")
+        Log.d(TAG, "SMS received")
 
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_SMS

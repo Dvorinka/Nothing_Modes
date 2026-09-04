@@ -126,14 +126,17 @@ class FirePolicy {
     }
 
     private val lastFired = java.util.concurrent.ConcurrentHashMap<AutomationId, Long>()
+    private val lock = Any()
 
     fun evaluate(automation: Automation, event: TriggerEvent, now: Long): Decision {
         if (automation.cooldownMs <= 0) return Decision.Allow
-        val last = lastFired[automation.id]
-        if (last != null && now - last < automation.cooldownMs) {
-            return Decision.Block("cooldown_active")
+        synchronized(lock) {
+            val last = lastFired[automation.id]
+            if (last != null && now - last < automation.cooldownMs) {
+                return Decision.Block("cooldown_active")
+            }
+            lastFired[automation.id] = now
         }
-        lastFired[automation.id] = now
         return Decision.Allow
     }
 

@@ -3,6 +3,8 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings as AndroidSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +47,7 @@ import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +56,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: android.content.Context,
     private val shizukuGateway: ShizukuGateway,
     private val store: AutomationStore,
 ) : ViewModel() {
@@ -90,19 +94,42 @@ class SettingsViewModel @Inject constructor(
 
     fun export() {
         viewModelScope.launch {
-            val result = importExportService.export()
+            val result = withContext(Dispatchers.IO) { importExportService.export() }
             _exportReady.value = result.json
         }
     }
 
     fun import(json: String) {
         viewModelScope.launch {
-            _importResult.value = importExportService.import(json)
+            _importResult.value = withContext(Dispatchers.IO) { importExportService.import(json) }
         }
     }
 
     fun clearExportReady() { _exportReady.value = null }
     fun clearImportResult() { _importResult.value = null }
+
+    fun writeExportToFile(uri: Uri) {
+        viewModelScope.launch {
+            val json = _exportReady.value ?: return@launch
+            withContext(Dispatchers.IO) {
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.write(json.toByteArray(Charsets.UTF_8))
+                }
+            }
+            clearExportReady()
+        }
+    }
+
+    fun readImportFromFile(uri: Uri) {
+        viewModelScope.launch {
+            val json = withContext(Dispatchers.IO) {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    input.readBytes().toString(Charsets.UTF_8)
+                }
+            }
+            if (json != null) import(json)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,23 +152,13 @@ fun SettingsScreen(
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri: Uri? ->
-        if (uri != null && exportReady != null) {
-            context.contentResolver.openOutputStream(uri)?.use { output ->
-                output.write(exportReady!!.toByteArray(Charsets.UTF_8))
-            }
-            viewModel.clearExportReady()
-        }
+        if (uri != null) viewModel.writeExportToFile(uri)
     }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        if (uri != null) {
-            val json = context.contentResolver.openInputStream(uri)?.use { input ->
-                input.readBytes().toString(Charsets.UTF_8)
-            }
-            if (json != null) viewModel.import(json)
-        }
+        if (uri != null) viewModel.readImportFromFile(uri)
     }
 
     Scaffold(
