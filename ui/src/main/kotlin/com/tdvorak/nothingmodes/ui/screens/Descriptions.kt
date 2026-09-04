@@ -3,17 +3,53 @@ package com.tdvorak.nothingmodes.ui.screens
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Trigger
 
+fun cronToSummary(cron: String): String {
+    val parts = cron.split(" ").filter { it.isNotBlank() }
+    if (parts.size < 5) return cron
+
+    val minute = parts[0]
+    val hour = parts[1]
+    val dayOfWeek = parts[4]
+
+    if (hour == "*" || minute == "*") return "Every minute"
+
+    val time = "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}"
+    val dayLabel = when (dayOfWeek) {
+        "*" -> "Daily"
+        "1-5" -> "Weekdays"
+        "0,6", "6,0" -> "Weekend"
+        "5,6" -> "Fri, Sat"
+        else -> if (dayOfWeek.contains(",")) {
+            dayOfWeek.split(",").map { dayName(it.trim()) }.joinToString(", ")
+        } else if (dayOfWeek.contains("-")) {
+            val range = dayOfWeek.split("-")
+            "${dayName(range[0])}-${dayName(range[1])}"
+        } else {
+            dayName(dayOfWeek)
+        }
+    }
+    return "$dayLabel at $time"
+}
+
+private fun dayName(day: String): String = when (day) {
+    "0", "7" -> "Sun"
+    "1" -> "Mon"
+    "2" -> "Tue"
+    "3" -> "Wed"
+    "4" -> "Thu"
+    "5" -> "Fri"
+    "6" -> "Sat"
+    else -> day
+}
+
 /** Shared description functions for triggers and actions. */
 
 fun triggerDescription(trigger: Trigger): String = when (trigger) {
     is Trigger.Time -> {
-        val cron = trigger.cron
-        val at = trigger.at
-        when {
-            cron != null -> "Schedule: $cron (${trigger.tz})"
-            at != null -> "At: $at (${trigger.tz})"
-            else -> "Time-based (${trigger.tz})"
-        }
+        trigger.at?.let { "Once · ${it.take(16).replace("T", " ")}" }
+            ?: trigger.cron?.let { cronToSummary(it) }
+            ?: trigger.afterMs?.let { "In ${it / 1000}s" }
+            ?: "Time-based"
     }
     is Trigger.TimeWindow -> "Window: ${trigger.startLocal} - ${trigger.endLocal} (${trigger.tz})"
     is Trigger.Immediate -> "Immediate"

@@ -54,11 +54,27 @@ class AutomationScheduler(private val context: Context) {
     }
 
     private fun scheduleTime(id: AutomationId, trigger: Trigger.Time) {
-        val cron = trigger.cron ?: return
         val zone = runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: run {
             Log.e(TAG, "Invalid timezone '${trigger.tz}' for automation ${id.value}")
             return
         }
+
+        // One-shot scheduled by an exact date/time string (ISO-8601 ZonedDateTime)
+        if (trigger.at != null) {
+            val at = runCatching { ZonedDateTime.parse(trigger.at) }.getOrNull() ?: run {
+                Log.e(TAG, "Invalid at time '${trigger.at}' for automation ${id.value}")
+                return
+            }
+            val triggerAtMillis = at.toInstant().toEpochMilli()
+            if (triggerAtMillis <= System.currentTimeMillis()) {
+                Log.w(TAG, "One-shot time for ${id.value} is in the past; not scheduling")
+                return
+            }
+            setAlarm(id, triggerAtMillis, isTime = true)
+            return
+        }
+
+        val cron = trigger.cron ?: return
         val schedule = runCatching { CronSchedule(cron, zone) }.getOrNull() ?: run {
             Log.e(TAG, "Invalid cron '$cron' for automation ${id.value}")
             return
@@ -66,8 +82,11 @@ class AutomationScheduler(private val context: Context) {
         val now = ZonedDateTime.now(zone)
         val next = schedule.nextFire(now) ?: return
         val triggerAtMillis = next.toInstant().toEpochMilli()
+        setAlarm(id, triggerAtMillis, isTime = true)
+    }
 
-        val pendingIntent = timePendingIntent(id, isStart = true)
+    private fun setAlarm(id: AutomationId, triggerAtMillis: Long, isTime: Boolean) {
+        val pendingIntent = timePendingIntent(id, isStart = isTime)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.setAlarmClock(

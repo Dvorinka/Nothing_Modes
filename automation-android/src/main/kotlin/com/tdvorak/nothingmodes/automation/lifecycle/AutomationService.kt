@@ -15,6 +15,8 @@ import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.isOneShot
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -111,9 +113,14 @@ class AutomationService : Service() {
             automationId = id,
             atMillis = System.currentTimeMillis(),
         ))
-        // Re-schedule next cron occurrence for recurring time triggers
+        // Re-schedule next cron occurrence for recurring time triggers only
         scope.launch {
-            store.get(id)?.let { scheduler.schedule(it) }
+            store.get(id)?.let { automation ->
+                val trigger = automation.trigger
+                if (trigger is Trigger.Time && !trigger.isOneShot()) {
+                    scheduler.schedule(automation)
+                }
+            }
         }
     }
 

@@ -1,7 +1,10 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.content.Intent
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,35 +15,45 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import com.tdvorak.nothingmodes.engine.model.Automation
+import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
-import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCircleButton
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
-import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -65,15 +78,10 @@ class AutomationListViewModel @Inject constructor(
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    init { load() }
+    private val _selected = MutableStateFlow<Set<AutomationId>>(emptySet())
+    val selected: StateFlow<Set<AutomationId>> = _selected.asStateFlow()
 
-    fun runNow(automation: Automation) {
-        val intent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_MANUAL
-            putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
-        }
-        ContextCompat.startForegroundService(context, intent)
-    }
+    init { load() }
 
     fun load() {
         viewModelScope.launch {
@@ -83,11 +91,24 @@ class AutomationListViewModel @Inject constructor(
         }
     }
 
+    fun runNow(automation: Automation) {
+        val intent = Intent(context, AutomationService::class.java).apply {
+            action = AutomationService.ACTION_MANUAL
+            putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
+        }
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    fun runNow(id: AutomationId) {
+        _items.value.find { it.id == id }?.let { runNow(it) }
+    }
+
     fun toggleEnabled(automation: Automation) {
         viewModelScope.launch {
             val updated = automation.copy(enabled = !automation.enabled)
             store.save(updated)
             load()
+            WidgetRefreshHelper.refresh(context)
         }
     }
 
@@ -95,20 +116,20 @@ class AutomationListViewModel @Inject constructor(
         viewModelScope.launch {
             store.delete(automation.id)
             load()
+            WidgetRefreshHelper.refresh(context)
         }
     }
 
     fun duplicate(automation: Automation) {
         viewModelScope.launch {
             val copy = automation.copy(
-                id = com.tdvorak.nothingmodes.engine.model.AutomationId(
-                    "${automation.id.value}-copy-${System.currentTimeMillis()}"
-                ),
+                id = AutomationId("${automation.id.value}-copy-${System.currentTimeMillis()}"),
                 name = "${automation.name} (copy)",
                 enabled = false,
             )
             store.save(copy)
             load()
+            WidgetRefreshHelper.refresh(context)
         }
     }
 
@@ -122,6 +143,7 @@ class AutomationListViewModel @Inject constructor(
             store.save(prev.copy(priority = current.priority))
             store.save(current.copy(priority = prev.priority))
             load()
+            WidgetRefreshHelper.refresh(context)
         }
     }
 
@@ -135,7 +157,48 @@ class AutomationListViewModel @Inject constructor(
             store.save(next.copy(priority = current.priority))
             store.save(current.copy(priority = next.priority))
             load()
+            WidgetRefreshHelper.refresh(context)
         }
+    }
+
+    // ── Selection mode ─────────────────────────────────────────────────────────
+
+    fun toggleSelected(id: AutomationId) {
+        _selected.value = if (_selected.value.contains(id)) _selected.value - id else _selected.value + id
+    }
+
+    fun selectAll() {
+        _selected.value = _items.value.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selected.value = emptySet()
+    }
+
+    fun deleteSelected() {
+        viewModelScope.launch {
+            _selected.value.forEach { store.delete(it) }
+            _selected.value = emptySet()
+            load()
+            WidgetRefreshHelper.refresh(context)
+        }
+    }
+
+    fun enableSelected(enabled: Boolean) {
+        viewModelScope.launch {
+            _selected.value.forEach { id ->
+                val item = _items.value.find { it.id == id } ?: return@forEach
+                store.save(item.copy(enabled = enabled))
+            }
+            _selected.value = emptySet()
+            load()
+            WidgetRefreshHelper.refresh(context)
+        }
+    }
+
+    fun runSelected() {
+        _selected.value.firstOrNull()?.let { runNow(it) }
+        _selected.value = emptySet()
     }
 }
 
@@ -148,20 +211,23 @@ fun AutomationListScreen(
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
     val items by viewModel.items.collectAsState()
+    val selected by viewModel.selected.collectAsState()
     val loading by viewModel.loading.collectAsState()
-
-    val enabled = items.filter { it.enabled }
-    val disabled = items.filter { !it.enabled }
+    val inSelection = selected.isNotEmpty()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Nothing Modes",
-                actions = listOf(
-                    TopBarAction("LOG", onLogClick),
-                    TopBarAction("SETTINGS", onSettingsClick),
-                ),
+                title = if (inSelection) "${selected.size} SELECTED" else "Nothing Modes",
+                actions = if (inSelection) {
+                    emptyList()
+                } else {
+                    listOf(
+                        TopBarAction("LOG", onLogClick),
+                        TopBarAction("SETTINGS", onSettingsClick),
+                    )
+                },
             )
         },
     ) { padding ->
@@ -170,7 +236,6 @@ fun AutomationListScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // Subtle dot-grid background
             NothingDotGrid(
                 modifier = Modifier.fillMaxSize(),
                 alpha = 0.04f,
@@ -178,153 +243,214 @@ fun AutomationListScreen(
 
             if (items.isEmpty() && !loading) {
                 NothingEmptyState(
-                    title = "No modes yet",
-                    description = "Create your first automation to get started",
+                    title = "No routines yet",
+                    description = "Tap + to create your first mode or routine",
                 )
             } else {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = NothingSpacing.md,
                         end = NothingSpacing.md,
                         top = NothingSpacing.lg,
-                        bottom = 120.dp,
+                        bottom = 96.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                 ) {
-                    // Active section
-                    if (enabled.isNotEmpty()) {
-                        item {
-                            NothingLabel(
-                                text = "Active",
-                                modifier = Modifier.padding(
-                                    bottom = NothingSpacing.sm,
-                                    top = NothingSpacing.sm,
-                                ),
-                            )
-                        }
-                        items(enabled) { automation ->
-                            AutomationRow(
-                                automation = automation,
-                                isActive = true,
-                                onClick = { onAutomationClick(automation.id.value) },
-                                onToggle = { viewModel.toggleEnabled(automation) },
-                                onDelete = { viewModel.delete(automation) },
-                                onMoveUp = { viewModel.moveUp(automation) },
-                                onMoveDown = { viewModel.moveDown(automation) },
-                                onRunNow = { viewModel.runNow(automation) },
-                            )
-                        }
-                    }
-
-                    // Inactive section — vast gap = new context
-                    if (disabled.isNotEmpty()) {
-                        item {
-                            Spacer(modifier = Modifier.height(NothingSpacing.xxl))
-                            NothingLabel(
-                                text = "Inactive",
-                                modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                            )
-                        }
-                        items(disabled) { automation ->
-                            AutomationRow(
-                                automation = automation,
-                                isActive = false,
-                                onClick = { onAutomationClick(automation.id.value) },
-                                onToggle = { viewModel.toggleEnabled(automation) },
-                                onDelete = { viewModel.delete(automation) },
-                                onMoveUp = { viewModel.moveUp(automation) },
-                                onMoveDown = { viewModel.moveDown(automation) },
-                                onRunNow = { viewModel.runNow(automation) },
-                            )
-                        }
+                    items(items, key = { it.id.value }) { automation ->
+                        RoutineCard(
+                            automation = automation,
+                            isSelected = selected.contains(automation.id),
+                            inSelectionMode = inSelection,
+                            onClick = { onAutomationClick(automation.id.value) },
+                            onToggleSelection = { viewModel.toggleSelected(automation.id) },
+                            onToggleEnabled = { viewModel.toggleEnabled(automation) },
+                        )
                     }
                 }
             }
 
-            // Pill button pinned bottom — replaces FAB
-            NothingPillButton(
-                text = "+ New Mode",
-                onClick = onCreateClick,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = NothingSpacing.lg),
+            if (inSelection) {
+                MultiSelectBottomBar(
+                    onSelectAll = viewModel::selectAll,
+                    onEnable = { viewModel.enableSelected(true) },
+                    onDisable = { viewModel.enableSelected(false) },
+                    onDelete = viewModel::deleteSelected,
+                    onRun = viewModel::runSelected,
+                    onClear = viewModel::clearSelection,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            } else {
+                NothingPillButton(
+                    text = "+",
+                    onClick = onCreateClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(NothingSpacing.md),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoutineCard(
+    automation: Automation,
+    isSelected: Boolean,
+    inSelectionMode: Boolean,
+    onClick: () -> Unit,
+    onToggleSelection: () -> Unit,
+    onToggleEnabled: () -> Unit,
+) {
+    val iconColor = routineColor(automation.name)
+    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
+    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.card,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (inSelectionMode) onToggleSelection() else onClick() },
+                onLongClick = onToggleSelection,
+            ),
+    ) {
+        Column(modifier = Modifier.padding(NothingSpacing.md)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(iconColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = iconTextColor,
+                        fontFamily = Doto,
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (inSelectionMode) {
+                    SelectionIndicator(isSelected = isSelected)
+                } else {
+                    NothingToggle(
+                        checked = automation.enabled,
+                        onCheckedChange = { onToggleEnabled() },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            Text(
+                text = automation.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            NothingLabel(
+                text = if (automation.type == AutomationType.MODE) "Mode" else "Routine",
+                modifier = Modifier.padding(top = NothingSpacing.xs),
+            )
+
+            if (automation.status == AutomationStatus.PENDING_APPROVAL) {
+                NothingLabel(
+                    text = "Pending Approval",
+                    color = NothingColors.accent,
+                    modifier = Modifier.padding(top = NothingSpacing.xs),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            Text(
+                text = triggerDescription(automation.trigger),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${automation.actions.size} actions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 @Composable
-private fun AutomationRow(
-    automation: Automation,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit = {},
-    onMoveUp: () -> Unit = {},
-    onMoveDown: () -> Unit = {},
-    onRunNow: () -> Unit = {},
+private fun SelectionIndicator(isSelected: Boolean) {
+    if (isSelected) {
+        Text(
+            text = "●",
+            style = MaterialTheme.typography.titleMedium,
+            color = NothingColors.accent,
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape),
+        )
+    }
+}
+
+private val routineColors = listOf(
+    Color(0xFF4A9E5C),
+    Color(0xFFD4A843),
+    Color(0xFF5B9BF6),
+    Color(0xFFD71921),
+    Color(0xFF9B59B6),
+    Color(0xFF1ABC9C),
+)
+
+private fun routineColor(name: String): Color {
+    val index = name.hashCode().rem(routineColors.size).let {
+        if (it < 0) it + routineColors.size else it
+    }
+    return routineColors[index]
+}
+
+// ── Multi-Select Bottom Action Bar ───────────────────────────────────────────
+
+@Composable
+private fun MultiSelectBottomBar(
+    onSelectAll: () -> Unit,
+    onEnable: () -> Unit,
+    onDisable: () -> Unit,
+    onDelete: () -> Unit,
+    onRun: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = NothingSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md)
+            .background(MaterialTheme.colorScheme.background),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.Bottom,
     ) {
-        // Red accent dot for active automations
-        if (isActive) {
-            NothingRedDot(
-                size = 6f,
-                modifier = Modifier.padding(end = NothingSpacing.sm),
-            )
-        } else {
-            Spacer(modifier = Modifier.width(10.dp))
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            // Name — display size for active, title for inactive (hierarchy)
-            Text(
-                text = automation.name,
-                style = if (isActive) MaterialTheme.typography.headlineSmall
-                else MaterialTheme.typography.titleMedium,
-                color = if (isActive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = if (isActive) Doto else null,
-            )
-            // Type label — Space Mono ALL CAPS
-            NothingLabel(
-                text = when (automation.type) {
-                    AutomationType.MODE -> "Mode"
-                    AutomationType.ROUTINE -> "Routine"
-                },
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            if (automation.status == AutomationStatus.PENDING_APPROVAL) {
-                NothingLabel(
-                    text = "Pending Approval",
-                    color = NothingColors.accent,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
-
-        // Run now for manual triggers
-        if (automation.trigger is Trigger.Manual) {
-            Text(
-                text = "RUN",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .clickable(onClick = onRunNow)
-                    .padding(horizontal = NothingSpacing.sm),
-            )
-        }
-
-        // Toggle
-        NothingToggle(
-            checked = automation.enabled,
-            onCheckedChange = { onToggle() },
-        )
+        NothingCircleButton(icon = "A", label = "All", onClick = onSelectAll)
+        NothingCircleButton(icon = "1", label = "On", onClick = onEnable)
+        NothingCircleButton(icon = "0", label = "Off", onClick = onDisable)
+        NothingCircleButton(icon = "D", label = "Del", onClick = onDelete, color = NothingColors.accent)
+        NothingCircleButton(icon = "R", label = "Run", onClick = onRun, color = NothingColors.success)
+        NothingCircleButton(icon = "X", label = "X", onClick = onClear)
     }
 }

@@ -12,7 +12,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tdvorak.nothingmodes.ui.screens.AutomationDetailScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
-import com.tdvorak.nothingmodes.ui.screens.CreateAutomationScreen
 import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
@@ -79,12 +78,11 @@ fun NothingModesNavHost() {
         }
 
         composable(Routes.CREATE_AUTOMATION) {
-            CreateAutomationScreen(
+            CustomAutomationBuilderScreen(
                 onBack = { navController.popBackStack() },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
-                onCustomBuilder = { navController.navigate(Routes.CUSTOM_BUILDER) },
             )
         }
 
@@ -116,7 +114,7 @@ fun NothingModesNavHost() {
             arguments = listOf(navArgument("id") { type = NavType.StringType }),
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id")
-            CreateAutomationScreen(
+            CustomAutomationBuilderScreen(
                 automationId = id,
                 onBack = { navController.popBackStack() },
                 onSaved = {

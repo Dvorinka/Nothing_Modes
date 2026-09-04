@@ -30,6 +30,8 @@ data class Automation(
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val conditions: Condition? = null,
     val enabled: Boolean = true,
+    /** Allow this automation to appear in quick-action surfaces (widget, Quick Settings tile). */
+    val quickAction: Boolean = true,
     /** Higher priority wins in conflict. Same priority: last-activated wins. */
     val priority: Int = 0,
     val cooldownMs: Long = 0,

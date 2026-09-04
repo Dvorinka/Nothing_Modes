@@ -186,6 +186,15 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = NothingSpacing.md),
         ) {
+            // Hero — title in Doto
+            Text(
+                text = "SETTINGS",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = com.tdvorak.nothingmodes.ui.theme.Doto,
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
             caps?.let { capabilities ->
                 // ── Device ────────────────────────────────────────────────
                 NothingSectionHeader(text = "Device")
@@ -309,7 +318,7 @@ fun SettingsScreen(
                 )
                 NothingDivider()
                 NothingInfoRow(
-                    label = "Vibrator",
+                    label = "Vibration",
                     value = if (capabilities.hasVibrator) "Yes" else "No",
                     valueColor = if (capabilities.hasVibrator) NothingColors.success
                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -510,6 +519,9 @@ private fun DeviceAdminSection(context: android.content.Context) {
                 dm.removeActiveAdmin(comp)
                 isActive = false
             },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.md),
         )
     } else {
         NothingSecondaryButton(
@@ -524,6 +536,9 @@ private fun DeviceAdminSection(context: android.content.Context) {
                 }
                 launcher.launch(intent)
             },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.md),
         )
     }
 }

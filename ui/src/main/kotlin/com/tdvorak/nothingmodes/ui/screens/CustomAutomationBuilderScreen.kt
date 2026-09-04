@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
@@ -36,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
+import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import android.os.Build
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -59,7 +64,11 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -68,9 +77,14 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import sh.calvin.reorderable.ReorderableColumn
+import sh.calvin.reorderable.ReorderableListItemScope
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,7 +96,7 @@ import kotlinx.coroutines.launch
 data class BuilderState(
     val name: String = "",
     val type: AutomationType = AutomationType.ROUTINE,
-    val trigger: Trigger = Trigger.Time(cron = "0 12 * * *", tz = "Europe/Prague"),
+    val trigger: Trigger = Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone()),
     val actions: List<Action> = emptyList(),
     val conditions: List<Condition> = emptyList(),
     val priority: Int = 5,
@@ -90,6 +104,7 @@ data class BuilderState(
 
 @HiltViewModel
 class CustomBuilderViewModel @Inject constructor(
+    @ApplicationContext private val context: android.content.Context,
     private val store: AutomationStore,
 ) : ViewModel() {
 
@@ -134,11 +149,11 @@ class CustomBuilderViewModel @Inject constructor(
         _state.value = _state.value.copy(actions = _state.value.actions.toMutableList().also { it.removeAt(index) })
     }
 
-    fun moveAction(index: Int, up: Boolean) {
+    fun moveAction(fromIndex: Int, toIndex: Int) {
         val actions = _state.value.actions.toMutableList()
-        val target = if (up) index - 1 else index + 1
-        if (target < 0 || target >= actions.size) return
-        val tmp = actions[index]; actions[index] = actions[target]; actions[target] = tmp
+        if (fromIndex < 0 || fromIndex >= actions.size || toIndex < 0 || toIndex >= actions.size) return
+        val moved = actions.removeAt(fromIndex)
+        actions.add(toIndex, moved)
         _state.value = _state.value.copy(actions = actions)
     }
 
@@ -148,6 +163,20 @@ class CustomBuilderViewModel @Inject constructor(
 
     fun removeCondition(index: Int) {
         _state.value = _state.value.copy(conditions = _state.value.conditions.toMutableList().also { it.removeAt(index) })
+    }
+
+    fun updateCondition(index: Int, condition: Condition) {
+        _state.value = _state.value.copy(
+            conditions = _state.value.conditions.toMutableList().also { it[index] = condition },
+        )
+    }
+
+    fun moveCondition(fromIndex: Int, toIndex: Int) {
+        val conditions = _state.value.conditions.toMutableList()
+        if (fromIndex < 0 || fromIndex >= conditions.size || toIndex < 0 || toIndex >= conditions.size) return
+        val moved = conditions.removeAt(fromIndex)
+        conditions.add(toIndex, moved)
+        _state.value = _state.value.copy(conditions = conditions)
     }
 
     fun save() {
@@ -160,19 +189,22 @@ class CustomBuilderViewModel @Inject constructor(
                 s.conditions.size == 1 -> s.conditions[0]
                 else -> Condition.And(s.conditions)
             }
+            val existing = if (existingId != null) store.get(id) else null
             val automation = Automation(
                 id = id,
                 name = s.name.ifBlank { "Untitled" },
                 type = s.type,
-                createdBy = if (existingId != null) store.get(id)?.createdBy ?: CreatedBy.USER else CreatedBy.USER,
-                status = if (existingId != null) store.get(id)?.status ?: AutomationStatus.ARMED else AutomationStatus.ARMED,
+                createdBy = existing?.createdBy ?: CreatedBy.USER,
+                status = existing?.status ?: AutomationStatus.ARMED,
                 trigger = s.trigger,
                 actions = s.actions,
                 conditions = conditions,
                 priority = s.priority,
-                enabled = if (existingId != null) store.get(id)?.enabled ?: true else true,
+                quickAction = true,
+                enabled = existing?.enabled ?: true,
             )
             store.save(automation)
+            WidgetRefreshHelper.refresh(context)
             _saved.value = true
         }
     }
@@ -204,163 +236,206 @@ fun CustomAutomationBuilderScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = if (automationId != null) "Edit" else "New",
+                title = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
                 onBack = onBack,
+                actions = listOf(
+                    TopBarAction("+ COND") { showAddConditionDialog = true },
+                    TopBarAction("+ ACT") { showAddActionDialog = true },
+                ),
             )
         },
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = NothingSpacing.md),
+                .padding(padding),
+            contentPadding = PaddingValues(
+                start = NothingSpacing.md,
+                end = NothingSpacing.md,
+                top = NothingSpacing.lg,
+                bottom = NothingSpacing.md,
+            ),
         ) {
             // Hero — screen title in Doto
-            Text(
-                text = if (automationId != null) "EDIT" else "BUILDER",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = Doto,
-                modifier = Modifier.padding(top = NothingSpacing.lg),
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            // Name
-            NothingInput(
-                value = state.name,
-                onValueChange = viewModel::updateName,
-                label = "Name",
-                placeholder = "Untitled",
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.md))
-
-            // Type selector — segmented control
-            NothingLabel(text = "Type")
-            Spacer(modifier = Modifier.height(NothingSpacing.xs))
-            NothingSegmentedControl(
-                segments = listOf("Mode", "Routine"),
-                selectedIndex = if (state.type == AutomationType.MODE) 0 else 1,
-                onSelected = { index ->
-                    viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
-                },
-            )
-
-            // WHEN: Trigger
-            NothingSectionHeader(text = "When")
-            TriggerEditor(state.trigger, viewModel::updateTrigger)
-
-            // IF: Conditions
-            NothingSectionHeader(text = "If")
-            NothingDivider()
-            if (state.conditions.isEmpty()) {
+            item {
                 Text(
-                    "NO CONDITIONS — FIRES ON TRIGGER MATCH",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                    text = "IF / THEN",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = Doto,
                 )
-            } else {
-                state.conditions.forEachIndexed { index, condition ->
-                    ConditionRow(
-                        condition = condition,
-                        onRemove = { viewModel.removeCondition(index) },
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
+            }
+
+            // Name + Type
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    NothingInput(
+                        value = state.name,
+                        onValueChange = viewModel::updateName,
+                        label = "Name",
+                        placeholder = "Untitled",
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingLabel(text = "Type")
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    NothingSegmentedControl(
+                        segments = listOf("Mode", "Routine"),
+                        selectedIndex = if (state.type == AutomationType.MODE) 0 else 1,
+                        onSelected = { index ->
+                            viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
+                        },
                     )
                 }
             }
-            NothingDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAddConditionDialog = true }
-                    .padding(vertical = NothingSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "+ ADD CONDITION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = SpaceMono,
-                )
+
+            // IF: Trigger + Conditions
+            item {
+                NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
+                    Text(
+                        text = "IF",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = Doto,
+                        modifier = Modifier.padding(bottom = NothingSpacing.md),
+                    )
+                    TriggerEditor(state.trigger, viewModel::updateTrigger)
+
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    Text(
+                        text = "AND",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                    )
+                    NothingDivider()
+                    if (state.conditions.isEmpty()) {
+                        Text(
+                            "NO CONDITIONS — FIRES ON TRIGGER MATCH",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
+                    } else {
+                        ReorderableColumn(
+                            list = state.conditions,
+                            onSettle = { fromIndex, toIndex ->
+                                viewModel.moveCondition(fromIndex, toIndex)
+                            },
+                        ) { index, condition, _ ->
+                            ReorderableItem {
+                                ConditionRow(
+                                    condition = condition,
+                                    index = index,
+                                    onRemove = { viewModel.removeCondition(index) },
+                                    onUpdate = { viewModel.updateCondition(index, it) },
+                                )
+                            }
+                        }
+                    }
+                    NothingDivider()
+                    Text(
+                        text = "+ ADD CONDITION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier
+                            .padding(vertical = NothingSpacing.md)
+                            .clickable { showAddConditionDialog = true },
+                    )
+                }
             }
 
             // THEN: Actions
-            NothingSectionHeader(text = "Then")
-            NothingDivider()
-            if (state.actions.isEmpty()) {
-                Text(
-                    "NO ACTIONS — ADD AT LEAST ONE",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NothingColors.accent,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
-                )
-            } else {
-                state.actions.forEachIndexed { index, action ->
-                    ActionRow(
-                        action = action,
-                        index = index,
-                        canMoveUp = index > 0,
-                        canMoveDown = index < state.actions.size - 1,
-                        onMoveUp = { viewModel.moveAction(index, up = true) },
-                        onMoveDown = { viewModel.moveAction(index, up = false) },
-                        onRemove = { viewModel.removeAction(index) },
-                        onUpdate = { viewModel.updateAction(index, it) },
+            item {
+                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
+                    Text(
+                        text = "THEN",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = Doto,
+                        modifier = Modifier.padding(bottom = NothingSpacing.md),
+                    )
+                    NothingDivider()
+                    if (state.actions.isEmpty()) {
+                        Text(
+                            "NO ACTIONS — ADD AT LEAST ONE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NothingColors.accent,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
+                    } else {
+                        ReorderableColumn(
+                            list = state.actions,
+                            onSettle = { fromIndex, toIndex ->
+                                viewModel.moveAction(fromIndex, toIndex)
+                            },
+                        ) { index, action, _ ->
+                            ReorderableItem {
+                                ActionRow(
+                                    action = action,
+                                    index = index,
+                                    onRemove = { viewModel.removeAction(index) },
+                                    onUpdate = { viewModel.updateAction(index, it) },
+                                )
+                            }
+                        }
+                    }
+                    NothingDivider()
+                    Text(
+                        text = "+ ADD ACTION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier
+                            .padding(vertical = NothingSpacing.md)
+                            .clickable { showAddActionDialog = true },
                     )
                 }
             }
-            NothingDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAddActionDialog = true }
-                    .padding(vertical = NothingSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "+ ADD ACTION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = SpaceMono,
-                )
+
+            // Priority
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    NothingSectionHeader(text = "Priority")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        NothingLabel(text = "Higher wins conflicts")
+                        Text(
+                            text = state.priority.toString().padStart(2, '0'),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = SpaceMono,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    PrioritySegmentedBar(
+                        total = 10,
+                        filled = state.priority.coerceIn(0, 10),
+                        onSegmentClick = { viewModel.updatePriority(it) },
+                    )
+                }
             }
 
-            // Priority — segmented bar (10 segments)
-            NothingSectionHeader(text = "Priority")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                NothingLabel(text = "Higher wins conflicts")
-                Text(
-                    text = state.priority.toString().padStart(2, '0'),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = SpaceMono,
-                )
+            // Save button
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                    NothingPillButton(
+                        text = if (automationId != null) "Save Changes" else "Create Automation",
+                        onClick = viewModel::save,
+                        enabled = state.actions.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                }
             }
-            Spacer(modifier = Modifier.height(NothingSpacing.xs))
-            PrioritySegmentedBar(
-                total = 10,
-                filled = state.priority.coerceIn(0, 10),
-                onSegmentClick = { viewModel.updatePriority(it) },
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-
-            // Save — full width pill button at bottom
-            NothingPillButton(
-                text = if (automationId != null) "Save Changes" else "Create Automation",
-                onClick = viewModel::save,
-                enabled = state.actions.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
         }
     }
 
@@ -426,11 +501,11 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            DropdownMenuItem(text = { Text("TIME (CRON SCHEDULE)") }, onClick = {
-                onUpdate(Trigger.Time(cron = "0 12 * * *", tz = "Europe/Prague")); expanded = false
+            DropdownMenuItem(text = { Text("TIME (SCHEDULE)") }, onClick = {
+                onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())); expanded = false
             })
             DropdownMenuItem(text = { Text("TIME WINDOW (MODE)") }, onClick = {
-                onUpdate(Trigger.TimeWindow("22:00", "07:00", "Europe/Prague")); expanded = false
+                onUpdate(Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())); expanded = false
             })
             DropdownMenuItem(text = { Text("IMMEDIATE (FIRE ONCE)") }, onClick = {
                 onUpdate(Trigger.Immediate); expanded = false
@@ -486,16 +561,9 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
 private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     when (trigger) {
         is Trigger.Time -> {
-            NothingInput(
-                value = trigger.cron ?: "",
-                onValueChange = { onUpdate(trigger.copy(cron = it.ifBlank { null })) },
-                label = "Cron expression (min hour day month dow)",
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.tz,
-                onValueChange = { onUpdate(trigger.copy(tz = it)) },
-                label = "Timezone",
+            CustomTimePicker(
+                trigger = trigger,
+                onUpdate = onUpdate,
             )
         }
         is Trigger.TimeWindow -> {
@@ -685,96 +753,12 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     }
 }
 
-// ─── Nothing Enum Selector (ExposedDropdownMenuBox with Nothing borders) ─────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun NothingEnumSelector(
-    label: String,
-    value: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        NothingLabel(
-            text = label,
-            modifier = Modifier.padding(bottom = NothingSpacing.xs),
-        )
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.background,
-                shape = NothingShapes.technical,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .height(44.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = NothingSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = value.uppercase(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
-                    )
-                    Text(
-                        text = "▾",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = option.uppercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
-                            )
-                        },
-                        onClick = {
-                            onSelect(option)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
 // ─── Action Row & Picker ─────────────────────────────────────────────────────
 
 @Composable
-private fun ActionRow(
+private fun ReorderableListItemScope.ActionRow(
     action: Action,
     index: Int,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
 ) {
@@ -785,6 +769,18 @@ private fun ActionRow(
                 .padding(vertical = NothingSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Box(
+                modifier = Modifier
+                    .draggableHandle()
+                    .size(44.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "≡",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 text = String.format("%02d", index + 1),
                 style = MaterialTheme.typography.labelMedium,
@@ -798,28 +794,6 @@ private fun ActionRow(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            if (canMoveUp) {
-                Text(
-                    text = "UP",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier
-                        .clickable(onClick = onMoveUp)
-                        .padding(horizontal = NothingSpacing.xs),
-                )
-            }
-            if (canMoveDown) {
-                Text(
-                    text = "DOWN",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier
-                        .clickable(onClick = onMoveDown)
-                        .padding(horizontal = NothingSpacing.xs),
-                )
-            }
             Text(
                 text = "DEL",
                 style = MaterialTheme.typography.labelSmall,
@@ -992,28 +966,98 @@ private fun ActionPickerDialog(
 // ─── Condition Row & Picker ──────────────────────────────────────────────────
 
 @Composable
-private fun ConditionRow(condition: Condition, onRemove: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = conditionDescription(condition),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "DEL",
-            style = MaterialTheme.typography.labelSmall,
-            color = NothingColors.accent,
-            fontFamily = SpaceMono,
+private fun ReorderableListItemScope.ConditionRow(
+    condition: Condition,
+    index: Int,
+    onRemove: () -> Unit,
+    onUpdate: (Condition) -> Unit = {},
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
             modifier = Modifier
-                .clickable(onClick = onRemove)
-                .padding(horizontal = NothingSpacing.xs),
-        )
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .draggableHandle()
+                    .size(44.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "≡",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = String.format("%02d", index + 1),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier.width(32.dp),
+            )
+            Text(
+                text = conditionDescription(condition),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "DEL",
+                style = MaterialTheme.typography.labelSmall,
+                color = NothingColors.accent,
+                fontFamily = SpaceMono,
+                modifier = Modifier
+                    .clickable(onClick = onRemove)
+                    .padding(horizontal = NothingSpacing.xs),
+            )
+        }
+
+        if (condition is Condition.BatteryLevel) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            ) {
+                Box(modifier = Modifier.weight(0.35f)) {
+                    NothingEnumSelector(
+                        label = "",
+                        value = condition.op.name,
+                        options = com.tdvorak.nothingmodes.engine.model.CmpOp.entries.map { it.name },
+                        onSelect = { op ->
+                            onUpdate(condition.copy(op = com.tdvorak.nothingmodes.engine.model.CmpOp.valueOf(op)))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(modifier = Modifier.weight(0.65f)) {
+                    NothingInput(
+                        value = condition.level.toString(),
+                        onValueChange = {
+                            onUpdate(condition.copy(level = it.toIntOrNull() ?: condition.level))
+                        },
+                        label = "Level (%)",
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
+
+        if (condition is Condition.Charging) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NothingLabel(text = "Is charging")
+                NothingToggle(
+                    checked = condition.isCharging,
+                    onCheckedChange = { onUpdate(condition.copy(isCharging = it)) },
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
     }
     NothingDivider()
 }
@@ -1025,11 +1069,8 @@ private fun ConditionPickerDialog(
     onPick: (Condition) -> Unit,
 ) {
     val conditions = listOf(
-        "Battery < 20%" to Condition.BatteryLevel(com.tdvorak.nothingmodes.engine.model.CmpOp.LT, 20),
-        "Battery < 30%" to Condition.BatteryLevel(com.tdvorak.nothingmodes.engine.model.CmpOp.LT, 30),
-        "Battery > 50%" to Condition.BatteryLevel(com.tdvorak.nothingmodes.engine.model.CmpOp.GT, 50),
-        "Charging" to Condition.Charging(true),
-        "Not Charging" to Condition.Charging(false),
+        "Battery Level" to Condition.BatteryLevel(com.tdvorak.nothingmodes.engine.model.CmpOp.LT, 20),
+        "Charging State" to Condition.Charging(true),
         "Wi-Fi Connected" to Condition.WifiConnected(),
         "Bluetooth Connected" to Condition.BluetoothConnected(),
         "Screen On" to Condition.ScreenStateCondition(ScreenState.ON),
@@ -1145,26 +1186,36 @@ private fun PrioritySegmentedBar(
     filled: Int,
     onSegmentClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: Float = 8f,
+    height: Float = 16f,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(height.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         for (i in 0 until total) {
+            val active = i < filled
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(height.dp)
+                    .fillMaxHeight()
                     .clip(NothingShapes.technical)
                     .background(
-                        if (i < filled) MaterialTheme.colorScheme.primary
+                        if (active) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.outlineVariant,
                     )
                     .clickable { onSegmentClick(i + 1) },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = (i + 1).toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (active) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
+                )
+            }
         }
     }
 }

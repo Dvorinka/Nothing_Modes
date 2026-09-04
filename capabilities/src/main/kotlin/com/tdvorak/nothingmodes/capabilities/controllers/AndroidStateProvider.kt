@@ -97,6 +97,7 @@ class AndroidStateProvider(
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun readForegroundApp(): String? {
         return try {
             val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager

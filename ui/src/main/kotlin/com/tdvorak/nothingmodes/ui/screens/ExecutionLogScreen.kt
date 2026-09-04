@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,11 +23,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
-import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
@@ -139,13 +140,21 @@ fun ExecutionLogScreen(
                     bottom = NothingSpacing.xxxl,
                 ),
             ) {
-                // Hero — success rate as large number
+                // Hero — title + success rate
                 item {
+                    Text(
+                        text = "LOG",
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                        letterSpacing = 2.sp,
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     Text(
                         text = "%.0f%%".format(stats.successRate * 100),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
+                        fontFamily = SpaceMono,
                     )
                     NothingLabel(text = "Success Rate")
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -203,7 +212,7 @@ fun ExecutionLogScreen(
                     NothingSectionHeader(text = "Timeline")
                 }
 
-                items(entries) { entry ->
+                itemsIndexed(entries) { index, entry ->
                     val kindColor = when (entry.kind) {
                         "FIRED" -> NothingColors.success
                         "MODE_ACTIVATED" -> NothingColors.success
@@ -219,6 +228,13 @@ fun ExecutionLogScreen(
                             .fillMaxWidth()
                             .padding(vertical = NothingSpacing.md),
                     ) {
+                        Text(
+                            text = String.format("%02d", index + 1),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(end = NothingSpacing.sm),
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = entry.kind.replace("_", " "),

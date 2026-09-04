@@ -1,17 +1,12 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -21,10 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -35,106 +32,24 @@ import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
-import com.tdvorak.nothingmodes.engine.model.DndMode
-import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
-import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-data class AutomationTemplate(
-    val name: String,
-    val description: String,
-    val type: AutomationType,
-    val cron: String,
-    val actions: List<Action>,
-)
-
-object AutomationTemplates {
-    val templates = listOf(
-        AutomationTemplate(
-            name = "Sleep",
-            description = "DND, dark mode, dim screen, glyph off",
-            type = AutomationType.MODE,
-            cron = "30 22 * * *",
-            actions = listOf(
-                Action.SetDnd(DndMode.PRIORITY),
-                Action.SetDarkMode(NightMode.ON),
-                Action.SetExtraDim(on = true, restore = true),
-                Action.SetBrightness(level = 26, restore = true),
-                Action.SetGlyph(on = false),
-            ),
-        ),
-        AutomationTemplate(
-            name = "Morning",
-            description = "DND off, dark mode off, brightness up",
-            type = AutomationType.ROUTINE,
-            cron = "0 7 * * *",
-            actions = listOf(
-                Action.SetDnd(DndMode.OFF),
-                Action.SetDarkMode(NightMode.OFF),
-                Action.SetExtraDim(on = false, restore = true),
-                Action.SetBrightness(level = 128, restore = true),
-                Action.SetGlyph(on = true, restore = true),
-            ),
-        ),
-        AutomationTemplate(
-            name = "Work Focus",
-            description = "DND priority, ringer vibrate, brightness auto",
-            type = AutomationType.MODE,
-            cron = "0 9 * * 1-5",
-            actions = listOf(
-                Action.SetDnd(DndMode.PRIORITY),
-                Action.SetRinger("VIBRATE"),
-                Action.SetAutoBrightness(on = true),
-            ),
-        ),
-        AutomationTemplate(
-            name = "Evening Wind Down",
-            description = "Dark mode, extra dim, screen timeout 15s",
-            type = AutomationType.ROUTINE,
-            cron = "0 20 * * *",
-            actions = listOf(
-                Action.SetDarkMode(NightMode.ON),
-                Action.SetExtraDim(on = true, restore = true),
-                Action.SetScreenTimeout(timeoutMs = 15_000),
-            ),
-        ),
-        AutomationTemplate(
-            name = "Movie Mode",
-            description = "Brightness 255, volume max, rotation locked",
-            type = AutomationType.MODE,
-            cron = "0 21 * * 5,6",
-            actions = listOf(
-                Action.SetBrightness(level = 255, restore = true),
-                Action.SetVolume(com.tdvorak.nothingmodes.engine.model.VolumeStream.MEDIA, 15),
-                Action.SetDnd(DndMode.PRIORITY),
-            ),
-        ),
-        AutomationTemplate(
-            name = "Custom",
-            description = "Start from scratch",
-            type = AutomationType.ROUTINE,
-            cron = "0 12 * * *",
-            actions = listOf(Action.ShowNotification("Custom", "Edit this automation")),
-        ),
-    )
-}
 
 @HiltViewModel
 class CreateAutomationViewModel @Inject constructor(
@@ -154,19 +69,23 @@ class CreateAutomationViewModel @Inject constructor(
         }
     }
 
-    fun save(name: String, template: AutomationTemplate) {
+    /**
+     * Create a new automation shell with the given name and type. The trigger
+     * and actions are left empty for the Custom Builder to populate; a neutral
+     * placeholder trigger is used to keep the model valid.
+     */
+    fun create(name: String, type: AutomationType) {
         viewModelScope.launch {
-            val existing = _editingAutomation.value
-            val id = existing?.id ?: AutomationId("auto-${System.currentTimeMillis()}")
+            val id = AutomationId("auto-${System.currentTimeMillis()}")
             val automation = Automation(
                 id = id,
-                name = name.ifBlank { template.name },
-                type = template.type,
-                createdBy = existing?.createdBy ?: CreatedBy.USER,
-                status = existing?.status ?: AutomationStatus.ARMED,
-                trigger = Trigger.Time(cron = template.cron, tz = "Europe/Prague"),
-                actions = template.actions,
-                priority = if (template.type == AutomationType.MODE) 10 else 5,
+                name = name.ifBlank { defaultName(type) },
+                type = type,
+                createdBy = CreatedBy.USER,
+                status = AutomationStatus.ARMED,
+                trigger = Trigger.Manual,
+                actions = listOf(Action.ShowNotification("Custom", "Edit this automation")),
+                priority = if (type == AutomationType.MODE) 10 else 5,
             )
             store.save(automation)
             _saved.value = true
@@ -181,6 +100,9 @@ class CreateAutomationViewModel @Inject constructor(
             _saved.value = true
         }
     }
+
+    private fun defaultName(type: AutomationType): String =
+        if (type == AutomationType.MODE) "New Mode" else "New Routine"
 }
 
 @Composable
@@ -194,7 +116,7 @@ fun CreateAutomationScreen(
     val saved by viewModel.saved.collectAsState()
     val editing by viewModel.editingAutomation.collectAsState()
     var name by remember { mutableStateOf("") }
-    var selectedTemplate by remember { mutableStateOf<AutomationTemplate?>(null) }
+    var typeIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(automationId) {
         if (automationId != null) {
@@ -205,6 +127,7 @@ fun CreateAutomationScreen(
     LaunchedEffect(editing) {
         if (editing != null && name.isBlank()) {
             name = editing!!.name
+            typeIndex = if (editing!!.type == AutomationType.MODE) 0 else 1
         }
     }
 
@@ -219,7 +142,7 @@ fun CreateAutomationScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = if (isEditing) "Edit" else "New Mode",
+                title = if (isEditing) "Edit" else "New",
                 onBack = onBack,
             )
         },
@@ -231,104 +154,72 @@ fun CreateAutomationScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = NothingSpacing.md),
         ) {
-            // Hero — Doto title
+            // Hero — Doto title, the one expressive moment on the screen
             Text(
-                text = if (isEditing) "Edit Mode" else "New Mode",
-                style = MaterialTheme.typography.displaySmall,
+                text = if (isEditing) "Edit" else "New",
+                style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontFamily = Doto,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(top = NothingSpacing.lg),
             )
+            NothingLabel(
+                text = if (isEditing) "Rename automation" else "Create a mode or routine",
+                modifier = Modifier.padding(top = NothingSpacing.xs),
+            )
 
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+            Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
             // Name input
             NothingInput(
                 value = name,
                 onValueChange = { name = it },
                 label = "Name",
-                placeholder = "e.g. Sleep, Work Focus",
+                placeholder = if (typeIndex == 0) "e.g. Sleep, Work Focus" else "e.g. Morning, Movie",
             )
 
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
             if (!isEditing) {
-                // Templates section
-                NothingSectionHeader(text = "Templates")
+                // Type segmented control — Mode vs Routine
+                NothingSectionHeader(text = "Type")
+                NothingSegmentedControl(
+                    segments = listOf("Mode", "Routine"),
+                    selectedIndex = typeIndex,
+                    onSelected = { typeIndex = it },
+                )
 
-                AutomationTemplates.templates.forEach { template ->
-                    TemplateRow(
-                        template = template,
-                        selected = selectedTemplate == template,
-                        onSelect = { selectedTemplate = template },
-                    )
-                }
-                NothingDivider()
+                Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                // Custom Builder entry — kept intact per spec
+                NothingSectionHeader(text = "Builder")
                 NothingGhostButton(
-                    text = "Custom Builder",
+                    text = "+ Custom Builder",
                     onClick = onCustomBuilder,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
             Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
-            // Save button
+            // Primary action
             NothingPillButton(
-                text = if (isEditing) "Save Changes" else "Create",
+                text = if (isEditing) "Save" else "Create",
                 onClick = {
                     if (isEditing) {
                         viewModel.saveEdit(name)
                     } else {
-                        selectedTemplate?.let { viewModel.save(name, it) }
+                        viewModel.create(
+                            name = name,
+                            type = if (typeIndex == 0) AutomationType.MODE else AutomationType.ROUTINE,
+                        )
                     }
                 },
-                enabled = if (isEditing) name.isNotBlank() else selectedTemplate != null,
+                enabled = name.isNotBlank() || isEditing,
                 modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-        }
-    }
-}
-
-@Composable
-private fun TemplateRow(
-    template: AutomationTemplate,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    NothingDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onSelect)
-            .padding(vertical = NothingSpacing.md),
-    ) {
-        if (selected) {
-            NothingRedDot(size = 6f, modifier = Modifier.padding(end = NothingSpacing.sm))
-        } else {
-            Spacer(modifier = Modifier.padding(end = 10.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = template.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = template.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            Row(
-                modifier = Modifier.padding(top = NothingSpacing.xs),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-            ) {
-                NothingLabel(text = template.cron)
-                NothingLabel(text = "${template.actions.size} Actions")
-            }
         }
     }
 }

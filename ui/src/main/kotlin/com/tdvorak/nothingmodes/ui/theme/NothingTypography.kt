@@ -13,8 +13,8 @@ import com.tdvorak.nothingmodes.ui.R
  *
  * Font stack:
  *   Display  → Doto (dot-matrix, hero moments only, 36sp+)
- *   Body/UI  → Space Grotesk (Swiss grotesk, primary interface text)
- *   Data     → Space Mono (monospace, labels, numbers, ALL CAPS)
+ *   Body/UI  → Geist Sans (clean grotesk, primary interface text)
+ *   Data     → Geist Mono (monospace, labels, numbers, ALL CAPS)
  *
  * Type scale follows the design system tokens:
  *   display-xl  72sp  → hero numbers, time displays
@@ -28,17 +28,16 @@ import com.tdvorak.nothingmodes.ui.R
  *   label       11sp  → ALL CAPS monospace labels
  */
 
-val SpaceGrotesk = FontFamily(
-    Font(R.font.space_grotesk, FontWeight.Light),
-    Font(R.font.space_grotesk, FontWeight.Normal),
-    Font(R.font.space_grotesk, FontWeight.Medium),
-    Font(R.font.space_grotesk, FontWeight.SemiBold),
-    Font(R.font.space_grotesk, FontWeight.Bold),
+val GeistSans = FontFamily(
+    Font(R.font.geist_sans_light, FontWeight.Light),
+    Font(R.font.geist_sans_regular, FontWeight.Normal),
+    Font(R.font.geist_sans_medium, FontWeight.Medium),
+    Font(R.font.geist_sans_bold, FontWeight.Bold),
 )
 
-val SpaceMono = FontFamily(
-    Font(R.font.space_mono_regular, FontWeight.Normal),
-    Font(R.font.space_mono_bold, FontWeight.Bold),
+val GeistMono = FontFamily(
+    Font(R.font.geist_mono_regular, FontWeight.Normal),
+    Font(R.font.geist_mono_bold, FontWeight.Bold),
 )
 
 val Doto = FontFamily(
@@ -47,6 +46,10 @@ val Doto = FontFamily(
     Font(R.font.doto, FontWeight.SemiBold),
     Font(R.font.doto, FontWeight.Bold),
 )
+
+// Legacy aliases for any external callers; new code should use GeistSans/GeistMono.
+val SpaceGrotesk = GeistSans
+val SpaceMono = GeistMono
 
 object NothingTypography {
 
@@ -74,92 +77,92 @@ object NothingTypography {
             letterSpacing = (-1.0).sp,
         ),
 
-        // Headings — Space Grotesk
+        // Headings — Geist Sans
         headlineLarge = TextStyle(
-            fontFamily = SpaceGrotesk,
-            fontWeight = FontWeight.Medium,
+            fontFamily = GeistSans,
+            fontWeight = FontWeight.Bold,
             fontSize = 32.sp,
             lineHeight = 38.sp,
             letterSpacing = (-0.5).sp,
         ),
         headlineMedium = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Medium,
             fontSize = 28.sp,
             lineHeight = 34.sp,
             letterSpacing = (-0.3).sp,
         ),
         headlineSmall = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Medium,
             fontSize = 24.sp,
             lineHeight = 29.sp,
             letterSpacing = (-0.25).sp,
         ),
 
-        // Titles — Space Grotesk
+        // Titles — Geist Sans
         titleLarge = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Medium,
             fontSize = 22.sp,
             lineHeight = 28.sp,
             letterSpacing = 0.sp,
         ),
         titleMedium = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Normal,
             fontSize = 16.sp,
             lineHeight = 24.sp,
             letterSpacing = 0.sp,
         ),
         titleSmall = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             letterSpacing = 0.2.sp,
         ),
 
-        // Body — Space Grotesk
+        // Body — Geist Sans
         bodyLarge = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Normal,
             fontSize = 16.sp,
             lineHeight = 24.sp,
             letterSpacing = 0.sp,
         ),
         bodyMedium = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp,
             lineHeight = 21.sp,
             letterSpacing = 0.15.sp,
         ),
         bodySmall = TextStyle(
-            fontFamily = SpaceGrotesk,
+            fontFamily = GeistSans,
             fontWeight = FontWeight.Normal,
             fontSize = 12.sp,
             lineHeight = 17.sp,
             letterSpacing = 0.25.sp,
         ),
 
-        // Labels — Space Mono, ALL CAPS, wide tracking
+        // Labels — Geist Mono, ALL CAPS, wide tracking
         labelLarge = TextStyle(
-            fontFamily = SpaceMono,
+            fontFamily = GeistMono,
             fontWeight = FontWeight.Normal,
             fontSize = 13.sp,
             lineHeight = 18.sp,
             letterSpacing = 0.8.sp,
         ),
         labelMedium = TextStyle(
-            fontFamily = SpaceMono,
+            fontFamily = GeistMono,
             fontWeight = FontWeight.Normal,
             fontSize = 12.sp,
             lineHeight = 17.sp,
             letterSpacing = 0.6.sp,
         ),
         labelSmall = TextStyle(
-            fontFamily = SpaceMono,
+            fontFamily = GeistMono,
             fontWeight = FontWeight.Normal,
             fontSize = 11.sp,
             lineHeight = 13.sp,

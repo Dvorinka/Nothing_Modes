@@ -49,6 +49,7 @@ class Engine(
             val actionResults = mutableListOf<ActionResult>()
 
             try {
+                if (event is TriggerEvent.ManualFired && event.automationId != automation.id) continue
                 if (!matcher.matches(automation.trigger, event)) continue
 
                 // Check day-of-week filter for time-based triggers
