@@ -1,38 +1,28 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -50,7 +41,6 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
-import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
@@ -64,6 +54,18 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -195,14 +197,11 @@ fun CustomAutomationBuilderScreen(
     var showAddConditionDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text(if (automationId != null) "Edit Automation" else "Custom Automation") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            NothingTopBar(
+                title = if (automationId != null) "Edit" else "New",
+                onBack = onBack,
             )
         },
     ) { padding ->
@@ -211,32 +210,54 @@ fun CustomAutomationBuilderScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = NothingSpacing.md),
         ) {
-            // Name
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = viewModel::updateName,
-                label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+            // Hero — screen title in Doto
+            Text(
+                text = if (automationId != null) "EDIT" else "BUILDER",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = Doto,
+                modifier = Modifier.padding(top = NothingSpacing.lg),
             )
 
-            // Type selector
-            TypeSelector(state.type, viewModel::updateType)
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            // Name
+            NothingInput(
+                value = state.name,
+                onValueChange = viewModel::updateName,
+                label = "Name",
+                placeholder = "Untitled",
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+
+            // Type selector — segmented control
+            NothingLabel(text = "Type")
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            NothingSegmentedControl(
+                segments = listOf("Mode", "Routine"),
+                selectedIndex = if (state.type == AutomationType.MODE) 0 else 1,
+                onSelected = { index ->
+                    viewModel.updateType(if (index == 0) AutomationType.MODE else AutomationType.ROUTINE)
+                },
+            )
 
             // WHEN: Trigger
-            SectionHeader("WHEN")
+            NothingSectionHeader(text = "When")
             TriggerEditor(state.trigger, viewModel::updateTrigger)
 
             // IF: Conditions
-            SectionHeader("IF (conditions)")
+            NothingSectionHeader(text = "If")
+            NothingDivider()
             if (state.conditions.isEmpty()) {
                 Text(
-                    "No conditions — fires on trigger match",
-                    style = MaterialTheme.typography.bodySmall,
+                    "NO CONDITIONS — FIRES ON TRIGGER MATCH",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
                 )
             } else {
                 state.conditions.forEachIndexed { index, condition ->
@@ -246,23 +267,38 @@ fun CustomAutomationBuilderScreen(
                     )
                 }
             }
-            TextButton(onClick = { showAddConditionDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text(" Add condition")
+            NothingDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAddConditionDialog = true }
+                    .padding(vertical = NothingSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "+ ADD CONDITION",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = SpaceMono,
+                )
             }
 
             // THEN: Actions
-            SectionHeader("THEN")
+            NothingSectionHeader(text = "Then")
+            NothingDivider()
             if (state.actions.isEmpty()) {
                 Text(
-                    "No actions — add at least one",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    "NO ACTIONS — ADD AT LEAST ONE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
                 )
             } else {
                 state.actions.forEachIndexed { index, action ->
                     ActionRow(
                         action = action,
+                        index = index,
                         canMoveUp = index > 0,
                         canMoveDown = index < state.actions.size - 1,
                         onMoveUp = { viewModel.moveAction(index, up = true) },
@@ -272,28 +308,55 @@ fun CustomAutomationBuilderScreen(
                     )
                 }
             }
-            TextButton(onClick = { showAddActionDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text(" Add action")
+            NothingDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAddActionDialog = true }
+                    .padding(vertical = NothingSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "+ ADD ACTION",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = SpaceMono,
+                )
             }
 
-            // Priority
-            OutlinedTextField(
-                value = state.priority.toString(),
-                onValueChange = { viewModel.updatePriority(it.toIntOrNull() ?: 0) },
-                label = { Text("Priority (higher wins conflicts)") },
+            // Priority — segmented bar (10 segments)
+            NothingSectionHeader(text = "Priority")
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                NothingLabel(text = "Higher wins conflicts")
+                Text(
+                    text = state.priority.toString().padStart(2, '0'),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = SpaceMono,
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            PrioritySegmentedBar(
+                total = 10,
+                filled = state.priority.coerceIn(0, 10),
+                onSegmentClick = { viewModel.updatePriority(it) },
             )
 
-            // Save
-            Button(
+            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+
+            // Save — full width pill button at bottom
+            NothingPillButton(
+                text = if (automationId != null) "Save Changes" else "Create Automation",
                 onClick = viewModel::save,
                 enabled = state.actions.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (automationId != null) "Save Changes" else "Create Automation")
-            }
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
         }
     }
 
@@ -318,30 +381,6 @@ fun CustomAutomationBuilderScreen(
     }
 }
 
-@Composable
-private fun SectionHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-}
-
-@Composable
-private fun TypeSelector(selected: AutomationType, onSelect: (AutomationType) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AutomationType.entries.forEach { type ->
-            val label = when (type) {
-                AutomationType.MODE -> "Mode"
-                AutomationType.ROUTINE -> "Routine"
-            }
-            TextButton(
-                onClick = { onSelect(type) },
-                colors = if (selected == type)
-                    androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                else
-                    androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
-            ) { Text(label) }
-        }
-    }
-}
-
 // ─── Trigger Editor ──────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -351,70 +390,91 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val triggerLabel = triggerDescription(trigger)
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = triggerLabel,
-                    onValueChange = {},
-                    label = { Text("Trigger type") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    readOnly = true,
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(text = { Text("Time (cron schedule)") }, onClick = {
-                        onUpdate(Trigger.Time(cron = "0 12 * * *", tz = "Europe/Prague")); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Time Window (mode)") }, onClick = {
-                        onUpdate(Trigger.TimeWindow("22:00", "07:00", "Europe/Prague")); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Immediate (fire once)") }, onClick = {
-                        onUpdate(Trigger.Immediate); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Notification") }, onClick = {
-                        onUpdate(Trigger.Notification(pkg = "com.example.app")); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Phone State") }, onClick = {
-                        onUpdate(Trigger.PhoneState(PhoneEvent.INCOMING_CALL)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Connectivity") }, onClick = {
-                        onUpdate(Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Boot") }, onClick = {
-                        onUpdate(Trigger.Boot); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Battery Level") }, onClick = {
-                        onUpdate(Trigger.BatteryLevel(20)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Screen State") }, onClick = {
-                        onUpdate(Trigger.ScreenStateTrigger(ScreenState.OFF)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("App Opened") }, onClick = {
-                        onUpdate(Trigger.AppOpened("com.example.app")); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Geofence") }, onClick = {
-                        onUpdate(Trigger.Geofence(50.0755, 14.4378, 100.0, com.tdvorak.nothingmodes.engine.model.Transition.ENTER)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Manual") }, onClick = {
-                        onUpdate(Trigger.Manual); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Bluetooth Device") }, onClick = {
-                        onUpdate(Trigger.BluetoothDevice(com.tdvorak.nothingmodes.engine.model.ConnState.CONNECTED)); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("WiFi Connected") }, onClick = {
-                        onUpdate(Trigger.WifiConnected()); expanded = false
-                    })
-                    DropdownMenuItem(text = { Text("Calendar Event") }, onClick = {
-                        onUpdate(Trigger.CalendarEvent()); expanded = false
-                    })
-                }
-            }
+    NothingDivider()
 
-            // Trigger-specific parameter fields
-            TriggerParams(trigger, onUpdate)
+    // Trigger type — simple tappable row, not a dropdown box
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(vertical = NothingSpacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NothingLabel(text = "Trigger type")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = triggerLabel.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
+                )
+                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                Text(
+                    text = "▾",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(text = { Text("TIME (CRON SCHEDULE)") }, onClick = {
+                onUpdate(Trigger.Time(cron = "0 12 * * *", tz = "Europe/Prague")); expanded = false
+            })
+            DropdownMenuItem(text = { Text("TIME WINDOW (MODE)") }, onClick = {
+                onUpdate(Trigger.TimeWindow("22:00", "07:00", "Europe/Prague")); expanded = false
+            })
+            DropdownMenuItem(text = { Text("IMMEDIATE (FIRE ONCE)") }, onClick = {
+                onUpdate(Trigger.Immediate); expanded = false
+            })
+            DropdownMenuItem(text = { Text("NOTIFICATION") }, onClick = {
+                onUpdate(Trigger.Notification(pkg = "com.example.app")); expanded = false
+            })
+            DropdownMenuItem(text = { Text("PHONE STATE") }, onClick = {
+                onUpdate(Trigger.PhoneState(PhoneEvent.INCOMING_CALL)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("CONNECTIVITY") }, onClick = {
+                onUpdate(Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("BOOT") }, onClick = {
+                onUpdate(Trigger.Boot); expanded = false
+            })
+            DropdownMenuItem(text = { Text("BATTERY LEVEL") }, onClick = {
+                onUpdate(Trigger.BatteryLevel(20)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("SCREEN STATE") }, onClick = {
+                onUpdate(Trigger.ScreenStateTrigger(ScreenState.OFF)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("APP OPENED") }, onClick = {
+                onUpdate(Trigger.AppOpened("com.example.app")); expanded = false
+            })
+            DropdownMenuItem(text = { Text("GEOFENCE") }, onClick = {
+                onUpdate(Trigger.Geofence(50.0755, 14.4378, 100.0, com.tdvorak.nothingmodes.engine.model.Transition.ENTER)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("MANUAL") }, onClick = {
+                onUpdate(Trigger.Manual); expanded = false
+            })
+            DropdownMenuItem(text = { Text("BLUETOOTH DEVICE") }, onClick = {
+                onUpdate(Trigger.BluetoothDevice(com.tdvorak.nothingmodes.engine.model.ConnState.CONNECTED)); expanded = false
+            })
+            DropdownMenuItem(text = { Text("WIFI CONNECTED") }, onClick = {
+                onUpdate(Trigger.WifiConnected()); expanded = false
+            })
+            DropdownMenuItem(text = { Text("CALENDAR EVENT") }, onClick = {
+                onUpdate(Trigger.CalendarEvent()); expanded = false
+            })
         }
     }
+
+    NothingDivider()
+    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+    // Trigger-specific parameter fields
+    TriggerParams(trigger, onUpdate)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -422,172 +482,130 @@ private fun TriggerEditor(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
 private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
     when (trigger) {
         is Trigger.Time -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.cron ?: "",
                 onValueChange = { onUpdate(trigger.copy(cron = it.ifBlank { null })) },
-                label = { Text("Cron expression (min hour day month dow)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Cron expression (min hour day month dow)",
             )
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
                 value = trigger.tz,
                 onValueChange = { onUpdate(trigger.copy(tz = it)) },
-                label = { Text("Timezone") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Timezone",
             )
         }
         is Trigger.TimeWindow -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.startLocal,
                 onValueChange = { onUpdate(trigger.copy(startLocal = it)) },
-                label = { Text("Start (HH:mm)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Start (HH:mm)",
             )
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
                 value = trigger.endLocal,
                 onValueChange = { onUpdate(trigger.copy(endLocal = it)) },
-                label = { Text("End (HH:mm)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "End (HH:mm)",
             )
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
                 value = trigger.tz,
                 onValueChange = { onUpdate(trigger.copy(tz = it)) },
-                label = { Text("Timezone") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Timezone",
             )
         }
         is Trigger.Notification -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.pkg,
                 onValueChange = { onUpdate(trigger.copy(pkg = it)) },
-                label = { Text("Package name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Package name",
             )
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
                 value = trigger.titleMatch ?: "",
                 onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-                label = { Text("Title match (optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Title match (optional)",
             )
         }
         is Trigger.PhoneState -> {
-            var expanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = trigger.event.name,
-                    onValueChange = {},
-                    label = { Text("Event") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    readOnly = true,
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    PhoneEvent.entries.forEach { event ->
-                        DropdownMenuItem(text = { Text(event.name) }, onClick = {
-                            onUpdate(trigger.copy(event = event)); expanded = false
-                        })
-                    }
-                }
-            }
+            NothingEnumSelector(
+                label = "Event",
+                value = trigger.event.name,
+                options = PhoneEvent.entries.map { it.name },
+                onSelect = { event ->
+                    onUpdate(trigger.copy(event = PhoneEvent.valueOf(event)))
+                },
+            )
         }
         is Trigger.Connectivity -> {
-            var mediumExpanded by remember { mutableStateOf(false) }
-            var stateExpanded by remember { mutableStateOf(false) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExposedDropdownMenuBox(expanded = mediumExpanded, onExpandedChange = { mediumExpanded = it }, modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = trigger.medium.name, onValueChange = {},
-                        label = { Text("Medium") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = mediumExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(), readOnly = true,
+            Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    NothingEnumSelector(
+                        label = "Medium",
+                        value = trigger.medium.name,
+                        options = ConnMedium.entries.map { it.name },
+                        onSelect = { medium ->
+                            onUpdate(trigger.copy(medium = ConnMedium.valueOf(medium)))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    ExposedDropdownMenu(expanded = mediumExpanded, onDismissRequest = { mediumExpanded = false }) {
-                        ConnMedium.entries.forEach { medium ->
-                            DropdownMenuItem(text = { Text(medium.name) }, onClick = {
-                                onUpdate(trigger.copy(medium = medium)); mediumExpanded = false
-                            })
-                        }
-                    }
                 }
-                ExposedDropdownMenuBox(expanded = stateExpanded, onExpandedChange = { stateExpanded = it }, modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = trigger.state.name, onValueChange = {},
-                        label = { Text("State") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = stateExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(), readOnly = true,
+                Box(modifier = Modifier.weight(1f)) {
+                    NothingEnumSelector(
+                        label = "State",
+                        value = trigger.state.name,
+                        options = ConnState.entries.map { it.name },
+                        onSelect = { state ->
+                            onUpdate(trigger.copy(state = ConnState.valueOf(state)))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    ExposedDropdownMenu(expanded = stateExpanded, onDismissRequest = { stateExpanded = false }) {
-                        ConnState.entries.forEach { state ->
-                            DropdownMenuItem(text = { Text(state.name) }, onClick = {
-                                onUpdate(trigger.copy(state = state)); stateExpanded = false
-                            })
-                        }
-                    }
                 }
             }
         }
         is Trigger.BatteryLevel -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.level.toString(),
                 onValueChange = { onUpdate(trigger.copy(level = it.toIntOrNull() ?: 0)) },
-                label = { Text("Battery level %") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Battery level %",
             )
         }
         is Trigger.ScreenStateTrigger -> {
-            var expanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = trigger.state.name, onValueChange = {},
-                    label = { Text("Screen state") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(), readOnly = true,
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    ScreenState.entries.forEach { state ->
-                        DropdownMenuItem(text = { Text(state.name) }, onClick = {
-                            onUpdate(trigger.copy(state = state)); expanded = false
-                        })
-                    }
-                }
-            }
+            NothingEnumSelector(
+                label = "Screen state",
+                value = trigger.state.name,
+                options = ScreenState.entries.map { it.name },
+                onSelect = { state ->
+                    onUpdate(trigger.copy(state = ScreenState.valueOf(state)))
+                },
+            )
         }
         is Trigger.AppOpened -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.pkg,
                 onValueChange = { onUpdate(trigger.copy(pkg = it)) },
-                label = { Text("Package name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Package name",
             )
         }
         is Trigger.Geofence -> {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                NothingInput(
                     value = trigger.lat.toString(),
                     onValueChange = { onUpdate(trigger.copy(lat = it.toDoubleOrNull() ?: 0.0)) },
-                    label = { Text("Latitude") },
-                    modifier = Modifier.weight(1f), singleLine = true,
+                    label = "Latitude",
+                    modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                NothingInput(
                     value = trigger.lng.toString(),
                     onValueChange = { onUpdate(trigger.copy(lng = it.toDoubleOrNull() ?: 0.0)) },
-                    label = { Text("Longitude") },
-                    modifier = Modifier.weight(1f), singleLine = true,
+                    label = "Longitude",
+                    modifier = Modifier.weight(1f),
                 )
             }
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
                 value = trigger.radiusM.toString(),
                 onValueChange = { onUpdate(trigger.copy(radiusM = it.toDoubleOrNull() ?: 100.0)) },
-                label = { Text("Radius (meters)") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = "Radius (meters)",
             )
         }
         is Trigger.Immediate, is Trigger.Boot, is Trigger.Manual -> {}
@@ -599,47 +617,136 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
                     bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
                 }.getOrDefault(emptyList())
             }
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.deviceName ?: "",
                 onValueChange = { onUpdate(trigger.copy(deviceName = it.ifBlank { null })) },
-                label = { Text("Device name (blank = any)") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = "Device name (blank = any)",
             )
             if (bondedDevices.isNotEmpty()) {
-                Text(
-                    "Paired devices:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
+                NothingLabel(
+                    text = "Paired devices",
+                    modifier = Modifier.padding(top = NothingSpacing.md),
                 )
                 bondedDevices.forEach { (name, address) ->
-                    TextButton(
-                        onClick = { onUpdate(trigger.copy(deviceName = name, deviceAddress = address)) },
-                        modifier = Modifier.fillMaxWidth(),
+                    NothingDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onUpdate(trigger.copy(deviceName = name, deviceAddress = address))
+                            }
+                            .padding(vertical = NothingSpacing.sm),
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(name, style = MaterialTheme.typography.bodySmall)
-                            Text(address, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column {
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = address,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
+                            )
                         }
                     }
                 }
             }
         }
         is Trigger.WifiConnected -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.ssid ?: "",
                 onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
-                label = { Text("SSID (blank = any)") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = "SSID (blank = any)",
             )
         }
         is Trigger.CalendarEvent -> {
-            OutlinedTextField(
+            NothingInput(
                 value = trigger.titleMatch ?: "",
                 onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-                label = { Text("Title contains (blank = any)") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = "Title contains (blank = any)",
             )
+        }
+    }
+}
+
+// ─── Nothing Enum Selector (ExposedDropdownMenuBox with Nothing borders) ─────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NothingEnumSelector(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        NothingLabel(
+            text = label,
+            modifier = Modifier.padding(bottom = NothingSpacing.xs),
+        )
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.background,
+                shape = NothingShapes.technical,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .height(44.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = NothingSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = value.uppercase(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                    Text(
+                        text = "▾",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = option.uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        },
+                    )
+                }
+            }
         }
     }
 }
@@ -649,6 +756,7 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
 @Composable
 private fun ActionRow(
     action: Action,
+    index: Int,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -656,92 +764,118 @@ private fun ActionRow(
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(actionDescription(action), style = MaterialTheme.typography.bodyMedium)
-                }
-                if (canMoveUp) IconButton(onClick = onMoveUp) {
-                    Icon(Icons.Default.ArrowUpward, contentDescription = "Move up")
-                }
-                if (canMoveDown) IconButton(onClick = onMoveDown) {
-                    Icon(Icons.Default.ArrowDownward, contentDescription = "Move down")
-                }
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove")
-                }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = String.format("%02d", index + 1),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier.width(32.dp),
+            )
+            Text(
+                text = actionDescription(action),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (canMoveUp) {
+                Text(
+                    text = "UP",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier
+                        .clickable(onClick = onMoveUp)
+                        .padding(horizontal = NothingSpacing.xs),
+                )
             }
-            // Action-specific editors
-            when (action) {
-                is Action.SendSms -> {
-                    OutlinedTextField(
-                        value = action.number,
-                        onValueChange = { onUpdate(action.copy(number = it)) },
-                        label = { Text("Phone number") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = action.text,
-                        onValueChange = { onUpdate(action.copy(text = it)) },
-                        label = { Text("Message") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3,
-                    )
-                }
-                is Action.ShowNotification -> {
-                    OutlinedTextField(
-                        value = action.title,
-                        onValueChange = { onUpdate(action.copy(title = it)) },
-                        label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = action.text,
-                        onValueChange = { onUpdate(action.copy(text = it)) },
-                        label = { Text("Text") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 2,
-                    )
-                }
-                is Action.OpenUrl -> {
-                    OutlinedTextField(
-                        value = action.url,
-                        onValueChange = { onUpdate(action.copy(url = it)) },
-                        label = { Text("URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                }
-                is Action.LaunchApp -> {
-                    OutlinedTextField(
-                        value = action.pkg,
-                        onValueChange = { onUpdate(action.copy(pkg = it)) },
-                        label = { Text("Package name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                }
-                is Action.CopyText -> {
-                    OutlinedTextField(
-                        value = action.text,
-                        onValueChange = { onUpdate(action.copy(text = it)) },
-                        label = { Text("Text to copy") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3,
-                    )
-                }
-                else -> {}
+            if (canMoveDown) {
+                Text(
+                    text = "DOWN",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier
+                        .clickable(onClick = onMoveDown)
+                        .padding(horizontal = NothingSpacing.xs),
+                )
             }
+            Text(
+                text = "DEL",
+                style = MaterialTheme.typography.labelSmall,
+                color = NothingColors.accent,
+                fontFamily = SpaceMono,
+                modifier = Modifier
+                    .clickable(onClick = onRemove)
+                    .padding(horizontal = NothingSpacing.xs),
+            )
         }
+
+        // Action-specific editors
+        when (action) {
+            is Action.SendSms -> {
+                NothingInput(
+                    value = action.number,
+                    onValueChange = { onUpdate(action.copy(number = it)) },
+                    label = "Phone number",
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = action.text,
+                    onValueChange = { onUpdate(action.copy(text = it)) },
+                    label = "Message",
+                    singleLine = false,
+                )
+            }
+            is Action.ShowNotification -> {
+                NothingInput(
+                    value = action.title,
+                    onValueChange = { onUpdate(action.copy(title = it)) },
+                    label = "Title",
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = action.text,
+                    onValueChange = { onUpdate(action.copy(text = it)) },
+                    label = "Text",
+                    singleLine = false,
+                )
+            }
+            is Action.OpenUrl -> {
+                NothingInput(
+                    value = action.url,
+                    onValueChange = { onUpdate(action.copy(url = it)) },
+                    label = "URL",
+                )
+            }
+            is Action.LaunchApp -> {
+                NothingInput(
+                    value = action.pkg,
+                    onValueChange = { onUpdate(action.copy(pkg = it)) },
+                    label = "Package name",
+                )
+            }
+            is Action.CopyText -> {
+                NothingInput(
+                    value = action.text,
+                    onValueChange = { onUpdate(action.copy(text = it)) },
+                    label = "Text to copy",
+                    singleLine = false,
+                )
+            }
+            else -> {}
+        }
+        NothingDivider()
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActionPickerDialog(
     onDismiss: () -> Unit,
@@ -833,20 +967,11 @@ private fun ActionPickerDialog(
         "Screenshot" to Action.TakeScreenshot,
     )
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Action") },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                actions.forEach { (label, action) ->
-                    TextButton(onClick = { onPick(action) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(label, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    NothingPickerDialog(
+        title = "ADD ACTION",
+        items = actions,
+        onDismiss = onDismiss,
+        onPick = onPick,
     )
 }
 
@@ -854,19 +979,32 @@ private fun ActionPickerDialog(
 
 @Composable
 private fun ConditionRow(condition: Condition, onRemove: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(conditionDescription(condition), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove")
-            }
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = conditionDescription(condition),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "DEL",
+            style = MaterialTheme.typography.labelSmall,
+            color = NothingColors.accent,
+            fontFamily = SpaceMono,
+            modifier = Modifier
+                .clickable(onClick = onRemove)
+                .padding(horizontal = NothingSpacing.xs),
+        )
     }
+    NothingDivider()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConditionPickerDialog(
     onDismiss: () -> Unit,
@@ -889,21 +1027,132 @@ private fun ConditionPickerDialog(
         "Weekends" to Condition.DayOfWeekCondition(listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)),
     )
 
-    AlertDialog(
+    NothingPickerDialog(
+        title = "ADD CONDITION",
+        items = conditions,
+        onDismiss = onDismiss,
+        onPick = onPick,
+    )
+}
+
+// ─── Nothing Picker Dialog (shared) ──────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> NothingPickerDialog(
+    title: String,
+    items: List<Pair<String, T>>,
+    onDismiss: () -> Unit,
+    onPick: (T) -> Unit,
+) {
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Condition") },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                conditions.forEach { (label, condition) ->
-                    TextButton(onClick = { onPick(condition) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(label, modifier = Modifier.fillMaxWidth())
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = NothingSpacing.md),
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = NothingShapes.technical,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Title bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(NothingSpacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                    )
+                    Text(
+                        text = "CLOSE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.clickable(onClick = onDismiss),
+                    )
+                }
+                NothingDivider()
+
+                // Scrollable list
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    items.forEachIndexed { index, (label, item) ->
+                        NothingDivider()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPick(item) }
+                                .padding(NothingSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = String.format("%02d", index + 1),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
+                                modifier = Modifier.width(32.dp),
+                            )
+                            Text(
+                                text = label.uppercase(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        }
                     }
+                    NothingDivider()
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+        }
+    }
+}
+
+// ─── Priority Segmented Bar (tappable) ───────────────────────────────────────
+
+@Composable
+private fun PrioritySegmentedBar(
+    total: Int,
+    filled: Int,
+    onSegmentClick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    height: Float = 8f,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        for (i in 0 until total) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(height.dp)
+                    .clip(NothingShapes.technical)
+                    .background(
+                        if (i < filled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    .clickable { onSegmentClick(i + 1) },
+            )
+        }
+    }
 }
 
 private fun conditionDescription(condition: Condition): String = when (condition) {

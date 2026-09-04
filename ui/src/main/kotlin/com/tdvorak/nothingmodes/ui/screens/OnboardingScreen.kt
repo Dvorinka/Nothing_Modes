@@ -3,28 +3,24 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings as AndroidSettings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +32,15 @@ import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,31 +76,44 @@ fun OnboardingScreen(
     val caps by viewModel.capabilities.collectAsState()
     val shizukuStatus by viewModel.shizukuStatus.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.detect(context) }
+    LaunchedEffect(Unit) { viewModel.detect(context) }
 
-    Scaffold { padding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = NothingSpacing.md),
         ) {
-            Text("Welcome to Nothing Modes", style = MaterialTheme.typography.headlineMedium)
+            // Hero — Doto headline, vast gap to content
             Text(
-                "Automate your Nothing phone with modes, routines, and Glyph integration.",
+                text = "Nothing Modes",
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = Doto,
+                modifier = Modifier.padding(top = NothingSpacing.xxxl),
+            )
+            Text(
+                text = "Automate your Nothing phone with modes, routines, and Glyph integration.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = NothingSpacing.sm),
             )
 
+            // Vast gap — new context
+            Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+
+            NothingSectionHeader(text = "Setup")
+
             caps?.let { capabilities ->
-                StepCard(
+                OnboardingStep(
                     step = 1,
                     title = "Write Settings",
-                    description = "Required to change brightness, screen timeout, and other system settings.",
+                    description = "Brightness, screen timeout, system settings.",
                     done = capabilities.hasWriteSettings,
-                    actionText = "Grant",
                     onAction = {
                         context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
                             data = Uri.parse("package:${context.packageName}")
@@ -103,52 +121,44 @@ fun OnboardingScreen(
                         })
                     },
                 )
-
-                StepCard(
+                OnboardingStep(
                     step = 2,
                     title = "Notification Policy",
-                    description = "Required to control Do Not Dist mode.",
+                    description = "Control Do Not Disturb mode.",
                     done = capabilities.hasNotificationPolicyAccess,
-                    actionText = "Grant",
                     onAction = {
                         context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
                     },
                 )
-
-                StepCard(
+                OnboardingStep(
                     step = 3,
                     title = "Notification Access",
-                    description = "Required for notification-based triggers.",
+                    description = "Notification-based triggers.",
                     done = capabilities.hasNotificationListenerAccess,
-                    actionText = "Grant",
                     onAction = {
                         context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
                     },
                 )
-
-                StepCard(
+                OnboardingStep(
                     step = 4,
                     title = "Usage Access",
-                    description = "Required for app-opened triggers.",
+                    description = "App-opened triggers.",
                     done = capabilities.hasUsageAccess,
-                    actionText = "Grant",
                     onAction = {
                         context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
                     },
                 )
-
-                StepCard(
+                OnboardingStep(
                     step = 5,
                     title = "Location",
-                    description = "Required for geofence triggers and WiFi SSID detection.",
+                    description = "Geofence triggers, WiFi SSID detection.",
                     done = capabilities.hasLocationPermission,
-                    actionText = "Grant",
                     onAction = {
                         context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:${context.packageName}")
@@ -158,26 +168,20 @@ fun OnboardingScreen(
                 )
 
                 if (capabilities.isNothingDevice) {
-                    StepCard(
+                    OnboardingStep(
                         step = 6,
                         title = "Glyph",
-                        description = "Glyph light stripe: ${if (capabilities.hasGlyphLightStripe) "Available" else "Unavailable"}. Glyph Matrix: ${if (capabilities.hasGlyphMatrix) "Available" else "Unavailable"}.",
+                        description = "Stripe: ${if (capabilities.hasGlyphLightStripe) "Available" else "Unavailable"}. Matrix: ${if (capabilities.hasGlyphMatrix) "Available" else "Unavailable"}.",
                         done = capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix,
-                        actionText = "Test",
-                        onAction = { /* Glyph test would go here */ },
+                        onAction = {},
                     )
                 }
 
-                StepCard(
+                OnboardingStep(
                     step = if (capabilities.isNothingDevice) 7 else 6,
                     title = "Shizuku (Optional)",
-                    description = "Enables Wi-Fi, Bluetooth, and mobile data toggles. Install Shizuku from Play Store or GitHub.",
+                    description = "Wi-Fi, Bluetooth, mobile data toggles.",
                     done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
-                    actionText = when (shizukuStatus) {
-                        ShizukuGatewayStatus.NOT_INSTALLED -> "Install"
-                        ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Authorize"
-                        else -> "Settings"
-                    },
                     onAction = {
                         if (shizukuStatus == ShizukuGatewayStatus.NOT_INSTALLED) {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases")))
@@ -186,55 +190,71 @@ fun OnboardingScreen(
                 )
             }
 
-            Button(
+            Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+            NothingPillButton(
+                text = "Get Started",
                 onClick = onComplete,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Get Started")
-            }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = NothingSpacing.lg),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
         }
     }
 }
 
 @Composable
-private fun StepCard(
+private fun OnboardingStep(
     step: Int,
     title: String,
     description: String,
     done: Boolean,
-    actionText: String,
     onAction: () -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (done) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-        ),
+    NothingDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "$step",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(title, style = MaterialTheme.typography.titleMedium)
-                    if (done) {
-                        Text("✓", color = MaterialTheme.colorScheme.primary)
-                    }
-                }
+        // Step number — Space Mono
+        Text(
+            text = String.format("%02d", step),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.padding(end = NothingSpacing.md),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NothingStatusDot(
+                    color = if (done) NothingColors.success else NothingColors.accent,
+                    size = 6f,
+                )
+                Spacer(modifier = Modifier.padding(end = 6.dp))
                 Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            if (!done) {
-                TextButton(onClick = onAction) { Text(actionText) }
-            }
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, start = 14.dp),
+            )
+        }
+        if (!done) {
+            Text(
+                text = "GRANT",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onAction)
+                    .padding(horizontal = NothingSpacing.sm),
+            )
         }
     }
 }

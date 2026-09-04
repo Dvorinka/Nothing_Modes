@@ -3,24 +3,18 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,6 +26,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
+import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -103,7 +108,6 @@ class ExecutionLogViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExecutionLogScreen(
     onBack: () -> Unit,
@@ -114,99 +118,138 @@ fun ExecutionLogScreen(
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Execution Timeline") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
+            NothingTopBar(title = "Execution Log", onBack = onBack)
         },
     ) { padding ->
         if (entries.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "No executions yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            NothingEmptyState(
+                title = "No executions yet",
+                description = "Automations will appear here when they fire",
+                modifier = Modifier.padding(padding),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(
+                    start = NothingSpacing.md,
+                    end = NothingSpacing.md,
+                    top = NothingSpacing.lg,
+                    bottom = NothingSpacing.xxxl,
+                ),
             ) {
-                item { StatsCard(stats) }
+                // Hero — success rate as large number
+                item {
+                    Text(
+                        text = "%.0f%%".format(stats.successRate * 100),
+                        style = MaterialTheme.typography.displayLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = Doto,
+                    )
+                    NothingLabel(text = "Success Rate")
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+                    // Segmented bar — visual proportion
+                    NothingSegmentedBar(
+                        total = 20,
+                        filled = (stats.successRate * 20).toInt().coerceIn(0, 20),
+                        fillColor = if (stats.errorCount > 0) NothingColors.warning
+                        else NothingColors.success,
+                        height = 12f,
+                    )
+                }
+
+                // Stats section
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+                    NothingSectionHeader(text = "Statistics")
+                    NothingDivider()
+                    NothingInfoRow(label = "Total Events", value = stats.totalEvents.toString())
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Fired",
+                        value = stats.firedCount.toString(),
+                        valueColor = NothingColors.success,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(label = "Mode Activated", value = stats.modeActivatedCount.toString())
+                    NothingDivider()
+                    NothingInfoRow(label = "Mode Deactivated", value = stats.modeDeactivatedCount.toString())
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Suppressed",
+                        value = stats.suppressedCount.toString(),
+                        valueColor = NothingColors.warning,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Conditions Not Met",
+                        value = stats.conditionsNotMetCount.toString(),
+                        valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Errors",
+                        value = stats.errorCount.toString(),
+                        valueColor = if (stats.errorCount > 0) NothingColors.accent
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                // Timeline section
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.xl))
+                    NothingSectionHeader(text = "Timeline")
+                }
+
                 items(entries) { entry ->
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
+                    val kindColor = when (entry.kind) {
+                        "FIRED" -> NothingColors.success
+                        "MODE_ACTIVATED" -> NothingColors.success
+                        "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
+                        "SUPPRESSED_COOLDOWN" -> NothingColors.warning
+                        "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
+                        "ERROR" -> NothingColors.accent
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                    NothingDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = NothingSpacing.md),
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    entry.kind.replace("_", " "),
-                                    style = MaterialTheme.typography.titleSmall,
-                                )
-                                Text(
-                                    dateFormat.format(Date(entry.timestamp)),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                entry.automationId,
+                                text = entry.kind.replace("_", " "),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = kindColor,
+                                fontFamily = SpaceMono,
+                            )
+                            Text(
+                                text = entry.automationId,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 2.dp),
                             )
                             if (entry.detail.isNotEmpty()) {
                                 Text(
-                                    entry.detail,
+                                    text = entry.detail,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp),
                                 )
                             }
                         }
+                        Text(
+                            text = dateFormat.format(Date(entry.timestamp)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatsCard(stats: ExecutionStats) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Statistics", style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider()
-            StatRow("Total events", stats.totalEvents.toString())
-            StatRow("Fired", stats.firedCount.toString())
-            StatRow("Mode activated", stats.modeActivatedCount.toString())
-            StatRow("Mode deactivated", stats.modeDeactivatedCount.toString())
-            StatRow("Suppressed (cooldown)", stats.suppressedCount.toString())
-            StatRow("Conditions not met", stats.conditionsNotMetCount.toString())
-            StatRow("Errors", stats.errorCount.toString())
-            HorizontalDivider()
-            StatRow("Success rate", "%.1f%%".format(stats.successRate * 100))
-        }
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }

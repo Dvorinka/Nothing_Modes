@@ -2,29 +2,23 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +31,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlyphPreviewScreen(
     onBack: () -> Unit,
@@ -62,70 +64,87 @@ fun GlyphPreviewScreen(
         )
     }
     var selected by remember { mutableStateOf<GlyphPresets.GlyphVisual>(GlyphPresets.sleepMode) }
+    var selectedName by remember { mutableStateOf("Sleep Mode") }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Glyph Preview") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
+            NothingTopBar(title = "Glyph Preview", onBack = onBack)
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(
+                start = NothingSpacing.md,
+                end = NothingSpacing.md,
+                top = NothingSpacing.lg,
+                bottom = NothingSpacing.xxxl,
+            ),
         ) {
-            StripePreview(selected)
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(presets) { (name, visual) ->
-                    Card(
-                        onClick = { selected = visual },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(name, style = MaterialTheme.typography.bodyMedium)
+            // Hero — selected preset name in Doto
+            item {
+                Text(
+                    text = selectedName,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = Doto,
+                )
+                NothingLabel(text = "Glyph Preset")
+            }
+
+            // Stripe preview — the one break in the grid (circular/visual element)
+            item {
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(5f)
+                        .clip(NothingShapes.card)
+                        .background(Color.Black),
+                ) {
+                    StripeCanvas(selected)
+                }
+                Text(
+                    text = descriptionFor(selected),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = NothingSpacing.sm),
+                )
+            }
+
+            // Preset list
+            item {
+                Spacer(modifier = Modifier.height(NothingSpacing.xl))
+                NothingSectionHeader(text = "Presets")
+            }
+
+            items(presets) { (name, visual) ->
+                val isSelected = visual == selected
+                NothingDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selected = visual
+                            selectedName = name
                         }
+                        .padding(vertical = NothingSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isSelected) {
+                        NothingRedDot(size = 6f, modifier = Modifier.padding(end = NothingSpacing.sm))
+                    } else {
+                        Spacer(modifier = Modifier.padding(end = 10.dp))
                     }
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StripePreview(visual: GlyphPresets.GlyphVisual) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Light Stripe Preview", style = MaterialTheme.typography.titleMedium)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(5f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black),
-            ) {
-                StripeCanvas(visual)
-            }
-            Text(
-                descriptionFor(visual),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            item { NothingDivider() }
         }
     }
 }

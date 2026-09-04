@@ -1,26 +1,24 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +39,17 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
+import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -174,7 +183,6 @@ class CreateAutomationViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAutomationScreen(
     onBack: () -> Unit,
@@ -188,15 +196,13 @@ fun CreateAutomationScreen(
     var name by remember { mutableStateOf("") }
     var selectedTemplate by remember { mutableStateOf<AutomationTemplate?>(null) }
 
-    // Load existing automation for editing
-    androidx.compose.runtime.LaunchedEffect(automationId) {
+    LaunchedEffect(automationId) {
         if (automationId != null) {
             viewModel.loadForEdit(automationId)
         }
     }
 
-    // Pre-populate name when editing
-    androidx.compose.runtime.LaunchedEffect(editing) {
+    LaunchedEffect(editing) {
         if (editing != null && name.isBlank()) {
             name = editing!!.name
         }
@@ -210,14 +216,11 @@ fun CreateAutomationScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text(if (isEditing) "Edit Automation" else "New Automation") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            NothingTopBar(
+                title = if (isEditing) "Edit" else "New Mode",
+                onBack = onBack,
             )
         },
     ) { padding ->
@@ -226,38 +229,52 @@ fun CreateAutomationScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = NothingSpacing.md),
         ) {
-            OutlinedTextField(
+            // Hero — Doto title
+            Text(
+                text = if (isEditing) "Edit Mode" else "New Mode",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = Doto,
+                modifier = Modifier.padding(top = NothingSpacing.lg),
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            // Name input
+            NothingInput(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
-                placeholder = { Text("e.g. Sleep, Work Focus") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "Name",
+                placeholder = "e.g. Sleep, Work Focus",
             )
 
             if (!isEditing) {
-                Text("Choose a template:", style = MaterialTheme.typography.titleMedium)
+                // Templates section
+                NothingSectionHeader(text = "Templates")
 
                 AutomationTemplates.templates.forEach { template ->
-                    TemplateCard(
+                    TemplateRow(
                         template = template,
                         selected = selectedTemplate == template,
                         onSelect = { selectedTemplate = template },
                     )
                 }
+                NothingDivider()
 
-                androidx.compose.material3.TextButton(
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingGhostButton(
+                    text = "Custom Builder",
                     onClick = onCustomBuilder,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Or build a custom automation →")
-                }
+                )
             }
 
-            Button(
+            Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+            // Save button
+            NothingPillButton(
+                text = if (isEditing) "Save Changes" else "Create",
                 onClick = {
                     if (isEditing) {
                         viewModel.saveEdit(name)
@@ -267,47 +284,51 @@ fun CreateAutomationScreen(
                 },
                 enabled = if (isEditing) name.isNotBlank() else selectedTemplate != null,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (isEditing) "Save Changes" else "Create Automation")
-            }
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TemplateCard(
+private fun TemplateRow(
     template: AutomationTemplate,
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
-    Card(
-        onClick = onSelect,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surface,
-        ),
-        modifier = Modifier.fillMaxWidth(),
+    NothingDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(vertical = NothingSpacing.md),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(template.name, style = MaterialTheme.typography.titleMedium)
+        if (selected) {
+            NothingRedDot(size = 6f, modifier = Modifier.padding(end = NothingSpacing.sm))
+        } else {
+            Spacer(modifier = Modifier.padding(end = 10.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                template.description,
+                text = template.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = template.description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
             )
-            Text(
-                "Schedule: ${template.cron}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "${template.actions.size} actions",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                modifier = Modifier.padding(top = NothingSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+            ) {
+                NothingLabel(text = template.cron)
+                NothingLabel(text = "${template.actions.size} Actions")
+            }
         }
     }
 }
