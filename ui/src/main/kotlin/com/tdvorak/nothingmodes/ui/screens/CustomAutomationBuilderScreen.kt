@@ -56,14 +56,9 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
-import com.tdvorak.nothingmodes.engine.model.DayOfWeek
-import com.tdvorak.nothingmodes.engine.model.DndMode
-import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
-import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.Trigger
-import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
@@ -225,6 +220,8 @@ fun CustomAutomationBuilderScreen(
     onConfigureTrigger: ((String) -> Unit)? = null,
     onAddCondition: (() -> Unit)? = null,
     onEditCondition: ((String) -> Unit)? = null,
+    onAddAction: (() -> Unit)? = null,
+    onEditAction: ((String) -> Unit)? = null,
     viewModel: CustomBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -273,9 +270,29 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
-    if (saved) { onSaved(); return }
+    // Handle action config result.
+    // jarvis: ceiling — same pattern as condition; consider a builder-scoped ViewModel if more result slots are added.
+    var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
+    val actionResultFlow = remember(navController) {
+        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
+            ?: MutableStateFlow("")
+    }
+    val actionResult by actionResultFlow.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(actionResult) {
+        if (actionResult.isNotEmpty()) {
+            runCatching { Json.decodeFromString<Action>(actionResult) }.getOrNull()?.let { action ->
+                if (editingActionIndex >= 0) {
+                    viewModel.updateAction(editingActionIndex, action)
+                } else {
+                    viewModel.addAction(action)
+                }
+            }
+            editingActionIndex = -1
+            navController?.currentBackStackEntry?.savedStateHandle?.set("action_result", "")
+        }
+    }
 
-    var showAddActionDialog by remember { mutableStateOf(false) }
+    if (saved) { onSaved(); return }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -285,7 +302,7 @@ fun CustomAutomationBuilderScreen(
                 onBack = onBack,
                 actions = listOf(
                     TopBarAction("+ COND") { onAddCondition?.invoke() },
-                    TopBarAction("+ ACT") { showAddActionDialog = true },
+                    TopBarAction("+ ACT") { onAddAction?.invoke() },
                 ),
             )
         },
@@ -440,6 +457,10 @@ fun CustomAutomationBuilderScreen(
                                     index = index,
                                     onRemove = { viewModel.removeAction(index) },
                                     onUpdate = { viewModel.updateAction(index, it) },
+                                    onConfigure = { json ->
+                                        editingActionIndex = index
+                                        onEditAction?.invoke(json)
+                                    },
                                 )
                             }
                         }
@@ -452,7 +473,7 @@ fun CustomAutomationBuilderScreen(
                         fontFamily = SpaceMono,
                         modifier = Modifier
                             .padding(vertical = NothingSpacing.md)
-                            .clickable { showAddActionDialog = true },
+                            .clickable { onAddAction?.invoke() },
                     )
                 }
             }
@@ -497,16 +518,6 @@ fun CustomAutomationBuilderScreen(
                 }
             }
         }
-    }
-
-    if (showAddActionDialog) {
-        ActionPickerDialog(
-            onDismiss = { showAddActionDialog = false },
-            onPick = { action ->
-                viewModel.addAction(action)
-                showAddActionDialog = false
-            },
-        )
     }
 }
 
@@ -642,6 +653,7 @@ private fun ReorderableListItemScope.ActionRow(
     index: Int,
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
+    onConfigure: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -676,6 +688,15 @@ private fun ReorderableListItemScope.ActionRow(
                 modifier = Modifier.weight(1f),
             )
             Text(
+                text = ">",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier
+                    .clickable { onConfigure(Json.encodeToString(action)) }
+                    .padding(horizontal = NothingSpacing.xs),
+            )
+            Text(
                 text = "DEL",
                 style = MaterialTheme.typography.labelSmall,
                 color = NothingColors.accent,
@@ -686,162 +707,8 @@ private fun ReorderableListItemScope.ActionRow(
             )
         }
 
-        // Action-specific editors
-        when (action) {
-            is Action.SendSms -> {
-                NothingInput(
-                    value = action.number,
-                    onValueChange = { onUpdate(action.copy(number = it)) },
-                    label = "Phone number",
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                NothingInput(
-                    value = action.text,
-                    onValueChange = { onUpdate(action.copy(text = it)) },
-                    label = "Message",
-                    singleLine = false,
-                )
-            }
-            is Action.ShowNotification -> {
-                NothingInput(
-                    value = action.title,
-                    onValueChange = { onUpdate(action.copy(title = it)) },
-                    label = "Title",
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                NothingInput(
-                    value = action.text,
-                    onValueChange = { onUpdate(action.copy(text = it)) },
-                    label = "Text",
-                    singleLine = false,
-                )
-            }
-            is Action.OpenUrl -> {
-                NothingInput(
-                    value = action.url,
-                    onValueChange = { onUpdate(action.copy(url = it)) },
-                    label = "URL",
-                )
-            }
-            is Action.LaunchApp -> {
-                NothingInput(
-                    value = action.pkg,
-                    onValueChange = { onUpdate(action.copy(pkg = it)) },
-                    label = "Package name",
-                )
-            }
-            is Action.CopyText -> {
-                NothingInput(
-                    value = action.text,
-                    onValueChange = { onUpdate(action.copy(text = it)) },
-                    label = "Text to copy",
-                    singleLine = false,
-                )
-            }
-            else -> {}
-        }
         NothingDivider()
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ActionPickerDialog(
-    onDismiss: () -> Unit,
-    onPick: (Action) -> Unit,
-) {
-    val actions = listOf(
-        "Wi-Fi On" to Action.SetWifi(true),
-        "Wi-Fi Off" to Action.SetWifi(false),
-        "Bluetooth On" to Action.SetBluetooth(true),
-        "Bluetooth Off" to Action.SetBluetooth(false),
-        "Mobile Data On" to Action.SetMobileData(true),
-        "Mobile Data Off" to Action.SetMobileData(false),
-        "DND Priority" to Action.SetDnd(DndMode.PRIORITY),
-        "DND Total" to Action.SetDnd(DndMode.TOTAL),
-        "DND Off" to Action.SetDnd(DndMode.OFF),
-        "Dark Mode On" to Action.SetDarkMode(NightMode.ON),
-        "Dark Mode Off" to Action.SetDarkMode(NightMode.OFF),
-        "Brightness 10%" to Action.SetBrightness(26, restore = true),
-        "Brightness 50%" to Action.SetBrightness(128, restore = true),
-        "Brightness 100%" to Action.SetBrightness(255, restore = true),
-        "Auto Brightness On" to Action.SetAutoBrightness(true),
-        "Auto Brightness Off" to Action.SetAutoBrightness(false),
-        "Extra Dim On" to Action.SetExtraDim(true, restore = true),
-        "Extra Dim Off" to Action.SetExtraDim(false, restore = true),
-        "Screen Timeout 15s" to Action.SetScreenTimeout(15_000),
-        "Screen Timeout 30s" to Action.SetScreenTimeout(30_000),
-        "Screen Timeout 2min" to Action.SetScreenTimeout(120_000),
-        "Flashlight On" to Action.SetFlashlight(true),
-        "Flashlight Off" to Action.SetFlashlight(false),
-        "Vibrate 500ms" to Action.Vibrate(500),
-        "Volume Media 50%" to Action.SetVolume(VolumeStream.MEDIA, 8),
-        "Volume Media Max" to Action.SetVolume(VolumeStream.MEDIA, 15),
-        "Ringer Silent" to Action.SetRinger("SILENT"),
-        "Ringer Vibrate" to Action.SetRinger("VIBRATE"),
-        "Ringer Normal" to Action.SetRinger("NORMAL"),
-        "Glyph On" to Action.SetGlyph(true),
-        "Glyph Off" to Action.SetGlyph(false),
-        "Glyph Turn Off" to Action.GlyphTurnOff,
-        "Glyph Preset: Sleep" to Action.GlyphPreset("sleep"),
-        "Glyph Preset: Morning" to Action.GlyphPreset("morning"),
-        "Glyph Preset: DND" to Action.GlyphPreset("dnd_active"),
-        "Glyph Preset: Charging" to Action.GlyphPreset("charging"),
-        "Glyph Animate" to Action.GlyphAnimate(periodMs = 3000, cycles = 3),
-        "Glyph Progress 50%" to Action.GlyphProgress(50),
-        "Glyph Text" to Action.GlyphText("Hello"),
-        "Glyph Scrolling Text" to Action.GlyphScrollingText("Scrolling message"),
-        "Show Notification" to Action.ShowNotification("Title", "Text"),
-        "Copy Text" to Action.CopyText("clipboard text"),
-        "Wait 1s" to Action.Wait(1000),
-        "Wait 5s" to Action.Wait(5000),
-        "Launch App" to Action.LaunchApp("com.example.app"),
-        "Open URL" to Action.OpenUrl("https://example.com"),
-        "Open Settings" to Action.OpenSettingsScreen(com.tdvorak.nothingmodes.engine.model.SettingsScreen.SETTINGS),
-        "Write Setting" to Action.WriteSetting(SettingNamespace.SYSTEM, "key", "value"),
-        // System settings toggles (Phase 4)
-        "Auto-Rotate On" to Action.SetAutoRotate(true),
-        "Auto-Rotate Off" to Action.SetAutoRotate(false),
-        "Battery Saver On" to Action.SetBatterySaver(true),
-        "Battery Saver Off" to Action.SetBatterySaver(false),
-        "Airplane Mode On" to Action.SetAirplaneMode(true),
-        "Airplane Mode Off" to Action.SetAirplaneMode(false),
-        "Data Saver On" to Action.SetDataSaver(true),
-        "Data Saver Off" to Action.SetDataSaver(false),
-        "Hotspot On" to Action.SetHotspot(true),
-        "Hotspot Off" to Action.SetHotspot(false),
-        "NFC On" to Action.SetNfc(true),
-        "NFC Off" to Action.SetNfc(false),
-        "Refresh Rate 60Hz" to Action.SetRefreshRate(60),
-        "Refresh Rate 90Hz" to Action.SetRefreshRate(90),
-        "Refresh Rate 120Hz" to Action.SetRefreshRate(120),
-        "Rotation Auto" to Action.SetScreenRotation(com.tdvorak.nothingmodes.engine.model.ScreenOrientation.AUTO),
-        "Rotation Portrait" to Action.SetScreenRotation(com.tdvorak.nothingmodes.engine.model.ScreenOrientation.PORTRAIT),
-        "Rotation Landscape" to Action.SetScreenRotation(com.tdvorak.nothingmodes.engine.model.ScreenOrientation.LANDSCAPE),
-        "Media Play/Pause" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.PLAY_PAUSE),
-        "Media Next" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.NEXT),
-        "Media Previous" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.PREVIOUS),
-        "Media Stop" to Action.MediaControl(com.tdvorak.nothingmodes.engine.model.MediaCommand.STOP),
-        "Send SMS" to Action.SendSms(number = "", text = ""),
-        "Lock Screen" to Action.LockScreen,
-        "Location High Accuracy" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY),
-        "Location Battery Saving" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.BATTERY_SAVING),
-        "Location Device Only" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY),
-        "Location Off" to Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.OFF),
-        "Auto-sync On" to Action.SetAutoSync(on = true),
-        "Auto-sync Off" to Action.SetAutoSync(on = false),
-        "Clear Notifications" to Action.ClearNotifications,
-        "AOD On" to Action.SetAlwaysOnDisplay(on = true),
-        "AOD Off" to Action.SetAlwaysOnDisplay(on = false),
-        "Screenshot" to Action.TakeScreenshot,
-    )
-
-    NothingPickerDialog(
-        title = "ADD ACTION",
-        items = actions,
-        onDismiss = onDismiss,
-        onPick = onPick,
-    )
 }
 
 // ─── Condition Row & Picker ──────────────────────────────────────────────────

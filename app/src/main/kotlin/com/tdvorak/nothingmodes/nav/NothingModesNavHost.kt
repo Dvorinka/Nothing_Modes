@@ -10,6 +10,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tdvorak.nothingmodes.ui.screens.ActionCatalogScreen
+import com.tdvorak.nothingmodes.ui.screens.ActionConfigScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationDetailScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
 import com.tdvorak.nothingmodes.ui.screens.ConditionCatalogScreen
@@ -32,6 +34,8 @@ object Routes {
     const val TRIGGER_CONFIG = "trigger_config?trigger={trigger_json}"
     const val CONDITION_CATALOG = "condition_catalog"
     const val CONDITION_CONFIG = "condition_config?condition={condition_json}"
+    const val ACTION_CATALOG = "action_catalog"
+    const val ACTION_CONFIG = "action_config?action={action_json}"
     const val EXECUTION_LOG = "log"
     const val GLYPH_PREVIEW = "glyph_preview"
     const val SETTINGS = "settings"
@@ -41,6 +45,7 @@ object Routes {
     fun builderEdit(id: String) = "builder/edit/$id"
     fun triggerConfig(triggerJson: String) = "trigger_config?trigger=$triggerJson"
     fun conditionConfig(conditionJson: String) = "condition_config?condition=$conditionJson"
+    fun actionConfig(actionJson: String) = "action_config?action=$actionJson"
 }
 
 @Composable
@@ -99,6 +104,10 @@ fun NothingModesNavHost() {
                 onEditCondition = { json ->
                     navController.navigate(Routes.conditionConfig(json))
                 },
+                onAddAction = { navController.navigate(Routes.ACTION_CATALOG) },
+                onEditAction = { json ->
+                    navController.navigate(Routes.actionConfig(json))
+                },
             )
         }
 
@@ -115,6 +124,10 @@ fun NothingModesNavHost() {
                 onAddCondition = { navController.navigate(Routes.CONDITION_CATALOG) },
                 onEditCondition = { json ->
                     navController.navigate(Routes.conditionConfig(json))
+                },
+                onAddAction = { navController.navigate(Routes.ACTION_CATALOG) },
+                onEditAction = { json ->
+                    navController.navigate(Routes.actionConfig(json))
                 },
             )
         }
@@ -138,6 +151,10 @@ fun NothingModesNavHost() {
                 onEditCondition = { json ->
                     navController.navigate(Routes.conditionConfig(json))
                 },
+                onAddAction = { navController.navigate(Routes.ACTION_CATALOG) },
+                onEditAction = { json ->
+                    navController.navigate(Routes.actionConfig(json))
+                },
             )
         }
 
@@ -159,6 +176,10 @@ fun NothingModesNavHost() {
                 onAddCondition = { navController.navigate(Routes.CONDITION_CATALOG) },
                 onEditCondition = { json ->
                     navController.navigate(Routes.conditionConfig(json))
+                },
+                onAddAction = { navController.navigate(Routes.ACTION_CATALOG) },
+                onEditAction = { json ->
+                    navController.navigate(Routes.actionConfig(json))
                 },
             )
         }
@@ -185,6 +206,21 @@ fun NothingModesNavHost() {
             val json = backStackEntry.arguments?.getString("condition_json") ?: ""
             ConditionConfigScreen(
                 conditionJson = json,
+                navController = navController,
+            )
+        }
+
+        composable(Routes.ACTION_CATALOG) {
+            ActionCatalogScreen(navController = navController)
+        }
+
+        composable(
+            route = Routes.ACTION_CONFIG,
+            arguments = listOf(navArgument("action_json") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val json = backStackEntry.arguments?.getString("action_json") ?: ""
+            ActionConfigScreen(
+                actionJson = json,
                 navController = navController,
             )
         }
