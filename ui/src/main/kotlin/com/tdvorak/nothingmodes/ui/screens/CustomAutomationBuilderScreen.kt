@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,7 +78,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -223,6 +223,8 @@ fun CustomAutomationBuilderScreen(
     automationId: String? = null,
     navController: NavController? = null,
     onConfigureTrigger: ((String) -> Unit)? = null,
+    onAddCondition: (() -> Unit)? = null,
+    onEditCondition: ((String) -> Unit)? = null,
     viewModel: CustomBuilderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -249,10 +251,31 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
+    // Handle condition config result.
+    // jarvis: ceiling — single result slot; if more cross-screen results are added, move to a builder-scoped ViewModel.
+    var editingConditionIndex by rememberSaveable { mutableStateOf(-1) }
+    val conditionResultFlow = remember(navController) {
+        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
+            ?: MutableStateFlow("")
+    }
+    val conditionResult by conditionResultFlow.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(conditionResult) {
+        if (conditionResult.isNotEmpty()) {
+            runCatching { Json.decodeFromString<Condition>(conditionResult) }.getOrNull()?.let { condition ->
+                if (editingConditionIndex >= 0) {
+                    viewModel.updateCondition(editingConditionIndex, condition)
+                } else {
+                    viewModel.addCondition(condition)
+                }
+            }
+            editingConditionIndex = -1
+            navController?.currentBackStackEntry?.savedStateHandle?.set("condition_result", "")
+        }
+    }
+
     if (saved) { onSaved(); return }
 
     var showAddActionDialog by remember { mutableStateOf(false) }
-    var showAddConditionDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -261,7 +284,7 @@ fun CustomAutomationBuilderScreen(
                 title = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
                 onBack = onBack,
                 actions = listOf(
-                    TopBarAction("+ COND") { showAddConditionDialog = true },
+                    TopBarAction("+ COND") { onAddCondition?.invoke() },
                     TopBarAction("+ ACT") { showAddActionDialog = true },
                 ),
             )
@@ -364,6 +387,10 @@ fun CustomAutomationBuilderScreen(
                                     index = index,
                                     onRemove = { viewModel.removeCondition(index) },
                                     onUpdate = { viewModel.updateCondition(index, it) },
+                                    onConfigure = { json ->
+                                        editingConditionIndex = index
+                                        onEditCondition?.invoke(json)
+                                    },
                                 )
                             }
                         }
@@ -376,7 +403,7 @@ fun CustomAutomationBuilderScreen(
                         fontFamily = SpaceMono,
                         modifier = Modifier
                             .padding(vertical = NothingSpacing.md)
-                            .clickable { showAddConditionDialog = true },
+                            .clickable { onAddCondition?.invoke() },
                     )
                 }
             }
@@ -478,16 +505,6 @@ fun CustomAutomationBuilderScreen(
             onPick = { action ->
                 viewModel.addAction(action)
                 showAddActionDialog = false
-            },
-        )
-    }
-
-    if (showAddConditionDialog) {
-        ConditionPickerDialog(
-            onDismiss = { showAddConditionDialog = false },
-            onPick = { condition ->
-                viewModel.addCondition(condition)
-                showAddConditionDialog = false
             },
         )
     }
@@ -835,6 +852,7 @@ private fun ReorderableListItemScope.ConditionRow(
     index: Int,
     onRemove: () -> Unit,
     onUpdate: (Condition) -> Unit = {},
+    onConfigure: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -869,6 +887,15 @@ private fun ReorderableListItemScope.ConditionRow(
                 modifier = Modifier.weight(1f),
             )
             Text(
+                text = ">",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = SpaceMono,
+                modifier = Modifier
+                    .clickable { onConfigure(Json.encodeToString(condition)) }
+                    .padding(horizontal = NothingSpacing.xs),
+            )
+            Text(
                 text = "DEL",
                 style = MaterialTheme.typography.labelSmall,
                 color = NothingColors.accent,
@@ -878,80 +905,8 @@ private fun ReorderableListItemScope.ConditionRow(
                     .padding(horizontal = NothingSpacing.xs),
             )
         }
-
-        if (condition is Condition.BatteryLevel) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-            ) {
-                Box(modifier = Modifier.weight(0.35f)) {
-                    NothingEnumSelector(
-                        label = "",
-                        value = condition.op.name,
-                        options = com.tdvorak.nothingmodes.engine.model.CmpOp.entries.map { it.name },
-                        onSelect = { op ->
-                            onUpdate(condition.copy(op = com.tdvorak.nothingmodes.engine.model.CmpOp.valueOf(op)))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Box(modifier = Modifier.weight(0.65f)) {
-                    NothingInput(
-                        value = condition.level.toString(),
-                        onValueChange = {
-                            onUpdate(condition.copy(level = it.toIntOrNull() ?: condition.level))
-                        },
-                        label = "Level (%)",
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        }
-
-        if (condition is Condition.Charging) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                NothingLabel(text = "Is charging")
-                NothingToggle(
-                    checked = condition.isCharging,
-                    onCheckedChange = { onUpdate(condition.copy(isCharging = it)) },
-                )
-            }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        }
     }
     NothingDivider()
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ConditionPickerDialog(
-    onDismiss: () -> Unit,
-    onPick: (Condition) -> Unit,
-) {
-    val conditions = listOf(
-        "Battery Level" to Condition.BatteryLevel(com.tdvorak.nothingmodes.engine.model.CmpOp.LT, 20),
-        "Charging State" to Condition.Charging(true),
-        "Wi-Fi Connected" to Condition.WifiConnected(),
-        "Bluetooth Connected" to Condition.BluetoothConnected(),
-        "Screen On" to Condition.ScreenStateCondition(ScreenState.ON),
-        "Screen Off" to Condition.ScreenStateCondition(ScreenState.OFF),
-        "Weekdays" to Condition.DayOfWeekCondition(listOf(
-            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY,
-        )),
-        "Weekends" to Condition.DayOfWeekCondition(listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)),
-    )
-
-    NothingPickerDialog(
-        title = "ADD CONDITION",
-        items = conditions,
-        onDismiss = onDismiss,
-        onPick = onPick,
-    )
 }
 
 // ─── Nothing Picker Dialog (shared) ──────────────────────────────────────────
@@ -1084,7 +1039,7 @@ private fun PrioritySegmentedBar(
     }
 }
 
-private fun conditionDescription(condition: Condition): String = when (condition) {
+internal fun conditionDescription(condition: Condition): String = when (condition) {
     is Condition.TimeWindow -> "Time window: ${condition.startLocal}-${condition.endLocal}"
     is Condition.DayOfWeekCondition -> "Days: ${condition.days.joinToString { it.wireName }}"
     is Condition.BatteryLevel -> "Battery ${condition.op.name} ${condition.level}%"
