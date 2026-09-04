@@ -676,7 +676,10 @@ class RealActionExecutor(
     private fun lockScreen(): ActionResult {
         return try {
             val dm = context.getSystemService(android.app.admin.DevicePolicyManager::class.java)
-            val comp = android.content.ComponentName(context, android.app.admin.DeviceAdminReceiver::class.java)
+            val comp = android.content.ComponentName(
+                context.packageName,
+                "com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver",
+            )
             if (dm.isAdminActive(comp)) {
                 dm.lockNow()
                 ActionResult.Success

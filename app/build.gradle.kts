@@ -21,15 +21,21 @@ android {
 
     signingConfigs {
         create("release") {
-            // Read from environment variables. Set in CI secrets or ~/.gradle/gradle.properties:
-            // NOTHING_MODES_KEYSTORE, NOTHING_MODES_KEYSTORE_PASSWORD,
-            // NOTHING_MODES_KEY_ALIAS, NOTHING_MODES_KEY_PASSWORD
+            // Priority 1: environment variables (CI). Priority 2: local keystore (dev).
             val keystorePath = System.getenv("NOTHING_MODES_KEYSTORE")
             if (keystorePath != null) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("NOTHING_MODES_KEYSTORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("NOTHING_MODES_KEY_ALIAS") ?: ""
                 keyPassword = System.getenv("NOTHING_MODES_KEY_PASSWORD") ?: ""
+            } else {
+                val local = rootProject.file("keystore/nothing-modes-release.jks")
+                if (local.exists()) {
+                    storeFile = local
+                    storePassword = "nothingmodes2024"
+                    keyAlias = "nothing-modes"
+                    keyPassword = "nothingmodes2024"
+                }
             }
         }
     }

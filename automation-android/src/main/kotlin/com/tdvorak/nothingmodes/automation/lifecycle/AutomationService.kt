@@ -69,6 +69,7 @@ class AutomationService : Service() {
             ACTION_BT_DEVICE -> handleBtDevice(intent)
             ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
             ACTION_MANUAL -> handleManual(intent)
+            ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
         }
 
         // Stop only when all in-flight jobs are done
@@ -275,6 +276,19 @@ class AutomationService : Service() {
         ))
     }
 
+    private fun handleCalendarEvent(intent: Intent) {
+        val directionStr = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_DIRECTION) ?: return
+        val direction = runCatching {
+            com.tdvorak.nothingmodes.engine.model.CalendarDirection.valueOf(directionStr)
+        }.getOrNull() ?: return
+        dispatchEvent(TriggerEvent.CalendarEventChanged(
+            eventId = "cal:${System.currentTimeMillis()}",
+            direction = direction,
+            title = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_TITLE),
+            calendarId = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_ID),
+        ))
+    }
+
     private fun dispatchEvent(event: TriggerEvent) {
         val job = scope.launch {
             val envelope = TriggerEnvelope(
@@ -336,6 +350,7 @@ class AutomationService : Service() {
         const val ACTION_BT_DEVICE = "com.tdvorak.nothingmodes.BT_DEVICE"
         const val ACTION_WIFI_CONNECTED = "com.tdvorak.nothingmodes.WIFI_CONNECTED"
         const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
+        const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
         const val EXTRA_MANUAL_ID = "manual_automation_id"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001

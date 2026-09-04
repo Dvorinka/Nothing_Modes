@@ -7,6 +7,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -189,6 +193,7 @@ fun SettingsScreen(
                     permissionResult = permissionResult,
                     onRequestPermission = { viewModel.requestShizukuPermission() },
                 )
+                DeviceAdminCard(context)
                 AboutCard(capabilities)
                 ThemeCard()
                 ImportExportCard(
@@ -397,6 +402,56 @@ private fun ImportExportCard(
                     }
                 }
                 TextButton(onClick = onDismissResult) { Text("Dismiss") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceAdminCard(context: android.content.Context) {
+    val dm = remember { context.getSystemService(android.app.admin.DevicePolicyManager::class.java) }
+    val comp = remember {
+        android.content.ComponentName(
+            context.packageName,
+            "com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver",
+        )
+    }
+    var isActive by remember { mutableStateOf(dm.isAdminActive(comp)) }
+
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Device Admin", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Required for the Lock Screen action. Grant device admin permission to allow Nothing Modes to lock the screen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val launcher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult(),
+            ) {
+                isActive = dm.isAdminActive(comp)
+            }
+            if (isActive) {
+                Text("Status: Active", style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = {
+                    dm.removeActiveAdmin(comp)
+                    isActive = false
+                }) { Text("Revoke") }
+            } else {
+                Text("Status: Not active", style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = {
+                    val intent = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                        putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
+                        putExtra(
+                            android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                            "Nothing Modes needs device admin to lock the screen via automation.",
+                        )
+                    }
+                    launcher.launch(intent)
+                }) { Text("Activate") }
             }
         }
     }

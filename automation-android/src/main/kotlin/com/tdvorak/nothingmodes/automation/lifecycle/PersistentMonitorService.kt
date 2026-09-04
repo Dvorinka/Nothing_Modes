@@ -27,11 +27,13 @@ class PersistentMonitorService : Service() {
 
     private var batteryReceiver: BroadcastReceiver? = null
     private var screenReceiver: BroadcastReceiver? = null
+    private var calendarObserver: CalendarObserver? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         registerReceivers()
+        startCalendarObserver()
         Log.i(TAG, "Persistent monitor started")
     }
 
@@ -44,6 +46,8 @@ class PersistentMonitorService : Service() {
 
     override fun onDestroy() {
         unregisterReceivers()
+        calendarObserver?.stop()
+        calendarObserver = null
         Log.i(TAG, "Persistent monitor stopped")
         super.onDestroy()
     }
@@ -112,6 +116,18 @@ class PersistentMonitorService : Service() {
         screenReceiver = null
     }
 
+    private fun startCalendarObserver() {
+        calendarObserver = CalendarObserver(this) { event ->
+            val intent = Intent(this, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_CALENDAR_EVENT
+                putExtra(EXTRA_CAL_DIRECTION, event.direction.name)
+                putExtra(EXTRA_CAL_TITLE, event.title)
+                putExtra(EXTRA_CAL_ID, event.calendarId)
+            }
+            ContextCompat.startForegroundService(this, intent)
+        }.also { it.start() }
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = android.app.NotificationChannel(
@@ -139,5 +155,8 @@ class PersistentMonitorService : Service() {
         private const val NOTIFICATION_ID = 1002
         const val EXTRA_BATTERY_SOURCE = "battery_source"
         const val EXTRA_BATTERY_TEMP = "battery_temp"
+        const val EXTRA_CAL_DIRECTION = "cal_direction"
+        const val EXTRA_CAL_TITLE = "cal_title"
+        const val EXTRA_CAL_ID = "cal_id"
     }
 }

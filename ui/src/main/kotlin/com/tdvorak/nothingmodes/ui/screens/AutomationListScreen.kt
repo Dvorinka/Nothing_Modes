@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,15 +33,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +55,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AutomationListViewModel @Inject constructor(
+    @ApplicationContext private val context: android.content.Context,
     private val store: AutomationStore,
 ) : ViewModel() {
 
@@ -58,6 +66,14 @@ class AutomationListViewModel @Inject constructor(
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
     init { load() }
+
+    fun runNow(automation: Automation) {
+        val intent = Intent(context, AutomationService::class.java).apply {
+            action = AutomationService.ACTION_MANUAL
+            putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
+        }
+        ContextCompat.startForegroundService(context, intent)
+    }
 
     fun load() {
         viewModelScope.launch {
@@ -189,6 +205,7 @@ fun AutomationListScreen(
                         onDelete = { viewModel.delete(automation) },
                         onMoveUp = { viewModel.moveUp(automation) },
                         onMoveDown = { viewModel.moveDown(automation) },
+                        onRunNow = { viewModel.runNow(automation) },
                     )
                 }
             }
@@ -205,6 +222,7 @@ private fun AutomationCard(
     onDelete: () -> Unit = {},
     onMoveUp: () -> Unit = {},
     onMoveDown: () -> Unit = {},
+    onRunNow: () -> Unit = {},
 ) {
     Card(
         onClick = onClick,
@@ -231,6 +249,15 @@ private fun AutomationCard(
                         "Pending approval",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+            }
+            if (automation.trigger is Trigger.Manual) {
+                IconButton(onClick = onRunNow) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Run now",
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

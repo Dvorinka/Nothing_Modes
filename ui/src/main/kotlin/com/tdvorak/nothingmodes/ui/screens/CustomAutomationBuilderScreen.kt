@@ -268,6 +268,7 @@ fun CustomAutomationBuilderScreen(
                         onMoveUp = { viewModel.moveAction(index, up = true) },
                         onMoveDown = { viewModel.moveAction(index, up = false) },
                         onRemove = { viewModel.removeAction(index) },
+                        onUpdate = { viewModel.updateAction(index, it) },
                     )
                 }
             }
@@ -591,12 +592,38 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
         }
         is Trigger.Immediate, is Trigger.Boot, is Trigger.Manual -> {}
         is Trigger.BluetoothDevice -> {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val bondedDevices = remember {
+                runCatching {
+                    val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                    bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
+                }.getOrDefault(emptyList())
+            }
             OutlinedTextField(
                 value = trigger.deviceName ?: "",
                 onValueChange = { onUpdate(trigger.copy(deviceName = it.ifBlank { null })) },
                 label = { Text("Device name (blank = any)") },
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
             )
+            if (bondedDevices.isNotEmpty()) {
+                Text(
+                    "Paired devices:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                bondedDevices.forEach { (name, address) ->
+                    TextButton(
+                        onClick = { onUpdate(trigger.copy(deviceName = name, deviceAddress = address)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(name, style = MaterialTheme.typography.bodySmall)
+                            Text(address, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
         }
         is Trigger.WifiConnected -> {
             OutlinedTextField(
@@ -627,23 +654,89 @@ private fun ActionRow(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
+    onUpdate: (Action) -> Unit = {},
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(actionDescription(action), style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(actionDescription(action), style = MaterialTheme.typography.bodyMedium)
+                }
+                if (canMoveUp) IconButton(onClick = onMoveUp) {
+                    Icon(Icons.Default.ArrowUpward, contentDescription = "Move up")
+                }
+                if (canMoveDown) IconButton(onClick = onMoveDown) {
+                    Icon(Icons.Default.ArrowDownward, contentDescription = "Move down")
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                }
             }
-            if (canMoveUp) IconButton(onClick = onMoveUp) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = "Move up")
-            }
-            if (canMoveDown) IconButton(onClick = onMoveDown) {
-                Icon(Icons.Default.ArrowDownward, contentDescription = "Move down")
-            }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove")
+            // Action-specific editors
+            when (action) {
+                is Action.SendSms -> {
+                    OutlinedTextField(
+                        value = action.number,
+                        onValueChange = { onUpdate(action.copy(number = it)) },
+                        label = { Text("Phone number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = action.text,
+                        onValueChange = { onUpdate(action.copy(text = it)) },
+                        label = { Text("Message") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                    )
+                }
+                is Action.ShowNotification -> {
+                    OutlinedTextField(
+                        value = action.title,
+                        onValueChange = { onUpdate(action.copy(title = it)) },
+                        label = { Text("Title") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = action.text,
+                        onValueChange = { onUpdate(action.copy(text = it)) },
+                        label = { Text("Text") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 2,
+                    )
+                }
+                is Action.OpenUrl -> {
+                    OutlinedTextField(
+                        value = action.url,
+                        onValueChange = { onUpdate(action.copy(url = it)) },
+                        label = { Text("URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                }
+                is Action.LaunchApp -> {
+                    OutlinedTextField(
+                        value = action.pkg,
+                        onValueChange = { onUpdate(action.copy(pkg = it)) },
+                        label = { Text("Package name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                }
+                is Action.CopyText -> {
+                    OutlinedTextField(
+                        value = action.text,
+                        onValueChange = { onUpdate(action.copy(text = it)) },
+                        label = { Text("Text to copy") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                    )
+                }
+                else -> {}
             }
         }
     }

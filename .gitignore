@@ -60,3 +60,6 @@ Thumbs.db
 .env
 *.pem
 secrets/
+
+# Release keystore (do not commit)
+keystore/
