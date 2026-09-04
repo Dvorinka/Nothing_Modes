@@ -98,6 +98,8 @@ data class BuilderState(
     val actions: List<Action> = emptyList(),
     val conditions: List<Condition> = emptyList(),
     val priority: Int = 5,
+    val icon: String = "",
+    val iconBackground: String = "",
 )
 
 @HiltViewModel
@@ -126,6 +128,8 @@ class CustomBuilderViewModel @Inject constructor(
                 actions = automation.actions,
                 conditions = listOfNotNull(automation.conditions),
                 priority = automation.priority,
+                icon = automation.icon,
+                iconBackground = automation.iconBackground,
             )
         }
     }
@@ -134,6 +138,8 @@ class CustomBuilderViewModel @Inject constructor(
     fun updateType(type: AutomationType) { _state.value = _state.value.copy(type = type) }
     fun updateTrigger(trigger: Trigger) { _state.value = _state.value.copy(trigger = trigger) }
     fun updatePriority(priority: Int) { _state.value = _state.value.copy(priority = priority) }
+    fun updateIcon(icon: String) { _state.value = _state.value.copy(icon = icon) }
+    fun updateIconBackground(color: String) { _state.value = _state.value.copy(iconBackground = color) }
 
     fun addAction(action: Action) {
         _state.value = _state.value.copy(actions = _state.value.actions + action)
@@ -200,6 +206,8 @@ class CustomBuilderViewModel @Inject constructor(
                 priority = s.priority,
                 quickAction = true,
                 enabled = existing?.enabled ?: true,
+                icon = s.icon,
+                iconBackground = s.iconBackground,
             )
             store.save(automation)
             WidgetRefreshHelper.refresh(context)
@@ -269,6 +277,7 @@ fun CustomAutomationBuilderScreen(
     // Handle action result from catalog (all actions use the bottom sheet).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
+    var showSaveSheet by remember { mutableStateOf(false) }
     val actionResultFlow = remember(navController) {
         navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
             ?: MutableStateFlow("")
@@ -502,7 +511,7 @@ fun CustomAutomationBuilderScreen(
                     Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
                     NothingPillButton(
                         text = if (automationId != null) "Save Changes" else "Create Automation",
-                        onClick = viewModel::save,
+                        onClick = { showSaveSheet = true },
                         enabled = state.actions.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -546,6 +555,20 @@ fun CustomAutomationBuilderScreen(
                     actionSheetAction = null
                     editingActionIndex = -1
                 },
+            )
+        }
+
+        if (showSaveSheet) {
+            IconColorPickerSheet(
+                initialIcon = state.icon,
+                initialColor = state.iconBackground,
+                onDone = { icon, color ->
+                    viewModel.updateIcon(icon)
+                    viewModel.updateIconBackground(color)
+                    viewModel.save()
+                    showSaveSheet = false
+                },
+                onDismiss = { showSaveSheet = false },
             )
         }
     }

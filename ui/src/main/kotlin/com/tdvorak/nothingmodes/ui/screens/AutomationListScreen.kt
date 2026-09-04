@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -304,7 +305,7 @@ private fun RoutineCard(
     onToggleSelection: () -> Unit,
     onToggleEnabled: () -> Unit,
 ) {
-    val iconColor = routineColor(automation.name)
+    val iconColor = if (automation.iconBackground.isNotBlank()) colorForHex(automation.iconBackground) else routineColor(automation.name)
     val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
     val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
 
@@ -331,12 +332,21 @@ private fun RoutineCard(
                         .background(iconColor),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = iconTextColor,
-                        fontFamily = Doto,
-                    )
+                    if (automation.icon.isNotBlank()) {
+                        Icon(
+                            imageVector = iconForName(automation.icon),
+                            contentDescription = null,
+                            tint = iconTextColor,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    } else {
+                        Text(
+                            text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = iconTextColor,
+                            fontFamily = Doto,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))

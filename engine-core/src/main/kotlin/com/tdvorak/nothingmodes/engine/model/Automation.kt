@@ -37,6 +37,10 @@ data class Automation(
     val cooldownMs: Long = 0,
     val schemaVersion: Int = AUTOMATION_SCHEMA_VERSION_V1,
     val approvalFingerprint: String? = null,
+    /** Display icon name from the Material icon set. */
+    val icon: String = "",
+    /** Background color as a hex string. */
+    val iconBackground: String = "",
 )
 
 @Serializable
