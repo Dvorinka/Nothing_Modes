@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bluetooth
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
@@ -52,6 +54,7 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -132,6 +135,13 @@ fun ConditionCatalogScreen(
                 iconBg = Color(0xFF9B9B9B),
                 condition = Condition.AppInForeground("com.example.app"),
             ),
+            ConditionItem(
+                label = "Current mode active",
+                category = "Device status",
+                icon = Icons.Default.Star,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.CurrentModeActive("mode-id"),
+            ),
             // ── Device status (extended) ──
             ConditionItem(
                 label = "Power saving",
@@ -157,7 +167,7 @@ fun ConditionCatalogScreen(
             ConditionItem(
                 label = "Ringer mode",
                 category = "Device status",
-                icon = Icons.Default.VolumeUp,
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
                 iconBg = Color(0xFF4A9E5C),
                 condition = Condition.RingerMode("normal"),
             ),
@@ -215,12 +225,20 @@ fun ConditionCatalogScreen(
             )
         },
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = NothingSpacing.md),
+                .padding(padding),
         ) {
+            NothingDotGrid(
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.04f,
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NothingSpacing.md),
+            ) {
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 NothingInput(
@@ -264,6 +282,7 @@ fun ConditionCatalogScreen(
             }
         }
     }
+}
 }
 
 @Composable

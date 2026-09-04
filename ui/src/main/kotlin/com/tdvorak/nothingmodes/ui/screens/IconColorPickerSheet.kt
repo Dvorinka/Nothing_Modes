@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Textsms
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -74,7 +74,7 @@ private val iconOptions = listOf(
     "brightness" to Icons.Default.Brightness6,
     "lightbulb" to Icons.Default.Lightbulb,
     "notification" to Icons.Default.Notifications,
-    "volume" to Icons.Default.VolumeUp,
+    "volume" to Icons.AutoMirrored.Filled.VolumeUp,
     "music" to Icons.Default.MusicNote,
     "alarm" to Icons.Default.Alarm,
     "timer" to Icons.Default.Timer,

@@ -1,9 +1,11 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -36,13 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -397,6 +403,14 @@ fun CustomAutomationBuilderScreen(
                     onValueChange = viewModel::updateName,
                     label = "Name",
                     placeholder = "Untitled",
+                )
+            }
+
+            // Preview tile — live visual of the saved routine card
+            item {
+                AutomationPreviewTile(
+                    state = state,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
                 )
             }
 
@@ -931,6 +945,75 @@ private fun PrioritySegmentedBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
             )
+        }
+    }
+}
+
+@Composable
+private fun AutomationPreviewTile(
+    state: BuilderState,
+    modifier: Modifier = Modifier,
+) {
+    val iconColor = if (state.iconBackground.isNotBlank()) colorForHex(state.iconBackground) else NothingColors.accent
+    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.card,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(NothingSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(iconColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.icon.isNotBlank()) {
+                    Icon(
+                        imageVector = iconForName(state.icon),
+                        contentDescription = null,
+                        tint = iconTextColor,
+                        modifier = Modifier.size(28.dp),
+                    )
+                } else {
+                    Text(
+                        text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = iconTextColor,
+                        fontFamily = Doto,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(NothingSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = state.name.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = triggerDescription(state.trigger),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${state.actions.size} actions · ${state.conditions.size} conditions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
         }
     }
 }
