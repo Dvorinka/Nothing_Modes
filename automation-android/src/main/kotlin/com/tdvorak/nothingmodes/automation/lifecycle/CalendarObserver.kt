@@ -46,17 +46,25 @@ class CalendarObserver(
     }
 
     fun start() {
-        context.contentResolver.registerContentObserver(
-            CalendarContract.Events.CONTENT_URI,
-            true,
-            observer,
-        )
-        // Also do an initial check
+        runCatching {
+            context.contentResolver.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI,
+                true,
+                observer,
+            )
+        }.onFailure { e ->
+            if (e is SecurityException) {
+                Log.w(TAG, "READ_CALENDAR permission not granted, observer inactive")
+            } else {
+                Log.e(TAG, "Failed to register calendar observer", e)
+            }
+        }
+        // Also do an initial check (will silently skip if no permission)
         scope.launch { checkEvents() }
     }
 
     fun stop() {
-        context.contentResolver.unregisterContentObserver(observer)
+        runCatching { context.contentResolver.unregisterContentObserver(observer) }
     }
 
     private suspend fun checkEvents() {
