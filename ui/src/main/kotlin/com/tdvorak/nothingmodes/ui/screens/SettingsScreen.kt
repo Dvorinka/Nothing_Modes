@@ -415,6 +415,34 @@ fun SettingsScreen(
                 )
                 NothingDivider()
 
+                // ── About ─────────────────────────────────────────────────
+                val packageInfo = remember {
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0)
+                    }.getOrNull()
+                }
+                val versionName = packageInfo?.versionName ?: "unknown"
+                val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    packageInfo?.longVersionCode?.toString() ?: "?"
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo?.versionCode?.toString() ?: "?"
+                }
+                NothingSectionHeader(text = "About")
+                NothingDivider()
+                NothingInfoRow(label = "Version", value = versionName)
+                NothingDivider()
+                NothingInfoRow(label = "Build", value = versionCode)
+                NothingDivider()
+                NothingInfoRow(label = "Application ID", value = context.packageName)
+                NothingDivider()
+                Text(
+                    text = "Nothing Modes is open-source software released under GPL-3.0.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                )
+
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
             }
         }
