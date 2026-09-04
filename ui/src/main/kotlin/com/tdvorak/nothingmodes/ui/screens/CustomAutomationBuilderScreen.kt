@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -620,10 +621,15 @@ private fun TriggerParams(trigger: Trigger, onUpdate: (Trigger) -> Unit) {
                 } else {
                     true
                 }
-                if (!hasBtConnect) emptyList() else runCatching {
-                    val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
-                    bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
-                }.getOrDefault(emptyList())
+                if (!hasBtConnect) {
+                    emptyList()
+                } else {
+                    @SuppressLint("MissingPermission")
+                    runCatching {
+                        val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java)
+                        bm?.adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
+                    }.getOrDefault(emptyList())
+                }
             }
             NothingInput(
                 value = trigger.deviceName ?: "",
