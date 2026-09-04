@@ -17,12 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Schedule
@@ -43,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -155,6 +160,42 @@ fun ConditionCatalogScreen(
                 icon = Icons.Default.VolumeUp,
                 iconBg = Color(0xFF4A9E5C),
                 condition = Condition.RingerMode("normal"),
+            ),
+            // ── Connections / system ──
+            ConditionItem(
+                label = "Airplane mode",
+                category = "Connections",
+                icon = Icons.Default.Flight,
+                iconBg = Color(0xFF9B9B9B),
+                condition = Condition.AirplaneModeOn(true),
+            ),
+            ConditionItem(
+                label = "NFC",
+                category = "Connections",
+                icon = Icons.Default.Bluetooth,
+                iconBg = Color(0xFF5B9BF6),
+                condition = Condition.NfcEnabled(true),
+            ),
+            ConditionItem(
+                label = "Location",
+                category = "Connections",
+                icon = Icons.Default.LocationOn,
+                iconBg = Color(0xFF4A9E5C),
+                condition = Condition.LocationEnabled(true),
+            ),
+            ConditionItem(
+                label = "Call state",
+                category = "Device status",
+                icon = Icons.Default.PhoneAndroid,
+                iconBg = Color(0xFFD71921),
+                condition = Condition.CallStateCondition(CallState.INCOMING),
+            ),
+            ConditionItem(
+                label = "Alarm ringing",
+                category = "Time",
+                icon = Icons.Default.Alarm,
+                iconBg = Color(0xFFD4A843),
+                condition = Condition.AlarmRinging(),
             ),
         )
     }

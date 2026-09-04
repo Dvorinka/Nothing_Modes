@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -131,6 +132,34 @@ fun ConditionConfigSheet(
                 is Condition.RingerMode -> RingerModeSheetContent(
                     mode = c.mode,
                     onChange = { current = c.copy(mode = it) },
+                )
+
+                is Condition.AirplaneModeOn -> BooleanConditionContent(
+                    label = "Airplane mode on",
+                    checked = c.on,
+                    onChange = { current = c.copy(on = it) },
+                )
+
+                is Condition.NfcEnabled -> BooleanConditionContent(
+                    label = "NFC enabled",
+                    checked = c.enabled,
+                    onChange = { current = c.copy(enabled = it) },
+                )
+
+                is Condition.LocationEnabled -> BooleanConditionContent(
+                    label = "Location enabled",
+                    checked = c.enabled,
+                    onChange = { current = c.copy(enabled = it) },
+                )
+
+                is Condition.CallStateCondition -> CallStateSheetContent(
+                    state = c.state,
+                    onChange = { current = c.copy(state = it) },
+                )
+
+                is Condition.AlarmRinging -> AlarmRingingSheetContent(
+                    titleMatch = c.titleMatch ?: "",
+                    onChange = { current = c.copy(titleMatch = it.ifBlank { null }) },
                 )
 
                 is Condition.TimeWindow -> TimeWindowSheetContent(
@@ -444,4 +473,42 @@ private fun RingerModeSheetContent(
             onClick = { onChange(m) },
         )
     }
+}
+
+@Composable
+private fun CallStateSheetContent(
+    state: CallState,
+    onChange: (CallState) -> Unit,
+) {
+    CallState.entries.forEach { s ->
+        RadioOption(
+            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+            selected = state == s,
+            onClick = { onChange(s) },
+        )
+    }
+}
+
+@Composable
+private fun AlarmRingingSheetContent(
+    titleMatch: String,
+    onChange: (String) -> Unit,
+) {
+    // ponytail: Alarm title matching is not yet wired to a live alarm provider.
+    //          This input is stored for when the broadcast receiver is added.
+    Text(
+        text = "Match alarm title (optional)",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontFamily = SpaceMono,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+    NothingInput(
+        value = titleMatch,
+        onValueChange = onChange,
+        label = "Title contains",
+        placeholder = "Leave blank for any alarm",
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
