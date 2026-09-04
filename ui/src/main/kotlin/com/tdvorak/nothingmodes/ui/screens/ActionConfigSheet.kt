@@ -697,7 +697,7 @@ private fun BooleanRow(
 }
 
 @Composable
-private fun RingerModeSelector(
+internal fun RingerModeSelector(
     mode: String,
     onChange: (String) -> Unit,
 ) {
@@ -711,7 +711,7 @@ private fun RingerModeSelector(
     }
 }
 
-private fun parseColorHex(text: String): Int? = runCatching {
+internal fun parseColorHex(text: String): Int? = runCatching {
     val hex = text.removePrefix("#").removePrefix("0x")
     if (hex.length != 6) return@runCatching null
     Integer.parseInt(hex, 16) or 0xFF000000.toInt()
