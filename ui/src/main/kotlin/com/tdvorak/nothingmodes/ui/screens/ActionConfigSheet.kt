@@ -42,9 +42,11 @@ import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -68,7 +70,7 @@ fun ActionConfigSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
         scrimColor = Color.Black.copy(alpha = 0.8f),
-        dragHandle = { SheetDragHandle() },
+        dragHandle = { NothingDragHandle() },
     ) {
         Column(
             modifier = Modifier
@@ -108,7 +110,7 @@ fun ActionConfigSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
             ) {
-                NothingPillButton(
+                NothingSecondaryButton(
                     text = "Cancel",
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
@@ -658,17 +660,6 @@ private val GLYPH_PRESET_NAMES = listOf(
     "sleep", "morning", "work", "dnd", "dnd_off", "fired", "error",
     "success", "charging", "charging_complete", "call", "sms", "timer", "off",
 )
-
-@Composable
-private fun SheetDragHandle() {
-    Box(
-        modifier = Modifier
-            .padding(vertical = NothingSpacing.sm)
-            .size(32.dp, 2.dp)
-            .background(MaterialTheme.colorScheme.outline, RoundedCornerShape(1.dp))
-    )
-}
-
 private fun actionTitle(action: Action): String = when (action) {
     is Action.SetWifi -> "Wi-Fi"
     is Action.SetBluetooth -> "Bluetooth"

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -33,9 +34,13 @@ import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
@@ -290,56 +295,56 @@ fun GlyphPreviewScreen(
             // Stripe preview — the one break in the grid (circular/visual element)
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.md))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(5f)
-                        .clip(NothingShapes.card)
-                        .background(Color.Black),
-                ) {
-                    StripeCanvas(selected)
+                NothingCard(borderless = true) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(5f)
+                            .clip(NothingShapes.compact)
+                            .background(Color.Black),
+                    ) {
+                        StripeCanvas(selected)
+                    }
+                    Text(
+                        text = descriptionFor(selected),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = NothingSpacing.sm),
+                    )
                 }
-                Text(
-                    text = descriptionFor(selected),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = NothingSpacing.sm),
-                )
             }
 
             // Preset list
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.xl))
                 NothingSectionHeader(text = "Presets")
-            }
-
-            items(presets) { (name, visual) ->
-                val isSelected = visual == selected
-                NothingDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            selected = visual
-                            selectedName = name
-                        }
-                        .padding(vertical = NothingSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (isSelected) {
-                        NothingRedDot(size = 6f, modifier = Modifier.padding(end = NothingSpacing.sm))
-                    } else {
-                        Spacer(modifier = Modifier.padding(end = 10.dp))
+                NothingCard {
+                    presets.forEachIndexed { index, (name, visual) ->
+                        val isSelected = visual == selected
+                        if (index > 0) NothingDivider()
+                        NothingListRow(
+                            title = name,
+                            selected = isSelected,
+                            onClick = {
+                                selected = visual
+                                selectedName = name
+                            },
+                            leading = {
+                                NothingIconCircle(size = 40f) {
+                                    NothingRedDot(size = 6f)
+                                }
+                            },
+                            trailing = {
+                                if (isSelected) {
+                                    NothingRedDot(size = 6f)
+                                } else {
+                                    NothingRedDot(size = 6f, modifier = Modifier.size(0.dp))
+                                }
+                            },
+                        )
                     }
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
-            item { NothingDivider() }
         }
     }
 }

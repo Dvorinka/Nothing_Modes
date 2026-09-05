@@ -35,6 +35,7 @@ import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -170,34 +171,36 @@ fun CreateAutomationScreen(
 
             Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
-            // Name input
-            NothingInput(
-                value = name,
-                onValueChange = { name = it },
-                label = "Name",
-                placeholder = if (typeIndex == 0) "e.g. Sleep, Work Focus" else "e.g. Morning, Movie",
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            if (!isEditing) {
-                // Type segmented control — Mode vs Routine
-                NothingSectionHeader(text = "Type")
-                NothingSegmentedControl(
-                    segments = listOf("Mode", "Routine"),
-                    selectedIndex = typeIndex,
-                    onSelected = { typeIndex = it },
+            NothingCardLarge {
+                // Name input
+                NothingInput(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "Name",
+                    placeholder = if (typeIndex == 0) "e.g. Sleep, Work Focus" else "e.g. Morning, Movie",
                 )
 
-                Spacer(modifier = Modifier.height(NothingSpacing.xl))
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-                // Custom Builder entry — kept intact per spec
-                NothingSectionHeader(text = "Builder")
-                NothingGhostButton(
-                    text = "+ Custom Builder",
-                    onClick = onCustomBuilder,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (!isEditing) {
+                    // Type segmented control — Mode vs Routine
+                    NothingSectionHeader(text = "Type", modifier = Modifier.padding(top = 0.dp))
+                    NothingSegmentedControl(
+                        segments = listOf("Mode", "Routine"),
+                        selectedIndex = typeIndex,
+                        onSelected = { typeIndex = it },
+                    )
+
+                    Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+                    // Custom Builder entry
+                    NothingSectionHeader(text = "Builder", modifier = Modifier.padding(top = 0.dp))
+                    NothingGhostButton(
+                        text = "+ Custom Builder",
+                        onClick = onCustomBuilder,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(NothingSpacing.xl))

@@ -28,12 +28,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
+import androidx.compose.material3.Icon
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
@@ -170,98 +174,79 @@ fun ExecutionLogScreen(
                 item {
                     Spacer(modifier = Modifier.height(NothingSpacing.xxl))
                     NothingSectionHeader(text = "Statistics")
-                    NothingDivider()
-                    NothingInfoRow(label = "Total Events", value = stats.totalEvents.toString())
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Fired",
-                        value = stats.firedCount.toString(),
-                        valueColor = MaterialTheme.colorScheme.primary,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(label = "Mode Activated", value = stats.modeActivatedCount.toString())
-                    NothingDivider()
-                    NothingInfoRow(label = "Mode Deactivated", value = stats.modeDeactivatedCount.toString())
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Suppressed",
-                        value = stats.suppressedCount.toString(),
-                        valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Conditions Not Met",
-                        value = stats.conditionsNotMetCount.toString(),
-                        valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Errors",
-                        value = stats.errorCount.toString(),
-                        valueColor = if (stats.errorCount > 0) NothingColors.accent
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    NothingCard {
+                        NothingInfoRow(label = "Total Events", value = stats.totalEvents.toString())
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(
+                            label = "Fired",
+                            value = stats.firedCount.toString(),
+                            valueColor = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(label = "Mode Activated", value = stats.modeActivatedCount.toString())
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(label = "Mode Deactivated", value = stats.modeDeactivatedCount.toString())
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(
+                            label = "Suppressed",
+                            value = stats.suppressedCount.toString(),
+                            valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(
+                            label = "Conditions Not Met",
+                            value = stats.conditionsNotMetCount.toString(),
+                            valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        NothingInfoRow(
+                            label = "Errors",
+                            value = stats.errorCount.toString(),
+                            valueColor = if (stats.errorCount > 0) NothingColors.accent
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 // Timeline section
                 item {
                     Spacer(modifier = Modifier.height(NothingSpacing.xl))
                     NothingSectionHeader(text = "Timeline")
-                }
-
-                itemsIndexed(entries) { index, entry ->
-                    val kindColor = when (entry.kind) {
-                        "FIRED" -> MaterialTheme.colorScheme.primary
-                        "MODE_ACTIVATED" -> MaterialTheme.colorScheme.primary
-                        "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
-                        "SUPPRESSED_COOLDOWN" -> MaterialTheme.colorScheme.onSurfaceVariant
-                        "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
-                        "ERROR" -> NothingColors.accent
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                    NothingDivider()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = NothingSpacing.md),
-                    ) {
-                        Text(
-                            text = String.format("%02d", index + 1),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
-                            modifier = Modifier.padding(end = NothingSpacing.sm),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = entry.kind.replace("_", " "),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = kindColor,
-                                fontFamily = SpaceMono,
-                            )
-                            Text(
-                                text = entry.automationId,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
-                            if (entry.detail.isNotEmpty()) {
-                                Text(
-                                    text = entry.detail,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = SpaceMono,
-                                    modifier = Modifier.padding(top = 2.dp),
-                                )
+                    NothingCard {
+                        entries.forEachIndexed { index, entry ->
+                            val kindColor = when (entry.kind) {
+                                "FIRED" -> MaterialTheme.colorScheme.primary
+                                "MODE_ACTIVATED" -> MaterialTheme.colorScheme.primary
+                                "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
+                                "SUPPRESSED_COOLDOWN" -> MaterialTheme.colorScheme.onSurfaceVariant
+                                "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
+                                "ERROR" -> NothingColors.accent
+                                else -> MaterialTheme.colorScheme.onSurface
                             }
+                            if (index > 0) NothingDivider()
+                            NothingListRow(
+                                title = entry.kind.replace("_", " "),
+                                subtitle = entry.automationId + if (entry.detail.isNotEmpty()) " · ${entry.detail}" else "",
+                                leading = {
+                                    NothingIconCircle(size = 40f) {
+                                        Text(
+                                            text = String.format("%02d", index + 1),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontFamily = SpaceMono,
+                                        )
+                                    }
+                                },
+                                trailing = {
+                                    Text(
+                                        text = dateFormat.format(Date(entry.timestamp)),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = SpaceMono,
+                                    )
+                                },
+                            )
                         }
-                        Text(
-                            text = dateFormat.format(Date(entry.timestamp)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
-                        )
                     }
                 }
             }

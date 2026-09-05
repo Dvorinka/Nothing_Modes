@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,12 +25,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,7 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -50,10 +57,11 @@ import androidx.compose.ui.unit.sp
  * Nothing Design System reusable components.
  *
  * Principles:
- * - Flat surfaces, border separation. No shadows.
- * - Labels: Space Mono, ALL CAPS, wide tracking.
- * - Containers: spacing > dividers > borders > surface cards.
- * - Red accent: one per screen, never decorative.
+ * - OLED-black canvas, dark grey (#161616-#1C1C1C) surfaces.
+ * - Large, calm corner radii (24-28 dp) on cards and sheets.
+ * - Dot-matrix (Doto) for hero numbers and large values.
+ * - Monochrome icon chips (rounded square, ~48 dp, surfaceVariant fill).
+ * - Nothing Red (#FF3030) used only as accent: selected filters, FAB, toggles, dots.
  */
 
 // ── Cards ────────────────────────────────────────────────────────────────────
@@ -72,11 +80,11 @@ fun NothingCard(
         shape = NothingShapes.card,
         border = if (borderless) null else BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outline,
+            MaterialTheme.colorScheme.outlineVariant,
         ),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(NothingSpacing.cardPadding)) {
+        Column(modifier = Modifier.padding(NothingSpacing.lg)) {
             content()
         }
     }
@@ -90,7 +98,7 @@ fun NothingCardLarge(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.cardLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
@@ -110,9 +118,9 @@ fun NothingSectionHeader(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.2.sp,
+        letterSpacing = 1.4.sp,
         modifier = modifier.padding(
-            top = NothingSpacing.lg,
+            top = NothingSpacing.xl,
             bottom = NothingSpacing.sm,
         ),
     )
@@ -130,7 +138,7 @@ fun NothingLabel(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         color = color,
-        letterSpacing = 1.0.sp,
+        letterSpacing = 1.1.sp,
         modifier = modifier,
     )
 }
@@ -184,6 +192,37 @@ fun NothingRedDot(
             color = NothingColors.accent,
             radius = (size / 2).dp.toPx(),
         )
+    }
+}
+
+// ── Dot Row Indicator ────────────────────────────────────────────────────────
+
+@Composable
+fun NothingDotRow(
+    total: Int,
+    filled: Int,
+    modifier: Modifier = Modifier,
+    dotSize: Float = 6f,
+    activeColor: Color = NothingColors.accent,
+    spacing: Float = 4f,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing.dp),
+    ) {
+        val count = total.coerceAtLeast(0)
+        val active = filled.coerceIn(0, count)
+        repeat(count) { index ->
+            Box(
+                modifier = Modifier
+                    .size(dotSize.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (index < active) activeColor
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+            )
+        }
     }
 }
 
@@ -245,7 +284,7 @@ fun NothingToggle(
             .height(trackHeight)
             .clip(CircleShape)
             .background(
-                if (checked) MaterialTheme.colorScheme.primary
+                if (checked) NothingColors.accent
                 else MaterialTheme.colorScheme.outline,
             )
             .clickable { onCheckedChange(!checked) },
@@ -257,14 +296,14 @@ fun NothingToggle(
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(
-                    if (checked) MaterialTheme.colorScheme.onPrimary
+                    if (checked) MaterialTheme.colorScheme.onTertiary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
         )
     }
 }
 
-// ── Segmented Control ────────────────────────────────────────────────────────
+// ── Segmented Control (filter pills) ─────────────────────────────────────────
 
 @Composable
 fun NothingSegmentedControl(
@@ -276,11 +315,11 @@ fun NothingSegmentedControl(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(NothingShapes.technical)
+            .clip(NothingShapes.pill)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline,
-                NothingShapes.technical,
+                NothingShapes.pill,
             ),
     ) {
         segments.forEachIndexed { index, label ->
@@ -289,14 +328,14 @@ fun NothingSegmentedControl(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .height(44.dp)
+                    .background(if (isSelected) NothingColors.accent else Color.Transparent)
                     .clickable { onSelected(index) },
             ) {
                 Text(
                     text = label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    color = if (isSelected) MaterialTheme.colorScheme.onTertiary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
@@ -318,7 +357,7 @@ fun NothingPrimaryButton(
         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
         modifier = modifier
-            .height(44.dp)
+            .height(48.dp)
             .clickable(enabled = enabled, onClick = onClick),
     ) {
         Text(
@@ -332,23 +371,39 @@ fun NothingPrimaryButton(
 }
 
 @Composable
+fun NothingPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    NothingPrimaryButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+    )
+}
+
+@Composable
 fun NothingSecondaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Surface(
         color = Color.Transparent,
         shape = NothingShapes.pill,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
-            .height(44.dp)
-            .clickable(onClick = onClick),
+            .height(48.dp)
+            .clickable(enabled = enabled, onClick = onClick),
     ) {
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.secondary,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
             modifier = Modifier.wrapContentSize(Alignment.Center),
         )
@@ -384,7 +439,7 @@ fun NothingDestructiveButton(
         shape = NothingShapes.pill,
         border = BorderStroke(1.dp, NothingColors.accent),
         modifier = modifier
-            .height(44.dp)
+            .height(48.dp)
             .clickable(onClick = onClick),
     ) {
         Text(
@@ -397,30 +452,28 @@ fun NothingDestructiveButton(
     }
 }
 
-// ── Tag / Chip ───────────────────────────────────────────────────────────────
+// ── Tag / Chip (filter pill) ─────────────────────────────────────────────────
 
 @Composable
 fun NothingTag(
     text: String,
     active: Boolean = false,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
+    val clickable = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Surface(
-        color = Color.Transparent,
+        color = if (active) NothingColors.accent else Color.Transparent,
         shape = NothingShapes.pill,
-        border = BorderStroke(
-            1.dp,
-            if (active) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outline,
-        ),
-        modifier = modifier,
+        border = if (active) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = modifier.then(clickable),
     ) {
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = if (active) MaterialTheme.colorScheme.primary
+            color = if (active) MaterialTheme.colorScheme.onTertiary
             else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
         )
     }
 }
@@ -518,28 +571,30 @@ fun NothingTopBar(
                 Text(
                     text = "<",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
                 )
             }
             Spacer(modifier = Modifier.width(NothingSpacing.md))
         }
 
-        // Optional leading red dot — Nothing brand mark for the home screen
+        // Optional leading red dot
         if (showLeadingDot) {
             NothingRedDot(size = 8f)
             Spacer(modifier = Modifier.width(NothingSpacing.sm))
         }
 
-        // Title — Space Mono ALL CAPS, larger for visibility
+        // Title — Space Mono ALL CAPS
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
+            fontFamily = SpaceMono,
             letterSpacing = 1.5.sp,
             modifier = Modifier.weight(1f),
         )
 
-        // Actions — text labels with optional icon and larger tap targets
+        // Actions — text labels with optional icon
         actions.forEach { action ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -568,35 +623,7 @@ fun NothingTopBar(
     }
 }
 
-// ── Nothing Pill Button ──────────────────────────────────────────────────────
-
-@Composable
-fun NothingPillButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    Surface(
-        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-        shape = NothingShapes.pill,
-        modifier = modifier
-            .height(48.dp)
-            .clickable(enabled = enabled, onClick = onClick),
-    ) {
-        Text(
-            text = text.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .wrapContentSize(Alignment.Center)
-                .padding(horizontal = NothingSpacing.lg),
-        )
-    }
-}
-
-// ── Nothing Circle Button (icon + label) ─────────────────────────────────────
+// ── Circle Button (icon + label) ─────────────────────────────────────────────
 
 @Composable
 fun NothingCircleButton(
@@ -639,7 +666,7 @@ fun NothingCircleButton(
     }
 }
 
-// ── Nothing Input (underline style) ──────────────────────────────────────────
+// ── Nothing Input ────────────────────────────────────────────────────────────
 
 @Composable
 fun NothingInput(
@@ -665,7 +692,7 @@ fun NothingInput(
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = SpaceMono),
-            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedContainerColor = Color.Transparent,
@@ -777,7 +804,7 @@ fun NothingSegmentedBar(
     total: Int,
     filled: Int,
     modifier: Modifier = Modifier,
-    fillColor: Color = MaterialTheme.colorScheme.primary,
+    fillColor: Color = NothingColors.accent,
     height: Float = 8f,
 ) {
     Row(
@@ -793,37 +820,48 @@ fun NothingSegmentedBar(
                     .height(height.dp)
                     .background(
                         if (i < filled) fillColor
-                        else MaterialTheme.colorScheme.outline,
+                        else MaterialTheme.colorScheme.outlineVariant,
                     ),
             )
         }
     }
 }
 
-// ── Circular Icon Area (monoline, no fill) ───────────────────────────────────
+// ── Icon Chip (rounded square, 48 dp, surfaceVariant fill) ───────────────────
 
-/**
- * Circular monoline icon container. Surface background, thin border, monochrome
- * glyph drawn via [content]. No shadows, no fills, no multi-color icons.
- *
- * Design tokens: surface bg, 1px border-visible, 12dp radius circle, 40–48dp.
- */
 @Composable
 fun NothingIconCircle(
     modifier: Modifier = Modifier,
-    size: Float = 44f,
+    size: Float = 48f,
+    accent: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    NothingIconChip(
+        modifier = modifier,
+        size = size,
+        accent = accent,
+        content = content,
+    )
+}
+
+@Composable
+fun NothingIconChip(
+    modifier: Modifier = Modifier,
+    size: Float = 48f,
     accent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier
             .size(size.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                if (accent) NothingColors.accent else MaterialTheme.colorScheme.outline,
-                CircleShape,
+            .clip(NothingShapes.iconChip)
+            .background(
+                if (accent) NothingColors.accent.copy(alpha = 0.16f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .then(
+                if (accent) Modifier.border(1.dp, NothingColors.accent, NothingShapes.iconChip)
+                else Modifier,
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -831,15 +869,76 @@ fun NothingIconCircle(
     }
 }
 
+// ── List Row (icon chip + title + subtitle + chevron) ────────────────────────
+
+@Composable
+fun NothingListRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String = "",
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    leading: @Composable (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    val rowModifier = if (onClick != null) {
+        modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    } else {
+        modifier.fillMaxWidth()
+    }
+    Row(
+        modifier = rowModifier
+            .padding(vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+    ) {
+        if (leading != null) {
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                leading()
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (subtitle.isNotEmpty()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (trailing != null) {
+            trailing()
+        } else {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
 // ── Selection Top Bar ────────────────────────────────────────────────────────
 
-/**
- * Top bar for multi-selection mode. Shows count + action labels.
- * Replaces the standard top bar while selection is active.
- *
- * Actions are Space Mono ALL CAPS text labels (no icons). One accent moment
- * allowed (typically the destructive action).
- */
 @Composable
 fun NothingSelectionTopBar(
     count: Int,
@@ -894,10 +993,6 @@ fun NothingSelectionTopBar(
 
 // ── Checkbox (monoline square, red dot when checked) ─────────────────────────
 
-/**
- * Nothing-style checkbox. Empty square with thin border; when checked, a red
- * accent dot fills the center. Replaces Material [Checkbox] for theme parity.
- */
 @Composable
 fun NothingCheckbox(
     checked: Boolean,
@@ -922,10 +1017,6 @@ fun NothingCheckbox(
 
 // ── Radio (monoline circle, red dot when selected) ───────────────────────────
 
-/**
- * Nothing-style radio. Thin circle outline; when selected, a red accent dot
- * fills the center. Replaces Material [RadioButton] for theme parity.
- */
 @Composable
 fun NothingRadio(
     selected: Boolean,
@@ -948,12 +1039,8 @@ fun NothingRadio(
     }
 }
 
-// ── Circular Add Button ──────────────────────────────────────────────────────
+// ── Circular Add Button (red fill, white +) ──────────────────────────────────
 
-/**
- * Circular monoline "+" button. Surface bg, border-visible, accent "+" glyph.
- * Used as the create affordance when a pill would compete with content.
- */
 @Composable
 fun NothingAddCircle(
     onClick: () -> Unit,
@@ -964,16 +1051,61 @@ fun NothingAddCircle(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .background(NothingColors.accent)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "+",
-            style = MaterialTheme.typography.headlineMedium,
-            color = NothingColors.accent,
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Add",
+            tint = Color.White,
+            modifier = Modifier.size(28.dp),
         )
     }
 }
 
+// ── Bottom Sheet Drag Handle ─────────────────────────────────────────────────
+
+@Composable
+fun NothingDragHandle(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .padding(vertical = NothingSpacing.sm)
+            .size(36.dp, 4.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.outline),
+    )
+}
+
+// ── Bottom Action Bar (Done / Add) ───────────────────────────────────────────
+
+@Composable
+fun NothingBottomActionBar(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = NothingSpacing.md)
+                .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+        ) {
+            NothingPillButton(
+                text = text,
+                onClick = onClick,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}

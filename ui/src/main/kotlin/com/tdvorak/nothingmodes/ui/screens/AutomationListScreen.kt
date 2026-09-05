@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
@@ -63,10 +64,13 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
+import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
+import com.tdvorak.nothingmodes.ui.theme.NothingDotRow
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
@@ -286,7 +290,7 @@ fun AutomationListScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = if (inSelection) "${selected.size} SELECTED" else "Nothing Modes",
+                title = if (inSelection) "${selected.size} SELECTED" else "Modes",
                 showLeadingDot = !inSelection,
                 actions = if (inSelection) {
                     listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
@@ -361,8 +365,16 @@ fun AutomationListScreen(
                     verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                 ) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        RoutineHeroCard(
+                            totalRoutines = items.size,
+                            totalActions = items.sumOf { it.actions.size },
+                            modifier = Modifier.padding(bottom = NothingSpacing.md),
+                        )
+                    }
+
                     items(items, key = { it.id.value }) { automation ->
-                        RoutineCard(
+                        RoutineTile(
                             automation = automation,
                             isSelected = selected.contains(automation.id),
                             inSelectionMode = inSelection,
@@ -398,7 +410,58 @@ fun AutomationListScreen(
 }
 
 @Composable
-private fun RoutineCard(
+private fun RoutineHeroCard(
+    totalRoutines: Int,
+    totalActions: Int,
+    modifier: Modifier = Modifier,
+) {
+    NothingCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                NothingLabel(text = "Overview")
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                Text(
+                    text = "$totalRoutines",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = Doto,
+                )
+                Text(
+                    text = "ROUTINES",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "$totalActions",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = Doto,
+                )
+                Text(
+                    text = "ACTIONS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+        NothingDotRow(
+            total = 20,
+            filled = (totalRoutines.coerceAtLeast(0) * 20 / maxOf(totalRoutines + totalActions, 1)),
+        )
+    }
+}
+
+@Composable
+private fun RoutineTile(
     automation: Automation,
     isSelected: Boolean,
     inSelectionMode: Boolean,
@@ -408,7 +471,7 @@ private fun RoutineCard(
     onRun: () -> Unit = {},
 ) {
     val iconTextColor = MaterialTheme.colorScheme.onSurface
-    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outline
+    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -426,13 +489,13 @@ private fun RoutineCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NothingIconCircle(size = 48f) {
+                NothingIconCircle(size = 44f) {
                     if (automation.icon.isNotBlank()) {
                         Icon(
                             imageVector = iconForName(automation.icon),
                             contentDescription = null,
                             tint = iconTextColor,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(24.dp),
                         )
                     } else {
                         Text(
@@ -449,7 +512,6 @@ private fun RoutineCard(
                 if (inSelectionMode) {
                     SelectionIndicator(isSelected = isSelected)
                 } else if (automation.trigger is Trigger.Manual) {
-                    // Manual trigger routines show a RUN text action instead of a toggle.
                     Text(
                         text = "RUN",
                         style = MaterialTheme.typography.labelSmall,
@@ -468,7 +530,7 @@ private fun RoutineCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
 
             Text(
                 text = automation.name,
@@ -491,7 +553,7 @@ private fun RoutineCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
 
             Text(
                 text = triggerDescription(automation.trigger),
