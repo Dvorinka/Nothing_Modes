@@ -462,14 +462,14 @@ private fun RoutineCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(NothingColors.success),
+                            .background(NothingColors.success)
+                            .clickable(onClick = onRun),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "▶",
                             style = MaterialTheme.typography.labelMedium,
                             color = Color.White,
-                            modifier = Modifier.clickable(onClick = onRun),
                         )
                     }
                 } else {
