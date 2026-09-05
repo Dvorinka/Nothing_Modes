@@ -66,3 +66,6 @@ keystore/
 .proxmox-refs
 .desloppify/
 scorecard.png
+
+# Local TODO scratch file
+TODO.md
