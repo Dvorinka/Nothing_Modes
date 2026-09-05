@@ -17,7 +17,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
         if (intent.action == DownloadManager.ACTION_DOWNLOAD_COMPLETE) {
             val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
             if (downloadId != -1L) {
-                updateManager.installUpdate(downloadId)
+                updateManager.onDownloadComplete(downloadId)
             }
         }
     }

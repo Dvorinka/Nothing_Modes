@@ -15,6 +15,9 @@ import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -27,6 +30,15 @@ class UpdateManager @Inject constructor(
     private val downloadManager by lazy {
         context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     }
+
+    /** The ID of the in-flight update download, if any. Shared with [UpdateDownloadReceiver]. */
+    @Volatile
+    var activeDownloadId: Long? = null
+        private set
+
+    /** Emits the download ID when the active update download completes. */
+    private val _downloadCompleted = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val downloadCompleted: SharedFlow<Long> = _downloadCompleted.asSharedFlow()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -67,7 +79,14 @@ class UpdateManager @Inject constructor(
             setAllowedOverMetered(true)
             setAllowedOverRoaming(true)
         }
-        return downloadManager.enqueue(request)
+        return downloadManager.enqueue(request).also { activeDownloadId = it }
+    }
+
+    /** Called by [UpdateDownloadReceiver] when a download finishes. Only acts on our own download. */
+    fun onDownloadComplete(downloadId: Long) {
+        if (downloadId != activeDownloadId) return
+        _downloadCompleted.tryEmit(downloadId)
+        installUpdate(downloadId)
     }
 
     /** Install the downloaded APK using a FileProvider content URI. */
