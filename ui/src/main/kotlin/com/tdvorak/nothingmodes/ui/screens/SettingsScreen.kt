@@ -63,6 +63,11 @@ import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.update.UpdateInfo
+import com.tdvorak.nothingmodes.update.UpdateStatus
+import com.tdvorak.nothingmodes.update.UpdateViewModel
+import androidx.lifecycle.ViewModelStoreOwner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -155,6 +160,9 @@ fun SettingsScreen(
     onOnboarding: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(
+        viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner,
+    ),
 ) {
     val context = LocalContext.current
     val caps by viewModel.capabilities.collectAsState()
@@ -162,6 +170,8 @@ fun SettingsScreen(
     val permissionResult by viewModel.permissionResult.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
     val exportReady by viewModel.exportReady.collectAsState()
+    val updateInfo by updateViewModel.updateInfo.collectAsState()
+    val updateStatus by updateViewModel.updateStatus.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Re-detect on resume so permission grants in system settings are reflected.
@@ -431,6 +441,21 @@ fun SettingsScreen(
                 )
                 NothingDivider()
 
+                // ── Update ────────────────────────────────────────────────
+                NothingSectionHeader(text = "Update")
+                NothingDivider()
+                UpdateSection(
+                    currentVersion = updateViewModel.currentVersionName(),
+                    updateInfo = updateInfo,
+                    updateStatus = updateStatus,
+                    onCheck = { updateViewModel.checkForUpdate() },
+                    onDownload = { info -> updateViewModel.startDownload(info) },
+                    onInstall = { updateViewModel.installIfReady() },
+                    onGrantPermission = { updateViewModel.openInstallPermissionSettings() },
+                    onDismiss = { updateViewModel.clearUpdate() },
+                )
+                NothingDivider()
+
                 // ── About ─────────────────────────────────────────────────
                 val packageInfo = remember {
                     runCatching {
@@ -464,6 +489,117 @@ fun SettingsScreen(
         }
     }
 }
+}
+
+@Composable
+private fun UpdateSection(
+    currentVersion: String,
+    updateInfo: UpdateInfo?,
+    updateStatus: UpdateStatus,
+    onCheck: () -> Unit,
+    onDownload: (UpdateInfo) -> Unit,
+    onInstall: () -> Unit,
+    onGrantPermission: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = NothingSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NothingLabel(text = "Current version")
+            Text(
+                text = currentVersion.ifBlank { "unknown" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SpaceMono,
+            )
+        }
+
+        when (updateStatus) {
+            UpdateStatus.IDLE,
+            UpdateStatus.UP_TO_DATE -> {
+                NothingSecondaryButton(
+                    text = if (updateStatus == UpdateStatus.UP_TO_DATE) "Up to date" else "Check for updates",
+                    onClick = onCheck,
+                )
+            }
+            UpdateStatus.CHECKING -> {
+                Text(
+                    text = "Checking...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
+            UpdateStatus.AVAILABLE -> {
+                updateInfo?.let { info ->
+                    Text(
+                        text = "Update available: ${info.displayVersion}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                    )
+                    if (info.releaseNotes.isNotBlank()) {
+                        Text(
+                            text = info.releaseNotes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                        )
+                    }
+                    NothingPillButton(
+                        text = "Download and install",
+                        onClick = { onDownload(info) },
+                    )
+                    NothingGhostButton(
+                        text = "Dismiss",
+                        onClick = onDismiss,
+                    )
+                }
+            }
+            UpdateStatus.DOWNLOADING -> {
+                Text(
+                    text = "Downloading ${updateInfo?.displayVersion ?: ""}...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
+            UpdateStatus.DOWNLOADED -> {
+                NothingPillButton(
+                    text = "Install update",
+                    onClick = onInstall,
+                )
+                NothingGhostButton(
+                    text = "Dismiss",
+                    onClick = onDismiss,
+                )
+            }
+            UpdateStatus.NEEDS_PERMISSION -> {
+                Text(
+                    text = "Install permission required to update.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+                NothingSecondaryButton(
+                    text = "Open settings",
+                    onClick = onGrantPermission,
+                )
+                NothingGhostButton(
+                    text = "Dismiss",
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
 }
 
 @Composable

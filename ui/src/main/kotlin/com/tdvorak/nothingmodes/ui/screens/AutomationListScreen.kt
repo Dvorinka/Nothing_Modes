@@ -1,6 +1,9 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -56,6 +60,8 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
+import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
@@ -63,19 +69,23 @@ import com.tdvorak.nothingmodes.ui.theme.NothingCircleButton
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
+import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class AutomationListViewModel @Inject constructor(
@@ -91,6 +101,11 @@ class AutomationListViewModel @Inject constructor(
 
     private val _selected = MutableStateFlow<Set<AutomationId>>(emptySet())
     val selected: StateFlow<Set<AutomationId>> = _selected.asStateFlow()
+
+    private val _importResult = MutableStateFlow<ImportResult?>(null)
+    val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
+
+    private val importExportService = ImportExportService(store)
 
     init { load() }
 
@@ -211,6 +226,27 @@ class AutomationListViewModel @Inject constructor(
         _selected.value.firstOrNull()?.let { runNow(it) }
         _selected.value = emptySet()
     }
+
+    fun import(json: String) {
+        viewModelScope.launch {
+            _importResult.value = importExportService.import(json)
+            load()
+            WidgetRefreshHelper.refresh(context)
+        }
+    }
+
+    fun readImportFromFile(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val json = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    input.readBytes().toString(Charsets.UTF_8)
+                }
+            } ?: return@launch
+            import(json)
+        }
+    }
+
+    fun clearImportResult() { _importResult.value = null }
 }
 
 @Composable
@@ -221,10 +257,18 @@ fun AutomationListScreen(
     onCreateClick: () -> Unit = {},
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val items by viewModel.items.collectAsState()
     val selected by viewModel.selected.collectAsState()
     val loading by viewModel.loading.collectAsState()
+    val importResult by viewModel.importResult.collectAsState()
     val inSelection = selected.isNotEmpty()
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        uri?.let { viewModel.readImportFromFile(it) }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Reload on resume so changes from builder/detail are reflected immediately.
@@ -266,10 +310,45 @@ fun AutomationListScreen(
             )
 
             if (items.isEmpty() && !loading) {
-                NothingEmptyState(
-                    title = "No routines yet",
-                    description = "Tap + to create your first mode or routine",
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = NothingSpacing.md),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    NothingEmptyState(
+                        title = "No routines yet",
+                        description = "Tap + to create your first mode or routine",
+                        action = {
+                            NothingGhostButton(
+                                text = "Import from backup",
+                                onClick = { importLauncher.launch(arrayOf("application/json")) },
+                            )
+                        },
+                    )
+                    importResult?.let { result ->
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        Text(
+                            text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                        )
+                        result.errors.forEach { error ->
+                            Text(
+                                text = "[ ERROR: $error ]",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                        NothingGhostButton(
+                            text = "Dismiss",
+                            onClick = { viewModel.clearImportResult() },
+                        )
+                    }
+                }
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),

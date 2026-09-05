@@ -447,26 +447,33 @@ fun NothingEmptyState(
     title: String,
     description: String,
     modifier: Modifier = Modifier,
+    action: @Composable (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = NothingSpacing.xl, vertical = NothingSpacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline,
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.Center,
+            )
+        }
+        action?.invoke()
     }
 }
 
