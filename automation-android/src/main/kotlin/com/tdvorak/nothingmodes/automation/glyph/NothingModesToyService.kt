@@ -52,6 +52,10 @@ class NothingModesToyService : Service() {
                 val event = bundle.getString(GlyphToy.MSG_GLYPH_TOY_DATA)
                 Log.i(TAG, "Glyph Toy event: $event")
                 when (event) {
+                    // Lifecycle statuses sent through the same channel.
+                    GlyphToy.STATUS_PREPARE -> { /* system warming up the toy */ }
+                    GlyphToy.STATUS_START -> displayCurrentMode()
+                    GlyphToy.STATUS_END -> provider.turnOff()
                     GlyphToy.EVENT_CHANGE -> onLongPress()
                     GlyphToy.EVENT_AOD -> onAodTick()
                     GlyphToy.EVENT_ACTION_DOWN -> onTouchDown()

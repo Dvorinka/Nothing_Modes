@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glyph_toy_name">Nothing Modes</string>
+    <string name="glyph_toy_summary">Show your active routine on the Glyph Matrix. Long-press to cycle modes.</string>
+</resources>

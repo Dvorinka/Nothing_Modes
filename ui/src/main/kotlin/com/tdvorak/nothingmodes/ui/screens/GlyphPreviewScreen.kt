@@ -31,7 +31,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
+import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
@@ -66,6 +68,28 @@ fun GlyphPreviewScreen(
     var selected by remember { mutableStateOf<GlyphPresets.GlyphVisual>(GlyphPresets.sleepMode) }
     var selectedName by remember { mutableStateOf("Sleep Mode") }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val toysBridge = remember { GlyphToysBridge(context) }
+    var systemInstalled by remember { mutableStateOf(toysBridge.isGlyphSystemInstalled()) }
+    var registeredToys by remember { mutableStateOf(toysBridge.listRegisteredToys()) }
+    var systemToys by remember { mutableStateOf(toysBridge.listSystemToys()) }
+    var activeAodToy by remember { mutableStateOf(toysBridge.activeAodToy()) }
+
+    // Refresh when the user returns from the system Glyph Toys screens.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                systemInstalled = toysBridge.isGlyphSystemInstalled()
+                registeredToys = toysBridge.listRegisteredToys()
+                systemToys = toysBridge.listSystemToys()
+                activeAodToy = toysBridge.activeAodToy()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -81,8 +105,118 @@ fun GlyphPreviewScreen(
                 bottom = NothingSpacing.xxxl,
             ),
         ) {
+            // ── System Glyph Toys integration ──────────────────────────────
+            item {
+                NothingSectionHeader(text = "Glyph Toys (system)")
+                NothingDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = NothingSpacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    NothingLabel(text = "System app")
+                    Text(
+                        text = if (systemInstalled) "Found" else "Not found",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (systemInstalled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                    )
+                }
+                if (!systemInstalled) {
+                    Text(
+                        text = "The Glyph Toys manager is part of Nothing OS. On this device you can still register this app's toy — it appears in the list below.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = NothingSpacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
+                        GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
+                        GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
+                    }
+                    activeAodToy?.let {
+                        Text(
+                            text = "Always-on toy: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                    }
+                }
+            }
+
+            // Registered toys on the system (our app included).
+            if (registeredToys.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "REGISTERED TOYS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                    )
+                }
+                items(registeredToys) { toy ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = NothingSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = toy.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (toy.isOurs) {
+                            Text(
+                                text = "THIS APP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (systemToys.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    Text(
+                        text = "SYSTEM TOY TABLE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                    )
+                }
+                items(systemToys) { row ->
+                    Text(
+                        text = row,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(vertical = 2.dp),
+                    )
+                }
+            }
+
             // Hero — selected preset name in Doto
             item {
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 Text(
                     text = selectedName,
                     style = MaterialTheme.typography.displaySmall,
@@ -236,6 +370,29 @@ private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String = when (vis
 }
 
 private fun periodMs(v: GlyphPresets.GlyphVisual.Stripe) = v.periodMs
+
+@Composable
+private fun GlyphLinkButton(
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Boolean,
+) {
+    Box(
+        modifier = modifier
+            .clip(NothingShapes.compact)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable { onClick() }
+            .padding(vertical = NothingSpacing.sm),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontFamily = SpaceMono,
+        )
+    }
+}
 
 private fun intColorToCompose(color: Int): Color = Color(
     red = ((color shr 16) and 0xFF) / 255f,
