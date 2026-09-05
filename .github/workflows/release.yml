@@ -41,7 +41,7 @@ jobs:
           echo "NOTHING_MODES_KEYSTORE=$HOME/nothing-modes-release.jks" >> $GITHUB_ENV
 
       - name: Build signed release APK
-        run: ./gradlew assembleRelease --no-daemon --parallel --build-cache --stacktrace
+        run: ./gradlew assembleGithubRelease --no-daemon --parallel --build-cache --stacktrace
         env:
           NOTHING_MODES_KEYSTORE: ${{ env.NOTHING_MODES_KEYSTORE }}
           NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
         id: apk
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          cp app/build/outputs/apk/release/app-release.apk "nothing-modes-v${VERSION}.apk"
+          cp app/build/outputs/apk/github/release/app-github-release.apk "nothing-modes-v${VERSION}.apk"
           echo "path=nothing-modes-v${VERSION}.apk" >> $GITHUB_OUTPUT
 
       - name: Upload to GitHub Release
