@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.10.0]
+
 ### Added
 - Full Glyph SDK integration: per-device channel maps, structured frames, marquee, 15+ visual presets
 - 6 new Glyph action types (GlyphAnimate, GlyphProgress, GlyphText, GlyphScrollingText, GlyphPreset, GlyphTurnOff)
@@ -36,3 +38,4 @@
 
 ### Changed
 - nothing-integrations: SDK jar changed from implementation to api for transitive visibility
+- Nothing OS visual system: outlined monoline icons, theme-aware dot grid, 16 dp bottom sheets, zero-elevation cards, custom checkbox/radio, text-based manual RUN action
