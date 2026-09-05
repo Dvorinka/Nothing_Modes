@@ -19,18 +19,19 @@ object NothingShapes {
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),
         small = RoundedCornerShape(8.dp),
-        medium = RoundedCornerShape(12.dp),
+        medium = RoundedCornerShape(16.dp),
         large = RoundedCornerShape(24.dp),
-        extraLarge = RoundedCornerShape(28.dp),
+        extraLarge = RoundedCornerShape(32.dp),
     )
 
     val pill = RoundedCornerShape(999.dp)
     val technical = RoundedCornerShape(4.dp)
     val compact = RoundedCornerShape(12.dp)
+    val input = RoundedCornerShape(16.dp)
     val chip = RoundedCornerShape(16.dp)
     val iconChip = RoundedCornerShape(16.dp)
     val card = RoundedCornerShape(24.dp)
-    val cardLarge = RoundedCornerShape(28.dp)
-    val sheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    val dialog = RoundedCornerShape(24.dp)
+    val cardLarge = RoundedCornerShape(32.dp)
+    val sheet = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    val dialog = RoundedCornerShape(28.dp)
 }

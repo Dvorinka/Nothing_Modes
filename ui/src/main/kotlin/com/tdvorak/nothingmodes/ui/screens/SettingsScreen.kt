@@ -47,6 +47,7 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -236,19 +237,20 @@ fun SettingsScreen(
             caps?.let { capabilities ->
                 // ── Device ────────────────────────────────────────────────
                 NothingSectionHeader(text = "Device")
-                NothingDivider()
-                NothingInfoRow(label = "Name", value = capabilities.deviceName.ifEmpty { "Unknown" })
-                NothingDivider()
-                NothingInfoRow(label = "Model", value = capabilities.deviceModel)
-                NothingDivider()
-                NothingInfoRow(label = "Android", value = "API ${capabilities.androidVersion}")
-                NothingDivider()
-                NothingInfoRow(
-                    label = "Nothing Device",
-                    value = if (capabilities.isNothingDevice) "Yes" else "No",
-                    valueColor = if (capabilities.isNothingDevice) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                NothingCard {
+                    NothingInfoRow(label = "Name", value = capabilities.deviceName.ifEmpty { "Unknown" })
+                    NothingDivider()
+                    NothingInfoRow(label = "Model", value = capabilities.deviceModel)
+                    NothingDivider()
+                    NothingInfoRow(label = "Android", value = "API ${capabilities.androidVersion}")
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Nothing Device",
+                        value = if (capabilities.isNothingDevice) "Yes" else "No",
+                        valueColor = if (capabilities.isNothingDevice) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
                 // ── Permissions ───────────────────────────────────────────
                 val restrictedMissing = android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -262,83 +264,89 @@ fun SettingsScreen(
             }
 
             NothingSectionHeader(text = "Permissions")
-            PermissionRow(
-                label = "Write Settings",
-                granted = capabilities.hasWriteSettings,
-                onOpenSettings = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-                onOpenAppInfo = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-            )
-            PermissionRow(
-                label = "Notification Policy",
-                granted = capabilities.hasNotificationPolicyAccess,
-                onOpenSettings = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-                onOpenAppInfo = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-            )
-            PermissionRow(
-                label = "Notification Listener",
-                granted = capabilities.hasNotificationListenerAccess,
-                onOpenSettings = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-                onOpenAppInfo = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-            )
-            PermissionRow(
-                label = "Usage Access",
-                granted = capabilities.hasUsageAccess,
-                onOpenSettings = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-                onOpenAppInfo = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-            )
-            PermissionRow(
-                label = "Location",
-                granted = capabilities.hasLocationPermission,
-                isRuntime = true,
-                onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-                onOpenSettings = {
-                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                },
-            )
+            NothingCard {
+                PermissionRow(
+                    label = "Write Settings",
+                    granted = capabilities.hasWriteSettings,
+                    onOpenSettings = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                    onOpenAppInfo = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                )
+                NothingDivider()
+                PermissionRow(
+                    label = "Notification Policy",
+                    granted = capabilities.hasNotificationPolicyAccess,
+                    onOpenSettings = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                    onOpenAppInfo = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                )
+                NothingDivider()
+                PermissionRow(
+                    label = "Notification Listener",
+                    granted = capabilities.hasNotificationListenerAccess,
+                    onOpenSettings = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                    onOpenAppInfo = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                )
+                NothingDivider()
+                PermissionRow(
+                    label = "Usage Access",
+                    granted = capabilities.hasUsageAccess,
+                    onOpenSettings = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                    onOpenAppInfo = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                )
+                NothingDivider()
+                PermissionRow(
+                    label = "Location",
+                    granted = capabilities.hasLocationPermission,
+                    isRuntime = true,
+                    onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                    onOpenSettings = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                )
+            }
 
                 // ── Shizuku ───────────────────────────────────────────────
                 NothingSectionHeader(text = "Shizuku")
-                NothingDivider()
+                NothingCard {
                 val shizukuStatusText = when (shizukuStatus) {
                     ShizukuGatewayStatus.NOT_INSTALLED -> "Not Installed"
                     ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Not Running"
@@ -477,123 +485,130 @@ fun SettingsScreen(
                         modifier = Modifier.padding(top = NothingSpacing.xs),
                     )
                 }
+                }
 
                 // ── Device Admin ──────────────────────────────────────────
                 NothingSectionHeader(text = "Device Admin")
-                DeviceAdminSection(context)
+                NothingCard {
+                    DeviceAdminSection(context)
+                }
 
                 // ── Capabilities ──────────────────────────────────────────
                 NothingSectionHeader(text = "Capabilities")
-                NothingDivider()
-                NothingInfoRow(
-                    label = "Flashlight",
-                    value = if (capabilities.hasFlashlight) "Yes" else "No",
-                    valueColor = if (capabilities.hasFlashlight) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NothingDivider()
-                NothingInfoRow(
-                    label = "Vibration",
-                    value = if (capabilities.hasVibrator) "Yes" else "No",
-                    valueColor = if (capabilities.hasVibrator) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NothingDivider()
-                NothingInfoRow(
-                    label = "Glyph Stripe",
-                    value = if (capabilities.hasGlyphLightStripe) "Yes" else "No",
-                    valueColor = if (capabilities.hasGlyphLightStripe) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NothingDivider()
-                NothingInfoRow(
-                    label = "Glyph Matrix",
-                    value = if (capabilities.hasGlyphMatrix) "Yes" else "No",
-                    valueColor = if (capabilities.hasGlyphMatrix) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                NothingCard {
+                    NothingInfoRow(
+                        label = "Flashlight",
+                        value = if (capabilities.hasFlashlight) "Yes" else "No",
+                        valueColor = if (capabilities.hasFlashlight) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Vibration",
+                        value = if (capabilities.hasVibrator) "Yes" else "No",
+                        valueColor = if (capabilities.hasVibrator) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Glyph Stripe",
+                        value = if (capabilities.hasGlyphLightStripe) "Yes" else "No",
+                        valueColor = if (capabilities.hasGlyphLightStripe) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NothingDivider()
+                    NothingInfoRow(
+                        label = "Glyph Matrix",
+                        value = if (capabilities.hasGlyphMatrix) "Yes" else "No",
+                        valueColor = if (capabilities.hasGlyphMatrix) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
                 // ── Theme ─────────────────────────────────────────────────
                 NothingSectionHeader(text = "Theme")
-                ThemeSection()
+                NothingCard {
+                    ThemeSection()
+                }
 
                 // ── Backup ────────────────────────────────────────────────
                 NothingSectionHeader(text = "Backup")
-                NothingDivider()
-                Text(
-                    text = "Export automations to JSON or import from backup.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                ) {
-                    NothingSecondaryButton(
-                        text = "Export",
-                        onClick = {
-                            viewModel.export()
-                            exportLauncher.launch("nothing-modes-export.json")
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    NothingSecondaryButton(
-                        text = "Import",
-                        onClick = { importLauncher.launch(arrayOf("application/json")) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                importResult?.let { result ->
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingCard {
                     Text(
-                        text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
+                        text = "Export automations to JSON or import from backup.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
-                    result.errors.forEach { error ->
-                        Text(
-                            text = "[ ERROR: $error ]",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NothingColors.accent,
-                            fontFamily = SpaceMono,
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        NothingSecondaryButton(
+                            text = "Export",
+                            onClick = {
+                                viewModel.export()
+                                exportLauncher.launch("nothing-modes-export.json")
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        NothingSecondaryButton(
+                            text = "Import",
+                            onClick = { importLauncher.launch(arrayOf("application/json")) },
+                            modifier = Modifier.weight(1f),
                         )
                     }
-                    NothingGhostButton(
-                        text = "Dismiss",
-                        onClick = { viewModel.clearImportResult() },
-                    )
+                    importResult?.let { result ->
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        Text(
+                            text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                        )
+                        result.errors.forEach { error ->
+                            Text(
+                                text = "[ ERROR: $error ]",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                        NothingGhostButton(
+                            text = "Dismiss",
+                            onClick = { viewModel.clearImportResult() },
+                        )
+                    }
                 }
 
                 // ── Misc ──────────────────────────────────────────────────
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                NothingDivider()
-                NothingGhostButton(
-                    text = "Setup Guide",
-                    onClick = onOnboarding,
-                )
-                NothingDivider()
-                NothingGhostButton(
-                    text = "Glyph Preview",
-                    onClick = onGlyphPreview,
-                )
-                NothingDivider()
+                NothingSectionHeader(text = "More")
+                NothingCard {
+                    NothingListRow(
+                        title = "Setup Guide",
+                        onClick = onOnboarding,
+                    )
+                    NothingDivider()
+                    NothingListRow(
+                        title = "Glyph Preview",
+                        onClick = onGlyphPreview,
+                    )
+                }
 
                 // ── Update ────────────────────────────────────────────────
                 NothingSectionHeader(text = "Update")
-                NothingDivider()
-                UpdateSection(
-                    currentVersion = updateViewModel.currentVersionName(),
-                    updateInfo = updateInfo,
-                    updateStatus = updateStatus,
-                    onCheck = { updateViewModel.checkForUpdate() },
-                    onDownload = { info -> updateViewModel.startDownload(info) },
-                    onInstall = { updateViewModel.installIfReady() },
-                    onGrantPermission = { updateViewModel.openInstallPermissionSettings() },
-                    onDismiss = { updateViewModel.clearUpdate() },
-                )
-                NothingDivider()
+                NothingCard {
+                    UpdateSection(
+                        currentVersion = updateViewModel.currentVersionName(),
+                        updateInfo = updateInfo,
+                        updateStatus = updateStatus,
+                        onCheck = { updateViewModel.checkForUpdate() },
+                        onDownload = { info -> updateViewModel.startDownload(info) },
+                        onInstall = { updateViewModel.installIfReady() },
+                        onGrantPermission = { updateViewModel.openInstallPermissionSettings() },
+                        onDismiss = { updateViewModel.clearUpdate() },
+                    )
+                }
 
                 // ── About ─────────────────────────────────────────────────
                 val packageInfo = remember {
@@ -609,19 +624,20 @@ fun SettingsScreen(
                     packageInfo?.versionCode?.toString() ?: "?"
                 }
                 NothingSectionHeader(text = "About")
-                NothingDivider()
-                NothingInfoRow(label = "Version", value = versionName)
-                NothingDivider()
-                NothingInfoRow(label = "Build", value = versionCode)
-                NothingDivider()
-                NothingInfoRow(label = "Application ID", value = context.packageName)
-                NothingDivider()
-                Text(
-                    text = "Nothing Modes is open-source software released under GPL-3.0.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
-                )
+                NothingCard {
+                    NothingInfoRow(label = "Version", value = versionName)
+                    NothingDivider()
+                    NothingInfoRow(label = "Build", value = versionCode)
+                    NothingDivider()
+                    NothingInfoRow(label = "Application ID", value = context.packageName)
+                    NothingDivider()
+                    Text(
+                        text = "Nothing Modes is open-source software released under GPL-3.0.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = NothingSpacing.md),
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
             }

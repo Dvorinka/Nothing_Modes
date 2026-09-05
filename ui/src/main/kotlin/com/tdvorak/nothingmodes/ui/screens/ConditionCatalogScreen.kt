@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
@@ -37,7 +36,9 @@ import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
@@ -218,21 +219,24 @@ fun ConditionCatalogScreen(
             grouped.forEach { (category, conditions) ->
                 item {
                     NothingSectionHeader(text = category)
-                }
-
-                items(conditions, key = { it.label }) { item ->
-                    val isPicked = item.condition in selected
-                    CatalogListItem(
-                        label = item.label,
-                        icon = item.icon,
-                        picked = isPicked,
-                        onClick = {
-                            selected = if (isPicked) selected - item.condition else selected + item.condition
-                        },
-                    )
-                }
-
-                item {
+                    NothingCard {
+                        conditions.forEachIndexed { index, conditionItem ->
+                            if (index > 0) NothingDivider()
+                            val isPicked = conditionItem.condition in selected
+                            CatalogListItem(
+                                label = conditionItem.label,
+                                icon = conditionItem.icon,
+                                picked = isPicked,
+                                onClick = {
+                                    selected = if (isPicked) {
+                                        selected - conditionItem.condition
+                                    } else {
+                                        selected + conditionItem.condition
+                                    }
+                                },
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
             }
@@ -273,7 +277,7 @@ private fun CatalogListItem(
         selected = picked,
         onClick = onClick,
         leading = {
-            NothingIconCircle(size = 44f) {
+            NothingIconCircle(size = 44f, accent = picked) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,

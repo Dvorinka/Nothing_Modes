@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -136,123 +135,119 @@ fun GlyphPreviewScreen(
             // ── System Glyph Toys integration ──────────────────────────────
             item {
                 NothingSectionHeader(text = "Glyph Toys (system)")
-                NothingDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = NothingSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NothingLabel(text = "System app")
-                    Text(
-                        text = if (systemInstalled) "Found" else "Not found",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (systemInstalled) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                    )
-                }
-                if (!systemInstalled) {
-                    Text(
-                        text = "The Glyph Toys manager is part of Nothing OS. On this device you can still register this app's toy — it appears in the list below.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                    )
-                } else {
+                NothingCard {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = NothingSpacing.sm),
-                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
-                        GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
-                        GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
-                    }
-                    activeAodToy?.let {
+                        NothingLabel(text = "System app")
                         Text(
-                            text = "Always-on toy: $it",
+                            text = if (systemInstalled) "Found" else "Not found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (systemInstalled) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                        )
+                    }
+                    if (!systemInstalled) {
+                        Text(
+                            text = "The Glyph Toys manager is part of Nothing OS. On this device you can still register this app's toy — it appears in the list below.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
-                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                            modifier = Modifier.padding(top = NothingSpacing.sm),
                         )
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = NothingSpacing.md),
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        ) {
+                            GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
+                            GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
+                            GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
+                        }
+                        activeAodToy?.let {
+                            Text(
+                                text = "Always-on toy: $it",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
+                                modifier = Modifier.padding(top = NothingSpacing.sm),
+                            )
+                        }
                     }
                 }
             }
 
             // Live control — the reset the user was missing.
             item {
-                NothingDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = NothingSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        NothingLabel(text = "Glyph output")
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                NothingCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            NothingLabel(text = "Glyph output")
+                            Text(
+                                text = if (viewModel.glyphAvailable) "Hardware detected"
+                                else "No Glyph hardware on this device",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = NothingSpacing.xs),
+                            )
+                        }
                         Text(
-                            text = if (viewModel.glyphAvailable) "Hardware detected"
-                            else "No Glyph hardware on this device",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = NothingSpacing.xs),
+                            text = "TURN OFF",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = NothingColors.accent,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier
+                                .clip(NothingShapes.input)
+                                .clickable(enabled = viewModel.glyphAvailable) {
+                                    viewModel.turnOffNow()
+                                }
+                                .padding(
+                                    horizontal = NothingSpacing.md,
+                                    vertical = NothingSpacing.sm,
+                                ),
                         )
                     }
-                    Text(
-                        text = "TURN OFF",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = NothingColors.accent,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier
-                            .clip(NothingShapes.compact)
-                            .clickable(enabled = viewModel.glyphAvailable) {
-                                viewModel.turnOffNow()
-                            }
-                            .padding(
-                                horizontal = NothingSpacing.md,
-                                vertical = NothingSpacing.sm,
-                            ),
-                    )
                 }
             }
 
             // Registered toys on the system (our app included).
             if (registeredToys.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "REGISTERED TOYS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
-                    )
-                }
-                items(registeredToys) { toy ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = NothingSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = toy.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (toy.isOurs) {
-                            Text(
-                                text = "THIS APP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NothingColors.accent,
-                                fontFamily = SpaceMono,
-                            )
+                    NothingSectionHeader(text = "Registered toys")
+                    NothingCard {
+                        registeredToys.forEachIndexed { index, toy ->
+                            if (index > 0) NothingDivider()
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = NothingSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = toy.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = SpaceMono,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (toy.isOurs) {
+                                    Text(
+                                        text = "THIS APP",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = NothingColors.accent,
+                                        fontFamily = SpaceMono,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -260,23 +255,19 @@ fun GlyphPreviewScreen(
 
             if (systemToys.isNotEmpty()) {
                 item {
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    Text(
-                        text = "SYSTEM TOY TABLE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
-                    )
-                }
-                items(systemToys) { row ->
-                    Text(
-                        text = row,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier.padding(vertical = 2.dp),
-                    )
+                    NothingSectionHeader(text = "System toy table")
+                    NothingCard {
+                        systemToys.forEachIndexed { index, row ->
+                            if (index > 0) NothingDivider()
+                            Text(
+                                text = row,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
+                                modifier = Modifier.padding(vertical = NothingSpacing.xs),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -300,7 +291,7 @@ fun GlyphPreviewScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(5f)
-                            .clip(NothingShapes.compact)
+                            .clip(NothingShapes.input)
                             .background(Color.Black),
                     ) {
                         StripeCanvas(selected)
@@ -445,7 +436,7 @@ private fun GlyphLinkButton(
 ) {
     Box(
         modifier = modifier
-            .clip(NothingShapes.compact)
+            .clip(NothingShapes.input)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() }
             .padding(vertical = NothingSpacing.sm),

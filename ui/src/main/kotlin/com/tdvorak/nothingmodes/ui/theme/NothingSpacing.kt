@@ -21,7 +21,7 @@ object NothingSpacing {
     val xxxl = 64.dp  // page-level vertical rhythm
     val hero = 96.dp  // hero breathing room
 
-    val cardPadding = 16.dp
+    val cardPadding = 20.dp
     val screenPadding = 16.dp
     val sectionGap = 32.dp
     val itemGap = 8.dp

@@ -30,6 +30,7 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -173,23 +174,23 @@ fun AutomationDetailScreen(
                 )
 
                 // Toggle row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = NothingSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NothingLabel(
-                        text = "Enabled",
-                        modifier = Modifier.weight(1f),
-                    )
-                    NothingToggle(
-                        checked = data.enabled,
-                        onCheckedChange = { viewModel.toggleEnabled() },
-                    )
+                NothingCard(modifier = Modifier.padding(top = NothingSpacing.lg)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        NothingLabel(
+                            text = "Enabled",
+                            modifier = Modifier.weight(1f),
+                        )
+                        NothingToggle(
+                            checked = data.enabled,
+                            onCheckedChange = { viewModel.toggleEnabled() },
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+                Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
                 NothingCardLarge {
                     NothingSectionHeader(text = "Trigger")

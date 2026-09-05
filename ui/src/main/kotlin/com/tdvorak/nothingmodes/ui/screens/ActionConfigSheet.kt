@@ -799,8 +799,12 @@ private fun AppPickerField(
         )
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
         androidx.compose.material3.Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.background,
+            shape = NothingShapes.input,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline,
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { showList = !showList },
@@ -846,7 +850,7 @@ private fun AppPickerField(
                 items(filteredApps, key = { it.second }) { (label, pkg) ->
                     androidx.compose.material3.Surface(
                         color = MaterialTheme.colorScheme.surface,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                        shape = NothingShapes.input,
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
                             MaterialTheme.colorScheme.outline,
