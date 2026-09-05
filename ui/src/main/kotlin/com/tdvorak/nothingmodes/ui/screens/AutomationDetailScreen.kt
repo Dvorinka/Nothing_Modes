@@ -21,9 +21,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
@@ -51,11 +55,21 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AutomationDetailViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
     private val store: AutomationStore,
 ) : ViewModel() {
 
     private val _automation = MutableStateFlow<Automation?>(null)
     val automation: StateFlow<Automation?> = _automation.asStateFlow()
+
+    fun runNow() {
+        val current = _automation.value ?: return
+        val intent = Intent(context, AutomationService::class.java).apply {
+            action = AutomationService.ACTION_MANUAL
+            putExtra(AutomationService.EXTRA_MANUAL_ID, current.id.value)
+        }
+        ContextCompat.startForegroundService(context, intent)
+    }
 
     fun load(id: String) {
         viewModelScope.launch {
@@ -113,6 +127,7 @@ fun AutomationDetailScreen(
                 title = "Detail",
                 onBack = onBack,
                 actions = listOf(
+                    TopBarAction("RUN", onClick = { viewModel.runNow() }),
                     TopBarAction("EDIT", onClick = onEdit),
                     TopBarAction("COPY", onClick = { viewModel.duplicate(onBack) }),
                     TopBarAction("DEL", onClick = { viewModel.delete(onBack) }),
