@@ -5,9 +5,15 @@ package com.tdvorak.nothingmodes.engine.model
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 
-@JvmInline @Serializable value class AutomationId(val value: String)
+@JvmInline @Serializable
+value class AutomationId(
+    val value: String,
+)
+
 enum class CreatedBy { LLM, USER, IMPORT }
+
 enum class AutomationStatus { PENDING_APPROVAL, ARMED, DISABLED, NEEDS_REVIEW }
+
 enum class AutomationType { MODE, ROUTINE }
 
 const val AUTOMATION_SCHEMA_VERSION_V1 = 1

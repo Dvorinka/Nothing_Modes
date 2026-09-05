@@ -9,15 +9,18 @@ import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
  * Receives AlarmManager broadcasts and forwards them to AutomationService.
  */
 class AutomationAlarmReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         val automationId = intent.getStringExtra(EXTRA_AUTOMATION_ID) ?: return
         val action = intent.action ?: return
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            this.action = action
-            putExtra(EXTRA_AUTOMATION_ID, automationId)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                this.action = action
+                putExtra(EXTRA_AUTOMATION_ID, automationId)
+            }
         context.startForegroundService(serviceIntent)
     }
 

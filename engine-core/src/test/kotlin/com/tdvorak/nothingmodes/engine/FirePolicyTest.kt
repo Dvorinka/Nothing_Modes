@@ -1,12 +1,12 @@
 package com.tdvorak.nothingmodes.engine
 
+import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.DndMode
-import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.FirePolicy
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -15,17 +15,17 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class FirePolicyTest {
-
-    private fun makeAutomation(cooldownMs: Long = 0) = Automation(
-        id = AutomationId("test-1"),
-        name = "Test",
-        type = AutomationType.ROUTINE,
-        createdBy = CreatedBy.USER,
-        status = AutomationStatus.ARMED,
-        trigger = Trigger.Boot,
-        actions = listOf(Action.SetDnd(DndMode.OFF)),
-        cooldownMs = cooldownMs,
-    )
+    private fun makeAutomation(cooldownMs: Long = 0) =
+        Automation(
+            id = AutomationId("test-1"),
+            name = "Test",
+            type = AutomationType.ROUTINE,
+            createdBy = CreatedBy.USER,
+            status = AutomationStatus.ARMED,
+            trigger = Trigger.Boot,
+            actions = listOf(Action.SetDnd(DndMode.OFF)),
+            cooldownMs = cooldownMs,
+        )
 
     private val bootEvent = TriggerEvent.BootCompleted("e1")
 
@@ -123,6 +123,7 @@ class FirePolicyTest {
     }
 
     private fun assertFalse(value: Boolean) {
-        org.junit.jupiter.api.Assertions.assertFalse(value)
+        org.junit.jupiter.api.Assertions
+            .assertFalse(value)
     }
 }

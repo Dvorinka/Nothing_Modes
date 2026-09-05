@@ -28,11 +28,14 @@ import androidx.core.content.ContextCompat
  * </receiver>
  */
 class ConnectivityReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    @Suppress("ktlint:standard:annotation", "ktlint:standard:trailing-comma-on-declaration-site")
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         when (intent.action) {
             WifiManager.WIFI_STATE_CHANGED_ACTION -> handleWifiState(context, intent)
-            WifiManager.NETWORK_STATE_CHANGED_ACTION,
+            WifiManager.NETWORK_STATE_CHANGED_ACTION -> handleWifiConnected(context)
             @Suppress("DEPRECATION")
             ConnectivityManager.CONNECTIVITY_ACTION -> handleWifiConnected(context)
             BluetoothAdapter.ACTION_STATE_CHANGED -> handleBtState(context, intent)
@@ -52,76 +55,97 @@ class ConnectivityReceiver : BroadcastReceiver() {
         val ssid = getSsid(context, capabilities) ?: return
         Log.d(TAG, "WiFi connected: ssid=$ssid")
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_WIFI_CONNECTED
-            putExtra(EXTRA_WIFI_SSID, ssid)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_WIFI_CONNECTED
+                putExtra(EXTRA_WIFI_SSID, ssid)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
-    private fun handleBtDevice(context: Context, intent: Intent, connected: Boolean) {
-        val device = intent.parcelable<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-        val hasBtConnect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
+    private fun handleBtDevice(
+        context: Context,
+        intent: Intent,
+        connected: Boolean,
+    ) {
+        val device = parcelable<BluetoothDevice>(intent, BluetoothDevice.EXTRA_DEVICE)
+        val hasBtConnect =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
         val name = if (hasBtConnect) runCatching { device?.name }.getOrNull() else null
         val address = if (hasBtConnect) runCatching { device?.address }.getOrNull() else null
         Log.d(TAG, "BT device ${if (connected) "connected" else "disconnected"}")
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_BT_DEVICE
-            putExtra(EXTRA_BT_DEVICE_STATE, if (connected) "connected" else "disconnected")
-            if (name != null) putExtra(EXTRA_BT_DEVICE_NAME, name)
-            if (address != null) putExtra(EXTRA_BT_DEVICE_ADDRESS, address)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_BT_DEVICE
+                putExtra(EXTRA_BT_DEVICE_STATE, if (connected) "connected" else "disconnected")
+                if (name != null) putExtra(EXTRA_BT_DEVICE_NAME, name)
+                if (address != null) putExtra(EXTRA_BT_DEVICE_ADDRESS, address)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
-    private fun handleWifiState(context: Context, intent: Intent) {
+    private fun handleWifiState(
+        context: Context,
+        intent: Intent,
+    ) {
         val state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
-        val wifiEvent = when (state) {
-            WifiManager.WIFI_STATE_ENABLED -> "wifi_enabled"
-            WifiManager.WIFI_STATE_DISABLED -> "wifi_disabled"
-            else -> return
-        }
+        val wifiEvent =
+            when (state) {
+                WifiManager.WIFI_STATE_ENABLED -> "wifi_enabled"
+                WifiManager.WIFI_STATE_DISABLED -> "wifi_disabled"
+                else -> return
+            }
         Log.d(TAG, "WiFi state: $wifiEvent")
 
         // Extract SSID if available for match-based triggers
         val ssid = getSsid(context)
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_CONNECTIVITY
-            putExtra(EXTRA_CONNECTIVITY_TYPE, "wifi")
-            putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
-            if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_CONNECTIVITY
+                putExtra(EXTRA_CONNECTIVITY_TYPE, "wifi")
+                putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
+                if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
-    private fun handleBtState(context: Context, intent: Intent) {
+    private fun handleBtState(
+        context: Context,
+        intent: Intent,
+    ) {
         val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-        val btEvent = when (state) {
-            BluetoothAdapter.STATE_ON -> "bt_enabled"
-            BluetoothAdapter.STATE_OFF -> "bt_disabled"
-            else -> return
-        }
+        val btEvent =
+            when (state) {
+                BluetoothAdapter.STATE_ON -> "bt_enabled"
+                BluetoothAdapter.STATE_OFF -> "bt_disabled"
+                else -> return
+            }
         Log.d(TAG, "BT state: $btEvent")
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_CONNECTIVITY
-            putExtra(EXTRA_CONNECTIVITY_TYPE, "bluetooth")
-            putExtra(EXTRA_CONNECTIVITY_STATE, btEvent)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_CONNECTIVITY
+                putExtra(EXTRA_CONNECTIVITY_TYPE, "bluetooth")
+                putExtra(EXTRA_CONNECTIVITY_STATE, btEvent)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
-    private fun getSsid(context: Context, capabilities: NetworkCapabilities? = null): String? {
+    private fun getSsid(
+        context: Context,
+        capabilities: NetworkCapabilities? = null,
+    ): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val caps = capabilities
-                ?: (context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)
-                    ?.getNetworkCapabilities((context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)?.activeNetwork)
-                ?: return null
+            val caps =
+                capabilities
+                    ?: (context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)
+                        ?.getNetworkCapabilities((context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)?.activeNetwork)
+                    ?: return null
             val wifiInfo = caps.transportInfo as? WifiInfo ?: return null
             return wifiInfo.ssid?.removeSurrounding("\"")
         }
@@ -130,12 +154,15 @@ class ConnectivityReceiver : BroadcastReceiver() {
         return (context.getSystemService(Context.WIFI_SERVICE) as? WifiManager)?.connectionInfo?.ssid?.removeSurrounding("\"")
     }
 
-    private inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? =
+    private inline fun <reified T : Parcelable> parcelable(
+        intent: Intent,
+        key: String,
+    ): T? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableExtra(key, T::class.java)
+            intent.getParcelableExtra(key, T::class.java)
         } else {
             @Suppress("DEPRECATION")
-            getParcelableExtra(key)
+            intent.getParcelableExtra(key)
         }
 
     companion object {

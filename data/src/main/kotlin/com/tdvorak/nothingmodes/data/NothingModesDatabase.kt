@@ -39,22 +39,34 @@ import com.tdvorak.nothingmodes.data.entities.StateSnapshotEntity
 @TypeConverters(Converters::class)
 abstract class NothingModesDatabase : RoomDatabase() {
     abstract fun automationDao(): AutomationDao
+
     abstract fun auditDao(): AuditDao
+
     abstract fun draftDao(): DraftDao
+
     abstract fun executionJournalDao(): ExecutionJournalDao
+
     abstract fun fireClaimDao(): FireClaimDao
+
     abstract fun scheduledTimeAlarmDao(): ScheduledTimeAlarmDao
+
     abstract fun stateSnapshotDao(): StateSnapshotDao
+
     abstract fun modeActivationDao(): ModeActivationDao
 
     companion object {
-        fun build(context: Context, name: String = "nothing_modes.db"): NothingModesDatabase =
-            Room.databaseBuilder(context, NothingModesDatabase::class.java, name)
+        fun build(
+            context: Context,
+            name: String = "nothing_modes.db",
+        ): NothingModesDatabase =
+            Room
+                .databaseBuilder(context, NothingModesDatabase::class.java, name)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
 
         fun inMemory(context: Context): NothingModesDatabase =
-            Room.inMemoryDatabaseBuilder(context, NothingModesDatabase::class.java)
+            Room
+                .inMemoryDatabaseBuilder(context, NothingModesDatabase::class.java)
                 .allowMainThreadQueries()
                 .build()
     }

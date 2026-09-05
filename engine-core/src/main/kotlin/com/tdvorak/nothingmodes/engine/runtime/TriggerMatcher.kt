@@ -1,72 +1,90 @@
 package com.tdvorak.nothingmodes.engine.runtime
 
-import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
-import java.time.DayOfWeek as JavaDayOfWeek
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.DayOfWeek as JavaDayOfWeek
 
 /** Matches a trigger against a fired event. */
 class TriggerMatcher {
+    fun matches(
+        trigger: Trigger,
+        event: TriggerEvent,
+    ): Boolean =
+        when (trigger) {
+            is Trigger.Time -> event is TriggerEvent.TimeFired
 
-    fun matches(trigger: Trigger, event: TriggerEvent): Boolean = when (trigger) {
-        is Trigger.Time -> event is TriggerEvent.TimeFired
+            is Trigger.TimeWindow ->
+                event is TriggerEvent.ModeWindowStart ||
+                    event is TriggerEvent.ModeWindowEnd
 
-        is Trigger.TimeWindow -> event is TriggerEvent.ModeWindowStart ||
-            event is TriggerEvent.ModeWindowEnd
+            is Trigger.Immediate -> event is TriggerEvent.Registered
 
-        is Trigger.Immediate -> event is TriggerEvent.Registered
+            is Trigger.Notification ->
+                event is TriggerEvent.NotificationPosted &&
+                    event.pkg == trigger.pkg &&
+                    (trigger.sender == null || event.sender?.equals(trigger.sender, ignoreCase = true) == true) &&
+                    (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true) &&
+                    (trigger.textMatch == null || event.text?.contains(trigger.textMatch, ignoreCase = true) == true)
 
-        is Trigger.Notification -> event is TriggerEvent.NotificationPosted &&
-            event.pkg == trigger.pkg &&
-            (trigger.sender == null || event.sender?.equals(trigger.sender, ignoreCase = true) == true) &&
-            (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true) &&
-            (trigger.textMatch == null || event.text?.contains(trigger.textMatch, ignoreCase = true) == true)
+            is Trigger.PhoneState ->
+                event is TriggerEvent.PhoneStateChanged &&
+                    event.event == trigger.event &&
+                    (trigger.number == null || event.number == trigger.number) &&
+                    (trigger.textMatch == null || event.smsText?.contains(trigger.textMatch, ignoreCase = true) == true)
 
-        is Trigger.PhoneState -> event is TriggerEvent.PhoneStateChanged &&
-            event.event == trigger.event &&
-            (trigger.number == null || event.number == trigger.number) &&
-            (trigger.textMatch == null || event.smsText?.contains(trigger.textMatch, ignoreCase = true) == true)
+            is Trigger.Connectivity ->
+                event is TriggerEvent.ConnectivityChanged &&
+                    event.medium == trigger.medium &&
+                    event.state == trigger.state &&
+                    (trigger.match == null || event.match?.contains(trigger.match, ignoreCase = true) == true)
 
-        is Trigger.Connectivity -> event is TriggerEvent.ConnectivityChanged &&
-            event.medium == trigger.medium &&
-            event.state == trigger.state &&
-            (trigger.match == null || event.match?.contains(trigger.match, ignoreCase = true) == true)
+            is Trigger.Boot -> event is TriggerEvent.BootCompleted
 
-        is Trigger.Boot -> event is TriggerEvent.BootCompleted
+            is Trigger.BatteryLevel ->
+                event is TriggerEvent.BatteryLevelChanged &&
+                    event.level == trigger.level &&
+                    (trigger.direction == null || matchesDirection(trigger.direction, event))
 
-        is Trigger.BatteryLevel -> event is TriggerEvent.BatteryLevelChanged &&
-            event.level == trigger.level &&
-            (trigger.direction == null || matchesDirection(trigger.direction, event))
+            is Trigger.ScreenStateTrigger ->
+                event is TriggerEvent.ScreenStateChanged &&
+                    event.state == trigger.state
 
-        is Trigger.ScreenStateTrigger -> event is TriggerEvent.ScreenStateChanged &&
-            event.state == trigger.state
+            is Trigger.AppOpened ->
+                event is TriggerEvent.AppForegroundChanged &&
+                    event.inForeground &&
+                    event.pkg == trigger.pkg
 
-        is Trigger.AppOpened -> event is TriggerEvent.AppForegroundChanged &&
-            event.inForeground && event.pkg == trigger.pkg
+            is Trigger.Geofence ->
+                event is TriggerEvent.GeofenceTriggered &&
+                    event.transition == trigger.transition
 
-        is Trigger.Geofence -> event is TriggerEvent.GeofenceTriggered &&
-            event.transition == trigger.transition
+            is Trigger.Manual -> event is TriggerEvent.ManualFired
 
-        is Trigger.Manual -> event is TriggerEvent.ManualFired
+            is Trigger.BluetoothDevice ->
+                event is TriggerEvent.BluetoothDeviceChanged &&
+                    event.state == trigger.state &&
+                    (trigger.deviceName == null || event.deviceName?.equals(trigger.deviceName, ignoreCase = true) == true) &&
+                    (trigger.deviceAddress == null || event.deviceAddress?.equals(trigger.deviceAddress, ignoreCase = true) == true)
 
-        is Trigger.BluetoothDevice -> event is TriggerEvent.BluetoothDeviceChanged &&
-            event.state == trigger.state &&
-            (trigger.deviceName == null || event.deviceName?.equals(trigger.deviceName, ignoreCase = true) == true) &&
-            (trigger.deviceAddress == null || event.deviceAddress?.equals(trigger.deviceAddress, ignoreCase = true) == true)
+            is Trigger.WifiConnected ->
+                event is TriggerEvent.WifiConnectedChanged &&
+                    (trigger.ssid == null || event.ssid?.contains(trigger.ssid, ignoreCase = true) == true)
 
-        is Trigger.WifiConnected -> event is TriggerEvent.WifiConnectedChanged &&
-            (trigger.ssid == null || event.ssid?.contains(trigger.ssid, ignoreCase = true) == true)
-
-        is Trigger.CalendarEvent -> event is TriggerEvent.CalendarEventChanged &&
-            event.direction == trigger.direction &&
-            (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true)
-    }
+            is Trigger.CalendarEvent ->
+                event is TriggerEvent.CalendarEventChanged &&
+                    event.direction == trigger.direction &&
+                    (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true)
+        }
 
     /** Checks if a time trigger should fire on the given day. */
-    fun shouldFireOnDay(trigger: Trigger.Time, dayOfWeek: JavaDayOfWeek): Boolean {
+    fun shouldFireOnDay(
+        trigger: Trigger.Time,
+        dayOfWeek: JavaDayOfWeek,
+    ): Boolean {
         val days = trigger.days ?: return true
         val mapped = dayOfWeek.toEngineDayOfWeek() ?: return true
         return mapped in days
@@ -78,10 +96,11 @@ class TriggerMatcher {
         now: LocalDateTime,
         zone: ZoneId,
     ): Boolean {
-        val dayOk = trigger.days?.let { days ->
-            val mapped = now.dayOfWeek.toEngineDayOfWeek() ?: return@let true
-            mapped in days
-        } ?: true
+        val dayOk =
+            trigger.days?.let { days ->
+                val mapped = now.dayOfWeek.toEngineDayOfWeek() ?: return@let true
+                mapped in days
+            } ?: true
         if (!dayOk) return false
 
         val start = LocalTime.parse(trigger.startLocal, DateTimeFormatter.ofPattern("HH:mm"))
@@ -99,18 +118,20 @@ class TriggerMatcher {
     private fun matchesDirection(
         direction: com.tdvorak.nothingmodes.engine.model.BatteryDirection,
         event: TriggerEvent.BatteryLevelChanged,
-    ): Boolean = when (direction) {
-        com.tdvorak.nothingmodes.engine.model.BatteryDirection.CHARGING_STARTED -> event.isCharging
-        com.tdvorak.nothingmodes.engine.model.BatteryDirection.CHARGING_STOPPED -> !event.isCharging
-    }
+    ): Boolean =
+        when (direction) {
+            com.tdvorak.nothingmodes.engine.model.BatteryDirection.CHARGING_STARTED -> event.isCharging
+            com.tdvorak.nothingmodes.engine.model.BatteryDirection.CHARGING_STOPPED -> !event.isCharging
+        }
 
-    private fun JavaDayOfWeek.toEngineDayOfWeek(): DayOfWeek? = when (this) {
-        JavaDayOfWeek.MONDAY -> DayOfWeek.MONDAY
-        JavaDayOfWeek.TUESDAY -> DayOfWeek.TUESDAY
-        JavaDayOfWeek.WEDNESDAY -> DayOfWeek.WEDNESDAY
-        JavaDayOfWeek.THURSDAY -> DayOfWeek.THURSDAY
-        JavaDayOfWeek.FRIDAY -> DayOfWeek.FRIDAY
-        JavaDayOfWeek.SATURDAY -> DayOfWeek.SATURDAY
-        JavaDayOfWeek.SUNDAY -> DayOfWeek.SUNDAY
-    }
+    private fun JavaDayOfWeek.toEngineDayOfWeek(): DayOfWeek? =
+        when (this) {
+            JavaDayOfWeek.MONDAY -> DayOfWeek.MONDAY
+            JavaDayOfWeek.TUESDAY -> DayOfWeek.TUESDAY
+            JavaDayOfWeek.WEDNESDAY -> DayOfWeek.WEDNESDAY
+            JavaDayOfWeek.THURSDAY -> DayOfWeek.THURSDAY
+            JavaDayOfWeek.FRIDAY -> DayOfWeek.FRIDAY
+            JavaDayOfWeek.SATURDAY -> DayOfWeek.SATURDAY
+            JavaDayOfWeek.SUNDAY -> DayOfWeek.SUNDAY
+        }
 }

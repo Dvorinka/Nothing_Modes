@@ -14,8 +14,10 @@ import com.tdvorak.nothingmodes.engine.model.Transition
  * and dispatches GeofenceTriggered events to AutomationService.
  */
 class GeofenceReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != ACTION_GEOFENCE_TRIGGERED) return
 
         val event = GeofencingEvent.fromIntent(intent)
@@ -28,12 +30,13 @@ class GeofenceReceiver : BroadcastReceiver() {
             return
         }
 
-        val transition = when (event.geofenceTransition) {
-            Geofence.GEOFENCE_TRANSITION_ENTER -> Transition.ENTER
-            Geofence.GEOFENCE_TRANSITION_EXIT -> Transition.EXIT
-            Geofence.GEOFENCE_TRANSITION_DWELL -> Transition.DWELL
-            else -> return
-        }
+        val transition =
+            when (event.geofenceTransition) {
+                Geofence.GEOFENCE_TRANSITION_ENTER -> Transition.ENTER
+                Geofence.GEOFENCE_TRANSITION_EXIT -> Transition.EXIT
+                Geofence.GEOFENCE_TRANSITION_DWELL -> Transition.DWELL
+                else -> return
+            }
         val location = event.triggeringLocation
         val lat = location?.latitude ?: 0.0
         val lng = location?.longitude ?: 0.0
@@ -47,15 +50,22 @@ class GeofenceReceiver : BroadcastReceiver() {
         geofenceIds.forEach { dispatch(context, it, lat, lng, transition) }
     }
 
-    private fun dispatch(context: Context, geofenceId: String, lat: Double, lng: Double, transition: Transition) {
+    private fun dispatch(
+        context: Context,
+        geofenceId: String,
+        lat: Double,
+        lng: Double,
+        transition: Transition,
+    ) {
         Log.d(TAG, "Geofence triggered: id=$geofenceId transition=$transition")
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_GEOFENCE
-            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
-            putExtra(EXTRA_LAT, lat)
-            putExtra(EXTRA_LNG, lng)
-            putExtra(EXTRA_TRANSITION, transition.name)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_GEOFENCE
+                putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+                putExtra(EXTRA_LAT, lat)
+                putExtra(EXTRA_LNG, lng)
+                putExtra(EXTRA_TRANSITION, transition.name)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 

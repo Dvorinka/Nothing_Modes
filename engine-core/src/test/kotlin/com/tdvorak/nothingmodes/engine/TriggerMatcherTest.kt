@@ -17,7 +17,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 class TriggerMatcherTest {
-
     private val matcher = TriggerMatcher()
 
     // --- Time ---
@@ -25,7 +24,13 @@ class TriggerMatcherTest {
     @Test
     fun `Time trigger matches TimeFired event`() {
         val trigger = Trigger.Time(cron = "0 8 * * *", tz = "UTC")
-        val event = TriggerEvent.TimeFired("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"), 1000L)
+        val event =
+            TriggerEvent.TimeFired(
+                "e1",
+                com.tdvorak.nothingmodes.engine.model
+                    .AutomationId("a1"),
+                1000L,
+            )
         assertTrue(matcher.matches(trigger, event))
     }
 
@@ -41,7 +46,12 @@ class TriggerMatcherTest {
     @Test
     fun `Immediate trigger matches Registered event`() {
         val trigger = Trigger.Immediate
-        val event = TriggerEvent.Registered("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"))
+        val event =
+            TriggerEvent.Registered(
+                "e1",
+                com.tdvorak.nothingmodes.engine.model
+                    .AutomationId("a1"),
+            )
         assertTrue(matcher.matches(trigger, event))
     }
 
@@ -57,21 +67,39 @@ class TriggerMatcherTest {
     @Test
     fun `TimeWindow trigger matches ModeWindowStart event`() {
         val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC")
-        val event = TriggerEvent.ModeWindowStart("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"), 1000L)
+        val event =
+            TriggerEvent.ModeWindowStart(
+                "e1",
+                com.tdvorak.nothingmodes.engine.model
+                    .AutomationId("a1"),
+                1000L,
+            )
         assertTrue(matcher.matches(trigger, event))
     }
 
     @Test
     fun `TimeWindow trigger matches ModeWindowEnd event`() {
         val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC")
-        val event = TriggerEvent.ModeWindowEnd("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"), 1000L)
+        val event =
+            TriggerEvent.ModeWindowEnd(
+                "e1",
+                com.tdvorak.nothingmodes.engine.model
+                    .AutomationId("a1"),
+                1000L,
+            )
         assertTrue(matcher.matches(trigger, event))
     }
 
     @Test
     fun `TimeWindow trigger does not match TimeFired event`() {
         val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC")
-        val event = TriggerEvent.TimeFired("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"), 1000L)
+        val event =
+            TriggerEvent.TimeFired(
+                "e1",
+                com.tdvorak.nothingmodes.engine.model
+                    .AutomationId("a1"),
+                1000L,
+            )
         assertFalse(matcher.matches(trigger, event))
     }
 
@@ -273,8 +301,17 @@ class TriggerMatcherTest {
 
     @Test
     fun `Boot trigger does not match TimeFired event`() {
-        assertFalse(matcher.matches(Trigger.Boot,
-            TriggerEvent.TimeFired("e1", com.tdvorak.nothingmodes.engine.model.AutomationId("a1"), 1000L)))
+        assertFalse(
+            matcher.matches(
+                Trigger.Boot,
+                TriggerEvent.TimeFired(
+                    "e1",
+                    com.tdvorak.nothingmodes.engine.model
+                        .AutomationId("a1"),
+                    1000L,
+                ),
+            ),
+        )
     }
 
     // --- BatteryLevel ---

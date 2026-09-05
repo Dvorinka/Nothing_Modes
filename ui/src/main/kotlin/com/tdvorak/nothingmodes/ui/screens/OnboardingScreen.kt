@@ -3,13 +3,10 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,18 +19,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
@@ -43,7 +37,6 @@ import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
-import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
@@ -51,30 +44,32 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import android.provider.Settings as AndroidSettings
 
 @HiltViewModel
-class OnboardingViewModel @Inject constructor(
-    private val shizukuGateway: ShizukuGateway,
-) : ViewModel() {
+class OnboardingViewModel
+    @Inject
+    constructor(
+        private val shizukuGateway: ShizukuGateway,
+    ) : ViewModel() {
+        private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
+        val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
 
-    private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
-    val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
+        private val _shizukuStatus = MutableStateFlow(ShizukuGatewayStatus.NOT_INSTALLED)
+        val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
 
-    private val _shizukuStatus = MutableStateFlow(ShizukuGatewayStatus.NOT_INSTALLED)
-    val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
-
-    fun detect(context: android.content.Context) {
-        viewModelScope.launch {
-            _capabilities.value = CapabilityDetector(context).detect()
-            _shizukuStatus.value = shizukuGateway.status()
+        fun detect(context: android.content.Context) {
+            viewModelScope.launch {
+                _capabilities.value = CapabilityDetector(context).detect()
+                _shizukuStatus.value = shizukuGateway.status()
+            }
         }
     }
-}
 
 @Composable
 fun OnboardingScreen(
@@ -89,28 +84,31 @@ fun OnboardingScreen(
     // Re-detect capabilities every time the screen resumes so permission
     // grants done in system settings are reflected immediately.
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.detect(context)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.detect(context)
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { _ -> viewModel.detect(context) }
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { _ -> viewModel.detect(context) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = NothingSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = NothingSpacing.md),
         ) {
             // Hero — Doto headline, vast gap to content
             Text(
@@ -140,10 +138,12 @@ fun OnboardingScreen(
                         description = "Brightness, screen timeout, system settings.",
                         done = capabilities.hasWriteSettings,
                         onAction = {
-                            context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                data = Uri.parse("package:${context.packageName}")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
                         },
                     )
                     OnboardingStep(
@@ -152,9 +152,11 @@ fun OnboardingScreen(
                         description = "Control Do Not Disturb mode.",
                         done = capabilities.hasNotificationPolicyAccess,
                         onAction = {
-                            context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
                         },
                     )
                     OnboardingStep(
@@ -163,9 +165,11 @@ fun OnboardingScreen(
                         description = "Notification-based triggers.",
                         done = capabilities.hasNotificationListenerAccess,
                         onAction = {
-                            context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
                         },
                     )
                     OnboardingStep(
@@ -174,9 +178,11 @@ fun OnboardingScreen(
                         description = "App-opened triggers.",
                         done = capabilities.hasUsageAccess,
                         onAction = {
-                            context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
                         },
                     )
                     OnboardingStep(
@@ -206,7 +212,9 @@ fun OnboardingScreen(
                         done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
                         onAction = {
                             if (shizukuStatus == ShizukuGatewayStatus.NOT_INSTALLED) {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")))
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")),
+                                )
                             }
                         },
                     )
@@ -217,9 +225,10 @@ fun OnboardingScreen(
             NothingPillButton(
                 text = "Get Started",
                 onClick = onComplete,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = NothingSpacing.lg),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = NothingSpacing.lg),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
         }
@@ -260,9 +269,10 @@ private fun OnboardingStep(
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
                     fontFamily = SpaceMono,
-                    modifier = Modifier
-                        .clickable(onClick = onAction)
-                        .padding(horizontal = NothingSpacing.sm),
+                    modifier =
+                        Modifier
+                            .clickable(onClick = onAction)
+                            .padding(horizontal = NothingSpacing.sm),
                 )
             }
         },

@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ModeActivationDao {
-
     @Insert
     suspend fun insert(entity: ModeActivationEntity): Long
 
@@ -18,8 +17,13 @@ interface ModeActivationDao {
     @Query("SELECT DISTINCT modeId FROM mode_activations WHERE status = 'ACTIVE'")
     suspend fun activeModeIds(): List<String>
 
-    @Query("UPDATE mode_activations SET status = 'DEACTIVATED', deactivatedAtMillis = :atMillis WHERE modeId = :modeId AND status = 'ACTIVE'")
-    suspend fun deactivate(modeId: String, atMillis: Long): Int
+    @Query(
+        "UPDATE mode_activations SET status = 'DEACTIVATED', deactivatedAtMillis = :atMillis WHERE modeId = :modeId AND status = 'ACTIVE'",
+    )
+    suspend fun deactivate(
+        modeId: String,
+        atMillis: Long,
+    ): Int
 
     @Query("SELECT * FROM mode_activations ORDER BY activatedAtMillis DESC LIMIT :limit")
     fun observeRecent(limit: Int = 100): Flow<List<ModeActivationEntity>>

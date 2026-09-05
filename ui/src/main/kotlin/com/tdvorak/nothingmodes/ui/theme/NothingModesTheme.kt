@@ -25,48 +25,50 @@ import androidx.compose.ui.graphics.Color
  */
 
 // ── Dark Mode ────────────────────────────────────────────────────────────────
-private val NothingDark = darkColorScheme(
-    primary = Color(0xFFFFFFFF),       // text-display
-    onPrimary = Color(0xFF000000),     // black
-    secondary = Color(0xFFE8E8E8),     // text-primary
-    onSecondary = Color(0xFF000000),
-    tertiary = Color(0xFFFF3030),      // Nothing Red accent
-    onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFF000000),    // pure black canvas
-    onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF141414),       // card surfaces
-    onSurface = Color(0xFFE8E8E8),     // text-primary on surface
-    surfaceVariant = Color(0xFF1A1A1A),// elevated / raised surfaces
-    onSurfaceVariant = Color(0xFF8A8A8A), // text-secondary
-    outline = Color(0xFF2B2B2B),       // visible borders
-    outlineVariant = Color(0xFF222222),// hairline separators
-    error = Color(0xFFFF3030),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFF3A0A0A),
-    onErrorContainer = Color(0xFFFF3030),
-)
+private val NothingDark =
+    darkColorScheme(
+        primary = Color(0xFFFFFFFF), // text-display
+        onPrimary = Color(0xFF000000), // black
+        secondary = Color(0xFFE8E8E8), // text-primary
+        onSecondary = Color(0xFF000000),
+        tertiary = Color(0xFFFF3030), // Nothing Red accent
+        onTertiary = Color(0xFFFFFFFF),
+        background = Color(0xFF000000), // pure black canvas
+        onBackground = Color(0xFFFFFFFF),
+        surface = Color(0xFF141414), // card surfaces
+        onSurface = Color(0xFFE8E8E8), // text-primary on surface
+        surfaceVariant = Color(0xFF1A1A1A), // elevated / raised surfaces
+        onSurfaceVariant = Color(0xFF8A8A8A), // text-secondary
+        outline = Color(0xFF2B2B2B), // visible borders
+        outlineVariant = Color(0xFF222222), // hairline separators
+        error = Color(0xFFFF3030),
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Color(0xFF3A0A0A),
+        onErrorContainer = Color(0xFFFF3030),
+    )
 
 // ── Light Mode ───────────────────────────────────────────────────────────────
-private val NothingLight = lightColorScheme(
-    primary = Color(0xFF000000),       // text-display (black ink)
-    onPrimary = Color(0xFFFFFFFF),
-    secondary = Color(0xFF1A1A1A),     // text-primary
-    onSecondary = Color(0xFFFFFFFF),
-    tertiary = Color(0xFFFF3030),      // Nothing Red accent
-    onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFFF5F5F5),    // warm off-white
-    onBackground = Color(0xFF000000),
-    surface = Color(0xFFFFFFFF),       // white cards on off-white
-    onSurface = Color(0xFF1A1A1A),     // text-primary
-    surfaceVariant = Color(0xFFF0F0F0),// surface-raised
-    onSurfaceVariant = Color(0xFF666666), // text-secondary
-    outline = Color(0xFFE8E8E8),       // visible borders
-    outlineVariant = Color(0xFFF5F5F5),// subtle separators
-    error = Color(0xFFFF3030),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFF0F0),
-    onErrorContainer = Color(0xFFFF3030),
-)
+private val NothingLight =
+    lightColorScheme(
+        primary = Color(0xFF000000), // text-display (black ink)
+        onPrimary = Color(0xFFFFFFFF),
+        secondary = Color(0xFF1A1A1A), // text-primary
+        onSecondary = Color(0xFFFFFFFF),
+        tertiary = Color(0xFFFF3030), // Nothing Red accent
+        onTertiary = Color(0xFFFFFFFF),
+        background = Color(0xFFF5F5F5), // warm off-white
+        onBackground = Color(0xFF000000),
+        surface = Color(0xFFFFFFFF), // white cards on off-white
+        onSurface = Color(0xFF1A1A1A), // text-primary
+        surfaceVariant = Color(0xFFF0F0F0), // surface-raised
+        onSurfaceVariant = Color(0xFF666666), // text-secondary
+        outline = Color(0xFFE8E8E8), // visible borders
+        outlineVariant = Color(0xFFF5F5F5), // subtle separators
+        error = Color(0xFFFF3030),
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Color(0xFFFFF0F0),
+        onErrorContainer = Color(0xFFFF3030),
+    )
 
 // ── Semantic Colors (identical in both modes) ────────────────────────────────
 object NothingColors {
@@ -94,15 +96,14 @@ fun NothingModesTheme(
  * Theme wrapper that reads the persisted theme mode from [ThemeManager].
  */
 @Composable
-fun NothingModesThemeDynamic(
-    content: @Composable () -> Unit,
-) {
+fun NothingModesThemeDynamic(content: @Composable () -> Unit) {
     val themeManager = ThemeManager.instance
     val mode by themeManager.mode.collectAsState()
-    val isDark = when (mode) {
-        ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeManager.ThemeMode.DARK -> true
-        ThemeManager.ThemeMode.LIGHT -> false
-    }
+    val isDark =
+        when (mode) {
+            ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            ThemeManager.ThemeMode.DARK -> true
+            ThemeManager.ThemeMode.LIGHT -> false
+        }
     NothingModesTheme(darkTheme = isDark, content = content)
 }

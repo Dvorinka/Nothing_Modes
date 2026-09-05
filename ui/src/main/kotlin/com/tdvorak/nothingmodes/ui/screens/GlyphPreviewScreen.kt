@@ -30,68 +30,69 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
+import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
+import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
-import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
-import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
-import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
+import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class GlyphPreviewViewModel @Inject constructor(
-    private val stripeProvider: NothingGlyphProvider,
-    private val matrixProvider: NothingGlyphMatrixProvider,
-) : ViewModel() {
+class GlyphPreviewViewModel
+    @Inject
+    constructor(
+        private val stripeProvider: NothingGlyphProvider,
+        private val matrixProvider: NothingGlyphMatrixProvider,
+    ) : ViewModel() {
+        val glyphAvailable: Boolean
+            get() = stripeProvider.isAvailable() || matrixProvider.isAvailable()
 
-    val glyphAvailable: Boolean
-        get() = stripeProvider.isAvailable() || matrixProvider.isAvailable()
-
-    /** Blank every glyph output — the manual "reset" for stuck text/frames. */
-    fun turnOffNow() {
-        runCatching { stripeProvider.turnOff() }
-        runCatching { matrixProvider.turnOff() }
+        /** Blank every glyph output — the manual "reset" for stuck text/frames. */
+        fun turnOffNow() {
+            runCatching { stripeProvider.turnOff() }
+            runCatching { matrixProvider.turnOff() }
+        }
     }
-}
 
 @Composable
 fun GlyphPreviewScreen(
     onBack: () -> Unit,
     viewModel: GlyphPreviewViewModel = hiltViewModel(),
 ) {
-    val presets = remember {
-        listOf(
-            "Sleep Mode" to GlyphPresets.sleepMode,
-            "Morning" to GlyphPresets.morning,
-            "Work Focus" to GlyphPresets.workFocus,
-            "DND Active" to GlyphPresets.dndActive,
-            "DND Off" to GlyphPresets.dndOff,
-            "Automation Fired" to GlyphPresets.automationFired,
-            "Error" to GlyphPresets.error,
-            "Success" to GlyphPresets.success,
-            "Charging Start" to GlyphPresets.chargingStart,
-            "Charging Complete" to GlyphPresets.chargingComplete,
-            "Incoming Call" to GlyphPresets.incomingCall,
-            "SMS Received" to GlyphPresets.smsReceived,
-            "Timer Fired" to GlyphPresets.timerFired,
-            "Off" to GlyphPresets.off,
-        )
-    }
+    val presets =
+        remember {
+            listOf(
+                "Sleep Mode" to GlyphPresets.sleepMode,
+                "Morning" to GlyphPresets.morning,
+                "Work Focus" to GlyphPresets.workFocus,
+                "DND Active" to GlyphPresets.dndActive,
+                "DND Off" to GlyphPresets.dndOff,
+                "Automation Fired" to GlyphPresets.automationFired,
+                "Error" to GlyphPresets.error,
+                "Success" to GlyphPresets.success,
+                "Charging Start" to GlyphPresets.chargingStart,
+                "Charging Complete" to GlyphPresets.chargingComplete,
+                "Incoming Call" to GlyphPresets.incomingCall,
+                "SMS Received" to GlyphPresets.smsReceived,
+                "Timer Fired" to GlyphPresets.timerFired,
+                "Off" to GlyphPresets.off,
+            )
+        }
     var selected by remember { mutableStateOf<GlyphPresets.GlyphVisual>(GlyphPresets.sleepMode) }
     var selectedName by remember { mutableStateOf("Sleep Mode") }
 
@@ -105,14 +106,15 @@ fun GlyphPreviewScreen(
     // Refresh when the user returns from the system Glyph Toys screens.
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                systemInstalled = toysBridge.isGlyphSystemInstalled()
-                registeredToys = toysBridge.listRegisteredToys()
-                systemToys = toysBridge.listSystemToys()
-                activeAodToy = toysBridge.activeAodToy()
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    systemInstalled = toysBridge.isGlyphSystemInstalled()
+                    registeredToys = toysBridge.listRegisteredToys()
+                    systemToys = toysBridge.listSystemToys()
+                    activeAodToy = toysBridge.activeAodToy()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -125,12 +127,13 @@ fun GlyphPreviewScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(
-                start = NothingSpacing.md,
-                end = NothingSpacing.md,
-                top = NothingSpacing.lg,
-                bottom = NothingSpacing.xxxl,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = NothingSpacing.md,
+                    end = NothingSpacing.md,
+                    top = NothingSpacing.lg,
+                    bottom = NothingSpacing.xxxl,
+                ),
         ) {
             // ── System Glyph Toys integration ──────────────────────────────
             item {
@@ -145,8 +148,12 @@ fun GlyphPreviewScreen(
                         Text(
                             text = if (systemInstalled) "Found" else "Not found",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (systemInstalled) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (systemInstalled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             fontFamily = SpaceMono,
                         )
                     }
@@ -159,9 +166,10 @@ fun GlyphPreviewScreen(
                         )
                     } else {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = NothingSpacing.md),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = NothingSpacing.md),
                             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                         ) {
                             GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
@@ -193,8 +201,12 @@ fun GlyphPreviewScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             NothingLabel(text = "Glyph output")
                             Text(
-                                text = if (viewModel.glyphAvailable) "Hardware detected"
-                                else "No Glyph hardware on this device",
+                                text =
+                                    if (viewModel.glyphAvailable) {
+                                        "Hardware detected"
+                                    } else {
+                                        "No Glyph hardware on this device"
+                                    },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = NothingSpacing.xs),
@@ -205,15 +217,15 @@ fun GlyphPreviewScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = NothingColors.accent,
                             fontFamily = SpaceMono,
-                            modifier = Modifier
-                                .clip(NothingShapes.input)
-                                .clickable(enabled = viewModel.glyphAvailable) {
-                                    viewModel.turnOffNow()
-                                }
-                                .padding(
-                                    horizontal = NothingSpacing.md,
-                                    vertical = NothingSpacing.sm,
-                                ),
+                            modifier =
+                                Modifier
+                                    .clip(NothingShapes.input)
+                                    .clickable(enabled = viewModel.glyphAvailable) {
+                                        viewModel.turnOffNow()
+                                    }.padding(
+                                        horizontal = NothingSpacing.md,
+                                        vertical = NothingSpacing.sm,
+                                    ),
                         )
                     }
                 }
@@ -227,9 +239,10 @@ fun GlyphPreviewScreen(
                         registeredToys.forEachIndexed { index, toy ->
                             if (index > 0) NothingDivider()
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = NothingSpacing.sm),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = NothingSpacing.sm),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
@@ -288,11 +301,12 @@ fun GlyphPreviewScreen(
                 Spacer(modifier = Modifier.height(NothingSpacing.md))
                 NothingCard(borderless = true) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(5f)
-                            .clip(NothingShapes.input)
-                            .background(Color.Black),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(5f)
+                                .clip(NothingShapes.input)
+                                .background(Color.Black),
                     ) {
                         StripeCanvas(selected)
                     }
@@ -350,27 +364,32 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
                 val channelCount = 15
                 val gap = 4f
                 val ledWidth = (w - gap * (channelCount + 1)) / channelCount
-                val litChannels = when {
-                    visual.zone == "A" -> listOf(0)
-                    visual.zone == "B" -> listOf(1)
-                    visual.zone == "C" -> listOf(2, 3, 4, 5)
-                    visual.zone == "D" -> (7..14).toList()
-                    visual.zone == "E" -> listOf(6)
-                    visual.progress != null -> {
-                        val p = visual.progress!!
-                        val count = (channelCount * p / 100).coerceIn(0, channelCount)
-                        (0 until count).toList()
+                val litChannels =
+                    when {
+                        visual.zone == "A" -> listOf(0)
+                        visual.zone == "B" -> listOf(1)
+                        visual.zone == "C" -> listOf(2, 3, 4, 5)
+                        visual.zone == "D" -> (7..14).toList()
+                        visual.zone == "E" -> listOf(6)
+                        visual.progress != null -> {
+                            val p = visual.progress!!
+                            val count = (channelCount * p / 100).coerceIn(0, channelCount)
+                            (0 until count).toList()
+                        }
+                        else -> (0 until channelCount).toList()
                     }
-                    else -> (0 until channelCount).toList()
-                }
                 for (i in 0 until channelCount) {
                     val x = gap + i * (ledWidth + gap)
                     val color = if (i in litChannels) Color.White else Color(0xFF222222)
                     drawRoundRect(
                         color = color,
                         topLeft = Offset(x, gap),
-                        size = androidx.compose.ui.geometry.Size(ledWidth, h - gap * 2),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f),
+                        size =
+                            androidx.compose.ui.geometry
+                                .Size(ledWidth, h - gap * 2),
+                        cornerRadius =
+                            androidx.compose.ui.geometry
+                                .CornerRadius(2f, 2f),
                     )
                 }
             }
@@ -381,20 +400,23 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
                 val matrixColor = visual.color?.let(::intColorToCompose) ?: intColorToCompose(visual.fillColor)
                 for (row in 0 until size) {
                     for (col in 0 until size) {
-                        val lit = when {
-                            visual.color != null -> true
-                            visual.percentFill != null -> {
-                                val pf = visual.percentFill!!
-                                val fillRows = (size * pf / 100)
-                                (size - 1 - row) < fillRows
+                        val lit =
+                            when {
+                                visual.color != null -> true
+                                visual.percentFill != null -> {
+                                    val pf = visual.percentFill!!
+                                    val fillRows = (size * pf / 100)
+                                    (size - 1 - row) < fillRows
+                                }
+                                else -> false
                             }
-                            else -> false
-                        }
                         val color = if (lit) matrixColor else Color(0xFF111111)
                         drawRect(
                             color = color,
                             topLeft = Offset(col * cellW, row * cellH),
-                            size = androidx.compose.ui.geometry.Size(cellW - 1, cellH - 1),
+                            size =
+                                androidx.compose.ui.geometry
+                                    .Size(cellW - 1, cellH - 1),
                         )
                     }
                 }
@@ -406,25 +428,28 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
     }
 }
 
-private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String = when (visual) {
-    is GlyphPresets.GlyphVisual.Stripe -> buildString {
-        visual.zone?.let { append("Zone: $it. ") }
-        if (visual.periodMs > 0) append("Period: ${visual.periodMs}ms. ")
-        if (visual.cycles > 0) append("Cycles: ${visual.cycles}. ")
-        visual.progress?.let { append("Progress: $it%. ") }
-        if (periodMs(visual) == 0 && visual.cycles == 0 && visual.progress == null && visual.zone == null) {
-            append("All channels on.")
-        }
+private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String =
+    when (visual) {
+        is GlyphPresets.GlyphVisual.Stripe ->
+            buildString {
+                visual.zone?.let { append("Zone: $it. ") }
+                if (visual.periodMs > 0) append("Period: ${visual.periodMs}ms. ")
+                if (visual.cycles > 0) append("Cycles: ${visual.cycles}. ")
+                visual.progress?.let { append("Progress: $it%. ") }
+                if (periodMs(visual) == 0 && visual.cycles == 0 && visual.progress == null && visual.zone == null) {
+                    append("All channels on.")
+                }
+            }
+        is GlyphPresets.GlyphVisual.Matrix ->
+            buildString {
+                visual.color?.let { append("Color fill. ") }
+                visual.text?.let { append("Text: $it. ") }
+                visual.scrollingText?.let { append("Scrolling: $it. ") }
+                visual.percentFill?.let { append("Fill: $it%. ") }
+                visual.number?.let { append("Number: $it. ") }
+            }
+        GlyphPresets.GlyphVisual.Off -> "All glyphs off."
     }
-    is GlyphPresets.GlyphVisual.Matrix -> buildString {
-        visual.color?.let { append("Color fill. ") }
-        visual.text?.let { append("Text: $it. ") }
-        visual.scrollingText?.let { append("Scrolling: $it. ") }
-        visual.percentFill?.let { append("Fill: $it%. ") }
-        visual.number?.let { append("Number: $it. ") }
-    }
-    GlyphPresets.GlyphVisual.Off -> "All glyphs off."
-}
 
 private fun periodMs(v: GlyphPresets.GlyphVisual.Stripe) = v.periodMs
 
@@ -435,11 +460,12 @@ private fun GlyphLinkButton(
     onClick: () -> Boolean,
 ) {
     Box(
-        modifier = modifier
-            .clip(NothingShapes.input)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onClick() }
-            .padding(vertical = NothingSpacing.sm),
+        modifier =
+            modifier
+                .clip(NothingShapes.input)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { onClick() }
+                .padding(vertical = NothingSpacing.sm),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -451,9 +477,10 @@ private fun GlyphLinkButton(
     }
 }
 
-private fun intColorToCompose(color: Int): Color = Color(
-    red = ((color shr 16) and 0xFF) / 255f,
-    green = ((color shr 8) and 0xFF) / 255f,
-    blue = (color and 0xFF) / 255f,
-    alpha = ((color shr 24) and 0xFF) / 255f,
-)
+private fun intColorToCompose(color: Int): Color =
+    Color(
+        red = ((color shr 16) and 0xFF) / 255f,
+        green = ((color shr 8) and 0xFF) / 255f,
+        blue = (color and 0xFF) / 255f,
+        alpha = ((color shr 24) and 0xFF) / 255f,
+    )

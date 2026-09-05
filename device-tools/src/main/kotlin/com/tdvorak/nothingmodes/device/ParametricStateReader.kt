@@ -21,23 +21,26 @@ class ParametricStateReader(
 
         val builtins = valid.filterIsInstance<StateQuery.Builtin>()
         if (builtins.isNotEmpty()) {
-            val state = builtinReader.readBounded(
-                keys = builtins.mapTo(linkedSetOf()) { it.key },
-                timeoutMillis = StateQueryPolicy.QUERY_TIMEOUT_MILLIS,
-                maxOutputBytes = StateQueryPolicy.MAX_QUERY_OUTPUT_BYTES,
-            )
+            val state =
+                builtinReader.readBounded(
+                    keys = builtins.mapTo(linkedSetOf()) { it.key },
+                    timeoutMillis = StateQueryPolicy.QUERY_TIMEOUT_MILLIS,
+                    maxOutputBytes = StateQueryPolicy.MAX_QUERY_OUTPUT_BYTES,
+                )
             builtins.forEach { query ->
                 state.values[query.key]?.let { values[query.canonicalId] = it }
             }
         }
 
-        valid.filterNot { it is StateQuery.Builtin || it is StateQuery.DumpsysField }
+        valid
+            .filterNot { it is StateQuery.Builtin || it is StateQuery.DumpsysField }
             .sortedBy(StateQuery::canonicalId)
             .forEach { query ->
                 readSingle(query)?.let { values[query.canonicalId] = it }
             }
 
-        valid.filterIsInstance<StateQuery.DumpsysField>()
+        valid
+            .filterIsInstance<StateQuery.DumpsysField>()
             .groupBy(StateQuery.DumpsysField::service)
             .toSortedMap()
             .forEach { (service, fields) ->
@@ -52,35 +55,41 @@ class ParametricStateReader(
         return values.toMap()
     }
 
-    private suspend fun readSingle(query: StateQuery): String? = when (query) {
-        is StateQuery.Setting -> commandOutput(
-            listOf(SETTINGS, "get", query.namespace.wireName, query.key),
-        )?.let(::normalizeScalar)?.takeUnless { it == SETTINGS_MISSING_VALUE }
-        is StateQuery.SystemProperty -> commandOutput(
-            listOf(GETPROP, query.name),
-        )?.let(::normalizeScalar)
-        is StateQuery.Sysfs -> sysfsResolver(query.path)
-            ?.takeIf(StateQueryPolicy::validSysfsResolvedPath)
-            ?.let { commandOutput(listOf(CAT, it)) }
-            ?.let(::normalizeScalar)
-        is StateQuery.Builtin,
-        is StateQuery.DumpsysField,
-        -> null
-    }
+    private suspend fun readSingle(query: StateQuery): String? =
+        when (query) {
+            is StateQuery.Setting ->
+                commandOutput(
+                    listOf(SETTINGS, "get", query.namespace.wireName, query.key),
+                )?.let(::normalizeScalar)?.takeUnless { it == SETTINGS_MISSING_VALUE }
+            is StateQuery.SystemProperty ->
+                commandOutput(
+                    listOf(GETPROP, query.name),
+                )?.let(::normalizeScalar)
+            is StateQuery.Sysfs ->
+                sysfsResolver(query.path)
+                    ?.takeIf(StateQueryPolicy::validSysfsResolvedPath)
+                    ?.let { commandOutput(listOf(CAT, it)) }
+                    ?.let(::normalizeScalar)
+            is StateQuery.Builtin,
+            is StateQuery.DumpsysField,
+            -> null
+        }
 
-    private suspend fun commandOutput(command: List<String>): String? = try {
-        shell.run(
-            command = command,
-            timeoutMillis = StateQueryPolicy.QUERY_TIMEOUT_MILLIS,
-            maxOutputBytes = StateQueryPolicy.MAX_QUERY_OUTPUT_BYTES,
-        ).takeIf { result ->
-            result.successful && !result.truncated && !result.timedOut
-        }?.stdoutText
-    } catch (error: CancellationException) {
-        throw error
-    } catch (_: Exception) {
-        null
-    }
+    private suspend fun commandOutput(command: List<String>): String? =
+        try {
+            shell
+                .run(
+                    command = command,
+                    timeoutMillis = StateQueryPolicy.QUERY_TIMEOUT_MILLIS,
+                    maxOutputBytes = StateQueryPolicy.MAX_QUERY_OUTPUT_BYTES,
+                ).takeIf { result ->
+                    result.successful && !result.truncated && !result.timedOut
+                }?.stdoutText
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
 
     internal companion object {
         const val SETTINGS = "/system/bin/settings"
@@ -89,29 +98,41 @@ class ParametricStateReader(
         const val DUMPSYS = "/system/bin/dumpsys"
         const val SETTINGS_MISSING_VALUE = "null"
 
-        fun normalizeScalar(raw: String): String? = raw.trim().takeIf { value ->
-            value.isNotEmpty() && value.length <= StateQueryPolicy.MAX_SCALAR_CHARS &&
-                value.none { it.isISOControl() }
-        }
+        fun normalizeScalar(raw: String): String? =
+            raw.trim().takeIf { value ->
+                value.isNotEmpty() &&
+                    value.length <= StateQueryPolicy.MAX_SCALAR_CHARS &&
+                    value.none { it.isISOControl() }
+            }
 
         /** Un campo ambiguo fallisce chiuso: non scegliamo arbitrariamente la prima occorrenza. */
-        fun parseDumpsysField(raw: String, wanted: String): String? = raw.lineSequence()
-            .mapNotNull { line ->
-                val separator = line.indexOf(':')
-                if (separator <= 0) null else {
-                    val key = line.substring(0, separator).trim()
-                    if (!key.equals(wanted, ignoreCase = true)) null
-                    else normalizeScalar(line.substring(separator + 1))
-                }
-            }
-            .toList()
-            .singleOrNull()
+        fun parseDumpsysField(
+            raw: String,
+            wanted: String,
+        ): String? =
+            raw
+                .lineSequence()
+                .mapNotNull { line ->
+                    val separator = line.indexOf(':')
+                    if (separator <= 0) {
+                        null
+                    } else {
+                        val key = line.substring(0, separator).trim()
+                        if (!key.equals(wanted, ignoreCase = true)) {
+                            null
+                        } else {
+                            normalizeScalar(line.substring(separator + 1))
+                        }
+                    }
+                }.toList()
+                .singleOrNull()
 
-        private fun resolveSysfsPath(path: String): String? = runCatching {
-            val root = File("/sys").canonicalFile.toPath()
-            val resolved = File(path).canonicalFile.toPath()
-            resolved.takeIf { it != root && it.startsWith(root) }?.toString()
-        }.getOrNull()
+        private fun resolveSysfsPath(path: String): String? =
+            runCatching {
+                val root = File("/sys").canonicalFile.toPath()
+                val resolved = File(path).canonicalFile.toPath()
+                resolved.takeIf { it != root && it.startsWith(root) }?.toString()
+            }.getOrNull()
     }
 }
 

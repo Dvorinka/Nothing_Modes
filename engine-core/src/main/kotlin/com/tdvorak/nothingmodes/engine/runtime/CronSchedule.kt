@@ -1,14 +1,14 @@
 package com.tdvorak.nothingmodes.engine.runtime
 
-import java.time.DayOfWeek as JavaDayOfWeek
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
 /** Parses 5-field cron expressions and computes the next fire time. */
-class CronSchedule(val expression: String, val zone: ZoneId) {
-
+class CronSchedule(
+    val expression: String,
+    val zone: ZoneId,
+) {
     private val fields: List<Set<Int>> = parse(expression)
 
     /** Next fire time after [after], exclusive.
@@ -38,7 +38,12 @@ class CronSchedule(val expression: String, val zone: ZoneId) {
                 continue
             }
             if (local.dayOfMonth !in fields[2] || local.monthValue !in fields[3] || local.dayOfWeek.value % 7 !in fields[4]) {
-                candidate = candidate.plusDays(1).withHour(0).withMinute(0).truncatedTo(ChronoUnit.DAYS)
+                candidate =
+                    candidate
+                        .plusDays(1)
+                        .withHour(0)
+                        .withMinute(0)
+                        .truncatedTo(ChronoUnit.DAYS)
                 continue
             }
             return candidate
@@ -64,20 +69,34 @@ class CronSchedule(val expression: String, val zone: ZoneId) {
             return parts.mapIndexed { i, field -> parseField(field, i) }
         }
 
-        private fun parseField(field: String, index: Int): Set<Int> {
+        private fun parseField(
+            field: String,
+            index: Int,
+        ): Set<Int> {
             val max = MAX_FIELD[index]
-            val min = if (index == 2) 1 else if (index == 3) 1 else 0
+            val min =
+                if (index == 2) {
+                    1
+                } else if (index == 3) {
+                    1
+                } else {
+                    0
+                }
             val result = mutableSetOf<Int>()
 
             for (part in field.split(",")) {
                 when {
                     part == "*" -> result.addAll(min..max)
                     part.startsWith("*/") -> {
-                        val step = part.substring(2).toIntOrNull()
-                            ?: throw IllegalArgumentException("Invalid step: $part")
+                        val step =
+                            part.substring(2).toIntOrNull()
+                                ?: throw IllegalArgumentException("Invalid step: $part")
                         require(step > 0) { "Step must be positive: $part" }
                         var v = min
-                        while (v <= max) { result.add(v); v += step }
+                        while (v <= max) {
+                            result.add(v)
+                            v += step
+                        }
                     }
                     part.contains("-") -> {
                         val range = part.split("-")
@@ -90,13 +109,17 @@ class CronSchedule(val expression: String, val zone: ZoneId) {
                         result.addAll(start..end)
                     }
                     else -> {
-                        val v = part.toIntOrNull()
-                            ?: throw IllegalArgumentException("Invalid value: $part")
+                        val v =
+                            part.toIntOrNull()
+                                ?: throw IllegalArgumentException("Invalid value: $part")
                         require(v in min..max) { "Value out of bounds: $part" }
                         // Normalize Sunday: cron allows both 0 and 7 for Sunday.
                         // Java DayOfWeek.SUNDAY.value=7, matched as 7%7=0.
-                        if (index == 4 && v == 7) result.add(0)
-                        else result.add(v)
+                        if (index == 4 && v == 7) {
+                            result.add(0)
+                        } else {
+                            result.add(v)
+                        }
                     }
                 }
             }

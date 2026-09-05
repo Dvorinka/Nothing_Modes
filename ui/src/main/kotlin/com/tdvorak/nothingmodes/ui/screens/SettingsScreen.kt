@@ -3,15 +3,8 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.provider.Settings as AndroidSettings
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,23 +23,31 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
+import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
+import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -55,6 +56,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
@@ -63,105 +66,111 @@ import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
-import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
-import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
-import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
-import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
-import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.update.UpdateInfo
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
-import androidx.lifecycle.ViewModelStoreOwner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import android.provider.Settings as AndroidSettings
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: android.content.Context,
-    private val shizukuGateway: ShizukuGateway,
-    private val store: AutomationStore,
-) : ViewModel() {
+class SettingsViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: android.content.Context,
+        private val shizukuGateway: ShizukuGateway,
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val importExportService =
+            ImportExportService(
+                store,
+                appVersion =
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    }.getOrNull().orEmpty(),
+            )
 
-    private val importExportService = ImportExportService(
-        store,
-        appVersion = runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull().orEmpty(),
-    )
+        private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
+        val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
 
-    private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
-    val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()
+        private val _shizukuStatus = MutableStateFlow(ShizukuGatewayStatus.NOT_INSTALLED)
+        val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
 
-    private val _shizukuStatus = MutableStateFlow(ShizukuGatewayStatus.NOT_INSTALLED)
-    val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
+        private val _permissionResult = MutableStateFlow<ShizukuPermissionResult?>(null)
+        val permissionResult: StateFlow<ShizukuPermissionResult?> = _permissionResult.asStateFlow()
 
-    private val _permissionResult = MutableStateFlow<ShizukuPermissionResult?>(null)
-    val permissionResult: StateFlow<ShizukuPermissionResult?> = _permissionResult.asStateFlow()
+        private val _importResult = MutableStateFlow<ImportResult?>(null)
+        val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
 
-    private val _importResult = MutableStateFlow<ImportResult?>(null)
-    val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
+        private val _exportReady = MutableStateFlow<String?>(null)
+        val exportReady: StateFlow<String?> = _exportReady.asStateFlow()
 
-    private val _exportReady = MutableStateFlow<String?>(null)
-    val exportReady: StateFlow<String?> = _exportReady.asStateFlow()
-
-    fun detect(context: android.content.Context) {
-        viewModelScope.launch {
-            _capabilities.value = CapabilityDetector(context).detect()
-            _shizukuStatus.value = shizukuGateway.status()
-        }
-    }
-
-    fun requestShizukuPermission() {
-        viewModelScope.launch {
-            _permissionResult.value = shizukuGateway.requestPermission(rationaleShown = true)
-            _shizukuStatus.value = shizukuGateway.status()
-        }
-    }
-
-    fun export() {
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { importExportService.export() }
-            _exportReady.value = result.json
-        }
-    }
-
-    fun import(json: String) {
-        viewModelScope.launch {
-            _importResult.value = withContext(Dispatchers.IO) { importExportService.import(json) }
-        }
-    }
-
-    fun clearExportReady() { _exportReady.value = null }
-    fun clearImportResult() { _importResult.value = null }
-
-    fun writeExportToFile(uri: Uri) {
-        viewModelScope.launch {
-            val json = _exportReady.value ?: return@launch
-            withContext(Dispatchers.IO) {
-                context.contentResolver.openOutputStream(uri)?.use { output ->
-                    output.write(json.toByteArray(Charsets.UTF_8))
-                }
+        fun detect(context: android.content.Context) {
+            viewModelScope.launch {
+                _capabilities.value = CapabilityDetector(context).detect()
+                _shizukuStatus.value = shizukuGateway.status()
             }
-            clearExportReady()
         }
-    }
 
-    fun readImportFromFile(uri: Uri) {
-        viewModelScope.launch {
-            val json = withContext(Dispatchers.IO) {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    input.readBytes().toString(Charsets.UTF_8)
-                }
+        fun requestShizukuPermission() {
+            viewModelScope.launch {
+                _permissionResult.value = shizukuGateway.requestPermission(rationaleShown = true)
+                _shizukuStatus.value = shizukuGateway.status()
             }
-            if (json != null) import(json)
+        }
+
+        fun export() {
+            viewModelScope.launch {
+                val result = withContext(Dispatchers.IO) { importExportService.export() }
+                _exportReady.value = result.json
+            }
+        }
+
+        fun import(json: String) {
+            viewModelScope.launch {
+                _importResult.value = withContext(Dispatchers.IO) { importExportService.import(json) }
+            }
+        }
+
+        fun clearExportReady() {
+            _exportReady.value = null
+        }
+
+        fun clearImportResult() {
+            _importResult.value = null
+        }
+
+        fun writeExportToFile(uri: Uri) {
+            viewModelScope.launch {
+                val json = _exportReady.value ?: return@launch
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        output.write(json.toByteArray(Charsets.UTF_8))
+                    }
+                }
+                clearExportReady()
+            }
+        }
+
+        fun readImportFromFile(uri: Uri) {
+            viewModelScope.launch {
+                val json =
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            input.readBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+                if (json != null) import(json)
+            }
         }
     }
-}
 
 @Composable
 fun SettingsScreen(
@@ -169,9 +178,10 @@ fun SettingsScreen(
     onOnboarding: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
-    updateViewModel: UpdateViewModel = hiltViewModel(
-        viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner,
-    ),
+    updateViewModel: UpdateViewModel =
+        hiltViewModel(
+            viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner,
+        ),
 ) {
     val context = LocalContext.current
     val caps by viewModel.capabilities.collectAsState()
@@ -185,30 +195,34 @@ fun SettingsScreen(
 
     // Re-detect on resume so permission grants in system settings are reflected.
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.detect(context)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.detect(context)
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { _ -> viewModel.detect(context) }
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { _ -> viewModel.detect(context) }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
-    ) { uri: Uri? ->
-        if (uri != null) viewModel.writeExportToFile(uri)
-    }
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri: Uri? ->
+            if (uri != null) viewModel.writeExportToFile(uri)
+        }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        if (uri != null) viewModel.readImportFromFile(uri)
-    }
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            if (uri != null) viewModel.readImportFromFile(uri)
+        }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -220,461 +234,525 @@ fun SettingsScreen(
         },
     ) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = NothingSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = NothingSpacing.md),
             ) {
-            // Hero — title in Doto
-            Text(
-                text = "SETTINGS",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = com.tdvorak.nothingmodes.ui.theme.Doto,
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            caps?.let { capabilities ->
-                // ── Device ────────────────────────────────────────────────
-                NothingSectionHeader(text = "Device")
-                NothingCard {
-                    NothingInfoRow(label = "Name", value = capabilities.deviceName.ifEmpty { "Unknown" })
-                    NothingDivider()
-                    NothingInfoRow(label = "Model", value = capabilities.deviceModel)
-                    NothingDivider()
-                    NothingInfoRow(label = "Android", value = "API ${capabilities.androidVersion}")
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Nothing Device",
-                        value = if (capabilities.isNothingDevice) "Yes" else "No",
-                        valueColor = if (capabilities.isNothingDevice) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                // ── Permissions ───────────────────────────────────────────
-                val restrictedMissing = android.os.Build.VERSION.SDK_INT >= 33 &&
-                (!capabilities.hasWriteSettings ||
-                    !capabilities.hasNotificationPolicyAccess ||
-                    !capabilities.hasNotificationListenerAccess ||
-                    !capabilities.hasUsageAccess)
-
-            if (restrictedMissing) {
-                RestrictedSettingsGuide(context, capabilities)
-            }
-
-            NothingSectionHeader(text = "Permissions")
-            NothingCard {
-                PermissionRow(
-                    label = "Write Settings",
-                    granted = capabilities.hasWriteSettings,
-                    onOpenSettings = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                    onOpenAppInfo = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
+                // Hero — title in Doto
+                Text(
+                    text = "SETTINGS",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = com.tdvorak.nothingmodes.ui.theme.Doto,
                 )
-                NothingDivider()
-                PermissionRow(
-                    label = "Notification Policy",
-                    granted = capabilities.hasNotificationPolicyAccess,
-                    onOpenSettings = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                    onOpenAppInfo = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                NothingDivider()
-                PermissionRow(
-                    label = "Notification Listener",
-                    granted = capabilities.hasNotificationListenerAccess,
-                    onOpenSettings = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                    onOpenAppInfo = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                NothingDivider()
-                PermissionRow(
-                    label = "Usage Access",
-                    granted = capabilities.hasUsageAccess,
-                    onOpenSettings = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                    onOpenAppInfo = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                NothingDivider()
-                PermissionRow(
-                    label = "Location",
-                    granted = capabilities.hasLocationPermission,
-                    isRuntime = true,
-                    onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-                    onOpenSettings = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-            }
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-                // ── Shizuku ───────────────────────────────────────────────
-                NothingSectionHeader(text = "Shizuku")
-                NothingCard {
-                val shizukuStatusText = when (shizukuStatus) {
-                    ShizukuGatewayStatus.NOT_INSTALLED -> "Not Installed"
-                    ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Not Running"
-                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Not Authorized"
-                    ShizukuGatewayStatus.AUTHORIZED -> "Authorized"
-                    ShizukuGatewayStatus.UNSUPPORTED -> "Unsupported"
-                }
-                val shizukuColor = when (shizukuStatus) {
-                    ShizukuGatewayStatus.AUTHORIZED -> MaterialTheme.colorScheme.primary
-                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> NothingColors.accent
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = NothingSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NothingLabel(text = "Status")
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        NothingStatusDot(color = shizukuColor, size = 6f)
-                        Spacer(modifier = Modifier.padding(end = 6.dp))
-                        Text(
-                            text = shizukuStatusText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = shizukuColor,
-                            fontFamily = SpaceMono,
+                caps?.let { capabilities ->
+                    // ── Device ────────────────────────────────────────────────
+                    NothingSectionHeader(text = "Device")
+                    NothingCard {
+                        NothingInfoRow(label = "Name", value = capabilities.deviceName.ifEmpty { "Unknown" })
+                        NothingDivider()
+                        NothingInfoRow(label = "Model", value = capabilities.deviceModel)
+                        NothingDivider()
+                        NothingInfoRow(label = "Android", value = "API ${capabilities.androidVersion}")
+                        NothingDivider()
+                        NothingInfoRow(
+                            label = "Nothing Device",
+                            value = if (capabilities.isNothingDevice) "Yes" else "No",
+                            valueColor =
+                                if (capabilities.isNothingDevice) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
-                }
-                when (shizukuStatus) {
-                    ShizukuGatewayStatus.NOT_INSTALLED -> {
-                        Text(
-                            text = "1. Install Shizuku. 2. Open it and start the service. 3. Authorize Nothing Modes.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                        )
-                        NothingPillButton(
-                            text = "Download Shizuku APK",
-                            onClick = {
+
+                    // ── Permissions ───────────────────────────────────────────
+                    val restrictedMissing =
+                        android.os.Build.VERSION.SDK_INT >= 33 &&
+                            (
+                                !capabilities.hasWriteSettings ||
+                                    !capabilities.hasNotificationPolicyAccess ||
+                                    !capabilities.hasNotificationListenerAccess ||
+                                    !capabilities.hasUsageAccess
+                            )
+
+                    if (restrictedMissing) {
+                        RestrictedSettingsGuide(context, capabilities)
+                    }
+
+                    NothingSectionHeader(text = "Permissions")
+                    NothingCard {
+                        PermissionRow(
+                            label = "Write Settings",
+                            granted = capabilities.hasWriteSettings,
+                            onOpenSettings = {
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
                                 )
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = NothingSpacing.sm),
+                            onOpenAppInfo = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
                         )
-                        NothingGhostButton(
-                            text = "Get from Play Store",
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
-                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                    )
-                                }.onFailure {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"))
-                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                    )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Notification Policy",
+                            granted = capabilities.hasNotificationPolicyAccess,
+                            onOpenSettings = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                            onOpenAppInfo = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Notification Listener",
+                            granted = capabilities.hasNotificationListenerAccess,
+                            onOpenSettings = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                            onOpenAppInfo = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Usage Access",
+                            granted = capabilities.hasUsageAccess,
+                            onOpenSettings = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                            onOpenAppInfo = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Location",
+                            granted = capabilities.hasLocationPermission,
+                            isRuntime = true,
+                            onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                            onOpenSettings = {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                        )
+                    }
+
+                    // ── Shizuku ───────────────────────────────────────────────
+                    NothingSectionHeader(text = "Shizuku")
+                    NothingCard {
+                        val shizukuStatusText =
+                            when (shizukuStatus) {
+                                ShizukuGatewayStatus.NOT_INSTALLED -> "Not Installed"
+                                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Not Running"
+                                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Not Authorized"
+                                ShizukuGatewayStatus.AUTHORIZED -> "Authorized"
+                                ShizukuGatewayStatus.UNSUPPORTED -> "Unsupported"
+                            }
+                        val shizukuColor =
+                            when (shizukuStatus) {
+                                ShizukuGatewayStatus.AUTHORIZED -> MaterialTheme.colorScheme.primary
+                                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> NothingColors.accent
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = NothingSpacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            NothingLabel(text = "Status")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                NothingStatusDot(color = shizukuColor, size = 6f)
+                                Spacer(modifier = Modifier.padding(end = 6.dp))
+                                Text(
+                                    text = shizukuStatusText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = shizukuColor,
+                                    fontFamily = SpaceMono,
+                                )
+                            }
+                        }
+                        when (shizukuStatus) {
+                            ShizukuGatewayStatus.NOT_INSTALLED -> {
+                                Text(
+                                    text = "1. Install Shizuku. 2. Open it and start the service. 3. Authorize Nothing Modes.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingPillButton(
+                                    text = "Download Shizuku APK",
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingGhostButton(
+                                    text = "Get from Play Store",
+                                    onClick = {
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
+                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                            )
+                                        }.onFailure {
+                                            context.startActivity(
+                                                Intent(
+                                                    Intent.ACTION_VIEW,
+                                                    Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"),
+                                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                            ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> {
+                                Text(
+                                    text = "Shizuku is installed but not running. Open it and start the service, then return here and authorize.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingPillButton(
+                                    text = "Open Shizuku",
+                                    onClick = { openShizuku(context) },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = NothingSpacing.sm),
+                                )
+                            }
+                            ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> {
+                                Text(
+                                    text = "Shizuku is running. Allow Nothing Modes to use it.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingPillButton(
+                                    text = "Authorize",
+                                    onClick = { viewModel.requestShizukuPermission() },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = NothingSpacing.sm),
+                                )
+                            }
+                            ShizukuGatewayStatus.AUTHORIZED -> {
+                                Text(
+                                    text = "Shizuku is active and authorized.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingGhostButton(
+                                    text = "Open Shizuku",
+                                    onClick = { openShizuku(context) },
+                                )
+                            }
+                            ShizukuGatewayStatus.UNSUPPORTED -> {
+                                Text(
+                                    text = "Installed Shizuku is too old (pre-v11). Update Shizuku and try again.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = NothingColors.accent,
+                                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                                )
+                            }
+                        }
+                        permissionResult?.let { result ->
+                            val resultText =
+                                when (result) {
+                                    ShizukuPermissionResult.GRANTED -> "[ GRANTED ]"
+                                    ShizukuPermissionResult.DENIED -> "[ DENIED ]"
+                                    ShizukuPermissionResult.RATIONALE_REQUIRED -> "[ RATIONALE REQUIRED ]"
+                                    ShizukuPermissionResult.UNAVAILABLE -> "[ UNAVAILABLE ]"
                                 }
-                            },
-                        )
-                    }
-                    ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> {
-                        Text(
-                            text = "Shizuku is installed but not running. Open it and start the service, then return here and authorize.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                        )
-                        NothingPillButton(
-                            text = "Open Shizuku",
-                            onClick = { openShizuku(context) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = NothingSpacing.sm),
-                        )
-                    }
-                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> {
-                        Text(
-                            text = "Shizuku is running. Allow Nothing Modes to use it.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                        )
-                        NothingPillButton(
-                            text = "Authorize",
-                            onClick = { viewModel.requestShizukuPermission() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = NothingSpacing.sm),
-                        )
-                    }
-                    ShizukuGatewayStatus.AUTHORIZED -> {
-                        Text(
-                            text = "Shizuku is active and authorized.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                        )
-                        NothingGhostButton(
-                            text = "Open Shizuku",
-                            onClick = { openShizuku(context) },
-                        )
-                    }
-                    ShizukuGatewayStatus.UNSUPPORTED -> {
-                        Text(
-                            text = "Installed Shizuku is too old (pre-v11). Update Shizuku and try again.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = NothingColors.accent,
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                        )
-                    }
-                }
-                permissionResult?.let { result ->
-                    val resultText = when (result) {
-                        ShizukuPermissionResult.GRANTED -> "[ GRANTED ]"
-                        ShizukuPermissionResult.DENIED -> "[ DENIED ]"
-                        ShizukuPermissionResult.RATIONALE_REQUIRED -> "[ RATIONALE REQUIRED ]"
-                        ShizukuPermissionResult.UNAVAILABLE -> "[ UNAVAILABLE ]"
-                    }
-                    val resultColor = when (result) {
-                        ShizukuPermissionResult.GRANTED -> MaterialTheme.colorScheme.primary
-                        else -> NothingColors.accent
-                    }
-                    Text(
-                        text = resultText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = resultColor,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier.padding(top = NothingSpacing.xs),
-                    )
-                }
-                }
-
-                // ── Device Admin ──────────────────────────────────────────
-                NothingSectionHeader(text = "Device Admin")
-                NothingCard {
-                    DeviceAdminSection(context)
-                }
-
-                // ── Capabilities ──────────────────────────────────────────
-                NothingSectionHeader(text = "Capabilities")
-                NothingCard {
-                    NothingInfoRow(
-                        label = "Flashlight",
-                        value = if (capabilities.hasFlashlight) "Yes" else "No",
-                        valueColor = if (capabilities.hasFlashlight) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Vibration",
-                        value = if (capabilities.hasVibrator) "Yes" else "No",
-                        valueColor = if (capabilities.hasVibrator) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Glyph Stripe",
-                        value = if (capabilities.hasGlyphLightStripe) "Yes" else "No",
-                        valueColor = if (capabilities.hasGlyphLightStripe) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NothingDivider()
-                    NothingInfoRow(
-                        label = "Glyph Matrix",
-                        value = if (capabilities.hasGlyphMatrix) "Yes" else "No",
-                        valueColor = if (capabilities.hasGlyphMatrix) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                // ── Theme ─────────────────────────────────────────────────
-                NothingSectionHeader(text = "Theme")
-                NothingCard {
-                    ThemeSection()
-                }
-
-                // ── Backup ────────────────────────────────────────────────
-                NothingSectionHeader(text = "Backup")
-                NothingCard {
-                    Text(
-                        text = "Export automations to JSON or import from backup.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = NothingSpacing.md),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                    ) {
-                        NothingSecondaryButton(
-                            text = "Export",
-                            onClick = {
-                                viewModel.export()
-                                exportLauncher.launch("nothing-modes-export.json")
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        NothingSecondaryButton(
-                            text = "Import",
-                            onClick = { importLauncher.launch(arrayOf("application/json")) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    importResult?.let { result ->
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        Text(
-                            text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
-                        )
-                        result.errors.forEach { error ->
+                            val resultColor =
+                                when (result) {
+                                    ShizukuPermissionResult.GRANTED -> MaterialTheme.colorScheme.primary
+                                    else -> NothingColors.accent
+                                }
                             Text(
-                                text = "[ ERROR: $error ]",
+                                text = resultText,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = NothingColors.accent,
+                                color = resultColor,
                                 fontFamily = SpaceMono,
+                                modifier = Modifier.padding(top = NothingSpacing.xs),
                             )
                         }
-                        NothingGhostButton(
-                            text = "Dismiss",
-                            onClick = { viewModel.clearImportResult() },
+                    }
+
+                    // ── Device Admin ──────────────────────────────────────────
+                    NothingSectionHeader(text = "Device Admin")
+                    NothingCard {
+                        DeviceAdminSection(context)
+                    }
+
+                    // ── Capabilities ──────────────────────────────────────────
+                    NothingSectionHeader(text = "Capabilities")
+                    NothingCard {
+                        NothingInfoRow(
+                            label = "Flashlight",
+                            value = if (capabilities.hasFlashlight) "Yes" else "No",
+                            valueColor =
+                                if (capabilities.hasFlashlight) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                        NothingDivider()
+                        NothingInfoRow(
+                            label = "Vibration",
+                            value = if (capabilities.hasVibrator) "Yes" else "No",
+                            valueColor =
+                                if (capabilities.hasVibrator) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                        NothingDivider()
+                        NothingInfoRow(
+                            label = "Glyph Stripe",
+                            value = if (capabilities.hasGlyphLightStripe) "Yes" else "No",
+                            valueColor =
+                                if (capabilities.hasGlyphLightStripe) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                        NothingDivider()
+                        NothingInfoRow(
+                            label = "Glyph Matrix",
+                            value = if (capabilities.hasGlyphMatrix) "Yes" else "No",
+                            valueColor =
+                                if (capabilities.hasGlyphMatrix) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
-                }
 
-                // ── Misc ──────────────────────────────────────────────────
-                NothingSectionHeader(text = "More")
-                NothingCard {
-                    NothingListRow(
-                        title = "Setup Guide",
-                        onClick = onOnboarding,
-                    )
-                    NothingDivider()
-                    NothingListRow(
-                        title = "Glyph Preview",
-                        onClick = onGlyphPreview,
-                    )
-                }
+                    // ── Theme ─────────────────────────────────────────────────
+                    NothingSectionHeader(text = "Theme")
+                    NothingCard {
+                        ThemeSection()
+                    }
 
-                // ── Update ────────────────────────────────────────────────
-                NothingSectionHeader(text = "Update")
-                NothingCard {
-                    UpdateSection(
-                        currentVersion = updateViewModel.currentVersionName(),
-                        updateInfo = updateInfo,
-                        updateStatus = updateStatus,
-                        onCheck = { updateViewModel.checkForUpdate() },
-                        onDownload = { info -> updateViewModel.startDownload(info) },
-                        onInstall = { updateViewModel.installIfReady() },
-                        onGrantPermission = { updateViewModel.openInstallPermissionSettings() },
-                        onDismiss = { updateViewModel.clearUpdate() },
-                    )
-                }
-
-                // ── About ─────────────────────────────────────────────────
-                val packageInfo = remember {
-                    runCatching {
-                        context.packageManager.getPackageInfo(context.packageName, 0)
-                    }.getOrNull()
-                }
-                val versionName = packageInfo?.versionName ?: "unknown"
-                val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    packageInfo?.longVersionCode?.toString() ?: "?"
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageInfo?.versionCode?.toString() ?: "?"
-                }
-                NothingSectionHeader(text = "About")
-                NothingCardLarge {
-                    NothingInfoRow(label = "Version", value = versionName)
-                    NothingDivider()
-                    NothingInfoRow(label = "Build", value = versionCode)
-                    NothingDivider()
-                    NothingInfoRow(label = "Application ID", value = context.packageName)
-                    NothingDivider()
-                    NothingListRow(
-                        title = "GitHub repository",
-                        subtitle = "View source, report issues, or contribute",
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Dvorinka/Nothing_Modes")).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
-                        },
-                        trailing = {
+                    // ── Backup ────────────────────────────────────────────────
+                    NothingSectionHeader(text = "Backup")
+                    NothingCard {
+                        Text(
+                            text = "Export automations to JSON or import from backup.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = NothingSpacing.md),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        ) {
+                            NothingSecondaryButton(
+                                text = "Export",
+                                onClick = {
+                                    viewModel.export()
+                                    exportLauncher.launch("nothing-modes-export.json")
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            NothingSecondaryButton(
+                                text = "Import",
+                                onClick = { importLauncher.launch(arrayOf("application/json")) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        importResult?.let { result ->
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
                             Text(
-                                text = "OPEN",
+                                text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = NothingColors.accent,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontFamily = SpaceMono,
                             )
-                        },
-                    )
-                    NothingDivider()
-                    Text(
-                        text = "Nothing Modes is open-source software released under GPL-3.0. Built for the Nothing community.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = NothingSpacing.md),
-                    )
-                    NothingPillButton(
-                        text = "Open source license",
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Dvorinka/Nothing_Modes/blob/main/LICENSE")).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
-                        },
-                    )
-                }
+                            result.errors.forEach { error ->
+                                Text(
+                                    text = "[ ERROR: $error ]",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = NothingColors.accent,
+                                    fontFamily = SpaceMono,
+                                )
+                            }
+                            NothingGhostButton(
+                                text = "Dismiss",
+                                onClick = { viewModel.clearImportResult() },
+                            )
+                        }
+                    }
 
-                Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                    // ── Misc ──────────────────────────────────────────────────
+                    NothingSectionHeader(text = "More")
+                    NothingCard {
+                        NothingListRow(
+                            title = "Setup Guide",
+                            onClick = onOnboarding,
+                        )
+                        NothingDivider()
+                        NothingListRow(
+                            title = "Glyph Preview",
+                            onClick = onGlyphPreview,
+                        )
+                    }
+
+                    // ── Update ────────────────────────────────────────────────
+                    if (FeatureFlags.enableInAppUpdates) {
+                        NothingSectionHeader(text = "Update")
+                        NothingCard {
+                            UpdateSection(
+                                currentVersion = updateViewModel.currentVersionName(),
+                                updateInfo = updateInfo,
+                                updateStatus = updateStatus,
+                                onCheck = { updateViewModel.checkForUpdate() },
+                                onDownload = { info -> updateViewModel.startDownload(info) },
+                                onInstall = { updateViewModel.installIfReady() },
+                                onGrantPermission = { updateViewModel.openInstallPermissionSettings() },
+                                onDismiss = { updateViewModel.clearUpdate() },
+                            )
+                        }
+                    }
+
+                    // ── About ─────────────────────────────────────────────────
+                    val packageInfo =
+                        remember {
+                            runCatching {
+                                context.packageManager.getPackageInfo(context.packageName, 0)
+                            }.getOrNull()
+                        }
+                    val versionName = packageInfo?.versionName ?: "unknown"
+                    val versionCode =
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            packageInfo?.longVersionCode?.toString() ?: "?"
+                        } else {
+                            @Suppress("DEPRECATION")
+                            packageInfo?.versionCode?.toString() ?: "?"
+                        }
+                    NothingSectionHeader(text = "About")
+                    NothingCardLarge {
+                        NothingInfoRow(label = "Version", value = versionName)
+                        NothingDivider()
+                        NothingInfoRow(label = "Build", value = versionCode)
+                        NothingDivider()
+                        NothingInfoRow(label = "Application ID", value = context.packageName)
+                        NothingDivider()
+                        NothingListRow(
+                            title = "GitHub repository",
+                            subtitle = "View source, report issues, or contribute",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Dvorinka/Nothing_Modes")).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                            trailing = {
+                                Text(
+                                    text = "OPEN",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = NothingColors.accent,
+                                    fontFamily = SpaceMono,
+                                )
+                            },
+                        )
+                        NothingDivider()
+                        Text(
+                            text = "Nothing Modes is open-source software released under GPL-3.0. Built for the Nothing community.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
+                        NothingPillButton(
+                            text = "Open source license",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://github.com/Dvorinka/Nothing_Modes/blob/main/LICENSE"),
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            },
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                }
             }
         }
     }
-}
 }
 
 @Composable
@@ -689,9 +767,10 @@ private fun UpdateSection(
     onDismiss: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.md),
         verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
     ) {
         Row(
@@ -710,13 +789,15 @@ private fun UpdateSection(
 
         when (updateStatus) {
             UpdateStatus.IDLE,
-            UpdateStatus.UP_TO_DATE -> {
+            UpdateStatus.UP_TO_DATE,
+            -> {
                 NothingPillButton(
                     text = if (updateStatus == UpdateStatus.UP_TO_DATE) "Up to date" else "Check for updates",
                     onClick = onCheck,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = NothingSpacing.sm),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = NothingSpacing.sm),
                 )
             }
             UpdateStatus.CHECKING -> {
@@ -793,9 +874,10 @@ private fun UpdateSection(
 
 /** Launch the Shizuku manager app so the user can start or manage it. */
 private fun openShizuku(context: android.content.Context) {
-    val intent = context.packageManager
-        .getLaunchIntentForPackage("moe.shizuku.privileged.api")
-        ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val intent =
+        context.packageManager
+            .getLaunchIntentForPackage("moe.shizuku.privileged.api")
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     if (intent != null) {
         context.startActivity(intent)
     } else {
@@ -815,9 +897,10 @@ private fun RestrictedSettingsGuide(
     capabilities: DeviceCapabilities,
 ) {
     NothingCardLarge(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = NothingSpacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             NothingRedDot(size = 8f)
@@ -861,10 +944,12 @@ private fun RestrictedSettingsGuide(
         NothingPillButton(
             text = "Open App Info",
             onClick = {
-                context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
+                context.startActivity(
+                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    },
+                )
             },
             modifier = Modifier.fillMaxWidth(),
         )
@@ -904,18 +989,25 @@ private fun PermissionRow(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = if (granted) "MANAGE" else if (isRuntime) "GRANT" else "MANAGE",
+                    text =
+                        if (granted) {
+                            "MANAGE"
+                        } else if (isRuntime) {
+                            "GRANT"
+                        } else {
+                            "MANAGE"
+                        },
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
-                    modifier = Modifier
-                        .clickable {
-                            when {
-                                isRuntime && !granted -> onGrant?.invoke()
-                                onOpenSettings != null -> onOpenSettings()
-                                else -> onOpenAppInfo?.invoke()
-                            }
-                        }
-                        .padding(start = NothingSpacing.sm),
+                    modifier =
+                        Modifier
+                            .clickable {
+                                when {
+                                    isRuntime && !granted -> onGrant?.invoke()
+                                    onOpenSettings != null -> onOpenSettings()
+                                    else -> onOpenAppInfo?.invoke()
+                                }
+                            }.padding(start = NothingSpacing.sm),
                 )
             }
         },
@@ -941,12 +1033,13 @@ private fun ThemeSection() {
 @Composable
 private fun DeviceAdminSection(context: android.content.Context) {
     val dm = remember { context.getSystemService(android.app.admin.DevicePolicyManager::class.java) }
-    val comp = remember {
-        android.content.ComponentName(
-            context.packageName,
-            "com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver",
-        )
-    }
+    val comp =
+        remember {
+            android.content.ComponentName(
+                context.packageName,
+                "com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver",
+            )
+        }
     var isActive by remember { mutableStateOf(dm.isAdminActive(comp)) }
 
     NothingListRow(
@@ -970,11 +1063,12 @@ private fun DeviceAdminSection(context: android.content.Context) {
         },
     )
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) {
-        isActive = dm.isAdminActive(comp)
-    }
+    val launcher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult(),
+        ) {
+            isActive = dm.isAdminActive(comp)
+        }
 
     if (isActive) {
         NothingSecondaryButton(
@@ -983,26 +1077,29 @@ private fun DeviceAdminSection(context: android.content.Context) {
                 dm.removeActiveAdmin(comp)
                 isActive = false
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = NothingSpacing.sm),
         )
     } else {
         NothingSecondaryButton(
             text = "Activate",
             onClick = {
-                val intent = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                    putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
-                    putExtra(
-                        android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                        "Nothing Modes needs device admin to lock the screen via automation.",
-                    )
-                }
+                val intent =
+                    Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                        putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
+                        putExtra(
+                            android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                            "Nothing Modes needs device admin to lock the screen via automation.",
+                        )
+                    }
                 launcher.launch(intent)
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = NothingSpacing.sm),
         )
     }
 }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -78,12 +76,13 @@ fun NothingTimeField(
 ) {
     var open by remember { mutableStateOf(false) }
 
-    val (h, m) = remember(value) {
-        val parts = value.split(":")
-        val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23)
-        val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59)
-        (hour to minute)
-    }
+    val (h, m) =
+        remember(value) {
+            val parts = value.split(":")
+            val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23)
+            val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59)
+            (hour to minute)
+        }
 
     val now = remember { java.time.LocalTime.now() }
     val displayHour = h ?: now.hour
@@ -96,10 +95,11 @@ fun NothingTimeField(
         onClick = { open = true },
     ) {
         Box(
-            modifier = Modifier
-                .clip(NothingShapes.input)
-                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            modifier =
+                Modifier
+                    .clip(NothingShapes.input)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -222,10 +222,11 @@ private fun WheelColumn(
             .collect {
                 val layout = state.layoutInfo
                 val viewportCenter = (WHEEL_ITEM_HEIGHT.value * WHEEL_VISIBLE_COUNT) / 2f
-                val nearest = layout?.visibleItemsInfo?.minByOrNull { item ->
-                    val itemCenter = item.offset + item.size / 2f
-                    kotlin.math.abs(itemCenter - viewportCenter)
-                } ?: return@collect
+                val nearest =
+                    layout?.visibleItemsInfo?.minByOrNull { item ->
+                        val itemCenter = item.offset + item.size / 2f
+                        kotlin.math.abs(itemCenter - viewportCenter)
+                    } ?: return@collect
                 val resolved = (nearest.index - padding).coerceIn(0, count - 1)
                 if (resolved + padding != nearest.index) {
                     state.scrollToItem(resolved + padding)
@@ -238,19 +239,21 @@ private fun WheelColumn(
         derivedStateOf {
             val layout = state.layoutInfo ?: return@derivedStateOf -1
             val viewportCenter = (WHEEL_ITEM_HEIGHT.value * WHEEL_VISIBLE_COUNT) / 2f
-            val nearest = layout.visibleItemsInfo.minByOrNull { item ->
-                val itemCenter = item.offset + item.size / 2f
-                kotlin.math.abs(itemCenter - viewportCenter)
-            }
+            val nearest =
+                layout.visibleItemsInfo.minByOrNull { item ->
+                    val itemCenter = item.offset + item.size / 2f
+                    kotlin.math.abs(itemCenter - viewportCenter)
+                }
             (nearest?.index ?: -1) - padding
         }
     }
 
     Box(
-        modifier = modifier
-            .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
-            .clip(NothingShapes.input)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+        modifier =
+            modifier
+                .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
+                .clip(NothingShapes.input)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
         LazyColumn(
@@ -262,20 +265,25 @@ private fun WheelColumn(
             items(count) { index ->
                 val isSelected = index == currentCenter
                 Box(
-                    modifier = Modifier
-                        .height(WHEEL_ITEM_HEIGHT)
-                        .fillMaxWidth()
-                        .clickable {
-                            scope.launch { state.scrollToItem(index + padding) }
-                            onSelected(index)
-                        },
+                    modifier =
+                        Modifier
+                            .height(WHEEL_ITEM_HEIGHT)
+                            .fillMaxWidth()
+                            .clickable {
+                                scope.launch { state.scrollToItem(index + padding) }
+                                onSelected(index)
+                            },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "%02d".format(index),
                         style = MaterialTheme.typography.headlineSmall,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     )
                 }
@@ -309,10 +317,11 @@ fun NothingDateField(
         onClick = { open = true },
     ) {
         Box(
-            modifier = Modifier
-                .clip(NothingShapes.input)
-                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            modifier =
+                Modifier
+                    .clip(NothingShapes.input)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -367,10 +376,11 @@ fun NothingDatePickerDialog(
                 ) {
                     MonthNavButton(text = "<") { month = month.minusMonths(1) }
                     Text(
-                        text = "%s %d".format(
-                            month.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                            month.year,
-                        ),
+                        text =
+                            "%s %d".format(
+                                month.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                month.year,
+                            ),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -380,9 +390,10 @@ fun NothingDatePickerDialog(
                 Spacer(modifier = Modifier.height(NothingSpacing.md))
 
                 // Weekday header — Monday first.
-                val weekdayLabels = remember {
-                    listOf("M", "T", "W", "T", "F", "S", "S")
-                }
+                val weekdayLabels =
+                    remember {
+                        listOf("M", "T", "W", "T", "F", "S", "S")
+                    }
                 Row(modifier = Modifier.fillMaxWidth()) {
                     weekdayLabels.forEach { label ->
                         Text(
@@ -402,14 +413,16 @@ fun NothingDatePickerDialog(
                 val firstDay = remember(month) { month.atDay(1) }
                 val daysInMonth = remember(month) { month.lengthOfMonth() }
                 // Monday=0 .. Sunday=6
-                val leadingBlanks = remember(month) {
-                    (firstDay.dayOfWeek.value - 1) % 7
-                }
-                val totalCells = remember(month) {
-                    val used = leadingBlanks + daysInMonth
-                    val rows = (used + 6) / 7
-                    rows * 7
-                }
+                val leadingBlanks =
+                    remember(month) {
+                        (firstDay.dayOfWeek.value - 1) % 7
+                    }
+                val totalCells =
+                    remember(month) {
+                        val used = leadingBlanks + daysInMonth
+                        val rows = (used + 6) / 7
+                        rows * 7
+                    }
 
                 val rows = totalCells / 7
                 for (rowIdx in 0 until rows) {
@@ -417,9 +430,12 @@ fun NothingDatePickerDialog(
                         for (col in 0 until 7) {
                             val cellIndex = rowIdx * 7 + col
                             val dayNumber = cellIndex - leadingBlanks + 1
-                            val cellDate = if (dayNumber in 1..daysInMonth) {
-                                month.atDay(dayNumber)
-                            } else null
+                            val cellDate =
+                                if (dayNumber in 1..daysInMonth) {
+                                    month.atDay(dayNumber)
+                                } else {
+                                    null
+                                }
                             DayCell(
                                 date = cellDate,
                                 isSelected = cellDate == selected,
@@ -449,11 +465,12 @@ private fun MonthNavButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(NothingShapes.input)
-            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(36.dp)
+                .clip(NothingShapes.input)
+                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -473,18 +490,20 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = when {
-        isSelected -> MaterialTheme.colorScheme.primary
-        date != null -> MaterialTheme.colorScheme.surfaceVariant
-        else -> Color.Transparent
-    }
+    val bg =
+        when {
+            isSelected -> MaterialTheme.colorScheme.primary
+            date != null -> MaterialTheme.colorScheme.surfaceVariant
+            else -> Color.Transparent
+        }
     Box(
-        modifier = modifier
-            .height(44.dp)
-            .padding(2.dp)
-            .clip(NothingShapes.input)
-            .background(bg)
-            .clickable(enabled = date != null, onClick = onClick),
+        modifier =
+            modifier
+                .height(44.dp)
+                .padding(2.dp)
+                .clip(NothingShapes.input)
+                .background(bg)
+                .clickable(enabled = date != null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (date != null) {
@@ -495,18 +514,23 @@ private fun DayCell(
                 Text(
                     text = "%02d".format(date.dayOfMonth),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface,
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     fontFamily = SpaceMono,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 )
                 if (isToday && !isSelected) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(NothingColors.accent),
+                        modifier =
+                            Modifier
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(NothingColors.accent),
                     )
                 }
             }
@@ -516,18 +540,44 @@ private fun DayCell(
 
 // ── Time Zone Field ───────────────────────────────────────────────────────────
 
-private val COMMON_ZONES: List<String> = listOf(
-    "UTC",
-    "Europe/London", "Europe/Prague", "Europe/Berlin", "Europe/Paris", "Europe/Madrid",
-    "Europe/Rome", "Europe/Amsterdam", "Europe/Warsaw", "Europe/Vienna", "Europe/Stockholm",
-    "Europe/Athens", "Europe/Istanbul", "Europe/Moscow",
-    "Africa/Cairo", "Africa/Johannesburg",
-    "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Asia/Bangkok", "Asia/Singapore",
-    "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Seoul",
-    "Australia/Sydney", "Australia/Perth", "Pacific/Auckland",
-    "America/Sao_Paulo", "America/New_York", "America/Chicago", "America/Denver",
-    "America/Los_Angeles", "America/Toronto", "America/Mexico_City",
-)
+private val COMMON_ZONES: List<String> =
+    listOf(
+        "UTC",
+        "Europe/London",
+        "Europe/Prague",
+        "Europe/Berlin",
+        "Europe/Paris",
+        "Europe/Madrid",
+        "Europe/Rome",
+        "Europe/Amsterdam",
+        "Europe/Warsaw",
+        "Europe/Vienna",
+        "Europe/Stockholm",
+        "Europe/Athens",
+        "Europe/Istanbul",
+        "Europe/Moscow",
+        "Africa/Cairo",
+        "Africa/Johannesburg",
+        "Asia/Dubai",
+        "Asia/Karachi",
+        "Asia/Kolkata",
+        "Asia/Bangkok",
+        "Asia/Singapore",
+        "Asia/Shanghai",
+        "Asia/Hong_Kong",
+        "Asia/Tokyo",
+        "Asia/Seoul",
+        "Australia/Sydney",
+        "Australia/Perth",
+        "Pacific/Auckland",
+        "America/Sao_Paulo",
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+        "America/Toronto",
+        "America/Mexico_City",
+    )
 
 @Composable
 fun NothingTimeZoneField(
@@ -562,10 +612,11 @@ fun NothingTimeZoneField(
 
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
         Box(
-            modifier = Modifier
-                .clip(NothingShapes.technical)
-                .clickable { advanced = !advanced }
-                .padding(vertical = NothingSpacing.xxs),
+            modifier =
+                Modifier
+                    .clip(NothingShapes.technical)
+                    .clickable { advanced = !advanced }
+                    .padding(vertical = NothingSpacing.xxs),
         ) {
             Text(
                 text = if (advanced) "ADVANCED  –" else "ADVANCED  +",
@@ -608,18 +659,21 @@ private fun TimeZonePickerDialog(
     var query by remember { mutableStateOf("") }
     val deviceDefault = remember { ZoneId.systemDefault().id }
 
-    val results: List<String> = remember(query) {
-        if (query.isBlank()) COMMON_ZONES
-        else {
-            val q = query.trim().lowercase(Locale.ENGLISH)
-            ZoneId.getAvailableZoneIds()
-                .asSequence()
-                .filter { it.lowercase(Locale.ENGLISH).contains(q) }
-                .sorted()
-                .take(200)
-                .toList()
+    val results: List<String> =
+        remember(query) {
+            if (query.isBlank()) {
+                COMMON_ZONES
+            } else {
+                val q = query.trim().lowercase(Locale.ENGLISH)
+                ZoneId
+                    .getAvailableZoneIds()
+                    .asSequence()
+                    .filter { it.lowercase(Locale.ENGLISH).contains(q) }
+                    .sorted()
+                    .take(200)
+                    .toList()
+            }
         }
-    }
 
     BasicAlertDialog(onDismissRequest = onDismiss) {
         DialogSurface {
@@ -644,9 +698,10 @@ private fun TimeZonePickerDialog(
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
 
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(280.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
                 ) {
                     if (query.isBlank()) {
                         item {
@@ -692,16 +747,21 @@ private fun ZoneRow(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.md),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface,
+            color =
+                if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
             fontFamily = SpaceMono,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         )
@@ -723,27 +783,34 @@ fun NothingDaySelector(
         DayOfWeek.entries.forEach { day ->
             val isSelected = day in selected
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .then(
-                        if (isSelected) Modifier
-                        else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    )
-                    .clickable {
-                        onChange(
-                            if (isSelected) selected - day else selected + day
-                        )
-                    },
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .then(
+                            if (isSelected) {
+                                Modifier
+                            } else {
+                                Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                            },
+                        ).clickable {
+                            onChange(
+                                if (isSelected) selected - day else selected + day,
+                            )
+                        },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = day.name.take(3).uppercase(Locale.ENGLISH),
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     fontFamily = SpaceMono,
                     textAlign = TextAlign.Center,
                 )
@@ -762,11 +829,12 @@ private fun FieldRow(
     trailing: @Composable () -> Unit,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(NothingShapes.input)
-            .clickable(onClick = onClick)
-            .padding(vertical = NothingSpacing.sm),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(NothingShapes.input)
+                .clickable(onClick = onClick)
+                .padding(vertical = NothingSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {

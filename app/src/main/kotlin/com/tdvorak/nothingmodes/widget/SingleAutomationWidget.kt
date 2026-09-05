@@ -31,8 +31,6 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.tdvorak.nothingmodes.automation.quickactions.QuickActionTrigger
 import com.tdvorak.nothingmodes.engine.model.Automation
-import com.tdvorak.nothingmodes.engine.model.AutomationStatus
-import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import dagger.hilt.EntryPoints
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,8 +38,10 @@ import kotlinx.coroutines.withContext
 private val AutomationIdKey = ActionParameters.Key<String>("automation_id")
 
 class SingleAutomationWidget : GlanceAppWidget() {
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
+    override suspend fun provideGlance(
+        context: Context,
+        id: GlanceId,
+    ) {
         val entryPoint = EntryPoints.get(context.applicationContext, WidgetEntryPoint::class.java)
         val store = entryPoint.automationStore()
 
@@ -50,16 +50,23 @@ class SingleAutomationWidget : GlanceAppWidget() {
         // resolve it from the GlanceId — the GlanceId's toString() does not
         // match and would never find the configured automation.
         val prefs = context.getSharedPreferences("single_widget_prefs", Context.MODE_PRIVATE)
-        val appWidgetId = runCatching {
-            GlanceAppWidgetManager(context).getAppWidgetId(id)
-        }.getOrDefault(AppWidgetManager.INVALID_APPWIDGET_ID)
+        val appWidgetId =
+            runCatching {
+                GlanceAppWidgetManager(context).getAppWidgetId(id)
+            }.getOrDefault(AppWidgetManager.INVALID_APPWIDGET_ID)
         val automationId = prefs.getString("widget_$appWidgetId", null)
 
-        val automation = withContext(Dispatchers.IO) {
-            runCatching {
-                automationId?.let { store.get(com.tdvorak.nothingmodes.engine.model.AutomationId(it)) }
-            }.getOrNull()
-        }
+        val automation =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    automationId?.let {
+                        store.get(
+                            com.tdvorak.nothingmodes.engine.model
+                                .AutomationId(it),
+                        )
+                    }
+                }.getOrNull()
+            }
 
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
 
@@ -70,24 +77,29 @@ class SingleAutomationWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun SingleAutomationWidgetContent(automation: Automation?, launchIntent: Intent?) {
+private fun SingleAutomationWidgetContent(
+    automation: Automation?,
+    launchIntent: Intent?,
+) {
     val accent = ColorProvider(Color(0xFFD71921))
     val surface = ColorProvider(Color(0xFF0D0D0D))
     val onSurface = ColorProvider(Color(0xFFEAEAEA))
     val onSurfaceVariant = ColorProvider(Color(0xFF7E7E7E))
 
     if (automation == null) {
-        val openAppModifier = if (launchIntent != null) {
-            GlanceModifier.clickable(actionStartActivity(launchIntent))
-        } else {
-            GlanceModifier
-        }
+        val openAppModifier =
+            if (launchIntent != null) {
+                GlanceModifier.clickable(actionStartActivity(launchIntent))
+            } else {
+                GlanceModifier
+            }
         Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(surface)
-                .padding(8.dp)
-                .then(openAppModifier),
+            modifier =
+                GlanceModifier
+                    .fillMaxSize()
+                    .background(surface)
+                    .padding(8.dp)
+                    .then(openAppModifier),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -99,26 +111,34 @@ private fun SingleAutomationWidgetContent(automation: Automation?, launchIntent:
     }
 
     Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(surface)
-            .padding(8.dp)
-            .clickable(
-                actionRunCallback<RunSingleAutomationAction>(
-                    actionParametersOf(AutomationIdKey to automation.id.value),
+        modifier =
+            GlanceModifier
+                .fillMaxSize()
+                .background(surface)
+                .padding(8.dp)
+                .clickable(
+                    actionRunCallback<RunSingleAutomationAction>(
+                        actionParametersOf(AutomationIdKey to automation.id.value),
+                    ),
                 ),
-            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Icon circle — first letter of the name (black and white per Nothing aesthetic)
         Text(
-            text = automation.icon.ifBlank { automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?" },
-            style = TextStyle(
-                color = onSurface,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-            ),
+            text =
+                automation.icon.ifBlank {
+                    automation.name
+                        .firstOrNull()
+                        ?.uppercaseChar()
+                        ?.toString() ?: "?"
+                },
+            style =
+                TextStyle(
+                    color = onSurface,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
         )
         Text(
             text = automation.name.ifBlank { "Untitled" },
@@ -129,7 +149,11 @@ private fun SingleAutomationWidgetContent(automation: Automation?, launchIntent:
 }
 
 class RunSingleAutomationAction : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters,
+    ) {
         val id = parameters[AutomationIdKey] ?: return
         QuickActionTrigger.run(context, id)
     }

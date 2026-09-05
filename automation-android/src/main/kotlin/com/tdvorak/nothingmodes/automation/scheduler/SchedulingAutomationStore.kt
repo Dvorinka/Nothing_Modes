@@ -24,9 +24,10 @@ class SchedulingAutomationStore(
     private val delegate: AutomationStore,
     private val scheduler: AutomationScheduler,
 ) : AutomationStore {
-
     override suspend fun get(id: AutomationId): Automation? = delegate.get(id)
+
     override suspend fun armed(): List<Automation> = delegate.armed()
+
     override suspend fun all(): List<Automation> = delegate.all()
 
     override suspend fun save(automation: Automation) {
@@ -49,10 +50,11 @@ class SchedulingAutomationStore(
     }
 
     private fun dispatchRegistered(id: AutomationId) {
-        val intent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_REGISTERED
-            putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
-        }
+        val intent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_REGISTERED
+                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
+            }
         ContextCompat.startForegroundService(context, intent)
     }
 

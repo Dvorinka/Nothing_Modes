@@ -57,6 +57,22 @@ android {
         }
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"github\"")
+            buildConfigField("boolean", "ENABLE_IN_APP_UPDATES", "true")
+            buildConfigField("boolean", "ENABLE_LOCK_SCREEN", "true")
+        }
+        create("play") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"play\"")
+            buildConfigField("boolean", "ENABLE_IN_APP_UPDATES", "false")
+            buildConfigField("boolean", "ENABLE_LOCK_SCREEN", "false")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

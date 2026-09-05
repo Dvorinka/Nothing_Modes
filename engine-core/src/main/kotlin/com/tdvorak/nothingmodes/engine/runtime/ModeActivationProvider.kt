@@ -13,11 +13,25 @@ object NoopModeActivationProvider : ModeActivationProvider {
 
 /** Records mode activation/deactivation lifecycle for state queries. */
 interface ModeActivationSink {
-    suspend fun activate(automationId: AutomationId, atMillis: Long)
-    suspend fun deactivate(automationId: AutomationId, atMillis: Long)
+    suspend fun activate(
+        automationId: AutomationId,
+        atMillis: Long,
+    )
+
+    suspend fun deactivate(
+        automationId: AutomationId,
+        atMillis: Long,
+    )
 }
 
 object NoopModeActivationSink : ModeActivationSink {
-    override suspend fun activate(automationId: AutomationId, atMillis: Long) = Unit
-    override suspend fun deactivate(automationId: AutomationId, atMillis: Long) = Unit
+    override suspend fun activate(
+        automationId: AutomationId,
+        atMillis: Long,
+    ) = Unit
+
+    override suspend fun deactivate(
+        automationId: AutomationId,
+        atMillis: Long,
+    ) = Unit
 }

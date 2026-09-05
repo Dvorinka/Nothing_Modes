@@ -24,230 +24,302 @@ class DeviceToolsTest {
     lateinit var temporaryDirectory: Path
 
     @Test
-    fun `typed actions map to direct argv without a command shell`() = runTest {
-        val shell = RecordingShell()
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
+    fun `typed actions map to direct argv without a command shell`() =
+        runTest {
+            val shell = RecordingShell()
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
 
-        tools.setWifi(true, EXECUTION_ID, PRIORITY)
-        tools.setWifi(false, EXECUTION_ID, PRIORITY)
-        tools.setBluetooth(true, EXECUTION_ID, PRIORITY)
-        tools.setMobileData(true, EXECUTION_ID, PRIORITY)
-        tools.setMobileData(false, EXECUTION_ID, PRIORITY)
-        tools.setDnd(DndMode.OFF, EXECUTION_ID, PRIORITY)
-        tools.setDnd(DndMode.PRIORITY, EXECUTION_ID, PRIORITY)
-        tools.setDnd(DndMode.TOTAL, EXECUTION_ID, PRIORITY)
-        tools.setDarkMode(NightMode.OFF, EXECUTION_ID, PRIORITY)
-        tools.setDarkMode(NightMode.ON, EXECUTION_ID, PRIORITY)
-        tools.setDarkMode(NightMode.AUTO, EXECUTION_ID, PRIORITY)
-        tools.setRinger(RingerMode.VIBRATE, EXECUTION_ID, PRIORITY)
-        tools.launchApp("com.example.app", EXECUTION_ID, PRIORITY)
-        tools.openUrl("https://example.com/a?q=uno%20due", EXECUTION_ID, PRIORITY)
-        tools.tap(123, 456, EXECUTION_ID, PRIORITY)
-        tools.inputText("ciao mondo", EXECUTION_ID, PRIORITY)
-        tools.writeSetting(SettingNamespace.SECURE, "adb_enabled", "1", EXECUTION_ID, PRIORITY)
+            tools.setWifi(true, EXECUTION_ID, PRIORITY)
+            tools.setWifi(false, EXECUTION_ID, PRIORITY)
+            tools.setBluetooth(true, EXECUTION_ID, PRIORITY)
+            tools.setMobileData(true, EXECUTION_ID, PRIORITY)
+            tools.setMobileData(false, EXECUTION_ID, PRIORITY)
+            tools.setDnd(DndMode.OFF, EXECUTION_ID, PRIORITY)
+            tools.setDnd(DndMode.PRIORITY, EXECUTION_ID, PRIORITY)
+            tools.setDnd(DndMode.TOTAL, EXECUTION_ID, PRIORITY)
+            tools.setDarkMode(NightMode.OFF, EXECUTION_ID, PRIORITY)
+            tools.setDarkMode(NightMode.ON, EXECUTION_ID, PRIORITY)
+            tools.setDarkMode(NightMode.AUTO, EXECUTION_ID, PRIORITY)
+            tools.setRinger(RingerMode.VIBRATE, EXECUTION_ID, PRIORITY)
+            tools.launchApp("com.example.app", EXECUTION_ID, PRIORITY)
+            tools.openUrl("https://example.com/a?q=uno%20due", EXECUTION_ID, PRIORITY)
+            tools.tap(123, 456, EXECUTION_ID, PRIORITY)
+            tools.inputText("ciao mondo", EXECUTION_ID, PRIORITY)
+            tools.writeSetting(SettingNamespace.SECURE, "adb_enabled", "1", EXECUTION_ID, PRIORITY)
 
-        assertEquals(
-            listOf(
-                listOf("/system/bin/svc", "wifi", "enable"),
-                listOf("/system/bin/svc", "wifi", "disable"),
-                listOf("/system/bin/svc", "bluetooth", "enable"),
-                listOf("/system/bin/svc", "data", "enable"),
-                listOf("/system/bin/svc", "data", "disable"),
-                listOf("/system/bin/cmd", "notification", "set_dnd", "all"),
-                listOf("/system/bin/cmd", "notification", "set_dnd", "priority"),
-                listOf("/system/bin/cmd", "notification", "set_dnd", "none"),
-                listOf("/system/bin/cmd", "uimode", "night", "no"),
-                listOf("/system/bin/cmd", "uimode", "night", "yes"),
-                listOf("/system/bin/cmd", "uimode", "night", "auto"),
-                listOf("/system/bin/cmd", "audio", "set-ringer-mode", "VIBRATE"),
+            assertEquals(
                 listOf(
-                    "/system/bin/am",
-                    "start",
-                    "--user",
-                    "current",
-                    "-a",
-                    "android.intent.action.MAIN",
-                    "-c",
-                    "android.intent.category.LAUNCHER",
-                    "-p",
-                    "com.example.app",
+                    listOf("/system/bin/svc", "wifi", "enable"),
+                    listOf("/system/bin/svc", "wifi", "disable"),
+                    listOf("/system/bin/svc", "bluetooth", "enable"),
+                    listOf("/system/bin/svc", "data", "enable"),
+                    listOf("/system/bin/svc", "data", "disable"),
+                    listOf("/system/bin/cmd", "notification", "set_dnd", "all"),
+                    listOf("/system/bin/cmd", "notification", "set_dnd", "priority"),
+                    listOf("/system/bin/cmd", "notification", "set_dnd", "none"),
+                    listOf("/system/bin/cmd", "uimode", "night", "no"),
+                    listOf("/system/bin/cmd", "uimode", "night", "yes"),
+                    listOf("/system/bin/cmd", "uimode", "night", "auto"),
+                    listOf("/system/bin/cmd", "audio", "set-ringer-mode", "VIBRATE"),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.MAIN",
+                        "-c",
+                        "android.intent.category.LAUNCHER",
+                        "-p",
+                        "com.example.app",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.VIEW",
+                        "-d",
+                        "https://example.com/a?q=uno%20due",
+                    ),
+                    listOf("/system/bin/input", "tap", "123", "456"),
+                    listOf("/system/bin/input", "text", "ciao mondo"),
+                    listOf("/system/bin/settings", "put", "secure", "adb_enabled", "1"),
                 ),
-                listOf(
-                    "/system/bin/am",
-                    "start",
-                    "--user",
-                    "current",
-                    "-a",
-                    "android.intent.action.VIEW",
-                    "-d",
-                    "https://example.com/a?q=uno%20due",
-                ),
-                listOf("/system/bin/input", "tap", "123", "456"),
-                listOf("/system/bin/input", "text", "ciao mondo"),
-                listOf("/system/bin/settings", "put", "secure", "adb_enabled", "1"),
-            ),
-            shell.calls.map { it.command },
-        )
-        assertEquals(setOf(EXECUTION_ID.value), shell.calls.mapNotNull { it.executionId }.toSet())
-        assertEquals(setOf(PRIORITY), shell.calls.map { it.priority }.toSet())
-        assertFalse(shell.calls.any { it.command.firstOrNull() in setOf("sh", "/system/bin/sh") })
-    }
-
-    @Test
-    fun `activity-launch actions map to am start argv so they survive background execution`() = runTest {
-        val shell = RecordingShell()
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
-
-        tools.setAlarm(10, 53, label = null, skipUi = true, EXECUTION_ID, PRIORITY)
-        tools.setAlarm(7, 5, label = "Sveglia", skipUi = false, EXECUTION_ID, PRIORITY)
-        tools.setTimer(600, label = null, skipUi = true, EXECUTION_ID, PRIORITY)
-        tools.setTimer(90, label = "Pasta", skipUi = true, EXECUTION_ID, PRIORITY)
-        tools.openSettingsScreen(SettingsScreen.WIFI, pkg = null, EXECUTION_ID, PRIORITY)
-        tools.openSettingsScreen(SettingsScreen.APP_DETAILS, pkg = "com.example.app", EXECUTION_ID, PRIORITY)
-
-        assertEquals(
-            listOf(
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.intent.action.SET_ALARM",
-                    "--ei", "android.intent.extra.alarm.HOUR", "10",
-                    "--ei", "android.intent.extra.alarm.MINUTES", "53",
-                    "--ez", "android.intent.extra.alarm.SKIP_UI", "true",
-                ),
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.intent.action.SET_ALARM",
-                    "--ei", "android.intent.extra.alarm.HOUR", "7",
-                    "--ei", "android.intent.extra.alarm.MINUTES", "5",
-                    "--ez", "android.intent.extra.alarm.SKIP_UI", "false",
-                    "--es", "android.intent.extra.alarm.MESSAGE", "Sveglia",
-                ),
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.intent.action.SET_TIMER",
-                    "--ei", "android.intent.extra.alarm.LENGTH", "600",
-                    "--ez", "android.intent.extra.alarm.SKIP_UI", "true",
-                ),
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.intent.action.SET_TIMER",
-                    "--ei", "android.intent.extra.alarm.LENGTH", "90",
-                    "--ez", "android.intent.extra.alarm.SKIP_UI", "true",
-                    "--es", "android.intent.extra.alarm.MESSAGE", "Pasta",
-                ),
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.settings.WIFI_SETTINGS",
-                ),
-                listOf(
-                    "/system/bin/am", "start", "--user", "current",
-                    "-a", "android.settings.APPLICATION_DETAILS_SETTINGS",
-                    "-d", "package:com.example.app",
-                ),
-            ),
-            shell.calls.map { it.command },
-        )
-        assertFalse(shell.calls.any { it.command.firstOrNull() in setOf("sh", "/system/bin/sh") })
-    }
-
-    @Test
-    fun `invalid activity-launch values never reach privileged transport`() = runTest {
-        val shell = RecordingShell()
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
-
-        assertFailsWith<IllegalArgumentException> { tools.setAlarm(24, 0, null, true, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.setAlarm(0, 60, null, true, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.setAlarm(6, 0, "riga\nnuova", true, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.setTimer(0, null, true, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.setTimer(90_000, null, true, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> {
-            tools.openSettingsScreen(SettingsScreen.APP_DETAILS, "bad package", EXECUTION_ID)
-        }
-        assertEquals(emptyList(), shell.calls)
-    }
-
-    @Test
-    fun `invalid external values never reach privileged transport`() = runTest {
-        val shell = RecordingShell()
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
-
-        assertFailsWith<IllegalArgumentException> { tools.launchApp("bad package", EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> {
-            tools.openUrl("javascript:alert(1)", EXECUTION_ID)
-        }
-        assertFailsWith<IllegalArgumentException> { tools.tap(-1, 2, EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.inputText("riga\nnuova", EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> { tools.inputText("letterale %s", EXECUTION_ID) }
-        assertFailsWith<IllegalArgumentException> {
-            tools.writeSetting(SettingNamespace.SECURE, "bad key", "1", EXECUTION_ID)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            tools.writeSetting(SettingNamespace.SECURE, "adb_enabled", "x\nnewline", EXECUTION_ID)
-        }
-        assertEquals(emptyList(), shell.calls)
-    }
-
-    @Test
-    fun `capture and dump use capped file transport validate payload and clean temp files`() = runTest {
-        val png = byteArrayOf(
-            0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3,
-        )
-        val xml = """
-            prefix
-            <?xml version="1.0"?><displays><display><window><hierarchy><node /></hierarchy></window></display></displays>
-            suffix
-        """.trimIndent()
-        val shell = RecordingShell(fileHandler = { command, destination ->
-            destination.writeBytes(
-                if (command.first() == "/system/bin/screencap") png else xml.toByteArray(),
+                shell.calls.map { it.command },
             )
-            ShellResult(0)
-        })
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
-
-        assertContentEquals(png, tools.capture())
-        assertEquals(
-            "<?xml version=\"1.0\"?><displays><display><window><hierarchy><node /></hierarchy>" +
-                "</window></display></displays>",
-            tools.dumpUi(),
-        )
-        assertEquals(emptyList(), temporaryDirectory.listDirectoryEntries())
-        assertEquals(listOf("/system/bin/screencap", "-p"), shell.calls[0].command)
-        val remotePath = shell.calls[1].command.last()
-        assertEquals("/system/bin/uiautomator", shell.calls[1].command.first())
-        assertEquals(
-            listOf("dump", "--compressed", "--windows"),
-            shell.calls[1].command.drop(1).dropLast(1),
-        )
-        assertEquals(listOf("/system/bin/cat", remotePath), shell.calls[2].command)
-        assertEquals(listOf("/system/bin/rm", "-f", remotePath), shell.calls[3].command)
-        assertFalse(shell.calls.any { "/dev/tty" in it.command })
-    }
+            assertEquals(setOf(EXECUTION_ID.value), shell.calls.mapNotNull { it.executionId }.toSet())
+            assertEquals(setOf(PRIORITY), shell.calls.map { it.priority }.toSet())
+            assertFalse(shell.calls.any { it.command.firstOrNull() in setOf("sh", "/system/bin/sh") })
+        }
 
     @Test
-    fun `tool failures expose a stable code and not privileged stderr`() = runTest {
-        val shell = RecordingShell(result = ShellResult(1, stderr = "sensitive".toByteArray()))
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
+    fun `activity-launch actions map to am start argv so they survive background execution`() =
+        runTest {
+            val shell = RecordingShell()
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
 
-        val error = assertFailsWith<DeviceToolException> { tools.setWifi(true, EXECUTION_ID) }
+            tools.setAlarm(10, 53, label = null, skipUi = true, EXECUTION_ID, PRIORITY)
+            tools.setAlarm(7, 5, label = "Sveglia", skipUi = false, EXECUTION_ID, PRIORITY)
+            tools.setTimer(600, label = null, skipUi = true, EXECUTION_ID, PRIORITY)
+            tools.setTimer(90, label = "Pasta", skipUi = true, EXECUTION_ID, PRIORITY)
+            tools.openSettingsScreen(SettingsScreen.WIFI, pkg = null, EXECUTION_ID, PRIORITY)
+            tools.openSettingsScreen(SettingsScreen.APP_DETAILS, pkg = "com.example.app", EXECUTION_ID, PRIORITY)
 
-        assertEquals("set_wifi_failed", error.code)
-        assertFalse(error.message.orEmpty().contains("sensitive"))
-    }
+            assertEquals(
+                listOf(
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.SET_ALARM",
+                        "--ei",
+                        "android.intent.extra.alarm.HOUR",
+                        "10",
+                        "--ei",
+                        "android.intent.extra.alarm.MINUTES",
+                        "53",
+                        "--ez",
+                        "android.intent.extra.alarm.SKIP_UI",
+                        "true",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.SET_ALARM",
+                        "--ei",
+                        "android.intent.extra.alarm.HOUR",
+                        "7",
+                        "--ei",
+                        "android.intent.extra.alarm.MINUTES",
+                        "5",
+                        "--ez",
+                        "android.intent.extra.alarm.SKIP_UI",
+                        "false",
+                        "--es",
+                        "android.intent.extra.alarm.MESSAGE",
+                        "Sveglia",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.SET_TIMER",
+                        "--ei",
+                        "android.intent.extra.alarm.LENGTH",
+                        "600",
+                        "--ez",
+                        "android.intent.extra.alarm.SKIP_UI",
+                        "true",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.intent.action.SET_TIMER",
+                        "--ei",
+                        "android.intent.extra.alarm.LENGTH",
+                        "90",
+                        "--ez",
+                        "android.intent.extra.alarm.SKIP_UI",
+                        "true",
+                        "--es",
+                        "android.intent.extra.alarm.MESSAGE",
+                        "Pasta",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.settings.WIFI_SETTINGS",
+                    ),
+                    listOf(
+                        "/system/bin/am",
+                        "start",
+                        "--user",
+                        "current",
+                        "-a",
+                        "android.settings.APPLICATION_DETAILS_SETTINGS",
+                        "-d",
+                        "package:com.example.app",
+                    ),
+                ),
+                shell.calls.map { it.command },
+            )
+            assertFalse(shell.calls.any { it.command.firstOrNull() in setOf("sh", "/system/bin/sh") })
+        }
 
     @Test
-    fun `cancelled UI dump still removes its remote temporary file`() = runTest {
-        val shell = CancellingDumpShell()
-        val tools = DeviceTools(shell, temporaryDirectory.toFile())
+    fun `invalid activity-launch values never reach privileged transport`() =
+        runTest {
+            val shell = RecordingShell()
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
 
-        assertFailsWith<CancellationException> { tools.dumpUi() }
+            assertFailsWith<IllegalArgumentException> { tools.setAlarm(24, 0, null, true, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.setAlarm(0, 60, null, true, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.setAlarm(6, 0, "riga\nnuova", true, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.setTimer(0, null, true, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.setTimer(90_000, null, true, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> {
+                tools.openSettingsScreen(SettingsScreen.APP_DETAILS, "bad package", EXECUTION_ID)
+            }
+            assertEquals(emptyList(), shell.calls)
+        }
 
-        val dumpPath = shell.calls.single { it.first() == "/system/bin/uiautomator" }.last()
-        assertEquals(
-            listOf("/system/bin/rm", "-f", dumpPath),
-            shell.calls.single { it.first() == "/system/bin/rm" },
-        )
-    }
+    @Test
+    fun `invalid external values never reach privileged transport`() =
+        runTest {
+            val shell = RecordingShell()
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
+
+            assertFailsWith<IllegalArgumentException> { tools.launchApp("bad package", EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> {
+                tools.openUrl("javascript:alert(1)", EXECUTION_ID)
+            }
+            assertFailsWith<IllegalArgumentException> { tools.tap(-1, 2, EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.inputText("riga\nnuova", EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> { tools.inputText("letterale %s", EXECUTION_ID) }
+            assertFailsWith<IllegalArgumentException> {
+                tools.writeSetting(SettingNamespace.SECURE, "bad key", "1", EXECUTION_ID)
+            }
+            assertFailsWith<IllegalArgumentException> {
+                tools.writeSetting(SettingNamespace.SECURE, "adb_enabled", "x\nnewline", EXECUTION_ID)
+            }
+            assertEquals(emptyList(), shell.calls)
+        }
+
+    @Test
+    fun `capture and dump use capped file transport validate payload and clean temp files`() =
+        runTest {
+            val png =
+                byteArrayOf(
+                    0x89.toByte(),
+                    0x50,
+                    0x4e,
+                    0x47,
+                    0x0d,
+                    0x0a,
+                    0x1a,
+                    0x0a,
+                    1,
+                    2,
+                    3,
+                )
+            val xml =
+                """
+                prefix
+                <?xml version="1.0"?><displays><display><window><hierarchy><node /></hierarchy></window></display></displays>
+                suffix
+                """.trimIndent()
+            val shell =
+                RecordingShell(fileHandler = { command, destination ->
+                    destination.writeBytes(
+                        if (command.first() == "/system/bin/screencap") png else xml.toByteArray(),
+                    )
+                    ShellResult(0)
+                })
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
+
+            assertContentEquals(png, tools.capture())
+            assertEquals(
+                "<?xml version=\"1.0\"?><displays><display><window><hierarchy><node /></hierarchy>" +
+                    "</window></display></displays>",
+                tools.dumpUi(),
+            )
+            assertEquals(emptyList(), temporaryDirectory.listDirectoryEntries())
+            assertEquals(listOf("/system/bin/screencap", "-p"), shell.calls[0].command)
+            val remotePath = shell.calls[1].command.last()
+            assertEquals("/system/bin/uiautomator", shell.calls[1].command.first())
+            assertEquals(
+                listOf("dump", "--compressed", "--windows"),
+                shell.calls[1]
+                    .command
+                    .drop(1)
+                    .dropLast(1),
+            )
+            assertEquals(listOf("/system/bin/cat", remotePath), shell.calls[2].command)
+            assertEquals(listOf("/system/bin/rm", "-f", remotePath), shell.calls[3].command)
+            assertFalse(shell.calls.any { "/dev/tty" in it.command })
+        }
+
+    @Test
+    fun `tool failures expose a stable code and not privileged stderr`() =
+        runTest {
+            val shell = RecordingShell(result = ShellResult(1, stderr = "sensitive".toByteArray()))
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
+
+            val error = assertFailsWith<DeviceToolException> { tools.setWifi(true, EXECUTION_ID) }
+
+            assertEquals("set_wifi_failed", error.code)
+            assertFalse(error.message.orEmpty().contains("sensitive"))
+        }
+
+    @Test
+    fun `cancelled UI dump still removes its remote temporary file`() =
+        runTest {
+            val shell = CancellingDumpShell()
+            val tools = DeviceTools(shell, temporaryDirectory.toFile())
+
+            assertFailsWith<CancellationException> { tools.dumpUi() }
+
+            val dumpPath = shell.calls.single { it.first() == "/system/bin/uiautomator" }.last()
+            assertEquals(
+                listOf("/system/bin/rm", "-f", dumpPath),
+                shell.calls.single { it.first() == "/system/bin/rm" },
+            )
+        }
 
     @Test
     fun `UI XML extraction accepts legacy hierarchy and rejects incomplete dumps`() {

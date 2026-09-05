@@ -6,9 +6,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import rikka.shizuku.Shizuku
 import java.util.concurrent.ConcurrentHashMap
@@ -32,20 +32,33 @@ enum class ShizukuPermissionResult {
 
 internal interface ShizukuApi {
     fun managerInstalled(): Boolean
+
     fun binderAlive(): Boolean
+
     fun preV11(): Boolean
+
     fun permissionGranted(): Boolean
+
     fun shouldShowPermissionRationale(): Boolean
+
     fun requestPermission(requestCode: Int)
+
     fun addBinderReceivedListener(listener: () -> Unit)
+
     fun removeBinderReceivedListener(listener: () -> Unit)
+
     fun addBinderDeadListener(listener: () -> Unit)
+
     fun removeBinderDeadListener(listener: () -> Unit)
+
     fun addPermissionResultListener(listener: (Int, Int) -> Unit)
+
     fun removePermissionResultListener(listener: (Int, Int) -> Unit)
 }
 
-internal class AndroidShizukuApi(context: Context) : ShizukuApi {
+internal class AndroidShizukuApi(
+    context: Context,
+) : ShizukuApi {
     private val packageManager = context.applicationContext.packageManager
     private val binderListeners =
         ConcurrentHashMap<() -> Unit, Shizuku.OnBinderReceivedListener>()
@@ -54,19 +67,26 @@ internal class AndroidShizukuApi(context: Context) : ShizukuApi {
         ConcurrentHashMap<(Int, Int) -> Unit, Shizuku.OnRequestPermissionResultListener>()
 
     @Suppress("DEPRECATION")
-    override fun managerInstalled(): Boolean = runCatching {
-        packageManager.getPackageInfo(MANAGER_PACKAGE, 0)
-        true
-    }.getOrDefault(false)
+    override fun managerInstalled(): Boolean =
+        runCatching {
+            packageManager.getPackageInfo(MANAGER_PACKAGE, 0)
+            true
+        }.getOrDefault(false)
 
     override fun binderAlive(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
+
     override fun preV11(): Boolean = runCatching { Shizuku.isPreV11() }.getOrDefault(true)
-    override fun permissionGranted(): Boolean = runCatching {
-        Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-    }.getOrDefault(false)
-    override fun shouldShowPermissionRationale(): Boolean = runCatching {
-        Shizuku.shouldShowRequestPermissionRationale()
-    }.getOrDefault(false)
+
+    override fun permissionGranted(): Boolean =
+        runCatching {
+            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        }.getOrDefault(false)
+
+    override fun shouldShowPermissionRationale(): Boolean =
+        runCatching {
+            Shizuku.shouldShowRequestPermissionRationale()
+        }.getOrDefault(false)
+
     override fun requestPermission(requestCode: Int) = Shizuku.requestPermission(requestCode)
 
     override fun addBinderReceivedListener(listener: () -> Unit) {
@@ -126,24 +146,23 @@ class ShizukuGateway internal constructor(
 
     fun status(): ShizukuGatewayStatus = resolveStatus().also { state.value = it }
 
-    suspend fun requestPermission(
-        rationaleShown: Boolean = false,
-    ): ShizukuPermissionResult = permissionRequestMutex.withLock {
-        when (status()) {
-            ShizukuGatewayStatus.AUTHORIZED -> return@withLock ShizukuPermissionResult.GRANTED
-            ShizukuGatewayStatus.NOT_INSTALLED,
-            ShizukuGatewayStatus.INSTALLED_NOT_RUNNING,
-            ShizukuGatewayStatus.UNSUPPORTED,
-            -> return@withLock ShizukuPermissionResult.UNAVAILABLE
-            ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> Unit
+    suspend fun requestPermission(rationaleShown: Boolean = false): ShizukuPermissionResult =
+        permissionRequestMutex.withLock {
+            when (status()) {
+                ShizukuGatewayStatus.AUTHORIZED -> return@withLock ShizukuPermissionResult.GRANTED
+                ShizukuGatewayStatus.NOT_INSTALLED,
+                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING,
+                ShizukuGatewayStatus.UNSUPPORTED,
+                -> return@withLock ShizukuPermissionResult.UNAVAILABLE
+                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> Unit
+            }
+            if (api.shouldShowPermissionRationale() && !rationaleShown) {
+                return@withLock ShizukuPermissionResult.RATIONALE_REQUIRED
+            }
+            withTimeoutOrNull(PERMISSION_REQUEST_TIMEOUT_MILLIS) {
+                awaitPermissionResult()
+            } ?: ShizukuPermissionResult.UNAVAILABLE
         }
-        if (api.shouldShowPermissionRationale() && !rationaleShown) {
-            return@withLock ShizukuPermissionResult.RATIONALE_REQUIRED
-        }
-        withTimeoutOrNull(PERMISSION_REQUEST_TIMEOUT_MILLIS) {
-            awaitPermissionResult()
-        } ?: ShizukuPermissionResult.UNAVAILABLE
-    }
 
     private suspend fun awaitPermissionResult(): ShizukuPermissionResult =
         suspendCancellableCoroutine { continuation ->

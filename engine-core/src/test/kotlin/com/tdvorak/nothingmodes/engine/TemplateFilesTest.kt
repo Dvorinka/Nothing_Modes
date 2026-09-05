@@ -4,14 +4,13 @@ import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.model.TemplateIndex
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.InMemoryAutomationStore
-import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.io.File
 
 /** Guards the shipped community templates: index parses, every bundle previews clean. */
 class TemplateFilesTest {
-
     private val templatesDir = File("../templates")
 
     @Test

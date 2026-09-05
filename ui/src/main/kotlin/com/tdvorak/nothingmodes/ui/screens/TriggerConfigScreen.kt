@@ -1,16 +1,14 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +22,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,15 +62,10 @@ import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -80,33 +77,35 @@ private data class TriggerType(
     val trigger: Trigger,
 )
 
-private fun triggerTypes(): List<TriggerType> = listOf(
-    TriggerType("Time", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
-    TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
-    TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
-    TriggerType("Immediate", "Manual", Icons.Outlined.PowerSettingsNew, Trigger.Immediate),
-    TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
-    TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
-    TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
-    TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
-    TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
-    TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
-    TriggerType("Connectivity", "Connections", Icons.Outlined.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
-    TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
-    TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
-    TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-    TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
-)
+private fun triggerTypes(): List<TriggerType> =
+    listOf(
+        TriggerType("Time", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
+        TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
+        TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
+        TriggerType("Immediate", "Manual", Icons.Outlined.PowerSettingsNew, Trigger.Immediate),
+        TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
+        TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
+        TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
+        TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
+        TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
+        TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
+        TriggerType("Connectivity", "Connections", Icons.Outlined.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
+        TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
+        TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
+        TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
+        TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
+    )
 
 @Composable
 fun TriggerConfigScreen(
     triggerJson: String,
     navController: NavController,
 ) {
-    val initial = remember(triggerJson) {
-        runCatching { Json.decodeFromString<Trigger>(triggerJson) }.getOrNull()
-            ?: Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())
-    }
+    val initial =
+        remember(triggerJson) {
+            runCatching { Json.decodeFromString<Trigger>(triggerJson) }.getOrNull()
+                ?: Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())
+        }
     var trigger by remember { mutableStateOf(initial) }
     var showTypePicker by remember { mutableStateOf(false) }
 
@@ -120,83 +119,87 @@ fun TriggerConfigScreen(
         },
     ) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(NothingSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(NothingSpacing.md),
         ) {
             NothingCardLarge(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
             ) {
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-            // Type row: current trigger type, tap to open the picker dialog.
-            // The config fields stay directly below so nothing needs scrolling.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showTypePicker = true }
-                    .padding(vertical = NothingSpacing.md),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                NothingLabel(text = "Type")
+                // Type row: current trigger type, tap to open the picker dialog.
+                // The config fields stay directly below so nothing needs scrolling.
                 Row(
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { showTypePicker = true }
+                            .padding(vertical = NothingSpacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Text(
-                        text = triggerTypeLabel(trigger).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
-                        maxLines = 2,
-                        softWrap = true,
-                        textAlign = TextAlign.End,
-                    )
-                    Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                    Text(
-                        text = "CHANGE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = NothingColors.accent,
-                        fontFamily = SpaceMono,
-                    )
+                    NothingLabel(text = "Type")
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Text(
+                            text = triggerTypeLabel(trigger).uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            maxLines = 2,
+                            softWrap = true,
+                            textAlign = TextAlign.End,
+                        )
+                        Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                        Text(
+                            text = "CHANGE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NothingColors.accent,
+                            fontFamily = SpaceMono,
+                        )
+                    }
                 }
+
+                com.tdvorak.nothingmodes.ui.theme
+                    .NothingDivider()
+
+                TriggerConfigContent(
+                    trigger = trigger,
+                    onUpdate = { trigger = it },
+                )
+
+                Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                NothingPillButton(
+                    text = "Done",
+                    onClick = {
+                        val result = Json.encodeToString(trigger)
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("trigger_result", result)
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
-            com.tdvorak.nothingmodes.ui.theme.NothingDivider()
-
-            TriggerConfigContent(
-                trigger = trigger,
-                onUpdate = { trigger = it },
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
-            NothingPillButton(
-                text = "Done",
-                onClick = {
-                    val result = Json.encodeToString(trigger)
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("trigger_result", result)
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        if (showTypePicker) {
-            TriggerTypePickerDialog(
-                selected = trigger,
-                onSelect = { trigger = it },
-                onDismiss = { showTypePicker = false },
-            )
+            if (showTypePicker) {
+                TriggerTypePickerDialog(
+                    selected = trigger,
+                    onSelect = { trigger = it },
+                    onDismiss = { showTypePicker = false },
+                )
+            }
         }
     }
-}
 }
 
 /** Short label for the currently selected trigger type. */
@@ -216,9 +219,10 @@ private fun TriggerTypePickerDialog(
 
     androidx.compose.material3.BasicAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = NothingSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = NothingSpacing.md),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -228,10 +232,11 @@ private fun TriggerTypePickerDialog(
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(NothingSpacing.md),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(NothingSpacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -249,13 +254,15 @@ private fun TriggerTypePickerDialog(
                         modifier = Modifier.clickable(onClick = onDismiss),
                     )
                 }
-                com.tdvorak.nothingmodes.ui.theme.NothingDivider()
+                com.tdvorak.nothingmodes.ui.theme
+                    .NothingDivider()
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 480.dp)
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 480.dp)
+                            .verticalScroll(rememberScrollState()),
                 ) {
                     grouped.forEach { (category, items) ->
                         Text(
@@ -263,40 +270,49 @@ private fun TriggerTypePickerDialog(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = SpaceMono,
-                            modifier = Modifier.padding(
-                                start = NothingSpacing.md,
-                                top = NothingSpacing.sm,
-                                bottom = NothingSpacing.xs,
-                            ),
+                            modifier =
+                                Modifier.padding(
+                                    start = NothingSpacing.md,
+                                    top = NothingSpacing.sm,
+                                    bottom = NothingSpacing.xs,
+                                ),
                         )
                         items.forEach { type ->
                             val isSelected = selected::class == type.trigger::class
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelect(type.trigger)
-                                        onDismiss()
-                                    }
-                                    .padding(
-                                        horizontal = NothingSpacing.md,
-                                        vertical = NothingSpacing.sm,
-                                    ),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onSelect(type.trigger)
+                                            onDismiss()
+                                        }.padding(
+                                            horizontal = NothingSpacing.md,
+                                            vertical = NothingSpacing.sm,
+                                        ),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                             ) {
                                 Icon(
                                     imageVector = type.icon,
                                     contentDescription = type.label,
-                                    tint = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Text(
                                     text = type.label,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface,
+                                    color =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
                                     fontFamily = SpaceMono,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -324,19 +340,22 @@ private fun TriggerConfigContent(
     onUpdate: (Trigger) -> Unit,
 ) {
     when (val t = trigger) {
-        is Trigger.Time -> CustomTimePicker(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.Time ->
+            CustomTimePicker(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.TimeWindow -> TimeWindowContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.TimeWindow ->
+            TimeWindowContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
         is Trigger.Immediate,
         is Trigger.Manual,
-        is Trigger.Boot -> {
+        is Trigger.Boot,
+        -> {
             Text(
                 text = triggerDescription(trigger),
                 style = MaterialTheme.typography.bodyMedium,
@@ -345,56 +364,66 @@ private fun TriggerConfigContent(
             )
         }
 
-        is Trigger.ScreenStateTrigger -> ScreenStateContent(
-            state = t.state,
-            onUpdate = { onUpdate(t.copy(state = it)) },
-        )
+        is Trigger.ScreenStateTrigger ->
+            ScreenStateContent(
+                state = t.state,
+                onUpdate = { onUpdate(t.copy(state = it)) },
+            )
 
-        is Trigger.BatteryLevel -> BatteryLevelContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.BatteryLevel ->
+            BatteryLevelContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.AppOpened -> AppPickerContent(
-            currentPackage = t.pkg,
-            onPkgChange = { onUpdate(t.copy(pkg = it)) },
-        )
+        is Trigger.AppOpened ->
+            AppPickerContent(
+                currentPackage = t.pkg,
+                onPkgChange = { onUpdate(t.copy(pkg = it)) },
+            )
 
-        is Trigger.Notification -> NotificationContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.Notification ->
+            NotificationContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.PhoneState -> PhoneStateContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.PhoneState ->
+            PhoneStateContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.Connectivity -> ConnectivityContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.Connectivity ->
+            ConnectivityContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.WifiConnected -> NothingInput(
-            value = t.ssid ?: "",
-            onValueChange = { onUpdate(t.copy(ssid = it.ifBlank { null })) },
-            label = "SSID (blank = any)",
-        )
+        is Trigger.WifiConnected ->
+            NothingInput(
+                value = t.ssid ?: "",
+                onValueChange = { onUpdate(t.copy(ssid = it.ifBlank { null })) },
+                label = "SSID (blank = any)",
+            )
 
-        is Trigger.BluetoothDevice -> BluetoothDeviceContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.BluetoothDevice ->
+            BluetoothDeviceContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.Geofence -> GeofenceContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.Geofence ->
+            GeofenceContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
 
-        is Trigger.CalendarEvent -> CalendarEventContent(
-            trigger = t,
-            onUpdate = onUpdate,
-        )
+        is Trigger.CalendarEvent ->
+            CalendarEventContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
     }
 }
 
@@ -615,10 +644,15 @@ private fun GeofenceContent(
             text = "Use current location",
             onClick = {
                 runCatching {
-                    val fusedLocationClient = com.google.android.gms.location.LocationServices
-                        .getFusedLocationProviderClient(context)
-                    if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                        context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    val fusedLocationClient =
+                        com.google.android.gms.location.LocationServices
+                            .getFusedLocationProviderClient(context)
+                    if (context.checkSelfPermission(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                        context.checkSelfPermission(
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     ) {
                         fusedLocationClient.lastLocation
                             .addOnSuccessListener { location ->
@@ -700,10 +734,11 @@ private fun BooleanRow(
     onChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onChange(!checked) }
-            .padding(vertical = NothingSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onChange(!checked) }
+                .padding(vertical = NothingSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
@@ -721,7 +756,8 @@ private fun BooleanRow(
 
 @Composable
 private fun NothingLabel(text: String) {
-    com.tdvorak.nothingmodes.ui.theme.NothingLabel(text = text)
+    com.tdvorak.nothingmodes.ui.theme
+        .NothingLabel(text = text)
 }
 
 // ─── Installed App Picker ────────────────────────────────────────────────────
@@ -740,30 +776,36 @@ private fun AppPickerContent(
     var searchQuery by remember { mutableStateOf("") }
     var showList by remember { mutableStateOf(false) }
 
-    val installedApps = remember {
-        runCatching {
-            val pm = context.packageManager
-            val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
-                addCategory(android.content.Intent.CATEGORY_LAUNCHER)
-            }
-            pm.queryIntentActivities(mainIntent, 0)
-                .map { ri ->
-                    InstalledApp(
-                        label = ri.loadLabel(pm).toString(),
-                        pkg = ri.activityInfo.packageName,
-                    )
-                }
-                .sortedBy { it.label.lowercase() }
-        }.getOrDefault(emptyList())
-    }
-
-    val filteredApps = remember(searchQuery, installedApps) {
-        if (searchQuery.isBlank()) installedApps
-        else installedApps.filter {
-            it.label.contains(searchQuery, ignoreCase = true) ||
-                it.pkg.contains(searchQuery, ignoreCase = true)
+    val installedApps =
+        remember {
+            runCatching {
+                val pm = context.packageManager
+                val mainIntent =
+                    android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                        addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                    }
+                pm
+                    .queryIntentActivities(mainIntent, 0)
+                    .map { ri ->
+                        InstalledApp(
+                            label = ri.loadLabel(pm).toString(),
+                            pkg = ri.activityInfo.packageName,
+                        )
+                    }.sortedBy { it.label.lowercase() }
+            }.getOrDefault(emptyList())
         }
-    }
+
+    val filteredApps =
+        remember(searchQuery, installedApps) {
+            if (searchQuery.isBlank()) {
+                installedApps
+            } else {
+                installedApps.filter {
+                    it.label.contains(searchQuery, ignoreCase = true) ||
+                        it.pkg.contains(searchQuery, ignoreCase = true)
+                }
+            }
+        }
 
     val selectedLabel = installedApps.find { it.pkg == currentPackage }?.label ?: currentPackage
 
@@ -779,14 +821,16 @@ private fun AppPickerContent(
             color = MaterialTheme.colorScheme.background,
             shape = NothingShapes.input,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showList = !showList },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { showList = !showList },
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(NothingSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(NothingSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -816,9 +860,10 @@ private fun AppPickerContent(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp),
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
             ) {
                 items(filteredApps, key = { it.pkg }) { app ->
@@ -826,26 +871,29 @@ private fun AppPickerContent(
                         color = MaterialTheme.colorScheme.surface,
                         shape = NothingShapes.input,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onPkgChange(app.pkg)
-                                showList = false
-                                searchQuery = ""
-                            },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onPkgChange(app.pkg)
+                                    showList = false
+                                    searchQuery = ""
+                                },
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(NothingSpacing.sm),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(NothingSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (app.pkg == currentPackage) {
                                 Box(
-                                    modifier = Modifier
-                                        .width(2.dp)
-                                        .height(20.dp)
-                                        .background(NothingColors.accent),
+                                    modifier =
+                                        Modifier
+                                            .width(2.dp)
+                                            .height(20.dp)
+                                            .background(NothingColors.accent),
                                 )
                                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                             }

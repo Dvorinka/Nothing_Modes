@@ -36,23 +36,24 @@ class AndroidStateProvider(
     private val context: Context,
     private val modeActivationProvider: ModeActivationProvider? = null,
 ) : StateProvider {
-
     override suspend fun read(): DeviceState {
         val powerManager = context.getSystemService(PowerManager::class.java)
         val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val screenState = if (powerManager.isInteractive) ScreenState.ON else ScreenState.OFF
 
-        val batteryLevel = batteryIntent?.let {
-            val level = it.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-            val scale = it.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-            if (level >= 0 && scale > 0) (level * 100) / scale else -1
-        } ?: -1
+        val batteryLevel =
+            batteryIntent?.let {
+                val level = it.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                val scale = it.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                if (level >= 0 && scale > 0) (level * 100) / scale else -1
+            } ?: -1
 
-        val isCharging = batteryIntent?.let {
-            val status = it.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-            status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                status == BatteryManager.BATTERY_STATUS_FULL
-        } ?: false
+        val isCharging =
+            batteryIntent?.let {
+                val status = it.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == BatteryManager.BATTERY_STATUS_FULL
+            } ?: false
 
         val (wifiConnected, wifiSsid) = readWifiState()
         val (btConnected, btName) = readBluetoothState()
@@ -89,11 +90,12 @@ class AndroidStateProvider(
         val audioManager = context.getSystemService(AudioManager::class.java)
         if (audioManager != null) {
             values["media_playing"] = audioManager.isMusicActive.toString()
-            values["ringer_mode"] = when (audioManager.ringerMode) {
-                AudioManager.RINGER_MODE_SILENT -> "silent"
-                AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
-                else -> "normal"
-            }
+            values["ringer_mode"] =
+                when (audioManager.ringerMode) {
+                    AudioManager.RINGER_MODE_SILENT -> "silent"
+                    AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
+                    else -> "normal"
+                }
         }
 
         values["airplane_mode"] = readAirplaneMode().toString()
@@ -108,31 +110,34 @@ class AndroidStateProvider(
     // State readers for value-based conditions.
     // Missing permission is treated as unavailable (the value is omitted).
 
-    private fun readAirplaneMode(): Boolean = try {
-        Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) == 1
-    } catch (e: SecurityException) {
-        false
-    }
-
-    private fun readNfcEnabled(): Boolean = try {
-        val nfcManager = context.getSystemService(NfcManager::class.java)
-        val adapter = nfcManager?.defaultAdapter
-        adapter != null && adapter.isEnabled
-    } catch (e: SecurityException) {
-        false
-    }
-
-    private fun readLocationEnabled(): Boolean = try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val locationManager = context.getSystemService(LocationManager::class.java)
-            locationManager?.isLocationEnabled ?: false
-        } else {
-            val mode = Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF)
-            mode != Settings.Secure.LOCATION_MODE_OFF
+    private fun readAirplaneMode(): Boolean =
+        try {
+            Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) == 1
+        } catch (e: SecurityException) {
+            false
         }
-    } catch (e: SecurityException) {
-        false
-    }
+
+    private fun readNfcEnabled(): Boolean =
+        try {
+            val nfcManager = context.getSystemService(NfcManager::class.java)
+            val adapter = nfcManager?.defaultAdapter
+            adapter != null && adapter.isEnabled
+        } catch (e: SecurityException) {
+            false
+        }
+
+    private fun readLocationEnabled(): Boolean =
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val locationManager = context.getSystemService(LocationManager::class.java)
+                locationManager?.isLocationEnabled ?: false
+            } else {
+                val mode = Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF)
+                mode != Settings.Secure.LOCATION_MODE_OFF
+            }
+        } catch (e: SecurityException) {
+            false
+        }
 
     private fun readCallState(): String? {
         if (context.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
@@ -150,8 +155,8 @@ class AndroidStateProvider(
         }
     }
 
-    private fun readWifiState(): Pair<Boolean, String?> {
-        return try {
+    private fun readWifiState(): Pair<Boolean, String?> =
+        try {
             val wifiManager = context.getSystemService(WifiManager::class.java)
             val info = wifiManager?.connectionInfo
             if (info != null && info.ipAddress != 0) {
@@ -163,11 +168,10 @@ class AndroidStateProvider(
         } catch (e: SecurityException) {
             Pair(false, null)
         }
-    }
 
     @SuppressLint("MissingPermission")
-    private fun readBluetoothState(): Pair<Boolean, String?> {
-        return try {
+    private fun readBluetoothState(): Pair<Boolean, String?> =
+        try {
             val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
             val adapter = bluetoothManager?.adapter
             if (adapter != null && adapter.isEnabled) {
@@ -180,19 +184,20 @@ class AndroidStateProvider(
         } catch (e: SecurityException) {
             Pair(false, null)
         }
-    }
 
     @SuppressLint("MissingPermission")
     private fun readForegroundApp(): String? {
         return try {
-            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-                ?: return null
+            val usageStatsManager =
+                context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+                    ?: return null
             val now = System.currentTimeMillis()
-            val stats = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_BEST,
-                now - TimeUnit.SECONDS.toMillis(5),
-                now,
-            ) ?: return null
+            val stats =
+                usageStatsManager.queryUsageStats(
+                    UsageStatsManager.INTERVAL_BEST,
+                    now - TimeUnit.SECONDS.toMillis(5),
+                    now,
+                ) ?: return null
             stats
                 .filter { it.lastTimeStamp > now - TimeUnit.SECONDS.toMillis(5) }
                 .maxByOrNull { it.lastTimeStamp }

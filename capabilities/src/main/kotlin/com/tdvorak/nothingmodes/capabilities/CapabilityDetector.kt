@@ -16,7 +16,6 @@ class CapabilityDetector(
     private val context: Context,
     private val shizukuGateway: ShizukuGateway? = null,
 ) {
-
     fun detect(): DeviceCapabilities {
         val pm = context.packageManager
         val isNothing = Build.MANUFACTURER.equals("nothing", ignoreCase = true)
@@ -32,20 +31,22 @@ class CapabilityDetector(
         val hasGlyphTouch = if (isNothing) detector.hasGlyphTouch() else false
 
         // Nothing SDK availability: check if GlyphManager class is loadable
-        val nothingSdkAvailable = runCatching {
-            Class.forName("com.nothing.ketchum.GlyphManager")
-            true
-        }.getOrDefault(false)
+        val nothingSdkAvailable =
+            runCatching {
+                Class.forName("com.nothing.ketchum.GlyphManager")
+                true
+            }.getOrDefault(false)
 
         // Shizuku status
-        val shizukuStatus = when (shizukuGateway?.status()) {
-            ShizukuGatewayStatus.AUTHORIZED -> ShizukuCapabilityStatus.AUTHORIZED
-            ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> ShizukuCapabilityStatus.RUNNING_NOT_AUTHORIZED
-            ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> ShizukuCapabilityStatus.INSTALLED_NOT_RUNNING
-            ShizukuGatewayStatus.NOT_INSTALLED -> ShizukuCapabilityStatus.NOT_INSTALLED
-            ShizukuGatewayStatus.UNSUPPORTED -> ShizukuCapabilityStatus.UNSUPPORTED
-            null -> ShizukuCapabilityStatus.NOT_CHECKED
-        }
+        val shizukuStatus =
+            when (shizukuGateway?.status()) {
+                ShizukuGatewayStatus.AUTHORIZED -> ShizukuCapabilityStatus.AUTHORIZED
+                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> ShizukuCapabilityStatus.RUNNING_NOT_AUTHORIZED
+                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> ShizukuCapabilityStatus.INSTALLED_NOT_RUNNING
+                ShizukuGatewayStatus.NOT_INSTALLED -> ShizukuCapabilityStatus.NOT_INSTALLED
+                ShizukuGatewayStatus.UNSUPPORTED -> ShizukuCapabilityStatus.UNSUPPORTED
+                null -> ShizukuCapabilityStatus.NOT_CHECKED
+            }
 
         return DeviceCapabilities(
             isNothingDevice = isNothing,
@@ -69,7 +70,9 @@ class CapabilityDetector(
             shizukuStatus = shizukuStatus,
             // Permissions
             hasNotificationPolicyAccess = checkNotificationPolicyAccess(),
-            hasWriteSettings = android.provider.Settings.System.canWrite(context),
+            hasWriteSettings =
+                android.provider.Settings.System
+                    .canWrite(context),
             hasNotificationListenerAccess = checkNotificationListenerAccess(),
             hasUsageAccess = checkUsageAccess(),
             hasLocationPermission = checkLocationPermission(),
@@ -82,29 +85,31 @@ class CapabilityDetector(
     }
 
     private fun checkNotificationListenerAccess(): Boolean {
-        val enabledListeners = android.provider.Settings.Secure.getString(
-            context.contentResolver,
-            "enabled_notification_listeners",
-        ) ?: return false
+        val enabledListeners =
+            android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                "enabled_notification_listeners",
+            ) ?: return false
         return enabledListeners.contains(context.packageName)
     }
 
     private fun checkUsageAccess(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(),
-                context.packageName,
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(),
-                context.packageName,
-            )
-        }
+        val mode =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    context.packageName,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    context.packageName,
+                )
+            }
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -112,17 +117,18 @@ class CapabilityDetector(
         ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun resolveDeviceName(model: String): String = when {
-        model.startsWith("A063") -> "Phone (1)"
-        model.startsWith("A065") -> "Phone (2)"
-        model.startsWith("A142") -> "Phone (2a)"
-        model.startsWith("A142P") -> "Phone (2a) Plus"
-        model.startsWith("A059") -> "Phone (3a)"
-        model.startsWith("A059P") -> "Phone (3a) Pro"
-        model.startsWith("A024") -> "Phone (3)"
-        model.startsWith("A063P") -> "Phone (4a) Pro"
-        model.startsWith("A172") -> "Phone (4a)"
-        model.startsWith("A172P") -> "Phone (4b)"
-        else -> model
-    }
+    private fun resolveDeviceName(model: String): String =
+        when {
+            model.startsWith("A063") -> "Phone (1)"
+            model.startsWith("A065") -> "Phone (2)"
+            model.startsWith("A142") -> "Phone (2a)"
+            model.startsWith("A142P") -> "Phone (2a) Plus"
+            model.startsWith("A059") -> "Phone (3a)"
+            model.startsWith("A059P") -> "Phone (3a) Pro"
+            model.startsWith("A024") -> "Phone (3)"
+            model.startsWith("A063P") -> "Phone (4a) Pro"
+            model.startsWith("A172") -> "Phone (4a)"
+            model.startsWith("A172P") -> "Phone (4b)"
+            else -> model
+        }
 }

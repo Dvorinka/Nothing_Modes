@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
@@ -54,49 +53,49 @@ private data class IconEntry(
     val keywords: List<String>,
 )
 
-private val iconOptions = listOf(
-    IconEntry("star", Icons.Outlined.Star, listOf("star", "favorite", "rate")),
-    IconEntry("home", Icons.Outlined.Home, listOf("home", "house", "start")),
-    IconEntry("wifi", Icons.Outlined.Wifi, listOf("wifi", "wireless", "network", "internet")),
-    IconEntry("bluetooth", Icons.Outlined.Bluetooth, listOf("bluetooth", "wireless", "bt")),
-    IconEntry("sun", Icons.Outlined.WbSunny, listOf("sun", "day", "light", "bright", "morning")),
-    IconEntry("dark_mode", Icons.Outlined.DarkMode, listOf("dark", "night", "moon", "sleep")),
-    IconEntry("brightness", Icons.Outlined.Brightness6, listOf("brightness", "screen", "dim")),
-    IconEntry("lightbulb", Icons.Outlined.Lightbulb, listOf("light", "bulb", "idea", "lamp")),
-    IconEntry("notification", Icons.Outlined.Notifications, listOf("notification", "alert", "bell", "notify")),
-    IconEntry("volume", Icons.AutoMirrored.Outlined.VolumeUp, listOf("volume", "sound", "audio", "loud")),
-    IconEntry("music", Icons.Outlined.MusicNote, listOf("music", "song", "audio", "play", "media")),
-    IconEntry("alarm", Icons.Outlined.Alarm, listOf("alarm", "wake", "clock", "time")),
-    IconEntry("timer", Icons.Outlined.Timer, listOf("timer", "countdown", "stopwatch", "time")),
-    IconEntry("clock", Icons.Outlined.AccessTime, listOf("clock", "time", "watch", "hour")),
-    IconEntry("location", Icons.Outlined.LocationOn, listOf("location", "gps", "map", "place", "pin")),
-    IconEntry("language", Icons.Outlined.Language, listOf("language", "translate", "global", "world")),
-    IconEntry("airplane", Icons.Outlined.Flight, listOf("airplane", "flight", "travel", "plane")),
-    IconEntry("power", Icons.Outlined.PowerSettingsNew, listOf("power", "off", "shutdown", "reboot")),
-    IconEntry("battery", Icons.Outlined.BatteryFull, listOf("battery", "charge", "power", "energy")),
-    IconEntry("flashlight", Icons.Outlined.FlashlightOn, listOf("flashlight", "torch", "light", "led")),
-    IconEntry("campaign", Icons.Outlined.Campaign, listOf("campaign", "announce", "broadcast", "megaphone")),
-    IconEntry("message", Icons.Outlined.Textsms, listOf("message", "sms", "text", "chat")),
-    IconEntry("email", Icons.Outlined.Email, listOf("email", "mail", "inbox", "letter")),
-    IconEntry("phone", Icons.Outlined.Phone, listOf("phone", "call", "dial", "ring")),
-    IconEntry("settings", Icons.Outlined.Settings, listOf("settings", "gear", "config", "preferences")),
-    IconEntry("speed", Icons.Outlined.Speed, listOf("speed", "fast", "performance", "gauge")),
-    IconEntry("lock", Icons.Outlined.Lock, listOf("lock", "secure", "password", "screen lock")),
-    IconEntry("vibration", Icons.Outlined.Vibration, listOf("vibration", "vibrate", "haptic", "buzz")),
-    IconEntry("mic", Icons.Outlined.Mic, listOf("mic", "microphone", "record", "voice")),
-    IconEntry("cloud", Icons.Outlined.Cloud, listOf("cloud", "weather", "sync", "sky")),
-    IconEntry("air", Icons.Outlined.Air, listOf("air", "wind", "breeze", "fan")),
-    IconEntry("work", Icons.Outlined.Work, listOf("work", "office", "business", "briefcase", "job")),
-    IconEntry("fitness", Icons.Outlined.FitnessCenter, listOf("fitness", "gym", "workout", "exercise", "health")),
-    IconEntry("food", Icons.Outlined.Fastfood, listOf("food", "eat", "meal", "lunch", "dinner", "restaurant")),
-    IconEntry("shopping", Icons.Outlined.ShoppingCart, listOf("shopping", "cart", "buy", "store", "shop")),
-    IconEntry("game", Icons.Outlined.Gamepad, listOf("game", "play", "controller", "gaming")),
-    IconEntry("person", Icons.Outlined.AccountCircle, listOf("person", "user", "account", "profile", "contact")),
-    IconEntry("check", Icons.Outlined.CheckCircle, listOf("check", "done", "complete", "confirm", "ok")),
-)
+private val iconOptions =
+    listOf(
+        IconEntry("star", Icons.Outlined.Star, listOf("star", "favorite", "rate")),
+        IconEntry("home", Icons.Outlined.Home, listOf("home", "house", "start")),
+        IconEntry("wifi", Icons.Outlined.Wifi, listOf("wifi", "wireless", "network", "internet")),
+        IconEntry("bluetooth", Icons.Outlined.Bluetooth, listOf("bluetooth", "wireless", "bt")),
+        IconEntry("sun", Icons.Outlined.WbSunny, listOf("sun", "day", "light", "bright", "morning")),
+        IconEntry("dark_mode", Icons.Outlined.DarkMode, listOf("dark", "night", "moon", "sleep")),
+        IconEntry("brightness", Icons.Outlined.Brightness6, listOf("brightness", "screen", "dim")),
+        IconEntry("lightbulb", Icons.Outlined.Lightbulb, listOf("light", "bulb", "idea", "lamp")),
+        IconEntry("notification", Icons.Outlined.Notifications, listOf("notification", "alert", "bell", "notify")),
+        IconEntry("volume", Icons.AutoMirrored.Outlined.VolumeUp, listOf("volume", "sound", "audio", "loud")),
+        IconEntry("music", Icons.Outlined.MusicNote, listOf("music", "song", "audio", "play", "media")),
+        IconEntry("alarm", Icons.Outlined.Alarm, listOf("alarm", "wake", "clock", "time")),
+        IconEntry("timer", Icons.Outlined.Timer, listOf("timer", "countdown", "stopwatch", "time")),
+        IconEntry("clock", Icons.Outlined.AccessTime, listOf("clock", "time", "watch", "hour")),
+        IconEntry("location", Icons.Outlined.LocationOn, listOf("location", "gps", "map", "place", "pin")),
+        IconEntry("language", Icons.Outlined.Language, listOf("language", "translate", "global", "world")),
+        IconEntry("airplane", Icons.Outlined.Flight, listOf("airplane", "flight", "travel", "plane")),
+        IconEntry("power", Icons.Outlined.PowerSettingsNew, listOf("power", "off", "shutdown", "reboot")),
+        IconEntry("battery", Icons.Outlined.BatteryFull, listOf("battery", "charge", "power", "energy")),
+        IconEntry("flashlight", Icons.Outlined.FlashlightOn, listOf("flashlight", "torch", "light", "led")),
+        IconEntry("campaign", Icons.Outlined.Campaign, listOf("campaign", "announce", "broadcast", "megaphone")),
+        IconEntry("message", Icons.Outlined.Textsms, listOf("message", "sms", "text", "chat")),
+        IconEntry("email", Icons.Outlined.Email, listOf("email", "mail", "inbox", "letter")),
+        IconEntry("phone", Icons.Outlined.Phone, listOf("phone", "call", "dial", "ring")),
+        IconEntry("settings", Icons.Outlined.Settings, listOf("settings", "gear", "config", "preferences")),
+        IconEntry("speed", Icons.Outlined.Speed, listOf("speed", "fast", "performance", "gauge")),
+        IconEntry("lock", Icons.Outlined.Lock, listOf("lock", "secure", "password", "screen lock")),
+        IconEntry("vibration", Icons.Outlined.Vibration, listOf("vibration", "vibrate", "haptic", "buzz")),
+        IconEntry("mic", Icons.Outlined.Mic, listOf("mic", "microphone", "record", "voice")),
+        IconEntry("cloud", Icons.Outlined.Cloud, listOf("cloud", "weather", "sync", "sky")),
+        IconEntry("air", Icons.Outlined.Air, listOf("air", "wind", "breeze", "fan")),
+        IconEntry("work", Icons.Outlined.Work, listOf("work", "office", "business", "briefcase", "job")),
+        IconEntry("fitness", Icons.Outlined.FitnessCenter, listOf("fitness", "gym", "workout", "exercise", "health")),
+        IconEntry("food", Icons.Outlined.Fastfood, listOf("food", "eat", "meal", "lunch", "dinner", "restaurant")),
+        IconEntry("shopping", Icons.Outlined.ShoppingCart, listOf("shopping", "cart", "buy", "store", "shop")),
+        IconEntry("game", Icons.Outlined.Gamepad, listOf("game", "play", "controller", "gaming")),
+        IconEntry("person", Icons.Outlined.AccountCircle, listOf("person", "user", "account", "profile", "contact")),
+        IconEntry("check", Icons.Outlined.CheckCircle, listOf("check", "done", "complete", "confirm", "ok")),
+    )
 
-fun iconForName(name: String): ImageVector =
-    iconOptions.find { it.name == name }?.icon ?: Icons.Outlined.Star
+fun iconForName(name: String): ImageVector = iconOptions.find { it.name == name }?.icon ?: Icons.Outlined.Star
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -110,13 +109,17 @@ fun IconColorPickerSheet(
     var searchQuery by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val filteredIcons = remember(searchQuery) {
-        if (searchQuery.isBlank()) iconOptions
-        else iconOptions.filter { entry ->
-            entry.name.contains(searchQuery, ignoreCase = true) ||
-                entry.keywords.any { it.contains(searchQuery, ignoreCase = true) }
+    val filteredIcons =
+        remember(searchQuery) {
+            if (searchQuery.isBlank()) {
+                iconOptions
+            } else {
+                iconOptions.filter { entry ->
+                    entry.name.contains(searchQuery, ignoreCase = true) ||
+                        entry.keywords.any { it.contains(searchQuery, ignoreCase = true) }
+                }
+            }
         }
-    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -129,11 +132,12 @@ fun IconColorPickerSheet(
         dragHandle = { NothingDragHandle() },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(NothingSpacing.md)
-                .padding(bottom = NothingSpacing.xl)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(NothingSpacing.md)
+                    .padding(bottom = NothingSpacing.xl)
+                    .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -177,9 +181,10 @@ fun IconColorPickerSheet(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 240.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 240.dp),
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                 maxItemsInEachRow = 6,
@@ -221,19 +226,21 @@ private fun IconOption(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(48.dp)
-            .background(
-                if (selected) NothingColors.accent.copy(alpha = 0.16f)
-                else MaterialTheme.colorScheme.surfaceVariant,
-                NothingShapes.iconChip,
-            )
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline,
-                shape = NothingShapes.iconChip,
-            )
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(48.dp)
+                .background(
+                    if (selected) {
+                        NothingColors.accent.copy(alpha = 0.16f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    NothingShapes.iconChip,
+                ).border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline,
+                    shape = NothingShapes.iconChip,
+                ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

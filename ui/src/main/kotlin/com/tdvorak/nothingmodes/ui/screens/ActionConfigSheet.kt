@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -73,11 +71,12 @@ fun ActionConfigSheet(
         dragHandle = { NothingDragHandle() },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(NothingSpacing.md)
-                .padding(bottom = NothingSpacing.xl)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(NothingSpacing.md)
+                    .padding(bottom = NothingSpacing.xl)
+                    .verticalScroll(rememberScrollState()),
         ) {
             Text(
                 text = actionTitle(action),
@@ -188,7 +187,7 @@ fun ActionConfigContent(
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
             ) {
                 Text(
-                    text = "${percent}%",
+                    text = "$percent%",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = SpaceMono,
@@ -542,12 +541,13 @@ fun ActionConfigContent(
                 onSelect = { sel ->
                     matrixMode = sel
                     when (sel) {
-                        "All on" -> onActionChange(
-                            a.copy(
-                                colors = List(25 * 25) { 0xFFFFFF.toInt() },
-                                restore = false,
-                            ),
-                        )
+                        "All on" ->
+                            onActionChange(
+                                a.copy(
+                                    colors = List(25 * 25) { 0xFFFFFF.toInt() },
+                                    restore = false,
+                                ),
+                            )
                         "Off" -> onActionChange(a.copy(colors = null, restore = false))
                         else -> Unit
                     }
@@ -635,7 +635,8 @@ fun ActionConfigContent(
         is Action.GlyphTurnOff,
         is Action.LockScreen,
         is Action.ClearNotifications,
-        is Action.TakeScreenshot -> {
+        is Action.TakeScreenshot,
+        -> {
             Text(
                 text = actionDescription(action),
                 style = MaterialTheme.typography.bodyMedium,
@@ -656,57 +657,72 @@ fun ActionConfigContent(
 }
 
 /** Named glyph presets understood by the executor's presetFor(). */
-private val GLYPH_PRESET_NAMES = listOf(
-    "sleep", "morning", "work", "dnd", "dnd_off", "fired", "error",
-    "success", "charging", "charging_complete", "call", "sms", "timer", "off",
-)
-private fun actionTitle(action: Action): String = when (action) {
-    is Action.SetWifi -> "Wi-Fi"
-    is Action.SetBluetooth -> "Bluetooth"
-    is Action.SetMobileData -> "Mobile data"
-    is Action.SetAirplaneMode -> "Airplane mode"
-    is Action.SetDarkMode -> "Dark mode"
-    is Action.SetBrightness -> "Brightness"
-    is Action.SetAutoBrightness -> "Auto brightness"
-    is Action.SetExtraDim -> "Extra dim"
-    is Action.SetScreenTimeout -> "Screen timeout"
-    is Action.SetAlwaysOnDisplay -> "Always-on display"
-    is Action.SetDnd -> "Do not disturb"
-    is Action.SetVolume -> "Volume"
-    is Action.Vibrate -> "Vibrate"
-    is Action.SetAutoRotate -> "Auto-rotate"
-    is Action.SetBatterySaver -> "Battery saver"
-    is Action.SetLocationMode -> "Location mode"
-    is Action.OpenSettingsScreen -> "Open settings"
-    is Action.SetFlashlight -> "Flashlight"
-    is Action.GlyphPreset -> "Glyph preset"
-    is Action.GlyphText -> "Glyph text"
-    is Action.GlyphScrollingText -> "Glyph scrolling text"
-    is Action.CopyText -> "Copy text"
-    is Action.OpenUrl -> "Open URL"
-    is Action.LaunchApp -> "Launch app"
-    is Action.ShowNotification -> "Show notification"
-    is Action.Wait -> "Wait"
-    is Action.SetRinger -> "Ringer mode"
-    is Action.SetNfc -> "NFC"
-    is Action.SetDataSaver -> "Data saver"
-    is Action.SetHotspot -> "Hotspot"
-    is Action.SetAutoSync -> "Auto-sync"
-    is Action.SetRefreshRate -> "Refresh rate"
-    is Action.SetScreenRotation -> "Screen rotation"
-    is Action.MediaControl -> "Media control"
-    is Action.SendSms -> "Send SMS"
-    is Action.LockScreen -> "Lock screen"
-    is Action.ClearNotifications -> "Clear notifications"
-    is Action.TakeScreenshot -> "Take screenshot"
-    is Action.WriteSetting -> "Write setting"
-    is Action.SetGlyph -> "Glyph"
-    is Action.SetGlyphMatrix -> "Glyph matrix"
-    is Action.GlyphProgress -> "Glyph progress"
-    is Action.GlyphAnimate -> "Glyph animate"
-    is Action.GlyphTurnOff -> "Glyph off"
-    else -> "Action"
-}
+private val GLYPH_PRESET_NAMES =
+    listOf(
+        "sleep",
+        "morning",
+        "work",
+        "dnd",
+        "dnd_off",
+        "fired",
+        "error",
+        "success",
+        "charging",
+        "charging_complete",
+        "call",
+        "sms",
+        "timer",
+        "off",
+    )
+
+private fun actionTitle(action: Action): String =
+    when (action) {
+        is Action.SetWifi -> "Wi-Fi"
+        is Action.SetBluetooth -> "Bluetooth"
+        is Action.SetMobileData -> "Mobile data"
+        is Action.SetAirplaneMode -> "Airplane mode"
+        is Action.SetDarkMode -> "Dark mode"
+        is Action.SetBrightness -> "Brightness"
+        is Action.SetAutoBrightness -> "Auto brightness"
+        is Action.SetExtraDim -> "Extra dim"
+        is Action.SetScreenTimeout -> "Screen timeout"
+        is Action.SetAlwaysOnDisplay -> "Always-on display"
+        is Action.SetDnd -> "Do not disturb"
+        is Action.SetVolume -> "Volume"
+        is Action.Vibrate -> "Vibrate"
+        is Action.SetAutoRotate -> "Auto-rotate"
+        is Action.SetBatterySaver -> "Battery saver"
+        is Action.SetLocationMode -> "Location mode"
+        is Action.OpenSettingsScreen -> "Open settings"
+        is Action.SetFlashlight -> "Flashlight"
+        is Action.GlyphPreset -> "Glyph preset"
+        is Action.GlyphText -> "Glyph text"
+        is Action.GlyphScrollingText -> "Glyph scrolling text"
+        is Action.CopyText -> "Copy text"
+        is Action.OpenUrl -> "Open URL"
+        is Action.LaunchApp -> "Launch app"
+        is Action.ShowNotification -> "Show notification"
+        is Action.Wait -> "Wait"
+        is Action.SetRinger -> "Ringer mode"
+        is Action.SetNfc -> "NFC"
+        is Action.SetDataSaver -> "Data saver"
+        is Action.SetHotspot -> "Hotspot"
+        is Action.SetAutoSync -> "Auto-sync"
+        is Action.SetRefreshRate -> "Refresh rate"
+        is Action.SetScreenRotation -> "Screen rotation"
+        is Action.MediaControl -> "Media control"
+        is Action.SendSms -> "Send SMS"
+        is Action.LockScreen -> "Lock screen"
+        is Action.ClearNotifications -> "Clear notifications"
+        is Action.TakeScreenshot -> "Take screenshot"
+        is Action.WriteSetting -> "Write setting"
+        is Action.SetGlyph -> "Glyph"
+        is Action.SetGlyphMatrix -> "Glyph matrix"
+        is Action.GlyphProgress -> "Glyph progress"
+        is Action.GlyphAnimate -> "Glyph animate"
+        is Action.GlyphTurnOff -> "Glyph off"
+        else -> "Action"
+    }
 
 @Composable
 private fun BooleanRow(
@@ -715,10 +731,11 @@ private fun BooleanRow(
     onChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onChange(!checked) }
-            .padding(vertical = NothingSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onChange(!checked) }
+                .padding(vertical = NothingSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
@@ -749,11 +766,12 @@ internal fun RingerModeSelector(
     }
 }
 
-internal fun parseColorHex(text: String): Int? = runCatching {
-    val hex = text.removePrefix("#").removePrefix("0x")
-    if (hex.length != 6) return@runCatching null
-    Integer.parseInt(hex, 16) or 0xFF000000.toInt()
-}.getOrNull()
+internal fun parseColorHex(text: String): Int? =
+    runCatching {
+        val hex = text.removePrefix("#").removePrefix("0x")
+        if (hex.length != 6) return@runCatching null
+        Integer.parseInt(hex, 16) or 0xFF000000.toInt()
+    }.getOrNull()
 
 // ─── Installed App Picker Field ──────────────────────────────────────────────
 
@@ -766,27 +784,33 @@ private fun AppPickerField(
     var searchQuery by remember { mutableStateOf("") }
     var showList by remember { mutableStateOf(false) }
 
-    val installedApps = remember {
-        runCatching {
-            val pm = context.packageManager
-            val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
-                addCategory(android.content.Intent.CATEGORY_LAUNCHER)
-            }
-            pm.queryIntentActivities(mainIntent, 0)
-                .map { ri ->
-                    ri.loadLabel(pm).toString() to ri.activityInfo.packageName
-                }
-                .sortedBy { it.first.lowercase() }
-        }.getOrDefault(emptyList())
-    }
-
-    val filteredApps = remember(searchQuery, installedApps) {
-        if (searchQuery.isBlank()) installedApps
-        else installedApps.filter {
-            it.first.contains(searchQuery, ignoreCase = true) ||
-                it.second.contains(searchQuery, ignoreCase = true)
+    val installedApps =
+        remember {
+            runCatching {
+                val pm = context.packageManager
+                val mainIntent =
+                    android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                        addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                    }
+                pm
+                    .queryIntentActivities(mainIntent, 0)
+                    .map { ri ->
+                        ri.loadLabel(pm).toString() to ri.activityInfo.packageName
+                    }.sortedBy { it.first.lowercase() }
+            }.getOrDefault(emptyList())
         }
-    }
+
+    val filteredApps =
+        remember(searchQuery, installedApps) {
+            if (searchQuery.isBlank()) {
+                installedApps
+            } else {
+                installedApps.filter {
+                    it.first.contains(searchQuery, ignoreCase = true) ||
+                        it.second.contains(searchQuery, ignoreCase = true)
+                }
+            }
+        }
 
     val selectedLabel = installedApps.find { it.second == currentPackage }?.first ?: currentPackage
 
@@ -801,18 +825,21 @@ private fun AppPickerField(
         androidx.compose.material3.Surface(
             color = MaterialTheme.colorScheme.background,
             shape = NothingShapes.input,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outline,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showList = !showList },
+            border =
+                androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline,
+                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { showList = !showList },
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(NothingSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(NothingSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -842,39 +869,44 @@ private fun AppPickerField(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             androidx.compose.foundation.lazy.LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp),
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
             ) {
                 items(filteredApps, key = { it.second }) { (label, pkg) ->
                     androidx.compose.material3.Surface(
                         color = MaterialTheme.colorScheme.surface,
                         shape = NothingShapes.input,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onPkgChange(pkg)
-                                showList = false
-                                searchQuery = ""
-                            },
+                        border =
+                            androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline,
+                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onPkgChange(pkg)
+                                    showList = false
+                                    searchQuery = ""
+                                },
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(NothingSpacing.sm),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(NothingSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (pkg == currentPackage) {
                                 Box(
-                                    modifier = Modifier
-                                        .width(2.dp)
-                                        .height(20.dp)
-                                        .background(NothingColors.accent),
+                                    modifier =
+                                        Modifier
+                                            .width(2.dp)
+                                            .height(20.dp)
+                                            .background(NothingColors.accent),
                                 )
                                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                             }

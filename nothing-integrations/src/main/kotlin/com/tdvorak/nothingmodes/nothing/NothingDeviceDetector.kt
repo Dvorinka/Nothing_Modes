@@ -4,8 +4,9 @@ import android.content.Context
 import android.os.Build
 
 /** Detects Nothing device model and Glyph hardware at runtime. */
-class NothingDeviceDetector(private val context: Context) {
-
+class NothingDeviceDetector(
+    private val context: Context,
+) {
     /** Detects the Nothing device model using Build.MODEL. */
     fun detectModel(): String? {
         if (!isNothingDevice()) return null
@@ -47,8 +48,7 @@ class NothingDeviceDetector(private val context: Context) {
     fun hasGlyphTouch(): Boolean = detectModel() == NothingDeviceIds.PHONE_3
 
     /** Whether this is a Nothing device at all. */
-    fun isNothingDevice(): Boolean =
-        Build.MANUFACTURER?.equals("nothing", ignoreCase = true) == true
+    fun isNothingDevice(): Boolean = Build.MANUFACTURER?.equals("nothing", ignoreCase = true) == true
 
     companion object {
         @JvmStatic

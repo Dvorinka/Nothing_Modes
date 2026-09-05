@@ -4,20 +4,25 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
-import com.tdvorak.nothingmodes.engine.model.AutomationType
 import kotlinx.serialization.Serializable
 
 /** Typed wrapper for an execution identifier. */
 @JvmInline
 @Serializable
-value class ExecutionId(val value: String)
+value class ExecutionId(
+    val value: String,
+)
 
 /** Store interface for automation persistence. */
 interface AutomationStore {
     suspend fun get(id: AutomationId): Automation?
+
     suspend fun armed(): List<Automation>
+
     suspend fun save(automation: Automation)
+
     suspend fun delete(id: AutomationId)
+
     suspend fun all(): List<Automation>
 }
 
@@ -26,11 +31,20 @@ class InMemoryAutomationStore : AutomationStore {
     private val map = linkedMapOf<String, Automation>()
 
     override suspend fun get(id: AutomationId): Automation? = map[id.value]
-    override suspend fun armed(): List<Automation> = map.values.filter {
-        it.status == AutomationStatus.ARMED && it.enabled
+
+    override suspend fun armed(): List<Automation> =
+        map.values.filter {
+            it.status == AutomationStatus.ARMED && it.enabled
+        }
+
+    override suspend fun save(automation: Automation) {
+        map[automation.id.value] = automation
     }
-    override suspend fun save(automation: Automation) { map[automation.id.value] = automation }
-    override suspend fun delete(id: AutomationId) { map.remove(id.value) }
+
+    override suspend fun delete(id: AutomationId) {
+        map.remove(id.value)
+    }
+
     override suspend fun all(): List<Automation> = map.values.toList()
 }
 
@@ -45,9 +59,15 @@ data class AuditEvent(
 )
 
 enum class AuditKind {
-    FIRED, BLOCKED_POLICY, CONDITIONS_NOT_MET,
-    SUPPRESSED_COOLDOWN, SUPPRESSED_DUPLICATE, ERROR,
-    MODE_ACTIVATED, MODE_DEACTIVATED, RULE_NEEDS_REVIEW,
+    FIRED,
+    BLOCKED_POLICY,
+    CONDITIONS_NOT_MET,
+    SUPPRESSED_COOLDOWN,
+    SUPPRESSED_DUPLICATE,
+    ERROR,
+    MODE_ACTIVATED,
+    MODE_DEACTIVATED,
+    RULE_NEEDS_REVIEW,
 }
 
 fun interface AuditSink {
@@ -98,13 +118,17 @@ data class StateSnapshot(
 /** Stores and retrieves state snapshots for mode restoration. */
 interface StateSnapshotStore {
     suspend fun save(snapshot: StateSnapshot)
+
     suspend fun forAutomation(id: AutomationId): List<StateSnapshot>
+
     suspend fun deleteForAutomation(id: AutomationId)
 }
 
 object NoopStateSnapshotStore : StateSnapshotStore {
     override suspend fun save(snapshot: StateSnapshot) = Unit
+
     override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> = emptyList()
+
     override suspend fun deleteForAutomation(id: AutomationId) = Unit
 }
 
@@ -119,16 +143,23 @@ object NoopSettingReader : SettingReader {
 
 /** Fire policy: cooldown and duplicate suppression. Thread-safe. */
 class FirePolicy {
-
     sealed interface Decision {
         data object Allow : Decision
-        data class Block(val code: String, val needsReview: Boolean = false) : Decision
+
+        data class Block(
+            val code: String,
+            val needsReview: Boolean = false,
+        ) : Decision
     }
 
     private val lastFired = java.util.concurrent.ConcurrentHashMap<AutomationId, Long>()
     private val lock = Any()
 
-    fun evaluate(automation: Automation, event: TriggerEvent, now: Long): Decision {
+    fun evaluate(
+        automation: Automation,
+        event: TriggerEvent,
+        now: Long,
+    ): Decision {
         if (automation.cooldownMs <= 0) return Decision.Allow
         synchronized(lock) {
             val last = lastFired[automation.id]
@@ -140,17 +171,24 @@ class FirePolicy {
         return Decision.Allow
     }
 
-    fun reset(id: AutomationId) { lastFired.remove(id) }
+    fun reset(id: AutomationId) {
+        lastFired.remove(id)
+    }
 }
 
 /** Execution ID factory. */
 fun interface ExecutionIdFactory {
-    fun create(automationId: AutomationId, eventId: String): String
+    fun create(
+        automationId: AutomationId,
+        eventId: String,
+    ): String
 }
 
 object StableExecutionIdFactory : ExecutionIdFactory {
-    override fun create(automationId: AutomationId, eventId: String): String =
-        "${automationId.value}:${eventId}"
+    override fun create(
+        automationId: AutomationId,
+        eventId: String,
+    ): String = "${automationId.value}:$eventId"
 }
 
 /** Fire outcome for a single automation. */

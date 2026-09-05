@@ -14,9 +14,9 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.ExecutionJournal
 import com.tdvorak.nothingmodes.engine.runtime.SettingReader
+import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.engine.runtime.StateProvider
 import com.tdvorak.nothingmodes.engine.runtime.StateSnapshotStore
-import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
@@ -31,11 +31,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AutomationModule {
-
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): NothingModesDatabase =
-        NothingModesDatabase.build(context)
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+    ): NothingModesDatabase = NothingModesDatabase.build(context)
 
     @Provides
     @Singleton
@@ -52,18 +52,17 @@ object AutomationModule {
 
     @Provides
     @Singleton
-    fun provideAuditSink(db: NothingModesDatabase): AuditSink =
-        RoomAuditSink(db.auditDao())
+    fun provideAuditSink(db: NothingModesDatabase): AuditSink = RoomAuditSink(db.auditDao())
 
     @Provides
     @Singleton
-    fun provideExecutionJournal(db: NothingModesDatabase): ExecutionJournal =
-        RoomExecutionJournal(db.executionJournalDao(), db.fireClaimDao())
+    fun provideExecutionJournal(db: NothingModesDatabase): ExecutionJournal = RoomExecutionJournal(db.executionJournalDao(), db.fireClaimDao())
 
     @Provides
     @Singleton
-    fun provideShizukuGateway(@ApplicationContext context: Context): ShizukuGateway =
-        ShizukuGateway(context)
+    fun provideShizukuGateway(
+        @ApplicationContext context: Context,
+    ): ShizukuGateway = ShizukuGateway(context)
 
     @Provides
     @Singleton
@@ -74,13 +73,15 @@ object AutomationModule {
 
     @Provides
     @Singleton
-    fun provideGlyphProvider(@ApplicationContext context: Context): NothingGlyphProvider =
-        NothingGlyphProvider(context).also { it.init() }
+    fun provideGlyphProvider(
+        @ApplicationContext context: Context,
+    ): NothingGlyphProvider = NothingGlyphProvider(context).also { it.init() }
 
     @Provides
     @Singleton
-    fun provideGlyphMatrixProvider(@ApplicationContext context: Context): NothingGlyphMatrixProvider =
-        NothingGlyphMatrixProvider(context).also { it.init() }
+    fun provideGlyphMatrixProvider(
+        @ApplicationContext context: Context,
+    ): NothingGlyphMatrixProvider = NothingGlyphMatrixProvider(context).also { it.init() }
 
     @Provides
     @Singleton
@@ -89,22 +90,25 @@ object AutomationModule {
         shellFactory: PrivilegedShellFactory,
         glyphProvider: NothingGlyphProvider,
         glyphMatrixProvider: NothingGlyphMatrixProvider,
-    ): ActionExecutor = RealActionExecutor.create(
-        context = context,
-        shellFactory = shellFactory,
-        glyphProvider = glyphProvider,
-        glyphMatrixProvider = glyphMatrixProvider,
-    )
+    ): ActionExecutor =
+        RealActionExecutor.create(
+            context = context,
+            shellFactory = shellFactory,
+            glyphProvider = glyphProvider,
+            glyphMatrixProvider = glyphMatrixProvider,
+        )
 
     @Provides
     @Singleton
     fun provideModeActivationProvider(db: NothingModesDatabase): com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider =
-        com.tdvorak.nothingmodes.data.RoomModeActivationProvider(db.modeActivationDao())
+        com.tdvorak.nothingmodes.data
+            .RoomModeActivationProvider(db.modeActivationDao())
 
     @Provides
     @Singleton
     fun provideModeActivationSink(db: NothingModesDatabase): com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink =
-        com.tdvorak.nothingmodes.data.RoomModeActivationSink(db.modeActivationDao(), db)
+        com.tdvorak.nothingmodes.data
+            .RoomModeActivationSink(db.modeActivationDao(), db)
 
     @Provides
     @Singleton
@@ -112,17 +116,20 @@ object AutomationModule {
         @ApplicationContext context: Context,
         modeActivationProvider: com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider,
     ): StateProvider =
-        com.tdvorak.nothingmodes.capabilities.controllers.AndroidStateProvider(context, modeActivationProvider)
+        com.tdvorak.nothingmodes.capabilities.controllers
+            .AndroidStateProvider(context, modeActivationProvider)
 
     @Provides
     @Singleton
-    fun provideSettingReader(@ApplicationContext context: Context): SettingReader =
-        com.tdvorak.nothingmodes.capabilities.controllers.AndroidSettingReader(context)
+    fun provideSettingReader(
+        @ApplicationContext context: Context,
+    ): SettingReader =
+        com.tdvorak.nothingmodes.capabilities.controllers
+            .AndroidSettingReader(context)
 
     @Provides
     @Singleton
-    fun provideSnapshotStore(db: NothingModesDatabase): StateSnapshotStore =
-        RoomStateSnapshotStore(db.stateSnapshotDao())
+    fun provideSnapshotStore(db: NothingModesDatabase): StateSnapshotStore = RoomStateSnapshotStore(db.stateSnapshotDao())
 
     @Provides
     @Singleton
@@ -135,20 +142,22 @@ object AutomationModule {
         snapshotStore: StateSnapshotStore,
         settingReader: SettingReader,
         modeActivationSink: com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink,
-    ): Engine = Engine(
-        store = store,
-        executor = executor,
-        audit = audit,
-        journal = journal,
-        stateProvider = stateProvider,
-        snapshotStore = snapshotStore,
-        settingReader = settingReader,
-        modeActivationSink = modeActivationSink,
-        executionIds = StableExecutionIdFactory,
-    )
+    ): Engine =
+        Engine(
+            store = store,
+            executor = executor,
+            audit = audit,
+            journal = journal,
+            stateProvider = stateProvider,
+            snapshotStore = snapshotStore,
+            settingReader = settingReader,
+            modeActivationSink = modeActivationSink,
+            executionIds = StableExecutionIdFactory,
+        )
 
     @Provides
     @Singleton
-    fun provideScheduler(@ApplicationContext context: Context): AutomationScheduler =
-        AutomationScheduler(context)
+    fun provideScheduler(
+        @ApplicationContext context: Context,
+    ): AutomationScheduler = AutomationScheduler(context)
 }

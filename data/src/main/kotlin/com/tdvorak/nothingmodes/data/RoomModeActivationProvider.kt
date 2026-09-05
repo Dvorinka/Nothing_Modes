@@ -1,7 +1,7 @@
 package com.tdvorak.nothingmodes.data
 
-import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 import com.tdvorak.nothingmodes.data.dao.ModeActivationDao
+import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 
 class RoomModeActivationProvider(
     private val dao: ModeActivationDao,

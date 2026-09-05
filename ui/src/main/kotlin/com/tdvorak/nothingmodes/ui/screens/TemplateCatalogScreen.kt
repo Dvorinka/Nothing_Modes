@@ -54,9 +54,6 @@ import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +61,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
+import java.net.HttpURLConnection
+import java.net.URL
+import javax.inject.Inject
 
 // jarvis: ceiling raw GitHub index; upgrade to a pinned release asset if the repo layout changes
 private const val TEMPLATE_BASE_URL =
@@ -81,143 +81,165 @@ data class PendingTemplateInstall(
 )
 
 @HiltViewModel
-class TemplateCatalogViewModel @Inject constructor(
-    @ApplicationContext private val context: android.content.Context,
-    private val store: AutomationStore,
-) : ViewModel() {
+class TemplateCatalogViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: android.content.Context,
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val _templates = MutableStateFlow<List<TemplateSummary>>(emptyList())
+        val templates: StateFlow<List<TemplateSummary>> = _templates.asStateFlow()
 
-    private val _templates = MutableStateFlow<List<TemplateSummary>>(emptyList())
-    val templates: StateFlow<List<TemplateSummary>> = _templates.asStateFlow()
+        private val _loading = MutableStateFlow(true)
+        val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+        private val _error = MutableStateFlow<String?>(null)
+        val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+        private val _pending = MutableStateFlow<PendingTemplateInstall?>(null)
+        val pending: StateFlow<PendingTemplateInstall?> = _pending.asStateFlow()
 
-    private val _pending = MutableStateFlow<PendingTemplateInstall?>(null)
-    val pending: StateFlow<PendingTemplateInstall?> = _pending.asStateFlow()
+        private val _installing = MutableStateFlow(false)
+        val installing: StateFlow<Boolean> = _installing.asStateFlow()
 
-    private val _installing = MutableStateFlow(false)
-    val installing: StateFlow<Boolean> = _installing.asStateFlow()
+        private val _installed = MutableStateFlow<ImportResult?>(null)
+        val installed: StateFlow<ImportResult?> = _installed.asStateFlow()
 
-    private val _installed = MutableStateFlow<ImportResult?>(null)
-    val installed: StateFlow<ImportResult?> = _installed.asStateFlow()
+        private val importExportService =
+            ImportExportService(
+                store,
+                appVersion =
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    }.getOrNull().orEmpty(),
+            )
 
-    private val importExportService = ImportExportService(
-        store,
-        appVersion = runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull().orEmpty(),
-    )
-
-    init { refresh() }
-
-    fun refresh() {
-        viewModelScope.launch {
-            _loading.value = true
-            _error.value = null
-            try {
-                val indexJson = fetchText("$TEMPLATE_BASE_URL/index.json")
-                val index = EngineJson.json.decodeFromString(TemplateIndex.serializer(), indexJson)
-                _templates.value = index.templates
-            } catch (e: Exception) {
-                _error.value = "Could not load templates: ${e.message}"
-            }
-            _loading.value = false
+        init {
+            refresh()
         }
-    }
 
-    /** Fetch a template bundle and stage it for review before install. */
-    fun select(template: TemplateSummary) {
-        viewModelScope.launch {
-            _error.value = null
-            try {
-                val bundleJson = fetchText("$TEMPLATE_BASE_URL/${template.file}")
-                val preview = importExportService.preview(bundleJson)
-                if (!preview.isSupported) {
-                    _pending.value = PendingTemplateInstall(
-                        summary = template,
-                        automations = emptyList(),
-                        warnings = emptyList(),
-                        satisfied = emptyList(),
-                        errors = preview.errors,
-                    )
-                    return@launch
+        fun refresh() {
+            viewModelScope.launch {
+                _loading.value = true
+                _error.value = null
+                try {
+                    val indexJson = fetchText("$TEMPLATE_BASE_URL/index.json")
+                    val index = EngineJson.json.decodeFromString(TemplateIndex.serializer(), indexJson)
+                    _templates.value = index.templates
+                } catch (e: Exception) {
+                    _error.value = "Could not load templates: ${e.message}"
                 }
-
-                val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
-                val resolver = CapabilityResolver(caps)
-                val resolution = resolver.resolve(template.id, preview.requiredCapabilities)
-                val missing = resolution.missing
-                    .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
-                val satisfied = (preview.requiredCapabilities - resolution.missing)
-                    .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
-
-                _pending.value = PendingTemplateInstall(
-                    summary = template,
-                    automations = preview.automations,
-                    warnings = missing.distinct(),
-                    satisfied = satisfied.distinct(),
-                    errors = emptyList(),
-                )
-            } catch (e: Exception) {
-                _error.value = "Could not load template: ${e.message}"
+                _loading.value = false
             }
         }
-    }
 
-    /** Install with fresh IDs and local timezone so templates never collide and fire correctly. */
-    fun confirmInstall() {
-        val pending = _pending.value ?: return
-        viewModelScope.launch {
-            _installing.value = true
-            try {
-                val now = System.currentTimeMillis()
-                val tz = defaultTimeZone()
-                val localized = pending.automations.mapIndexed { index, automation ->
-                    automation.copy(
-                        id = AutomationId("${automation.id.value}-$now-$index"),
-                        trigger = localizeTz(automation.trigger, tz),
-                    )
+        /** Fetch a template bundle and stage it for review before install. */
+        fun select(template: TemplateSummary) {
+            viewModelScope.launch {
+                _error.value = null
+                try {
+                    val bundleJson = fetchText("$TEMPLATE_BASE_URL/${template.file}")
+                    val preview = importExportService.preview(bundleJson)
+                    if (!preview.isSupported) {
+                        _pending.value =
+                            PendingTemplateInstall(
+                                summary = template,
+                                automations = emptyList(),
+                                warnings = emptyList(),
+                                satisfied = emptyList(),
+                                errors = preview.errors,
+                            )
+                        return@launch
+                    }
+
+                    val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                    val resolver = CapabilityResolver(caps)
+                    val resolution = resolver.resolve(template.id, preview.requiredCapabilities)
+                    val missing =
+                        resolution.missing
+                            .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                    val satisfied =
+                        (preview.requiredCapabilities - resolution.missing)
+                            .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+
+                    _pending.value =
+                        PendingTemplateInstall(
+                            summary = template,
+                            automations = preview.automations,
+                            warnings = missing.distinct(),
+                            satisfied = satisfied.distinct(),
+                            errors = emptyList(),
+                        )
+                } catch (e: Exception) {
+                    _error.value = "Could not load template: ${e.message}"
                 }
-                val bundle = ExportBundle(
-                    schemaVersion = 1,
-                    exportedAt = now,
-                    automations = localized,
-                    appVersion = "template:${pending.summary.id}",
-                )
-                _installed.value = importExportService.import(
-                    EngineJson.json.encodeToString(bundle),
-                )
-                _pending.value = null
-            } catch (e: Exception) {
-                _error.value = "Install failed: ${e.message}"
             }
-            _installing.value = false
         }
-    }
 
-    fun dismissPending() { _pending.value = null }
-    fun clearInstalled() { _installed.value = null }
-
-    private fun localizeTz(trigger: Trigger, tz: String): Trigger = when (trigger) {
-        is Trigger.Time -> trigger.copy(tz = tz)
-        is Trigger.TimeWindow -> trigger.copy(tz = tz)
-        else -> trigger
-    }
-
-    private suspend fun fetchText(url: String): String = withContext(Dispatchers.IO) {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 10_000
-        conn.readTimeout = 10_000
-        try {
-            conn.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            conn.disconnect()
+        /** Install with fresh IDs and local timezone so templates never collide and fire correctly. */
+        fun confirmInstall() {
+            val pending = _pending.value ?: return
+            viewModelScope.launch {
+                _installing.value = true
+                try {
+                    val now = System.currentTimeMillis()
+                    val tz = defaultTimeZone()
+                    val localized =
+                        pending.automations.mapIndexed { index, automation ->
+                            automation.copy(
+                                id = AutomationId("${automation.id.value}-$now-$index"),
+                                trigger = localizeTz(automation.trigger, tz),
+                            )
+                        }
+                    val bundle =
+                        ExportBundle(
+                            schemaVersion = 1,
+                            exportedAt = now,
+                            automations = localized,
+                            appVersion = "template:${pending.summary.id}",
+                        )
+                    _installed.value =
+                        importExportService.import(
+                            EngineJson.json.encodeToString(bundle),
+                        )
+                    _pending.value = null
+                } catch (e: Exception) {
+                    _error.value = "Install failed: ${e.message}"
+                }
+                _installing.value = false
+            }
         }
+
+        fun dismissPending() {
+            _pending.value = null
+        }
+
+        fun clearInstalled() {
+            _installed.value = null
+        }
+
+        private fun localizeTz(
+            trigger: Trigger,
+            tz: String,
+        ): Trigger =
+            when (trigger) {
+                is Trigger.Time -> trigger.copy(tz = tz)
+                is Trigger.TimeWindow -> trigger.copy(tz = tz)
+                else -> trigger
+            }
+
+        private suspend fun fetchText(url: String): String =
+            withContext(Dispatchers.IO) {
+                val conn = URL(url).openConnection() as HttpURLConnection
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 10_000
+                try {
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    conn.disconnect()
+                }
+            }
     }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,51 +265,57 @@ fun TemplateCatalogScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             when {
-                loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "LOADING…",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                    )
-                }
-                error != null -> NothingEmptyState(
-                    title = "Templates unavailable",
-                    description = error.orEmpty(),
-                    action = {
-                        NothingPrimaryButton(
-                            text = "Retry",
-                            onClick = { viewModel.refresh() },
-                        )
-                    },
-                )
-                templates.isEmpty() -> NothingEmptyState(
-                    title = "No templates yet",
-                    description = "Community templates will appear here",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        horizontal = NothingSpacing.md,
-                        vertical = NothingSpacing.lg,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                ) {
-                    items(templates, key = { it.id }) { template ->
-                        TemplateRow(
-                            template = template,
-                            onClick = { viewModel.select(template) },
+                loading ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "LOADING…",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
                         )
                     }
-                }
+                error != null ->
+                    NothingEmptyState(
+                        title = "Templates unavailable",
+                        description = error.orEmpty(),
+                        action = {
+                            NothingPrimaryButton(
+                                text = "Retry",
+                                onClick = { viewModel.refresh() },
+                            )
+                        },
+                    )
+                templates.isEmpty() ->
+                    NothingEmptyState(
+                        title = "No templates yet",
+                        description = "Community templates will appear here",
+                    )
+                else ->
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = NothingSpacing.md,
+                                vertical = NothingSpacing.lg,
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                    ) {
+                        items(templates, key = { it.id }) { template ->
+                            TemplateRow(
+                                template = template,
+                                onClick = { viewModel.select(template) },
+                            )
+                        }
+                    }
             }
         }
     }
@@ -310,10 +338,11 @@ fun TemplateCatalogScreen(
             onDismissRequest = { viewModel.clearInstalled() },
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(NothingSpacing.lg)
-                    .navigationBarsPadding(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(NothingSpacing.lg)
+                        .navigationBarsPadding(),
             ) {
                 NothingLabel(text = "Install complete")
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -391,10 +420,11 @@ private fun TemplateInstallSheet(
     onConfirm: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(NothingSpacing.lg)
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(NothingSpacing.lg)
+                .navigationBarsPadding(),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

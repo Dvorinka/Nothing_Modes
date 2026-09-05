@@ -1,15 +1,9 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,8 +25,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.CallState
-import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
+import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
@@ -47,8 +41,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private data class ConditionItem(
     val label: String,
@@ -58,131 +52,131 @@ private data class ConditionItem(
 )
 
 @Composable
-fun ConditionCatalogScreen(
-    navController: NavController,
-) {
+fun ConditionCatalogScreen(navController: NavController) {
     var search by remember { mutableStateOf("") }
     // Multi-select: tapping toggles a condition instead of closing the catalog.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
 
-    val items = remember {
-        listOf(
-            ConditionItem(
-                label = "Battery level",
-                category = "Device status",
-                icon = Icons.Outlined.BatteryFull,
-                condition = Condition.BatteryLevel(CmpOp.LT, 20),
-            ),
-            ConditionItem(
-                label = "Charging status",
-                category = "Device status",
-                icon = Icons.Outlined.Power,
-                condition = Condition.Charging(true),
-            ),
-            ConditionItem(
-                label = "Screen state",
-                category = "Device status",
-                icon = Icons.Outlined.Devices,
-                condition = Condition.ScreenStateCondition(ScreenState.ON),
-            ),
-            ConditionItem(
-                label = "Wi-Fi",
-                category = "Connections",
-                icon = Icons.Outlined.Wifi,
-                condition = Condition.WifiConnected(),
-            ),
-            ConditionItem(
-                label = "Bluetooth",
-                category = "Connections",
-                icon = Icons.Outlined.Bluetooth,
-                condition = Condition.BluetoothConnected(),
-            ),
-            ConditionItem(
-                label = "Time period",
-                category = "Time",
-                icon = Icons.Outlined.Schedule,
-                condition = Condition.TimeWindow("22:00", "07:00", defaultTimeZone()),
-            ),
-            ConditionItem(
-                label = "Day of week",
-                category = "Time",
-                icon = Icons.Outlined.CalendarMonth,
-                condition = Condition.DayOfWeekCondition(DayOfWeek.entries),
-            ),
-            ConditionItem(
-                label = "App in foreground",
-                category = "Apps",
-                icon = Icons.Outlined.Devices,
-                condition = Condition.AppInForeground("com.example.app"),
-            ),
-            ConditionItem(
-                label = "Current mode active",
-                category = "Device status",
-                icon = Icons.Outlined.Star,
-                condition = Condition.CurrentModeActive("mode-id"),
-            ),
-            // ── Device status (extended) ──
-            ConditionItem(
-                label = "Power saving",
-                category = "Device status",
-                icon = Icons.Outlined.PowerSettingsNew,
-                condition = Condition.PowerSaving(true),
-            ),
-            ConditionItem(
-                label = "Dark mode",
-                category = "Device status",
-                icon = Icons.Outlined.DarkMode,
-                condition = Condition.DarkModeActive(true),
-            ),
-            ConditionItem(
-                label = "Media playing",
-                category = "Device status",
-                icon = Icons.Outlined.GraphicEq,
-                condition = Condition.MediaPlaying(true),
-            ),
-            ConditionItem(
-                label = "Ringer mode",
-                category = "Device status",
-                icon = Icons.AutoMirrored.Outlined.VolumeUp,
-                condition = Condition.RingerMode("normal"),
-            ),
-            // ── Connections / system ──
-            ConditionItem(
-                label = "Airplane mode",
-                category = "Connections",
-                icon = Icons.Outlined.Flight,
-                condition = Condition.AirplaneModeOn(true),
-            ),
-            ConditionItem(
-                label = "NFC",
-                category = "Connections",
-                icon = Icons.Outlined.Bluetooth,
-                condition = Condition.NfcEnabled(true),
-            ),
-            ConditionItem(
-                label = "Location",
-                category = "Connections",
-                icon = Icons.Outlined.LocationOn,
-                condition = Condition.LocationEnabled(true),
-            ),
-            ConditionItem(
-                label = "Call state",
-                category = "Device status",
-                icon = Icons.Outlined.PhoneAndroid,
-                condition = Condition.CallStateCondition(CallState.INCOMING),
-            ),
-            ConditionItem(
-                label = "Alarm ringing",
-                category = "Time",
-                icon = Icons.Outlined.Alarm,
-                condition = Condition.AlarmRinging(),
-            ),
-        )
-    }
+    val items =
+        remember {
+            listOf(
+                ConditionItem(
+                    label = "Battery level",
+                    category = "Device status",
+                    icon = Icons.Outlined.BatteryFull,
+                    condition = Condition.BatteryLevel(CmpOp.LT, 20),
+                ),
+                ConditionItem(
+                    label = "Charging status",
+                    category = "Device status",
+                    icon = Icons.Outlined.Power,
+                    condition = Condition.Charging(true),
+                ),
+                ConditionItem(
+                    label = "Screen state",
+                    category = "Device status",
+                    icon = Icons.Outlined.Devices,
+                    condition = Condition.ScreenStateCondition(ScreenState.ON),
+                ),
+                ConditionItem(
+                    label = "Wi-Fi",
+                    category = "Connections",
+                    icon = Icons.Outlined.Wifi,
+                    condition = Condition.WifiConnected(),
+                ),
+                ConditionItem(
+                    label = "Bluetooth",
+                    category = "Connections",
+                    icon = Icons.Outlined.Bluetooth,
+                    condition = Condition.BluetoothConnected(),
+                ),
+                ConditionItem(
+                    label = "Time period",
+                    category = "Time",
+                    icon = Icons.Outlined.Schedule,
+                    condition = Condition.TimeWindow("22:00", "07:00", defaultTimeZone()),
+                ),
+                ConditionItem(
+                    label = "Day of week",
+                    category = "Time",
+                    icon = Icons.Outlined.CalendarMonth,
+                    condition = Condition.DayOfWeekCondition(DayOfWeek.entries),
+                ),
+                ConditionItem(
+                    label = "App in foreground",
+                    category = "Apps",
+                    icon = Icons.Outlined.Devices,
+                    condition = Condition.AppInForeground("com.example.app"),
+                ),
+                ConditionItem(
+                    label = "Current mode active",
+                    category = "Device status",
+                    icon = Icons.Outlined.Star,
+                    condition = Condition.CurrentModeActive("mode-id"),
+                ),
+                // ── Device status (extended) ──
+                ConditionItem(
+                    label = "Power saving",
+                    category = "Device status",
+                    icon = Icons.Outlined.PowerSettingsNew,
+                    condition = Condition.PowerSaving(true),
+                ),
+                ConditionItem(
+                    label = "Dark mode",
+                    category = "Device status",
+                    icon = Icons.Outlined.DarkMode,
+                    condition = Condition.DarkModeActive(true),
+                ),
+                ConditionItem(
+                    label = "Media playing",
+                    category = "Device status",
+                    icon = Icons.Outlined.GraphicEq,
+                    condition = Condition.MediaPlaying(true),
+                ),
+                ConditionItem(
+                    label = "Ringer mode",
+                    category = "Device status",
+                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                    condition = Condition.RingerMode("normal"),
+                ),
+                // ── Connections / system ──
+                ConditionItem(
+                    label = "Airplane mode",
+                    category = "Connections",
+                    icon = Icons.Outlined.Flight,
+                    condition = Condition.AirplaneModeOn(true),
+                ),
+                ConditionItem(
+                    label = "NFC",
+                    category = "Connections",
+                    icon = Icons.Outlined.Bluetooth,
+                    condition = Condition.NfcEnabled(true),
+                ),
+                ConditionItem(
+                    label = "Location",
+                    category = "Connections",
+                    icon = Icons.Outlined.LocationOn,
+                    condition = Condition.LocationEnabled(true),
+                ),
+                ConditionItem(
+                    label = "Call state",
+                    category = "Device status",
+                    icon = Icons.Outlined.PhoneAndroid,
+                    condition = Condition.CallStateCondition(CallState.INCOMING),
+                ),
+                ConditionItem(
+                    label = "Alarm ringing",
+                    category = "Time",
+                    icon = Icons.Outlined.Alarm,
+                    condition = Condition.AlarmRinging(),
+                ),
+            )
+        }
 
-    val filtered = remember(search, items) {
-        if (search.isBlank()) items else items.filter { it.label.contains(search, ignoreCase = true) }
-    }
+    val filtered =
+        remember(search, items) {
+            if (search.isBlank()) items else items.filter { it.label.contains(search, ignoreCase = true) }
+        }
 
     val grouped = filtered.groupBy { it.category.uppercase() }
 
@@ -196,73 +190,76 @@ fun ConditionCatalogScreen(
         },
     ) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = NothingSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = NothingSpacing.md),
             ) {
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                NothingInput(
-                    value = search,
-                    onValueChange = { search = it },
-                    label = "Search",
-                    placeholder = "Find a condition",
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-            }
-
-            grouped.forEach { (category, conditions) ->
                 item {
-                    NothingSectionHeader(text = category)
-                    NothingCard {
-                        conditions.forEachIndexed { index, conditionItem ->
-                            if (index > 0) NothingDivider()
-                            val isPicked = conditionItem.condition in selected
-                            CatalogListItem(
-                                label = conditionItem.label,
-                                icon = conditionItem.icon,
-                                picked = isPicked,
-                                onClick = {
-                                    selected = if (isPicked) {
-                                        selected - conditionItem.condition
-                                    } else {
-                                        selected + conditionItem.condition
-                                    }
-                                },
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                    NothingInput(
+                        value = search,
+                        onValueChange = { search = it },
+                        label = "Search",
+                        placeholder = "Find a condition",
+                    )
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
-            }
 
-            item {
-                // Room for the floating Done bar.
-                Spacer(modifier = Modifier.height(96.dp))
-            }
-        }
-
-        // Sticky bottom bar — confirms every picked condition in one shot.
-        NothingBottomActionBar(
-            text = if (selected.isEmpty()) "Done" else "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}",
-            onClick = {
-                if (selected.isNotEmpty()) {
-                    val json = Json.encodeToString(selected)
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("condition_results", json)
+                grouped.forEach { (category, conditions) ->
+                    item {
+                        NothingSectionHeader(text = category)
+                        NothingCard {
+                            conditions.forEachIndexed { index, conditionItem ->
+                                if (index > 0) NothingDivider()
+                                val isPicked = conditionItem.condition in selected
+                                CatalogListItem(
+                                    label = conditionItem.label,
+                                    icon = conditionItem.icon,
+                                    picked = isPicked,
+                                    onClick = {
+                                        selected =
+                                            if (isPicked) {
+                                                selected - conditionItem.condition
+                                            } else {
+                                                selected + conditionItem.condition
+                                            }
+                                    },
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                    }
                 }
-                navController.popBackStack()
-            },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+
+                item {
+                    // Room for the floating Done bar.
+                    Spacer(modifier = Modifier.height(96.dp))
+                }
+            }
+
+            // Sticky bottom bar — confirms every picked condition in one shot.
+            NothingBottomActionBar(
+                text = if (selected.isEmpty()) "Done" else "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}",
+                onClick = {
+                    if (selected.isNotEmpty()) {
+                        val json = Json.encodeToString(selected)
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("condition_results", json)
+                    }
+                    navController.popBackStack()
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
-}
 }
 
 @Composable

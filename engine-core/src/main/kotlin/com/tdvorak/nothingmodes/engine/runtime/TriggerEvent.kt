@@ -1,7 +1,5 @@
 package com.tdvorak.nothingmodes.engine.runtime
 
-import com.tdvorak.nothingmodes.engine.model.Trigger
-
 /** Event delivered to the engine when a trigger fires. */
 sealed interface TriggerEvent {
     val eventId: String
@@ -52,7 +50,9 @@ sealed interface TriggerEvent {
         val match: String?,
     ) : TriggerEvent
 
-    data class BootCompleted(override val eventId: String) : TriggerEvent
+    data class BootCompleted(
+        override val eventId: String,
+    ) : TriggerEvent
 
     data class BatteryLevelChanged(
         override val eventId: String,

@@ -19,8 +19,9 @@ import android.util.Log
  * What we cannot do: `setGlyphMatrixTimeout` over the binder is gated to a
  * first-party allowlist, so timeout/flip settings must go through the system UI.
  */
-class GlyphToysBridge(private val context: Context) {
-
+class GlyphToysBridge(
+    private val context: Context,
+) {
     data class ToyInfo(
         val packageName: String,
         val serviceName: String,
@@ -29,45 +30,49 @@ class GlyphToysBridge(private val context: Context) {
     )
 
     /** Whether the Nothing glyph system app exists on this device. */
-    fun isGlyphSystemInstalled(): Boolean = try {
-        context.packageManager.getPackageInfo(SYSTEM_PACKAGE, 0)
-        true
-    } catch (e: PackageManager.NameNotFoundException) {
-        false
-    }
+    fun isGlyphSystemInstalled(): Boolean =
+        try {
+            context.packageManager.getPackageInfo(SYSTEM_PACKAGE, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
 
     /** All services that registered the `com.nothing.glyph.TOY` intent filter. */
-    fun listRegisteredToys(): List<ToyInfo> = try {
-        val intent = Intent(TOY_ACTION)
-        context.packageManager
-            .queryIntentServices(intent, PackageManager.GET_META_DATA or PackageManager.MATCH_ALL)
-            .map { resolve ->
-                val info = resolve.serviceInfo
-                val label = info.metaData
-                    ?.let { md ->
-                        // Prefer the declared toy.name resource; fall back to the app label.
-                        val nameRes = md.getInt(META_TOY_NAME, 0)
-                        if (nameRes != 0) {
-                            runCatching {
-                                context.packageManager.getResourcesForApplication(info.packageName)
-                                    .getString(nameRes)
-                            }.getOrNull()
-                        } else {
-                            md.getString(META_TOY_NAME)
-                        }
-                    }
-                    ?: resolve.loadLabel(context.packageManager).toString()
-                ToyInfo(
-                    packageName = info.packageName,
-                    serviceName = info.name,
-                    label = label,
-                    isOurs = info.packageName == context.packageName,
-                )
-            }
-    } catch (e: Exception) {
-        Log.w(TAG, "toy query failed", e)
-        emptyList()
-    }
+    fun listRegisteredToys(): List<ToyInfo> =
+        try {
+            val intent = Intent(TOY_ACTION)
+            context.packageManager
+                .queryIntentServices(intent, PackageManager.GET_META_DATA or PackageManager.MATCH_ALL)
+                .map { resolve ->
+                    val info = resolve.serviceInfo
+                    val label =
+                        info.metaData
+                            ?.let { md ->
+                                // Prefer the declared toy.name resource; fall back to the app label.
+                                val nameRes = md.getInt(META_TOY_NAME, 0)
+                                if (nameRes != 0) {
+                                    runCatching {
+                                        context.packageManager
+                                            .getResourcesForApplication(info.packageName)
+                                            .getString(nameRes)
+                                    }.getOrNull()
+                                } else {
+                                    md.getString(META_TOY_NAME)
+                                }
+                            }
+                            ?: resolve.loadLabel(context.packageManager).toString()
+                    ToyInfo(
+                        packageName = info.packageName,
+                        serviceName = info.name,
+                        label = label,
+                        isOurs = info.packageName == context.packageName,
+                    )
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "toy query failed", e)
+            emptyList()
+        }
 
     /**
      * Toys known to the system provider (`content://…/glyph_toy`).
@@ -92,38 +97,44 @@ class GlyphToysBridge(private val context: Context) {
 
     private fun openSystemActivity(candidates: List<String>): Boolean {
         for (cls in candidates) {
-            val intent = Intent().apply {
-                component = ComponentName(SYSTEM_PACKAGE, cls)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+            val intent =
+                Intent().apply {
+                    component = ComponentName(SYSTEM_PACKAGE, cls)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             if (runCatching { context.startActivity(intent) }.isSuccess) return true
         }
         // Fall back to the documented deep link, then a plain package launch.
-        val deepLink = Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val deepLink =
+            Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (runCatching { context.startActivity(deepLink) }.isSuccess) return true
-        val launch = context.packageManager.getLaunchIntentForPackage(SYSTEM_PACKAGE)
-            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
+        val launch =
+            context.packageManager
+                .getLaunchIntentForPackage(SYSTEM_PACKAGE)
+                ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
         return runCatching { context.startActivity(launch) }.isSuccess
     }
 
-    private fun queryProvider(uri: String): List<String> = try {
-        val out = mutableListOf<String>()
-        context.contentResolver.query(Uri.parse(uri), null, null, null, null)?.use { cursor ->
-            while (cursor.moveToNext()) {
-                // Concatenate all string columns; the schema is undocumented.
-                val row = (0 until cursor.columnCount)
-                    .mapNotNull { runCatching { cursor.getString(it) }.getOrNull() }
-                    .filter { it.isNotBlank() }
-                    .joinToString(" ")
-                if (row.isNotBlank()) out.add(row)
+    private fun queryProvider(uri: String): List<String> =
+        try {
+            val out = mutableListOf<String>()
+            context.contentResolver.query(Uri.parse(uri), null, null, null, null)?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    // Concatenate all string columns; the schema is undocumented.
+                    val row =
+                        (0 until cursor.columnCount)
+                            .mapNotNull { runCatching { cursor.getString(it) }.getOrNull() }
+                            .filter { it.isNotBlank() }
+                            .joinToString(" ")
+                    if (row.isNotBlank()) out.add(row)
+                }
             }
+            out
+        } catch (e: Exception) {
+            Log.d(TAG, "provider query failed for $uri", e)
+            emptyList()
         }
-        out
-    } catch (e: Exception) {
-        Log.d(TAG, "provider query failed for $uri", e)
-        emptyList()
-    }
 
     companion object {
         private const val TAG = "GlyphToysBridge"
@@ -139,19 +150,22 @@ class GlyphToysBridge(private val context: Context) {
 
         // Activity names from the analysed system build; several may move
         // between packages, so try a few shapes.
-        private val MANAGER_COMPONENTS = listOf(
-            "$SYSTEM_PACKAGE.matrix.toys.manager.ToysManagerActivity",
-            "$SYSTEM_PACKAGE.matrix.toys.ToysManagerActivity",
-            "$SYSTEM_PACKAGE.matrix.toys.manager.ToysTransparentActivity",
-        )
-        private val AOD_PICKER_COMPONENTS = listOf(
-            "$SYSTEM_PACKAGE.matrix.toys.manager.AodToySelectActivity",
-            "$SYSTEM_PACKAGE.matrix.toys.AodToySelectActivity",
-        )
-        private val TIMEOUT_COMPONENTS = listOf(
-            "$SYSTEM_PACKAGE.matrix.toys.manager.ToyTimeoutSettingsActivity",
-            "$SYSTEM_PACKAGE.matrix.toys.settings.ToyTimeoutSettingsActivity",
-            "$SYSTEM_PACKAGE.matrix.toys.ToyTimeoutSettingsActivity",
-        )
+        private val MANAGER_COMPONENTS =
+            listOf(
+                "$SYSTEM_PACKAGE.matrix.toys.manager.ToysManagerActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.ToysManagerActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.manager.ToysTransparentActivity",
+            )
+        private val AOD_PICKER_COMPONENTS =
+            listOf(
+                "$SYSTEM_PACKAGE.matrix.toys.manager.AodToySelectActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.AodToySelectActivity",
+            )
+        private val TIMEOUT_COMPONENTS =
+            listOf(
+                "$SYSTEM_PACKAGE.matrix.toys.manager.ToyTimeoutSettingsActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.settings.ToyTimeoutSettingsActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.ToyTimeoutSettingsActivity",
+            )
     }
 }

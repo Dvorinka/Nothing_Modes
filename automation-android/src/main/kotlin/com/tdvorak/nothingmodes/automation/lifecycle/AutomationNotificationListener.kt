@@ -21,7 +21,6 @@ import androidx.core.content.ContextCompat
  * </service>
  */
 class AutomationNotificationListener : NotificationListenerService() {
-
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName ?: return
         val notification = sbn.notification ?: return
@@ -34,14 +33,15 @@ class AutomationNotificationListener : NotificationListenerService() {
         Log.d(TAG, "Notification posted from $pkg")
 
         // Dispatch to AutomationService
-        val intent = Intent(this, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_NOTIFICATION
-            putExtra(EXTRA_PACKAGE, pkg)
-            putExtra(EXTRA_TITLE, title)
-            putExtra(EXTRA_TEXT, text)
-            putExtra(EXTRA_CATEGORY, category)
-            putExtra(EXTRA_SENDER, sender)
-        }
+        val intent =
+            Intent(this, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_NOTIFICATION
+                putExtra(EXTRA_PACKAGE, pkg)
+                putExtra(EXTRA_TITLE, title)
+                putExtra(EXTRA_TEXT, text)
+                putExtra(EXTRA_CATEGORY, category)
+                putExtra(EXTRA_SENDER, sender)
+            }
         ContextCompat.startForegroundService(this, intent)
     }
 

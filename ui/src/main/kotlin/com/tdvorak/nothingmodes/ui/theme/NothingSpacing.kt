@@ -11,15 +11,15 @@ import androidx.compose.ui.unit.dp
  * Vast (64–96px)   = "This is a new context"
  */
 object NothingSpacing {
-    val xxs = 2.dp    // optical adjustments only
-    val xs = 4.dp     // icon-to-label gaps, tight padding
-    val sm = 8.dp     // component internal spacing
-    val md = 16.dp    // standard padding, element gaps
-    val lg = 24.dp    // group separation
-    val xl = 32.dp    // section margins
-    val xxl = 48.dp   // major section breaks
-    val xxxl = 64.dp  // page-level vertical rhythm
-    val hero = 96.dp  // hero breathing room
+    val xxs = 2.dp // optical adjustments only
+    val xs = 4.dp // icon-to-label gaps, tight padding
+    val sm = 8.dp // component internal spacing
+    val md = 16.dp // standard padding, element gaps
+    val lg = 24.dp // group separation
+    val xl = 32.dp // section margins
+    val xxl = 48.dp // major section breaks
+    val xxxl = 64.dp // page-level vertical rhythm
+    val hero = 96.dp // hero breathing room
 
     val cardPadding = 20.dp
     val screenPadding = 16.dp

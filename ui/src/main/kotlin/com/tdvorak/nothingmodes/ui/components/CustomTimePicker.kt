@@ -5,14 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,9 +27,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Trigger
-import com.tdvorak.nothingmodes.ui.components.NothingDateField
-import com.tdvorak.nothingmodes.ui.components.NothingTimeField
-import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -43,26 +37,32 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Locale
 
 private enum class Recurrence {
-    ONCE, DAILY, WEEKDAYS, WEEKENDS, WEEKLY, MONTHLY, YEARLY;
+    ONCE,
+    DAILY,
+    WEEKDAYS,
+    WEEKENDS,
+    WEEKLY,
+    MONTHLY,
+    YEARLY,
+    ;
 
     val label: String
-        get() = when (this) {
-            ONCE -> "Once"
-            DAILY -> "Daily"
-            WEEKDAYS -> "Weekdays"
-            WEEKENDS -> "Weekends"
-            WEEKLY -> "Weekly"
-            MONTHLY -> "Monthly"
-            YEARLY -> "Yearly"
-        }
+        get() =
+            when (this) {
+                ONCE -> "Once"
+                DAILY -> "Daily"
+                WEEKDAYS -> "Weekdays"
+                WEEKENDS -> "Weekends"
+                WEEKLY -> "Weekly"
+                MONTHLY -> "Monthly"
+                YEARLY -> "Yearly"
+            }
 }
 
 private data class TimeSchedule(
@@ -79,8 +79,9 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
     val zone = runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: ZoneId.systemDefault()
 
     trigger.at?.let {
-        val at = runCatching { ZonedDateTime.parse(it) }.getOrNull()
-            ?: runCatching { ZonedDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME) }.getOrNull()
+        val at =
+            runCatching { ZonedDateTime.parse(it) }.getOrNull()
+                ?: runCatching { ZonedDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME) }.getOrNull()
         if (at != null) {
             return TimeSchedule(
                 recurrence = Recurrence.ONCE,
@@ -110,36 +111,43 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
         day == "*" && month == "*" && dow == "1-5" -> schedule.copy(recurrence = Recurrence.WEEKDAYS)
         day == "*" && month == "*" && (dow == "0,6" || dow == "6,0") -> schedule.copy(recurrence = Recurrence.WEEKENDS)
         day == "*" && month == "*" && dow.toIntOrNull() != null -> {
-            val javaDow = when (dow.toInt() % 7) {
-                0 -> DayOfWeek.SUNDAY
-                1 -> DayOfWeek.MONDAY
-                2 -> DayOfWeek.TUESDAY
-                3 -> DayOfWeek.WEDNESDAY
-                4 -> DayOfWeek.THURSDAY
-                5 -> DayOfWeek.FRIDAY
-                else -> DayOfWeek.SATURDAY
-            }
+            val javaDow =
+                when (dow.toInt() % 7) {
+                    0 -> DayOfWeek.SUNDAY
+                    1 -> DayOfWeek.MONDAY
+                    2 -> DayOfWeek.TUESDAY
+                    3 -> DayOfWeek.WEDNESDAY
+                    4 -> DayOfWeek.THURSDAY
+                    5 -> DayOfWeek.FRIDAY
+                    else -> DayOfWeek.SATURDAY
+                }
             schedule.copy(recurrence = Recurrence.WEEKLY, dayOfWeek = javaDow)
         }
         day != "*" && month == "*" && dow == "*" -> schedule.copy(recurrence = Recurrence.MONTHLY, dayOfMonth = day.toIntOrNull() ?: 1)
-        day != "*" && month != "*" && dow == "*" -> schedule.copy(
-            recurrence = Recurrence.YEARLY,
-            dayOfMonth = day.toIntOrNull() ?: 1,
-            month = month.toIntOrNull() ?: 1,
-        )
+        day != "*" && month != "*" && dow == "*" ->
+            schedule.copy(
+                recurrence = Recurrence.YEARLY,
+                dayOfMonth = day.toIntOrNull() ?: 1,
+                month = month.toIntOrNull() ?: 1,
+            )
         else -> schedule.copy(recurrence = Recurrence.DAILY)
     }
 }
 
-private fun TimeSchedule.toTrigger(tz: String): Trigger.Time {
-    return when (recurrence) {
+private fun TimeSchedule.toTrigger(tz: String): Trigger.Time =
+    when (recurrence) {
         Recurrence.ONCE -> {
             val zone = runCatching { ZoneId.of(tz) }.getOrDefault(ZoneId.systemDefault())
-            val at = try {
-                ZonedDateTime.of(year, month, dayOfMonth, hour, minute, 0, 0, zone).toString()
-            } catch (e: Exception) {
-                ZonedDateTime.now(zone).withHour(hour).withMinute(minute).toString()
-            }
+            val at =
+                try {
+                    ZonedDateTime.of(year, month, dayOfMonth, hour, minute, 0, 0, zone).toString()
+                } catch (e: Exception) {
+                    ZonedDateTime
+                        .now(zone)
+                        .withHour(hour)
+                        .withMinute(minute)
+                        .toString()
+                }
             Trigger.Time(cron = null, at = at, tz = tz)
         }
         Recurrence.DAILY -> Trigger.Time(cron = "$minute $hour * * *", tz = tz)
@@ -152,7 +160,6 @@ private fun TimeSchedule.toTrigger(tz: String): Trigger.Time {
         Recurrence.MONTHLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth * *", tz = tz)
         Recurrence.YEARLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth $month *", tz = tz)
     }
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -161,9 +168,10 @@ fun CustomTimePicker(
     onUpdate: (Trigger.Time) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initial = remember(trigger.cron, trigger.at, trigger.tz) {
-        parseTrigger(trigger) ?: TimeSchedule(Recurrence.DAILY, 12, 0)
-    }
+    val initial =
+        remember(trigger.cron, trigger.at, trigger.tz) {
+            parseTrigger(trigger) ?: TimeSchedule(Recurrence.DAILY, 12, 0)
+        }
     var schedule by remember { mutableStateOf(initial) }
 
     fun update(updater: TimeSchedule.() -> TimeSchedule) {
@@ -221,11 +229,12 @@ fun CustomTimePicker(
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         NothingDateField(
             label = "Date",
-            date = LocalDate.of(
-                schedule.year.coerceIn(1970, 2100),
-                schedule.month.coerceIn(1, 12),
-                schedule.dayOfMonth.coerceIn(1, 28),
-            ),
+            date =
+                LocalDate.of(
+                    schedule.year.coerceIn(1970, 2100),
+                    schedule.month.coerceIn(1, 12),
+                    schedule.dayOfMonth.coerceIn(1, 28),
+                ),
             onDateChange = { d ->
                 update { copy(year = d.year, month = d.monthValue, dayOfMonth = d.dayOfMonth) }
             },
@@ -287,10 +296,11 @@ private fun NumberField(
             onValueChange(intVal.coerceIn(range))
         },
         label = label,
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = KeyboardType.Number,
-            imeAction = ImeAction.Next,
-        ),
+        keyboardOptions =
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next,
+            ),
         modifier = modifier,
     )
 }
@@ -305,15 +315,18 @@ private fun DayChip(
     val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
     val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(NothingShapes.input)
-            .background(bg)
-            .then(
-                if (selected) Modifier
-                else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
-            )
-            .clickable(onClick = onClick),
+        modifier =
+            modifier
+                .height(48.dp)
+                .clip(NothingShapes.input)
+                .background(bg)
+                .then(
+                    if (selected) {
+                        Modifier
+                    } else {
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                    },
+                ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

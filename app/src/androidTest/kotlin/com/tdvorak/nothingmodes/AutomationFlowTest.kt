@@ -32,7 +32,6 @@ import javax.inject.Inject
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class AutomationFlowTest {
-
     @get:Rule
     val hiltRule = HiltAndroidRule(this)
 
@@ -45,71 +44,76 @@ class AutomationFlowTest {
     }
 
     @Test
-    fun createAndRetrieveAutomation() = runBlocking {
-        val automation = Automation(
-            id = AutomationId("test-e2e-1"),
-            name = "Test Automation",
-            trigger = Trigger.Immediate,
-            conditions = null,
-            actions = listOf(Action.SetDarkMode(NightMode.ON)),
-            priority = 50,
-            type = AutomationType.ROUTINE,
-            createdBy = CreatedBy.USER,
-            status = AutomationStatus.ARMED,
-            enabled = true,
-            cooldownMs = 0,
-        )
+    fun createAndRetrieveAutomation() =
+        runBlocking {
+            val automation =
+                Automation(
+                    id = AutomationId("test-e2e-1"),
+                    name = "Test Automation",
+                    trigger = Trigger.Immediate,
+                    conditions = null,
+                    actions = listOf(Action.SetDarkMode(NightMode.ON)),
+                    priority = 50,
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.USER,
+                    status = AutomationStatus.ARMED,
+                    enabled = true,
+                    cooldownMs = 0,
+                )
 
-        store.save(automation)
+            store.save(automation)
 
-        val retrieved = store.get(AutomationId("test-e2e-1"))
-        assertNotNull(retrieved)
-        assertEquals("Test Automation", retrieved!!.name)
-        assertTrue(retrieved.enabled)
-        assertEquals(AutomationType.ROUTINE, retrieved.type)
+            val retrieved = store.get(AutomationId("test-e2e-1"))
+            assertNotNull(retrieved)
+            assertEquals("Test Automation", retrieved!!.name)
+            assertTrue(retrieved.enabled)
+            assertEquals(AutomationType.ROUTINE, retrieved.type)
 
-        store.delete(AutomationId("test-e2e-1"))
-    }
+            store.delete(AutomationId("test-e2e-1"))
+        }
 
     @Test
-    fun listArmedAutomations() = runBlocking {
-        val a1 = Automation(
-            id = AutomationId("test-e2e-armed"),
-            name = "Armed",
-            trigger = Trigger.Immediate,
-            conditions = null,
-            actions = listOf(Action.SetDarkMode(NightMode.ON)),
-            priority = 50,
-            type = AutomationType.ROUTINE,
-            createdBy = CreatedBy.USER,
-            status = AutomationStatus.ARMED,
-            enabled = true,
-            cooldownMs = 0,
-        )
-        val a2 = Automation(
-            id = AutomationId("test-e2e-draft"),
-            name = "Draft",
-            trigger = Trigger.Immediate,
-            conditions = null,
-            actions = listOf(Action.SetDarkMode(NightMode.OFF)),
-            priority = 50,
-            type = AutomationType.ROUTINE,
-            createdBy = CreatedBy.IMPORT,
-            status = AutomationStatus.NEEDS_REVIEW,
-            enabled = false,
-            cooldownMs = 0,
-        )
+    fun listArmedAutomations() =
+        runBlocking {
+            val a1 =
+                Automation(
+                    id = AutomationId("test-e2e-armed"),
+                    name = "Armed",
+                    trigger = Trigger.Immediate,
+                    conditions = null,
+                    actions = listOf(Action.SetDarkMode(NightMode.ON)),
+                    priority = 50,
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.USER,
+                    status = AutomationStatus.ARMED,
+                    enabled = true,
+                    cooldownMs = 0,
+                )
+            val a2 =
+                Automation(
+                    id = AutomationId("test-e2e-draft"),
+                    name = "Draft",
+                    trigger = Trigger.Immediate,
+                    conditions = null,
+                    actions = listOf(Action.SetDarkMode(NightMode.OFF)),
+                    priority = 50,
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.IMPORT,
+                    status = AutomationStatus.NEEDS_REVIEW,
+                    enabled = false,
+                    cooldownMs = 0,
+                )
 
-        store.save(a1)
-        store.save(a2)
+            store.save(a1)
+            store.save(a2)
 
-        val armed = store.armed()
-        assertTrue(armed.any { it.id.value == "test-e2e-armed" })
-        assertTrue(armed.none { it.id.value == "test-e2e-draft" })
+            val armed = store.armed()
+            assertTrue(armed.any { it.id.value == "test-e2e-armed" })
+            assertTrue(armed.none { it.id.value == "test-e2e-draft" })
 
-        store.delete(AutomationId("test-e2e-armed"))
-        store.delete(AutomationId("test-e2e-draft"))
-    }
+            store.delete(AutomationId("test-e2e-armed"))
+            store.delete(AutomationId("test-e2e-draft"))
+        }
 
     @Test
     fun appContextIsCorrect() {

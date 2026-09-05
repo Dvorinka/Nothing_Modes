@@ -1,3 +1,13 @@
+@file:Suppress(
+    "ktlint:standard:class-signature",
+    "ktlint:standard:multiline-expression-wrapping",
+    "ktlint:standard:if-else-wrapping",
+    "ktlint:standard:multiline-if-else",
+    "ktlint:standard:parameter-list-wrapping",
+    "ktlint:standard:condition-wrapping",
+    "ktlint:standard:function-signature",
+)
+
 package com.tdvorak.nothingmodes.shizuku
 
 import android.content.Context

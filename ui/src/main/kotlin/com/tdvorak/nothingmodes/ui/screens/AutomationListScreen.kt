@@ -34,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -46,16 +45,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
@@ -68,7 +67,6 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
-import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
@@ -90,191 +88,200 @@ import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 @HiltViewModel
-class AutomationListViewModel @Inject constructor(
-    @ApplicationContext private val context: android.content.Context,
-    private val store: AutomationStore,
-) : ViewModel() {
+class AutomationListViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: android.content.Context,
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val _items = MutableStateFlow<List<Automation>>(emptyList())
+        val items: StateFlow<List<Automation>> = _items.asStateFlow()
 
-    private val _items = MutableStateFlow<List<Automation>>(emptyList())
-    val items: StateFlow<List<Automation>> = _items.asStateFlow()
+        private val _loading = MutableStateFlow(true)
+        val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+        private val _selected = MutableStateFlow<Set<AutomationId>>(emptySet())
+        val selected: StateFlow<Set<AutomationId>> = _selected.asStateFlow()
 
-    private val _selected = MutableStateFlow<Set<AutomationId>>(emptySet())
-    val selected: StateFlow<Set<AutomationId>> = _selected.asStateFlow()
+        private val _importResult = MutableStateFlow<ImportResult?>(null)
+        val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
 
-    private val _importResult = MutableStateFlow<ImportResult?>(null)
-    val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
+        private val _importWarnings = MutableStateFlow<List<String>>(emptyList())
+        val importWarnings: StateFlow<List<String>> = _importWarnings.asStateFlow()
 
-    private val _importWarnings = MutableStateFlow<List<String>>(emptyList())
-    val importWarnings: StateFlow<List<String>> = _importWarnings.asStateFlow()
-
-    private val importExportService = ImportExportService(
-        store,
-        appVersion = runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull().orEmpty(),
-    )
-
-    init { load() }
-
-    fun load() {
-        viewModelScope.launch {
-            _loading.value = true
-            _items.value = store.all().sortedBy { it.priority }
-            _loading.value = false
-        }
-    }
-
-    fun runNow(automation: Automation) {
-        val intent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_MANUAL
-            putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
-        }
-        ContextCompat.startForegroundService(context, intent)
-    }
-
-    fun runNow(id: AutomationId) {
-        _items.value.find { it.id == id }?.let { runNow(it) }
-    }
-
-    fun toggleEnabled(automation: Automation) {
-        viewModelScope.launch {
-            val updated = automation.copy(enabled = !automation.enabled)
-            store.save(updated)
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    fun delete(automation: Automation) {
-        viewModelScope.launch {
-            store.delete(automation.id)
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    fun duplicate(automation: Automation) {
-        viewModelScope.launch {
-            val copy = automation.copy(
-                id = AutomationId("${automation.id.value}-copy-${System.currentTimeMillis()}"),
-                name = "${automation.name} (copy)",
-                enabled = false,
+        private val importExportService =
+            ImportExportService(
+                store,
+                appVersion =
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    }.getOrNull().orEmpty(),
             )
-            store.save(copy)
+
+        init {
             load()
-            WidgetRefreshHelper.refresh(context)
         }
-    }
 
-    fun moveUp(automation: Automation) {
-        viewModelScope.launch {
-            val list = _items.value.toMutableList()
-            val index = list.indexOfFirst { it.id == automation.id }
-            if (index <= 0) return@launch
-            val prev = list[index - 1]
-            val current = list[index]
-            store.save(prev.copy(priority = current.priority))
-            store.save(current.copy(priority = prev.priority))
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    fun moveDown(automation: Automation) {
-        viewModelScope.launch {
-            val list = _items.value.toMutableList()
-            val index = list.indexOfFirst { it.id == automation.id }
-            if (index < 0 || index >= list.size - 1) return@launch
-            val next = list[index + 1]
-            val current = list[index]
-            store.save(next.copy(priority = current.priority))
-            store.save(current.copy(priority = next.priority))
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    // ── Selection mode ─────────────────────────────────────────────────────────
-
-    fun toggleSelected(id: AutomationId) {
-        _selected.value = if (_selected.value.contains(id)) _selected.value - id else _selected.value + id
-    }
-
-    fun selectAll() {
-        _selected.value = _items.value.map { it.id }.toSet()
-    }
-
-    fun clearSelection() {
-        _selected.value = emptySet()
-    }
-
-    fun deleteSelected() {
-        viewModelScope.launch {
-            _selected.value.forEach { store.delete(it) }
-            _selected.value = emptySet()
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    fun enableSelected(enabled: Boolean) {
-        viewModelScope.launch {
-            _selected.value.forEach { id ->
-                val item = _items.value.find { it.id == id } ?: return@forEach
-                store.save(item.copy(enabled = enabled))
+        fun load() {
+            viewModelScope.launch {
+                _loading.value = true
+                _items.value = store.all().sortedBy { it.priority }
+                _loading.value = false
             }
-            _selected.value = emptySet()
-            load()
-            WidgetRefreshHelper.refresh(context)
         }
-    }
 
-    fun runSelected() {
-        _selected.value.forEach { runNow(it) }
-        _selected.value = emptySet()
-    }
-
-    fun import(json: String) {
-        viewModelScope.launch {
-            // Surface compatibility warnings before the write, not after.
-            val preview = importExportService.preview(json)
-            _importWarnings.value = preview.requiredCapabilities
-                .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
-                .distinct()
-            _importResult.value = importExportService.import(json)
-            load()
-            WidgetRefreshHelper.refresh(context)
-        }
-    }
-
-    fun readImportFromFile(uri: android.net.Uri) {
-        viewModelScope.launch {
-            val json = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    input.readBytes().toString(Charsets.UTF_8)
+        fun runNow(automation: Automation) {
+            val intent =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_MANUAL
+                    putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
                 }
-            } ?: return@launch
-            import(json)
+            ContextCompat.startForegroundService(context, intent)
+        }
+
+        fun runNow(id: AutomationId) {
+            _items.value.find { it.id == id }?.let { runNow(it) }
+        }
+
+        fun toggleEnabled(automation: Automation) {
+            viewModelScope.launch {
+                val updated = automation.copy(enabled = !automation.enabled)
+                store.save(updated)
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun delete(automation: Automation) {
+            viewModelScope.launch {
+                store.delete(automation.id)
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun duplicate(automation: Automation) {
+            viewModelScope.launch {
+                val copy =
+                    automation.copy(
+                        id = AutomationId("${automation.id.value}-copy-${System.currentTimeMillis()}"),
+                        name = "${automation.name} (copy)",
+                        enabled = false,
+                    )
+                store.save(copy)
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun moveUp(automation: Automation) {
+            viewModelScope.launch {
+                val list = _items.value.toMutableList()
+                val index = list.indexOfFirst { it.id == automation.id }
+                if (index <= 0) return@launch
+                val prev = list[index - 1]
+                val current = list[index]
+                store.save(prev.copy(priority = current.priority))
+                store.save(current.copy(priority = prev.priority))
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun moveDown(automation: Automation) {
+            viewModelScope.launch {
+                val list = _items.value.toMutableList()
+                val index = list.indexOfFirst { it.id == automation.id }
+                if (index < 0 || index >= list.size - 1) return@launch
+                val next = list[index + 1]
+                val current = list[index]
+                store.save(next.copy(priority = current.priority))
+                store.save(current.copy(priority = next.priority))
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        // ── Selection mode ─────────────────────────────────────────────────────────
+
+        fun toggleSelected(id: AutomationId) {
+            _selected.value = if (_selected.value.contains(id)) _selected.value - id else _selected.value + id
+        }
+
+        fun selectAll() {
+            _selected.value = _items.value.map { it.id }.toSet()
+        }
+
+        fun clearSelection() {
+            _selected.value = emptySet()
+        }
+
+        fun deleteSelected() {
+            viewModelScope.launch {
+                _selected.value.forEach { store.delete(it) }
+                _selected.value = emptySet()
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun enableSelected(enabled: Boolean) {
+            viewModelScope.launch {
+                _selected.value.forEach { id ->
+                    val item = _items.value.find { it.id == id } ?: return@forEach
+                    store.save(item.copy(enabled = enabled))
+                }
+                _selected.value = emptySet()
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun runSelected() {
+            _selected.value.forEach { runNow(it) }
+            _selected.value = emptySet()
+        }
+
+        fun import(json: String) {
+            viewModelScope.launch {
+                // Surface compatibility warnings before the write, not after.
+                val preview = importExportService.preview(json)
+                _importWarnings.value =
+                    preview.requiredCapabilities
+                        .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                        .distinct()
+                _importResult.value = importExportService.import(json)
+                load()
+                WidgetRefreshHelper.refresh(context)
+            }
+        }
+
+        fun readImportFromFile(uri: android.net.Uri) {
+            viewModelScope.launch {
+                val json =
+                    withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            input.readBytes().toString(Charsets.UTF_8)
+                        }
+                    } ?: return@launch
+                import(json)
+            }
+        }
+
+        fun clearImportResult() {
+            _importResult.value = null
+            _importWarnings.value = emptyList()
         }
     }
-
-    fun clearImportResult() {
-        _importResult.value = null
-        _importWarnings.value = emptyList()
-    }
-}
 
 @Composable
 fun AutomationListScreen(
@@ -295,24 +302,27 @@ fun AutomationListScreen(
 
     // Type filter chips (All / Modes / Routines) — display-only, client-side.
     var typeFilter by rememberSaveable { mutableStateOf("ALL") }
-    val visibleItems = remember(items, typeFilter) {
-        if (typeFilter == "ALL") items else items.filter { it.type.name == typeFilter }
-    }
+    val visibleItems =
+        remember(items, typeFilter) {
+            if (typeFilter == "ALL") items else items.filter { it.type.name == typeFilter }
+        }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        uri?.let { viewModel.readImportFromFile(it) }
-    }
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            uri?.let { viewModel.readImportFromFile(it) }
+        }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Reload on resume so changes from builder/detail are reflected immediately.
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.load()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.load()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -323,22 +333,24 @@ fun AutomationListScreen(
             NothingTopBar(
                 title = if (inSelection) "${selected.size} SELECTED" else "Modes",
                 showLeadingDot = !inSelection,
-                actions = if (inSelection) {
-                    listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
-                } else {
-                    listOf(
-                        TopBarAction("TEMPLATES", icon = Icons.Outlined.GridView, onClick = onTemplatesClick),
-                        TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onClick = onLogClick),
-                        TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
-                    )
-                },
+                actions =
+                    if (inSelection) {
+                        listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
+                    } else {
+                        listOf(
+                            TopBarAction("TEMPLATES", icon = Icons.Outlined.GridView, onClick = onTemplatesClick),
+                            TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onClick = onLogClick),
+                            TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
+                        )
+                    },
             )
         },
     ) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             NothingDotGrid(
                 modifier = Modifier.fillMaxSize(),
@@ -346,9 +358,10 @@ fun AutomationListScreen(
 
             if (items.isEmpty() && !loading) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = NothingSpacing.md),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = NothingSpacing.md),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -404,12 +417,13 @@ fun AutomationListScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = NothingSpacing.md,
-                        end = NothingSpacing.md,
-                        top = NothingSpacing.lg,
-                        bottom = 96.dp,
-                    ),
+                    contentPadding =
+                        PaddingValues(
+                            start = NothingSpacing.md,
+                            end = NothingSpacing.md,
+                            top = NothingSpacing.lg,
+                            bottom = 96.dp,
+                        ),
                     verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                 ) {
@@ -466,17 +480,19 @@ fun AutomationListScreen(
                     onSelectAll = viewModel::selectAll,
                     onDelete = viewModel::deleteSelected,
                     onRun = viewModel::runSelected,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding(),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding(),
                 )
             } else {
                 NothingAddCircle(
                     onClick = onCreateClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(NothingSpacing.lg),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .navigationBarsPadding()
+                            .padding(NothingSpacing.lg),
                 )
             }
         }
@@ -551,12 +567,13 @@ private fun RoutineTile(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.card,
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { if (inSelectionMode) onToggleSelection() else onClick() },
-                onLongClick = onToggleSelection,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { if (inSelectionMode) onToggleSelection() else onClick() },
+                    onLongClick = onToggleSelection,
+                ),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.md)) {
             Row(
@@ -573,7 +590,11 @@ private fun RoutineTile(
                         )
                     } else {
                         Text(
-                            text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            text =
+                                automation.name
+                                    .firstOrNull()
+                                    ?.uppercaseChar()
+                                    ?.toString() ?: "?",
                             style = MaterialTheme.typography.titleMedium,
                             color = iconTextColor,
                             fontFamily = GeistSans,
@@ -592,9 +613,10 @@ private fun RoutineTile(
                         color = NothingColors.accent,
                         fontFamily = SpaceMono,
                         letterSpacing = 1.0.sp,
-                        modifier = Modifier
-                            .clickable(onClick = onRun)
-                            .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                        modifier =
+                            Modifier
+                                .clickable(onClick = onRun)
+                                .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
                     )
                 } else {
                     NothingToggle(
@@ -655,15 +677,14 @@ private fun SelectionIndicator(isSelected: Boolean) {
         )
     } else {
         Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape),
         )
     }
 }
-
-
 
 // ── Multi-Select Bottom Action Bar ───────────────────────────────────────────
 
@@ -678,14 +699,16 @@ private fun MultiSelectBottomBar(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.cardLarge,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = NothingSpacing.sm),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -695,9 +718,10 @@ private fun MultiSelectBottomBar(
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = SpaceMono,
                 letterSpacing = 1.0.sp,
-                modifier = Modifier
-                    .clickable(onClick = onSelectAll)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onSelectAll)
+                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             )
             Text(
                 text = "DELETE",
@@ -705,9 +729,10 @@ private fun MultiSelectBottomBar(
                 color = NothingColors.accent,
                 fontFamily = SpaceMono,
                 letterSpacing = 1.0.sp,
-                modifier = Modifier
-                    .clickable(onClick = onDelete)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onDelete)
+                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             )
             Text(
                 text = "RUN",
@@ -715,9 +740,10 @@ private fun MultiSelectBottomBar(
                 color = MaterialTheme.colorScheme.primary,
                 fontFamily = SpaceMono,
                 letterSpacing = 1.0.sp,
-                modifier = Modifier
-                    .clickable(onClick = onRun)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onRun)
+                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             )
         }
     }

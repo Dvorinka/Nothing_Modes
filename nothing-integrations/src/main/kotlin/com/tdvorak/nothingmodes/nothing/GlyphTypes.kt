@@ -3,9 +3,15 @@ package com.tdvorak.nothingmodes.nothing
 /** Result of a Glyph operation. */
 sealed interface GlyphResult {
     data object Success : GlyphResult
-    data class Failure(val reason: String) : GlyphResult
+
+    data class Failure(
+        val reason: String,
+    ) : GlyphResult
+
     data object Unsupported : GlyphResult
+
     data object PermissionRequired : GlyphResult
+
     data object ServiceUnavailable : GlyphResult
 }
 
@@ -19,11 +25,12 @@ enum class GlyphHardware {
 
     val isMatrix: Boolean get() = this == MATRIX_25 || this == MATRIX_13
     val isLightStripe: Boolean get() = this == LIGHT_STRIPE
-    val matrixSize: Int get() = when (this) {
-        MATRIX_25 -> 25
-        MATRIX_13 -> 13
-        else -> 0
-    }
+    val matrixSize: Int get() =
+        when (this) {
+            MATRIX_25 -> 25
+            MATRIX_13 -> 13
+            else -> 0
+        }
 }
 
 /** Nothing device model identifiers. */

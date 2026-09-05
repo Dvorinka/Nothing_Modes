@@ -21,16 +21,19 @@ import androidx.core.content.ContextCompat
  * </receiver>
  */
 class FlipReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != ACTION_FLIP_TO_GLYPH) return
         val isFlipped = intent.getBooleanExtra(EXTRA_FLIPPED, false)
         Log.d(TAG, "Flip state: flipped=$isFlipped")
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_SCREEN_STATE
-            putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_SCREEN_STATE
+                putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 

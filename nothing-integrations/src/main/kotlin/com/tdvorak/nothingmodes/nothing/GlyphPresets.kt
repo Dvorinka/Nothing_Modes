@@ -9,7 +9,6 @@ import android.graphics.Color
  * Each preset returns a GlyphVisual that the providers can render.
  */
 object GlyphPresets {
-
     /** Visual specification that works across device types. */
     sealed interface GlyphVisual {
         /** Light stripe visual: channels + animation params. */
@@ -91,7 +90,10 @@ object GlyphPresets {
     fun notificationCount(count: Int) = GlyphVisual.Matrix(number = count)
 
     /** Now playing on matrix (scrolling text). */
-    fun nowPlaying(artist: String, title: String) = GlyphVisual.Matrix(scrollingText = "$artist - $title")
+    fun nowPlaying(
+        artist: String,
+        title: String,
+    ) = GlyphVisual.Matrix(scrollingText = "$artist - $title")
 
     /** Mode name on matrix (scrolling text). */
     fun modeName(name: String) = GlyphVisual.Matrix(scrollingText = name)

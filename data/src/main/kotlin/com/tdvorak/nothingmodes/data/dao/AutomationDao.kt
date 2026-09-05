@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AutomationDao {
-
     @Query("SELECT * FROM automations ORDER BY priority DESC, name ASC")
     fun observeAll(): Flow<List<AutomationEntity>>
 
@@ -29,13 +28,22 @@ interface AutomationDao {
     suspend fun upsert(entity: AutomationEntity)
 
     @Query("UPDATE automations SET status = :status WHERE id = :id")
-    suspend fun setStatus(id: String, status: String)
+    suspend fun setStatus(
+        id: String,
+        status: String,
+    )
 
     @Query("UPDATE automations SET enabled = :enabled WHERE id = :id")
-    suspend fun setEnabled(id: String, enabled: Boolean)
+    suspend fun setEnabled(
+        id: String,
+        enabled: Boolean,
+    )
 
     @Query("UPDATE automations SET lastFiredAt = :atMillis WHERE id = :id")
-    suspend fun recordFired(id: String, atMillis: Long)
+    suspend fun recordFired(
+        id: String,
+        atMillis: Long,
+    )
 
     @Query("DELETE FROM automations WHERE id = :id")
     suspend fun delete(id: String)

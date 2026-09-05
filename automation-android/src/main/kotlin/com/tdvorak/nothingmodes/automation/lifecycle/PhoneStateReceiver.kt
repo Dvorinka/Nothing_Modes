@@ -23,36 +23,46 @@ import androidx.core.content.ContextCompat
  * Requires READ_PHONE_STATE and RECEIVE_SMS permissions.
  */
 class PhoneStateReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         when (intent.action) {
             ACTION_PHONE_STATE -> handlePhoneState(context, intent)
             SMS_RECEIVED -> handleSms(context, intent)
         }
     }
 
-    private fun handlePhoneState(context: Context, intent: Intent) {
+    private fun handlePhoneState(
+        context: Context,
+        intent: Intent,
+    ) {
         val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
         val incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER) ?: ""
 
         Log.d(TAG, "Phone state: $state")
 
-        val phoneEvent = when (state) {
-            TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
-            TelephonyManager.EXTRA_STATE_OFFHOOK -> "offhook"
-            TelephonyManager.EXTRA_STATE_IDLE -> "idle"
-            else -> return
-        }
+        val phoneEvent =
+            when (state) {
+                TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
+                TelephonyManager.EXTRA_STATE_OFFHOOK -> "offhook"
+                TelephonyManager.EXTRA_STATE_IDLE -> "idle"
+                else -> return
+            }
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_PHONE_STATE
-            putExtra(EXTRA_PHONE_STATE, phoneEvent)
-            putExtra(EXTRA_PHONE_NUMBER, incomingNumber)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_PHONE_STATE
+                putExtra(EXTRA_PHONE_STATE, phoneEvent)
+                putExtra(EXTRA_PHONE_NUMBER, incomingNumber)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
-    private fun handleSms(context: Context, intent: Intent) {
+    private fun handleSms(
+        context: Context,
+        intent: Intent,
+    ) {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         if (messages.isNullOrEmpty()) {
             Log.w(TAG, "SMS_RECEIVED with no PDUs, ignoring")
@@ -63,11 +73,12 @@ class PhoneStateReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "SMS received")
 
-        val serviceIntent = Intent(context, AutomationService::class.java).apply {
-            action = AutomationService.ACTION_SMS
-            putExtra(EXTRA_SMS_SENDER, sender)
-            putExtra(EXTRA_SMS_BODY, body)
-        }
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_SMS
+                putExtra(EXTRA_SMS_SENDER, sender)
+                putExtra(EXTRA_SMS_BODY, body)
+            }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 

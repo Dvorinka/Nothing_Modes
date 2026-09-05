@@ -2,11 +2,11 @@
 
 package com.tdvorak.nothingmodes.engine.model
 
-import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 enum class DndMode { OFF, PRIORITY, TOTAL }
+
 @Serializable
 enum class NightMode { OFF, ON, AUTO }
 
@@ -64,51 +64,138 @@ object ActionTypeIds {
 
 @Serializable
 sealed interface Action {
-    @Serializable @SerialName(ActionTypeIds.SET_WIFI) data class SetWifi(val on: Boolean) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_BLUETOOTH) data class SetBluetooth(val on: Boolean) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_MOBILE_DATA) data class SetMobileData(val on: Boolean) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_DND) data class SetDnd(val mode: DndMode) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_RINGER) data class SetRinger(val mode: String) : Action
-    @Serializable @SerialName(ActionTypeIds.LAUNCH_APP) data class LaunchApp(val pkg: String) : Action
-    @Serializable @SerialName(ActionTypeIds.OPEN_URL) data class OpenUrl(val url: String) : Action
-    @Serializable @SerialName(ActionTypeIds.SHOW_NOTIFICATION) data class ShowNotification(val title: String, val text: String) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_VOLUME) data class SetVolume(val stream: VolumeStream, val level: Int) : Action
-    @Serializable @SerialName(ActionTypeIds.SET_FLASHLIGHT) data class SetFlashlight(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_WIFI)
+    data class SetWifi(
+        val on: Boolean,
+    ) : Action
 
-    @Serializable @SerialName(ActionTypeIds.SET_DARK_MODE)
-    data class SetDarkMode(val mode: NightMode) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_BLUETOOTH)
+    data class SetBluetooth(
+        val on: Boolean,
+    ) : Action
 
-    @Serializable @SerialName(ActionTypeIds.OPEN_SETTINGS_SCREEN)
-    data class OpenSettingsScreen(val screen: SettingsScreen, val pkg: String? = null) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_MOBILE_DATA)
+    data class SetMobileData(
+        val on: Boolean,
+    ) : Action
 
-    @Serializable @SerialName(ActionTypeIds.VIBRATE) data class Vibrate(val durationMs: Int) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_DND)
+    data class SetDnd(
+        val mode: DndMode,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.SET_RINGER)
+    data class SetRinger(
+        val mode: String,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.LAUNCH_APP)
+    data class LaunchApp(
+        val pkg: String,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.OPEN_URL)
+    data class OpenUrl(
+        val url: String,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.SHOW_NOTIFICATION)
+    data class ShowNotification(
+        val title: String,
+        val text: String,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.SET_VOLUME)
+    data class SetVolume(
+        val stream: VolumeStream,
+        val level: Int,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.SET_FLASHLIGHT)
+    data class SetFlashlight(
+        val on: Boolean,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.SET_DARK_MODE)
+    data class SetDarkMode(
+        val mode: NightMode,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.OPEN_SETTINGS_SCREEN)
+    data class OpenSettingsScreen(
+        val screen: SettingsScreen,
+        val pkg: String? = null,
+    ) : Action
+
+    @Serializable
+    @SerialName(ActionTypeIds.VIBRATE)
+    data class Vibrate(
+        val durationMs: Int,
+    ) : Action
 
     /** Brightness level 0..255. Use RESTORE to snapshot/restore previous value. */
-    @Serializable @SerialName(ActionTypeIds.SET_BRIGHTNESS)
-    data class SetBrightness(val level: Int, val restore: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_BRIGHTNESS)
+    data class SetBrightness(
+        val level: Int,
+        val restore: Boolean = false,
+    ) : Action
 
     /** Enable/disable adaptive brightness. */
-    @Serializable @SerialName(ActionTypeIds.SET_AUTO_BRIGHTNESS)
-    data class SetAutoBrightness(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_AUTO_BRIGHTNESS)
+    data class SetAutoBrightness(
+        val on: Boolean,
+    ) : Action
 
     /** Extra Dim (reduce_bright_colors). restore = restore previous state. */
-    @Serializable @SerialName(ActionTypeIds.SET_EXTRA_DIM)
-    data class SetExtraDim(val on: Boolean, val restore: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_EXTRA_DIM)
+    data class SetExtraDim(
+        val on: Boolean,
+        val restore: Boolean = false,
+    ) : Action
 
     /** Screen timeout in milliseconds. restore = restore previous value. */
-    @Serializable @SerialName(ActionTypeIds.SET_SCREEN_TIMEOUT)
-    data class SetScreenTimeout(val timeoutMs: Int, val restore: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_SCREEN_TIMEOUT)
+    data class SetScreenTimeout(
+        val timeoutMs: Int,
+        val restore: Boolean = false,
+    ) : Action
 
     /** Glyph light stripe on/off. channels = specific LED zones (null = all). */
-    @Serializable @SerialName(ActionTypeIds.SET_GLYPH)
-    data class SetGlyph(val on: Boolean, val channels: List<Int>? = null, val restore: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_GLYPH)
+    data class SetGlyph(
+        val on: Boolean,
+        val channels: List<Int>? = null,
+        val restore: Boolean = false,
+    ) : Action
 
     /** Glyph Matrix frame. colors = 25x25 (or 13x13) int array. restore = turn off / restore. */
-    @Serializable @SerialName(ActionTypeIds.SET_GLYPH_MATRIX)
-    data class SetGlyphMatrix(val colors: List<Int>? = null, val restore: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_GLYPH_MATRIX)
+    data class SetGlyphMatrix(
+        val colors: List<Int>? = null,
+        val restore: Boolean = false,
+    ) : Action
 
     /** Animate glyph channels with breathing effect. zone = A/B/C/D/E (null = all). */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_ANIMATE)
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_ANIMATE)
     data class GlyphAnimate(
         val zone: String? = null,
         val channels: List<Int>? = null,
@@ -118,11 +205,16 @@ sealed interface Action {
     ) : Action
 
     /** Display progress bar on glyph (0-100). reverse = fill from top. */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_PROGRESS)
-    data class GlyphProgress(val progress: Int, val reverse: Boolean = false) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_PROGRESS)
+    data class GlyphProgress(
+        val progress: Int,
+        val reverse: Boolean = false,
+    ) : Action
 
     /** Display text on Glyph Matrix. */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_TEXT)
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_TEXT)
     data class GlyphText(
         val text: String,
         val x: Int = 0,
@@ -132,91 +224,154 @@ sealed interface Action {
     ) : Action
 
     /** Display scrolling text (marquee) on Glyph Matrix. */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_SCROLLING_TEXT)
-    data class GlyphScrollingText(val text: String) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_SCROLLING_TEXT)
+    data class GlyphScrollingText(
+        val text: String,
+    ) : Action
 
     /** Display a named visual preset (sleep, morning, charging, timer, etc.). */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_PRESET)
-    data class GlyphPreset(val preset: String) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_PRESET)
+    data class GlyphPreset(
+        val preset: String,
+    ) : Action
 
     /** Turn off all glyphs. */
-    @Serializable @SerialName(ActionTypeIds.GLYPH_TURNOFF)
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_TURNOFF)
     data object GlyphTurnOff : Action
 
-    @Serializable @SerialName(ActionTypeIds.COPY_TEXT) data class CopyText(val text: String) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.COPY_TEXT)
+    data class CopyText(
+        val text: String,
+    ) : Action
 
-    @Serializable @SerialName(ActionTypeIds.WAIT) data class Wait(val durationMs: Long) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.WAIT)
+    data class Wait(
+        val durationMs: Long,
+    ) : Action
 
     /** Parametric settings write (system|secure|global). Always PRIVILEGED (Shizuku). */
-    @Serializable @SerialName(ActionTypeIds.WRITE_SETTING)
-    data class WriteSetting(val namespace: SettingNamespace, val key: String, val value: String) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.WRITE_SETTING)
+    data class WriteSetting(
+        val namespace: SettingNamespace,
+        val key: String,
+        val value: String,
+    ) : Action
 
     // ── System settings toggles (Phase 4) ──
 
     /** Toggle auto-rotate. Uses Settings.System.ACCELEROMETER_ROTATION. */
-    @Serializable @SerialName(ActionTypeIds.SET_AUTO_ROTATE)
-    data class SetAutoRotate(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_AUTO_ROTATE)
+    data class SetAutoRotate(
+        val on: Boolean,
+    ) : Action
 
     /** Toggle battery saver. Uses Settings.Global.LOW_POWER_MODE (requires Shizuku or WRITE_SECURE_SETTINGS). */
-    @Serializable @SerialName(ActionTypeIds.SET_BATTERY_SAVER)
-    data class SetBatterySaver(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_BATTERY_SAVER)
+    data class SetBatterySaver(
+        val on: Boolean,
+    ) : Action
 
     /** Toggle airplane mode. Requires Shizuku (settings put global airplane_mode_on). */
-    @Serializable @SerialName(ActionTypeIds.SET_AIRPLANE_MODE)
-    data class SetAirplaneMode(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_AIRPLANE_MODE)
+    data class SetAirplaneMode(
+        val on: Boolean,
+    ) : Action
 
     /** Toggle data saver. Uses Settings.Global.DATA_SAVER (requires Shizuku). */
-    @Serializable @SerialName(ActionTypeIds.SET_DATA_SAVER)
-    data class SetDataSaver(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_DATA_SAVER)
+    data class SetDataSaver(
+        val on: Boolean,
+    ) : Action
 
     /** Toggle hotspot. Requires Shizuku. */
-    @Serializable @SerialName(ActionTypeIds.SET_HOTSPOT)
-    data class SetHotspot(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_HOTSPOT)
+    data class SetHotspot(
+        val on: Boolean,
+    ) : Action
 
     /** Toggle NFC. Requires Shizuku. */
-    @Serializable @SerialName(ActionTypeIds.SET_NFC)
-    data class SetNfc(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_NFC)
+    data class SetNfc(
+        val on: Boolean,
+    ) : Action
 
     /** Set display refresh rate (Hz). Uses Settings.System. */
-    @Serializable @SerialName(ActionTypeIds.SET_REFRESH_RATE)
-    data class SetRefreshRate(val hz: Int) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_REFRESH_RATE)
+    data class SetRefreshRate(
+        val hz: Int,
+    ) : Action
 
     /** Lock screen rotation to a specific orientation. */
-    @Serializable @SerialName(ActionTypeIds.SET_SCREEN_ROTATION)
-    data class SetScreenRotation(val orientation: ScreenOrientation) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_SCREEN_ROTATION)
+    data class SetScreenRotation(
+        val orientation: ScreenOrientation,
+    ) : Action
 
     /** Media playback control. */
-    @Serializable @SerialName(ActionTypeIds.MEDIA_CONTROL)
-    data class MediaControl(val command: MediaCommand) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.MEDIA_CONTROL)
+    data class MediaControl(
+        val command: MediaCommand,
+    ) : Action
 
     // ── Extended actions (Phase 5) ──
 
     /** Send an SMS to a phone number. Requires SEND_SMS permission. */
-    @Serializable @SerialName(ActionTypeIds.SEND_SMS)
-    data class SendSms(val number: String, val text: String) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SEND_SMS)
+    data class SendSms(
+        val number: String,
+        val text: String,
+    ) : Action
 
     /** Lock the screen. Requires Device Admin or accessibility service. */
-    @Serializable @SerialName(ActionTypeIds.LOCK_SCREEN)
+    @Serializable
+    @SerialName(ActionTypeIds.LOCK_SCREEN)
     data object LockScreen : Action
 
     /** Set location mode (high accuracy, battery saving, device only, off). Requires Shizuku. */
-    @Serializable @SerialName(ActionTypeIds.SET_LOCATION_MODE)
-    data class SetLocationMode(val mode: LocationMode) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_LOCATION_MODE)
+    data class SetLocationMode(
+        val mode: LocationMode,
+    ) : Action
 
     /** Toggle auto-sync (background data sync). Requires Shizuku. */
-    @Serializable @SerialName(ActionTypeIds.SET_AUTO_SYNC)
-    data class SetAutoSync(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_AUTO_SYNC)
+    data class SetAutoSync(
+        val on: Boolean,
+    ) : Action
 
     /** Clear all notifications. Requires notification listener access. */
-    @Serializable @SerialName(ActionTypeIds.CLEAR_NOTIFICATIONS)
+    @Serializable
+    @SerialName(ActionTypeIds.CLEAR_NOTIFICATIONS)
     data object ClearNotifications : Action
 
     /** Toggle Always-On Display. Requires Shizuku. */
-    @Serializable @SerialName(ActionTypeIds.SET_AOD)
-    data class SetAlwaysOnDisplay(val on: Boolean) : Action
+    @Serializable
+    @SerialName(ActionTypeIds.SET_AOD)
+    data class SetAlwaysOnDisplay(
+        val on: Boolean,
+    ) : Action
 
     /** Take a screenshot. Requires MediaProjection (user consent per capture). */
-    @Serializable @SerialName(ActionTypeIds.TAKE_SCREENSHOT)
+    @Serializable
+    @SerialName(ActionTypeIds.TAKE_SCREENSHOT)
     data object TakeScreenshot : Action
 }
 
@@ -231,47 +386,50 @@ enum class LocationMode { HIGH_ACCURACY, BATTERY_SAVING, DEVICE_ONLY, OFF }
 
 /** Actions that draw on Glyph hardware — used to auto-clear output on mode end. */
 val Action.isGlyphAction: Boolean
-    get() = when (this) {
-        is Action.SetGlyph,
-        is Action.SetGlyphMatrix,
-        is Action.GlyphAnimate,
-        is Action.GlyphProgress,
-        is Action.GlyphText,
-        is Action.GlyphScrollingText,
-        is Action.GlyphPreset,
-        -> true
-        is Action.GlyphTurnOff -> false
-        else -> false
-    }
+    get() =
+        when (this) {
+            is Action.SetGlyph,
+            is Action.SetGlyphMatrix,
+            is Action.GlyphAnimate,
+            is Action.GlyphProgress,
+            is Action.GlyphText,
+            is Action.GlyphScrollingText,
+            is Action.GlyphPreset,
+            -> true
+            is Action.GlyphTurnOff -> false
+            else -> false
+        }
 
 /** Actions that support state restoration (snapshot previous value before applying). */
 val Action.supportsRestore: Boolean
-    get() = when (this) {
-        is Action.SetBrightness -> restore
-        is Action.SetExtraDim -> restore
-        is Action.SetScreenTimeout -> restore
-        is Action.SetGlyph -> restore
-        is Action.SetGlyphMatrix -> restore
-        else -> false
-    }
+    get() =
+        when (this) {
+            is Action.SetBrightness -> restore
+            is Action.SetExtraDim -> restore
+            is Action.SetScreenTimeout -> restore
+            is Action.SetGlyph -> restore
+            is Action.SetGlyphMatrix -> restore
+            else -> false
+        }
 
 /** All settings keys this action modifies (for conflict detection and snapshot). */
 val Action.affectedSettings: Set<String>
-    get() = when (this) {
-        is Action.SetBrightness -> setOf("screen_brightness")
-        is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
-        is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
-        is Action.SetScreenTimeout -> setOf("screen_off_timeout")
-        is Action.SetDarkMode -> setOf("night_mode")
-        is Action.SetDnd -> setOf("dnd_mode")
-        is Action.SetVolume -> setOf("volume_${stream.name.lowercase()}")
-        is Action.SetGlyph -> setOf("glyph_state")
-        is Action.SetGlyphMatrix -> setOf("glyph_matrix_state")
-        is Action.SetAutoRotate -> setOf("accelerometer_rotation")
-        is Action.SetBatterySaver -> setOf("low_power")
-        is Action.SetAirplaneMode -> setOf("airplane_mode_on")
-        is Action.SetDataSaver -> setOf("data_saver")
-        is Action.SetRefreshRate -> setOf("peak_refresh_rate", "min_refresh_rate")
-        is Action.SetScreenRotation -> setOf("accelerometer_rotation", "user_rotation")
-        else -> emptySet()
-    }
+    get() =
+        when (this) {
+            is Action.SetBrightness -> setOf("screen_brightness")
+            is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
+            is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
+            is Action.SetScreenTimeout -> setOf("screen_off_timeout")
+            is Action.SetDarkMode -> setOf("night_mode")
+            is Action.SetDnd -> setOf("dnd_mode")
+            is Action.SetVolume -> setOf("volume_${stream.name.lowercase()}")
+            is Action.SetGlyph -> setOf("glyph_state")
+            is Action.SetGlyphMatrix -> setOf("glyph_matrix_state")
+            is Action.SetAutoRotate -> setOf("accelerometer_rotation")
+            is Action.SetBatterySaver -> setOf("low_power")
+            is Action.SetAirplaneMode -> setOf("airplane_mode_on")
+            is Action.SetDataSaver -> setOf("data_saver")
+            is Action.SetRefreshRate -> setOf("peak_refresh_rate", "min_refresh_rate")
+            is Action.SetScreenRotation -> setOf("accelerometer_rotation", "user_rotation")
+            else -> emptySet()
+        }

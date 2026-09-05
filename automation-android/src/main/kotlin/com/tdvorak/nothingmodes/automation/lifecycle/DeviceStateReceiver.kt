@@ -12,36 +12,40 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
  * these are sticky broadcasts that don't need manifest declaration).
  */
 class DeviceStateReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        val serviceIntent = when (intent.action) {
-            Intent.ACTION_BATTERY_CHANGED -> {
-                val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                val percent = if (scale > 0) (level * 100) / scale else -1
-                val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                    status == BatteryManager.BATTERY_STATUS_FULL
-                Intent(context, AutomationService::class.java).apply {
-                    action = AutomationService.ACTION_BATTERY_CHANGED
-                    putExtra(EXTRA_BATTERY_LEVEL, percent)
-                    putExtra(EXTRA_BATTERY_CHARGING, isCharging)
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
+        val serviceIntent =
+            when (intent.action) {
+                Intent.ACTION_BATTERY_CHANGED -> {
+                    val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                    val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                    val percent = if (scale > 0) (level * 100) / scale else -1
+                    val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                    val isCharging =
+                        status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                            status == BatteryManager.BATTERY_STATUS_FULL
+                    Intent(context, AutomationService::class.java).apply {
+                        action = AutomationService.ACTION_BATTERY_CHANGED
+                        putExtra(EXTRA_BATTERY_LEVEL, percent)
+                        putExtra(EXTRA_BATTERY_CHARGING, isCharging)
+                    }
                 }
-            }
-            Intent.ACTION_SCREEN_ON -> {
-                Intent(context, AutomationService::class.java).apply {
-                    action = AutomationService.ACTION_SCREEN_STATE
-                    putExtra(EXTRA_SCREEN_STATE, ScreenState.ON.name)
+                Intent.ACTION_SCREEN_ON -> {
+                    Intent(context, AutomationService::class.java).apply {
+                        action = AutomationService.ACTION_SCREEN_STATE
+                        putExtra(EXTRA_SCREEN_STATE, ScreenState.ON.name)
+                    }
                 }
-            }
-            Intent.ACTION_SCREEN_OFF -> {
-                Intent(context, AutomationService::class.java).apply {
-                    action = AutomationService.ACTION_SCREEN_STATE
-                    putExtra(EXTRA_SCREEN_STATE, ScreenState.OFF.name)
+                Intent.ACTION_SCREEN_OFF -> {
+                    Intent(context, AutomationService::class.java).apply {
+                        action = AutomationService.ACTION_SCREEN_STATE
+                        putExtra(EXTRA_SCREEN_STATE, ScreenState.OFF.name)
+                    }
                 }
+                else -> return
             }
-            else -> return
-        }
         context.startForegroundService(serviceIntent)
     }
 

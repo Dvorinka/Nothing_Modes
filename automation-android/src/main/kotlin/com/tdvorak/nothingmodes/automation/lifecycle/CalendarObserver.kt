@@ -7,9 +7,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.provider.CalendarContract
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
-import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,12 +36,16 @@ class CalendarObserver(
     private val mutex = Mutex()
     private var lastFireTime = 0L
 
-    private val observer = object : ContentObserver(handler) {
-        override fun onChange(selfChange: Boolean, uri: Uri?) {
-            Log.d(TAG, "Calendar content changed")
-            scope.launch { checkEvents() }
+    private val observer =
+        object : ContentObserver(handler) {
+            override fun onChange(
+                selfChange: Boolean,
+                uri: Uri?,
+            ) {
+                Log.d(TAG, "Calendar content changed")
+                scope.launch { checkEvents() }
+            }
         }
-    }
 
     fun start() {
         runCatching {
@@ -77,54 +79,61 @@ class CalendarObserver(
             val windowStart = now
             val windowEnd = now + 60_000 // Check events starting in the next minute
 
-            val projection = arrayOf(
-                CalendarContract.Events.TITLE,
-                CalendarContract.Events.DTSTART,
-                CalendarContract.Events.DTEND,
-                CalendarContract.Events.CALENDAR_ID,
-            )
+            val projection =
+                arrayOf(
+                    CalendarContract.Events.TITLE,
+                    CalendarContract.Events.DTSTART,
+                    CalendarContract.Events.DTEND,
+                    CalendarContract.Events.CALENDAR_ID,
+                )
 
-            val selection = "(? BETWEEN ${CalendarContract.Events.DTSTART} AND ${CalendarContract.Events.DTEND}) " +
-                "OR (${CalendarContract.Events.DTSTART} BETWEEN ? AND ?)"
+            val selection =
+                "(? BETWEEN ${CalendarContract.Events.DTSTART} AND ${CalendarContract.Events.DTEND}) " +
+                    "OR (${CalendarContract.Events.DTSTART} BETWEEN ? AND ?)"
             val selectionArgs = arrayOf(now.toString(), windowStart.toString(), windowEnd.toString())
 
             try {
-                context.contentResolver.query(
-                    CalendarContract.Events.CONTENT_URI,
-                    projection,
-                    selection,
-                    selectionArgs,
-                    "${CalendarContract.Events.DTSTART} ASC",
-                )?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val title = cursor.getString(0) ?: continue
-                        val dtStart = cursor.getLong(1)
-                        val dtEnd = cursor.getLong(2)
-                        val calendarId = cursor.getString(3)
+                context.contentResolver
+                    .query(
+                        CalendarContract.Events.CONTENT_URI,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        "${CalendarContract.Events.DTSTART} ASC",
+                    )?.use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val title = cursor.getString(0) ?: continue
+                            val dtStart = cursor.getLong(1)
+                            val dtEnd = cursor.getLong(2)
+                            val calendarId = cursor.getString(3)
 
-                        // Event starting now (within 60s window)
-                        if (dtStart in windowStart..windowEnd) {
-                            Log.d(TAG, "Calendar event starting: $title")
-                            onEvent(TriggerEvent.CalendarEventChanged(
-                                eventId = "cal_start:${dtStart}:$title",
-                                direction = CalendarDirection.START,
-                                title = title,
-                                calendarId = calendarId,
-                            ))
-                        }
+                            // Event starting now (within 60s window)
+                            if (dtStart in windowStart..windowEnd) {
+                                Log.d(TAG, "Calendar event starting: $title")
+                                onEvent(
+                                    TriggerEvent.CalendarEventChanged(
+                                        eventId = "cal_start:$dtStart:$title",
+                                        direction = CalendarDirection.START,
+                                        title = title,
+                                        calendarId = calendarId,
+                                    ),
+                                )
+                            }
 
-                        // Event ending now (within 60s window)
-                        if (dtEnd in windowStart..windowEnd) {
-                            Log.d(TAG, "Calendar event ending: $title")
-                            onEvent(TriggerEvent.CalendarEventChanged(
-                                eventId = "cal_end:${dtEnd}:$title",
-                                direction = CalendarDirection.END,
-                                title = title,
-                                calendarId = calendarId,
-                            ))
+                            // Event ending now (within 60s window)
+                            if (dtEnd in windowStart..windowEnd) {
+                                Log.d(TAG, "Calendar event ending: $title")
+                                onEvent(
+                                    TriggerEvent.CalendarEventChanged(
+                                        eventId = "cal_end:$dtEnd:$title",
+                                        direction = CalendarDirection.END,
+                                        title = title,
+                                        calendarId = calendarId,
+                                    ),
+                                )
+                            }
                         }
                     }
-                }
             } catch (e: SecurityException) {
                 Log.w(TAG, "READ_CALENDAR permission not granted")
             } catch (e: Exception) {

@@ -19,12 +19,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class NothingModesTileService : TileService() {
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private fun store(): AutomationStore {
-        return EntryPoints.get(applicationContext, WidgetEntryPoint::class.java).automationStore()
-    }
+    private fun store(): AutomationStore = EntryPoints.get(applicationContext, WidgetEntryPoint::class.java).automationStore()
 
     override fun onStartListening() {
         super.onStartListening()
@@ -35,11 +32,12 @@ class NothingModesTileService : TileService() {
     override fun onClick() {
         super.onClick()
         scope.launch {
-            val automations = runCatching {
-                store().all().filter {
-                    it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
-                }
-            }.getOrDefault(emptyList())
+            val automations =
+                runCatching {
+                    store().all().filter {
+                        it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
+                    }
+                }.getOrDefault(emptyList())
 
             if (automations.isNotEmpty()) {
                 QuickActionTrigger.run(this@NothingModesTileService, automations.first().id.value)
@@ -56,16 +54,18 @@ class NothingModesTileService : TileService() {
 
     @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun openAppOrFallback() {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
+        val intent =
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val pending = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
+            val pending =
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
             startActivityAndCollapse(pending)
         } else {
             startActivity(intent)
@@ -74,11 +74,12 @@ class NothingModesTileService : TileService() {
 
     private fun updateTile() {
         scope.launch {
-            val automations = runCatching {
-                store().all().filter {
-                    it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
-                }
-            }.getOrDefault(emptyList())
+            val automations =
+                runCatching {
+                    store().all().filter {
+                        it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
+                    }
+                }.getOrDefault(emptyList())
 
             qsTile?.let { tile ->
                 tile.label = if (automations.isNotEmpty()) automations.first().name else "Nothing Modes"

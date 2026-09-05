@@ -8,7 +8,6 @@ import com.tdvorak.nothingmodes.data.entities.ScheduledTimeAlarmEntity
 
 @Dao
 interface ScheduledTimeAlarmDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ScheduledTimeAlarmEntity)
 
@@ -16,7 +15,10 @@ interface ScheduledTimeAlarmDao {
     suspend fun get(automationId: String): ScheduledTimeAlarmEntity?
 
     @Query("SELECT * FROM scheduled_time_alarms WHERE wakeAtMillis <= :atMillis AND scheduledMode = :mode")
-    suspend fun dueBefore(atMillis: Long, mode: String): List<ScheduledTimeAlarmEntity>
+    suspend fun dueBefore(
+        atMillis: Long,
+        mode: String,
+    ): List<ScheduledTimeAlarmEntity>
 
     @Query("DELETE FROM scheduled_time_alarms WHERE automationId = :automationId")
     suspend fun delete(automationId: String)

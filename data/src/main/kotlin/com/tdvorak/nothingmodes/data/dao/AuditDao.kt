@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AuditDao {
-
     @Insert
     suspend fun insert(entity: AuditEntity): Long
 
@@ -16,7 +15,10 @@ interface AuditDao {
     fun observeRecent(limit: Int = 200): Flow<List<AuditEntity>>
 
     @Query("SELECT * FROM audit_log WHERE automationId = :id ORDER BY atMillis DESC LIMIT :limit")
-    suspend fun forAutomation(id: String, limit: Int = 100): List<AuditEntity>
+    suspend fun forAutomation(
+        id: String,
+        limit: Int = 100,
+    ): List<AuditEntity>
 
     @Query("SELECT * FROM audit_log WHERE executionId = :executionId ORDER BY atMillis ASC")
     suspend fun forExecution(executionId: String): List<AuditEntity>

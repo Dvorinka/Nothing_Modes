@@ -84,45 +84,46 @@ object CapabilityIds {
 
 /** Human-readable requirement text for capability IDs — used by import previews and warnings. */
 object CapabilityLabels {
-    fun describe(capabilityId: String): String = when (capabilityId) {
-        CapabilityIds.SHIZUKU_REQUIRED -> "Shizuku"
-        CapabilityIds.ACTION_SET_DND -> "Do Not Disturb access"
-        CapabilityIds.ACTION_SET_BRIGHTNESS,
-        CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
-        CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
-        CapabilityIds.ACTION_SET_AUTO_ROTATE,
-        CapabilityIds.ACTION_SET_REFRESH_RATE,
-        CapabilityIds.ACTION_SET_SCREEN_ROTATION,
-        -> "Write system settings permission"
-        CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
-        CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
-        CapabilityIds.ACTION_SET_FLASHLIGHT -> "Camera flashlight"
-        CapabilityIds.ACTION_VIBRATE -> "Vibrator"
-        CapabilityIds.ACTION_SEND_SMS -> "SMS permission"
-        CapabilityIds.ACTION_LOCK_SCREEN -> "Device admin or accessibility service"
-        CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access"
-        CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Screen capture consent"
-        CapabilityIds.ACTION_SET_GLYPH,
-        CapabilityIds.ACTION_GLYPH_ANIMATE,
-        CapabilityIds.ACTION_GLYPH_PROGRESS,
-        CapabilityIds.ACTION_GLYPH_PRESET,
-        CapabilityIds.ACTION_GLYPH_TURNOFF,
-        -> "Nothing Glyph light interface"
-        CapabilityIds.ACTION_SET_GLYPH_MATRIX,
-        CapabilityIds.ACTION_GLYPH_TEXT,
-        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
-        -> "Nothing Glyph Matrix"
-        CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
-        CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
-        CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
-        CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
-        CapabilityIds.STATE_READER_SETTING,
-        CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
-        CapabilityIds.STATE_READER_SYSFS,
-        CapabilityIds.STATE_READER_DUMPSYS_FIELD,
-        -> "Shizuku"
-        else -> ""
-    }
+    fun describe(capabilityId: String): String =
+        when (capabilityId) {
+            CapabilityIds.SHIZUKU_REQUIRED -> "Shizuku"
+            CapabilityIds.ACTION_SET_DND -> "Do Not Disturb access"
+            CapabilityIds.ACTION_SET_BRIGHTNESS,
+            CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
+            CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
+            CapabilityIds.ACTION_SET_AUTO_ROTATE,
+            CapabilityIds.ACTION_SET_REFRESH_RATE,
+            CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+            -> "Write system settings permission"
+            CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
+            CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
+            CapabilityIds.ACTION_SET_FLASHLIGHT -> "Camera flashlight"
+            CapabilityIds.ACTION_VIBRATE -> "Vibrator"
+            CapabilityIds.ACTION_SEND_SMS -> "SMS permission"
+            CapabilityIds.ACTION_LOCK_SCREEN -> "Device admin or accessibility service"
+            CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access"
+            CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Screen capture consent"
+            CapabilityIds.ACTION_SET_GLYPH,
+            CapabilityIds.ACTION_GLYPH_ANIMATE,
+            CapabilityIds.ACTION_GLYPH_PROGRESS,
+            CapabilityIds.ACTION_GLYPH_PRESET,
+            CapabilityIds.ACTION_GLYPH_TURNOFF,
+            -> "Nothing Glyph light interface"
+            CapabilityIds.ACTION_SET_GLYPH_MATRIX,
+            CapabilityIds.ACTION_GLYPH_TEXT,
+            CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
+            -> "Nothing Glyph Matrix"
+            CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
+            CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
+            CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
+            CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
+            CapabilityIds.STATE_READER_SETTING,
+            CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
+            CapabilityIds.STATE_READER_SYSFS,
+            CapabilityIds.STATE_READER_DUMPSYS_FIELD,
+            -> "Shizuku"
+            else -> ""
+        }
 }
 
 /** Derives required capabilities from an automation's trigger, actions, and conditions. */
@@ -139,99 +140,104 @@ object CapabilityRequirements {
         return caps
     }
 
-    private fun triggerCapabilities(trigger: Trigger): Set<String> = when (trigger) {
-        is Trigger.Time -> setOf(CapabilityIds.TRIGGER_TIME)
-        is Trigger.TimeWindow -> setOf(CapabilityIds.TRIGGER_TIME_WINDOW)
-        is Trigger.Immediate -> setOf(CapabilityIds.TRIGGER_IMMEDIATE)
-        is Trigger.Notification -> setOf(CapabilityIds.TRIGGER_NOTIFICATION)
-        is Trigger.PhoneState -> when (trigger.event) {
-            PhoneEvent.SMS_RECEIVED -> setOf(CapabilityIds.TRIGGER_PHONE_SMS)
-            PhoneEvent.INCOMING_CALL, PhoneEvent.CALL_ENDED -> setOf(CapabilityIds.TRIGGER_PHONE_CALL)
+    private fun triggerCapabilities(trigger: Trigger): Set<String> =
+        when (trigger) {
+            is Trigger.Time -> setOf(CapabilityIds.TRIGGER_TIME)
+            is Trigger.TimeWindow -> setOf(CapabilityIds.TRIGGER_TIME_WINDOW)
+            is Trigger.Immediate -> setOf(CapabilityIds.TRIGGER_IMMEDIATE)
+            is Trigger.Notification -> setOf(CapabilityIds.TRIGGER_NOTIFICATION)
+            is Trigger.PhoneState ->
+                when (trigger.event) {
+                    PhoneEvent.SMS_RECEIVED -> setOf(CapabilityIds.TRIGGER_PHONE_SMS)
+                    PhoneEvent.INCOMING_CALL, PhoneEvent.CALL_ENDED -> setOf(CapabilityIds.TRIGGER_PHONE_CALL)
+                }
+            is Trigger.Connectivity ->
+                when (trigger.medium) {
+                    ConnMedium.WIFI -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_WIFI)
+                    ConnMedium.BT -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_BT)
+                    ConnMedium.POWER -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_POWER)
+                }
+            is Trigger.Boot -> setOf(CapabilityIds.TRIGGER_BOOT)
+            is Trigger.BatteryLevel -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
+            is Trigger.ScreenStateTrigger -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
+            is Trigger.AppOpened -> setOf(CapabilityIds.TRIGGER_APP_OPENED)
+            is Trigger.Geofence -> setOf(CapabilityIds.TRIGGER_GEOFENCE)
+            is Trigger.Manual -> setOf(CapabilityIds.TRIGGER_MANUAL)
+            is Trigger.BluetoothDevice -> setOf(CapabilityIds.TRIGGER_BT_DEVICE)
+            is Trigger.WifiConnected -> setOf(CapabilityIds.TRIGGER_WIFI_CONNECTED)
+            is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
         }
-        is Trigger.Connectivity -> when (trigger.medium) {
-            ConnMedium.WIFI -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_WIFI)
-            ConnMedium.BT -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_BT)
-            ConnMedium.POWER -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_POWER)
+
+    private fun actionCapabilities(action: Action): Set<String> =
+        when (action) {
+            is Action.SetWifi -> setOf(CapabilityIds.ACTION_SET_WIFI, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetMobileData -> setOf(CapabilityIds.ACTION_SET_MOBILE_DATA, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetDnd -> setOf(CapabilityIds.ACTION_SET_DND)
+            is Action.SetRinger -> setOf(CapabilityIds.ACTION_SET_RINGER)
+            is Action.LaunchApp -> setOf(CapabilityIds.ACTION_LAUNCH_APP)
+            is Action.OpenUrl -> setOf(CapabilityIds.ACTION_OPEN_URL)
+            is Action.ShowNotification -> setOf(CapabilityIds.ACTION_SHOW_NOTIFICATION)
+            is Action.SetVolume -> setOf(CapabilityIds.ACTION_SET_VOLUME)
+            is Action.SetFlashlight -> setOf(CapabilityIds.ACTION_SET_FLASHLIGHT)
+            is Action.SetDarkMode -> setOf(CapabilityIds.ACTION_SET_DARK_MODE)
+            is Action.OpenSettingsScreen -> setOf(CapabilityIds.ACTION_OPEN_SETTINGS_SCREEN)
+            is Action.Vibrate -> setOf(CapabilityIds.ACTION_VIBRATE)
+            is Action.SetBrightness -> setOf(CapabilityIds.ACTION_SET_BRIGHTNESS)
+            is Action.SetAutoBrightness -> setOf(CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS)
+            is Action.SetExtraDim -> setOf(CapabilityIds.ACTION_SET_EXTRA_DIM, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
+            is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)
+            is Action.SetGlyphMatrix -> setOf(CapabilityIds.ACTION_SET_GLYPH_MATRIX)
+            is Action.GlyphAnimate -> setOf(CapabilityIds.ACTION_GLYPH_ANIMATE)
+            is Action.GlyphProgress -> setOf(CapabilityIds.ACTION_GLYPH_PROGRESS)
+            is Action.GlyphText -> setOf(CapabilityIds.ACTION_GLYPH_TEXT)
+            is Action.GlyphScrollingText -> setOf(CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT)
+            is Action.GlyphPreset -> setOf(CapabilityIds.ACTION_GLYPH_PRESET)
+            is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
+            is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
+            is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
+            is Action.WriteSetting -> setOf(CapabilityIds.ACTION_WRITE_SETTING, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetAutoRotate -> setOf(CapabilityIds.ACTION_SET_AUTO_ROTATE)
+            is Action.SetBatterySaver -> setOf(CapabilityIds.ACTION_SET_BATTERY_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetAirplaneMode -> setOf(CapabilityIds.ACTION_SET_AIRPLANE_MODE, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetDataSaver -> setOf(CapabilityIds.ACTION_SET_DATA_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetHotspot -> setOf(CapabilityIds.ACTION_SET_HOTSPOT, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetNfc -> setOf(CapabilityIds.ACTION_SET_NFC, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetRefreshRate -> setOf(CapabilityIds.ACTION_SET_REFRESH_RATE)
+            is Action.SetScreenRotation -> setOf(CapabilityIds.ACTION_SET_SCREEN_ROTATION)
+            is Action.MediaControl -> setOf(CapabilityIds.ACTION_MEDIA_CONTROL)
+            is Action.SendSms -> setOf(CapabilityIds.ACTION_SEND_SMS)
+            is Action.LockScreen -> setOf(CapabilityIds.ACTION_LOCK_SCREEN)
+            is Action.SetLocationMode -> setOf(CapabilityIds.ACTION_SET_LOCATION_MODE)
+            is Action.SetAutoSync -> setOf(CapabilityIds.ACTION_SET_AUTO_SYNC, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
+            is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.TakeScreenshot -> setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT)
         }
-        is Trigger.Boot -> setOf(CapabilityIds.TRIGGER_BOOT)
-        is Trigger.BatteryLevel -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
-        is Trigger.ScreenStateTrigger -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
-        is Trigger.AppOpened -> setOf(CapabilityIds.TRIGGER_APP_OPENED)
-        is Trigger.Geofence -> setOf(CapabilityIds.TRIGGER_GEOFENCE)
-        is Trigger.Manual -> setOf(CapabilityIds.TRIGGER_MANUAL)
-        is Trigger.BluetoothDevice -> setOf(CapabilityIds.TRIGGER_BT_DEVICE)
-        is Trigger.WifiConnected -> setOf(CapabilityIds.TRIGGER_WIFI_CONNECTED)
-        is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
-    }
 
-    private fun actionCapabilities(action: Action): Set<String> = when (action) {
-        is Action.SetWifi -> setOf(CapabilityIds.ACTION_SET_WIFI, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetMobileData -> setOf(CapabilityIds.ACTION_SET_MOBILE_DATA, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetDnd -> setOf(CapabilityIds.ACTION_SET_DND)
-        is Action.SetRinger -> setOf(CapabilityIds.ACTION_SET_RINGER)
-        is Action.LaunchApp -> setOf(CapabilityIds.ACTION_LAUNCH_APP)
-        is Action.OpenUrl -> setOf(CapabilityIds.ACTION_OPEN_URL)
-        is Action.ShowNotification -> setOf(CapabilityIds.ACTION_SHOW_NOTIFICATION)
-        is Action.SetVolume -> setOf(CapabilityIds.ACTION_SET_VOLUME)
-        is Action.SetFlashlight -> setOf(CapabilityIds.ACTION_SET_FLASHLIGHT)
-        is Action.SetDarkMode -> setOf(CapabilityIds.ACTION_SET_DARK_MODE)
-        is Action.OpenSettingsScreen -> setOf(CapabilityIds.ACTION_OPEN_SETTINGS_SCREEN)
-        is Action.Vibrate -> setOf(CapabilityIds.ACTION_VIBRATE)
-        is Action.SetBrightness -> setOf(CapabilityIds.ACTION_SET_BRIGHTNESS)
-        is Action.SetAutoBrightness -> setOf(CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS)
-        is Action.SetExtraDim -> setOf(CapabilityIds.ACTION_SET_EXTRA_DIM, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
-        is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)
-        is Action.SetGlyphMatrix -> setOf(CapabilityIds.ACTION_SET_GLYPH_MATRIX)
-        is Action.GlyphAnimate -> setOf(CapabilityIds.ACTION_GLYPH_ANIMATE)
-        is Action.GlyphProgress -> setOf(CapabilityIds.ACTION_GLYPH_PROGRESS)
-        is Action.GlyphText -> setOf(CapabilityIds.ACTION_GLYPH_TEXT)
-        is Action.GlyphScrollingText -> setOf(CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT)
-        is Action.GlyphPreset -> setOf(CapabilityIds.ACTION_GLYPH_PRESET)
-        is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
-        is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
-        is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
-        is Action.WriteSetting -> setOf(CapabilityIds.ACTION_WRITE_SETTING, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetAutoRotate -> setOf(CapabilityIds.ACTION_SET_AUTO_ROTATE)
-        is Action.SetBatterySaver -> setOf(CapabilityIds.ACTION_SET_BATTERY_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetAirplaneMode -> setOf(CapabilityIds.ACTION_SET_AIRPLANE_MODE, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetDataSaver -> setOf(CapabilityIds.ACTION_SET_DATA_SAVER, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetHotspot -> setOf(CapabilityIds.ACTION_SET_HOTSPOT, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetNfc -> setOf(CapabilityIds.ACTION_SET_NFC, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.SetRefreshRate -> setOf(CapabilityIds.ACTION_SET_REFRESH_RATE)
-        is Action.SetScreenRotation -> setOf(CapabilityIds.ACTION_SET_SCREEN_ROTATION)
-        is Action.MediaControl -> setOf(CapabilityIds.ACTION_MEDIA_CONTROL)
-        is Action.SendSms -> setOf(CapabilityIds.ACTION_SEND_SMS)
-        is Action.LockScreen -> setOf(CapabilityIds.ACTION_LOCK_SCREEN)
-        is Action.SetLocationMode -> setOf(CapabilityIds.ACTION_SET_LOCATION_MODE)
-        is Action.SetAutoSync -> setOf(CapabilityIds.ACTION_SET_AUTO_SYNC, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
-        is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
-        is Action.TakeScreenshot -> setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT)
-    }
-
-    private fun conditionCapabilities(condition: Condition): Set<String> = when (condition) {
-        is Condition.TimeWindow -> emptySet()
-        is Condition.DayOfWeekCondition -> emptySet()
-        is Condition.BatteryLevel -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.Charging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.WifiConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.BluetoothConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.ScreenStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.CurrentModeActive -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.AppInForeground -> setOf(CapabilityIds.STATE_FOREGROUND_APP)
-        is Condition.DarkModeActive -> setOf(CapabilityIds.STATE_READER_SETTING)
-        is Condition.PowerSaving -> setOf(CapabilityIds.STATE_READER_SETTING)
-        is Condition.MediaPlaying -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.RingerMode -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.AirplaneModeOn -> setOf(CapabilityIds.STATE_READER_SETTING)
-        is Condition.NfcEnabled -> setOf(CapabilityIds.STATE_READER_SETTING)
-        is Condition.LocationEnabled -> setOf(CapabilityIds.STATE_LOCATION)
-        is Condition.CallStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.AlarmRinging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-        is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
-        is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
-        is Condition.Not -> conditionCapabilities(condition.cond)
-    }
+    private fun conditionCapabilities(condition: Condition): Set<String> =
+        when (condition) {
+            is Condition.TimeWindow -> emptySet()
+            is Condition.DayOfWeekCondition -> emptySet()
+            is Condition.BatteryLevel -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.Charging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.WifiConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.BluetoothConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.ScreenStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.CurrentModeActive -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.AppInForeground -> setOf(CapabilityIds.STATE_FOREGROUND_APP)
+            is Condition.DarkModeActive -> setOf(CapabilityIds.STATE_READER_SETTING)
+            is Condition.PowerSaving -> setOf(CapabilityIds.STATE_READER_SETTING)
+            is Condition.MediaPlaying -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.RingerMode -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.AirplaneModeOn -> setOf(CapabilityIds.STATE_READER_SETTING)
+            is Condition.NfcEnabled -> setOf(CapabilityIds.STATE_READER_SETTING)
+            is Condition.LocationEnabled -> setOf(CapabilityIds.STATE_LOCATION)
+            is Condition.CallStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.AlarmRinging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
+            is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
+            is Condition.Not -> conditionCapabilities(condition.cond)
+        }
 }

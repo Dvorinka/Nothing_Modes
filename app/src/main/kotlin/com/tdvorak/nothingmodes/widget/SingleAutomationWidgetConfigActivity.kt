@@ -1,6 +1,5 @@
 package com.tdvorak.nothingmodes.widget
 
-import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
@@ -23,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,41 +36,42 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.engine.model.Automation
-import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
-class WidgetConfigViewModel @Inject constructor(
-    private val store: AutomationStore,
-) : ViewModel() {
-    private val _items = MutableStateFlow<List<Automation>>(emptyList())
-    val items: StateFlow<List<Automation>> = _items.asStateFlow()
+class WidgetConfigViewModel
+    @Inject
+    constructor(
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val _items = MutableStateFlow<List<Automation>>(emptyList())
+        val items: StateFlow<List<Automation>> = _items.asStateFlow()
 
-    init { load() }
+        init {
+            load()
+        }
 
-    fun load() {
-        viewModelScope.launch {
-            _items.value = store.all().sortedBy { it.priority }
+        fun load() {
+            viewModelScope.launch {
+                _items.value = store.all().sortedBy { it.priority }
+            }
         }
     }
-}
 
 @AndroidEntryPoint
 class SingleAutomationWidgetConfigActivity : ComponentActivity() {
-
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,8 +106,9 @@ class SingleAutomationWidgetConfigActivity : ComponentActivity() {
                         // and the widget keeps its pre-config content.
                         lifecycleScope.launch {
                             runCatching {
-                                val glanceId = GlanceAppWidgetManager(this@SingleAutomationWidgetConfigActivity)
-                                    .getGlanceIdBy(appWidgetId)
+                                val glanceId =
+                                    GlanceAppWidgetManager(this@SingleAutomationWidgetConfigActivity)
+                                        .getGlanceIdBy(appWidgetId)
                                 SingleAutomationWidget().update(this@SingleAutomationWidgetConfigActivity, glanceId)
                             }
                             finish()
@@ -135,9 +134,10 @@ private fun WidgetConfigScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(NothingSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(NothingSpacing.md),
         ) {
             Text(
                 text = "SELECT AUTOMATION",
@@ -175,37 +175,45 @@ private fun AutomationPickerRow(
     automation: Automation,
     onClick: () -> Unit,
 ) {
-    val iconColor = if (automation.iconBackground.isNotBlank()) {
-        runCatching { Color(android.graphics.Color.parseColor(automation.iconBackground)) }
-            .getOrDefault(Color(0xFFD71921))
-    } else {
-        Color(0xFFD71921)
-    }
+    val iconColor =
+        if (automation.iconBackground.isNotBlank()) {
+            runCatching { Color(android.graphics.Color.parseColor(automation.iconBackground)) }
+                .getOrDefault(Color(0xFFD71921))
+        } else {
+            Color(0xFFD71921)
+        }
     val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.card,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(NothingSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(NothingSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(NothingShapes.iconChip)
-                    .background(iconColor),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(NothingShapes.iconChip)
+                        .background(iconColor),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    text =
+                        automation.name
+                            .firstOrNull()
+                            ?.uppercaseChar()
+                            ?.toString() ?: "?",
                     style = MaterialTheme.typography.titleMedium,
                     color = iconTextColor,
                     fontFamily = Doto,

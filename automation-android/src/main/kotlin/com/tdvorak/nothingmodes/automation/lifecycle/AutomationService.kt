@@ -27,7 +27,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 /**
@@ -36,13 +35,15 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class AutomationService : Service() {
-
     @Inject lateinit var engine: Engine
+
     @Inject lateinit var scheduler: AutomationScheduler
+
     @Inject lateinit var store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeJobs = mutableSetOf<Job>()
+
     @Volatile private var lastStartId = 0
 
     override fun onCreate() {
@@ -50,7 +51,11 @@ class AutomationService : Service() {
         createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
         lastStartId = startId
 
@@ -89,91 +94,113 @@ class AutomationService : Service() {
 
     private fun handleRegistered(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        dispatchEvent(TriggerEvent.Registered(
-            eventId = "registered:${System.currentTimeMillis()}",
-            automationId = AutomationId(automationId),
-        ))
+        dispatchEvent(
+            TriggerEvent.Registered(
+                eventId = "registered:${System.currentTimeMillis()}",
+                automationId = AutomationId(automationId),
+            ),
+        )
     }
 
     private fun handleReschedule() {
-        trackJob(scope.launch {
-            store.armed().forEach { automation ->
-                scheduler.schedule(automation)
-            }
-        })
+        trackJob(
+            scope.launch {
+                store.armed().forEach { automation ->
+                    scheduler.schedule(automation)
+                }
+            },
+        )
     }
 
     private fun handleBoot() {
-        trackJob(scope.launch {
-            store.armed().forEach { automation ->
-                scheduler.schedule(automation)
-            }
-            dispatchEvent(TriggerEvent.BootCompleted(
-                eventId = "boot:${System.currentTimeMillis()}",
-            ))
-        })
+        trackJob(
+            scope.launch {
+                store.armed().forEach { automation ->
+                    scheduler.schedule(automation)
+                }
+                dispatchEvent(
+                    TriggerEvent.BootCompleted(
+                        eventId = "boot:${System.currentTimeMillis()}",
+                    ),
+                )
+            },
+        )
     }
 
     private fun handleTimeFired(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
         val id = AutomationId(automationId)
-        dispatchEvent(TriggerEvent.TimeFired(
-            eventId = "time:${System.currentTimeMillis()}",
-            automationId = id,
-            atMillis = System.currentTimeMillis(),
-        ))
+        dispatchEvent(
+            TriggerEvent.TimeFired(
+                eventId = "time:${System.currentTimeMillis()}",
+                automationId = id,
+                atMillis = System.currentTimeMillis(),
+            ),
+        )
         // Re-schedule next cron occurrence for recurring time triggers only
-        trackJob(scope.launch {
-            store.get(id)?.let { automation ->
-                val trigger = automation.trigger
-                if (trigger is Trigger.Time && !trigger.isOneShot()) {
-                    scheduler.schedule(automation)
+        trackJob(
+            scope.launch {
+                store.get(id)?.let { automation ->
+                    val trigger = automation.trigger
+                    if (trigger is Trigger.Time && !trigger.isOneShot()) {
+                        scheduler.schedule(automation)
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     private fun handleWindowStart(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        dispatchEvent(TriggerEvent.ModeWindowStart(
-            eventId = "window_start:${System.currentTimeMillis()}",
-            automationId = AutomationId(automationId),
-            atMillis = System.currentTimeMillis(),
-        ))
+        dispatchEvent(
+            TriggerEvent.ModeWindowStart(
+                eventId = "window_start:${System.currentTimeMillis()}",
+                automationId = AutomationId(automationId),
+                atMillis = System.currentTimeMillis(),
+            ),
+        )
     }
 
     private fun handleWindowEnd(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
         val id = AutomationId(automationId)
-        dispatchEvent(TriggerEvent.ModeWindowEnd(
-            eventId = "window_end:${System.currentTimeMillis()}",
-            automationId = id,
-            atMillis = System.currentTimeMillis(),
-        ))
+        dispatchEvent(
+            TriggerEvent.ModeWindowEnd(
+                eventId = "window_end:${System.currentTimeMillis()}",
+                automationId = id,
+                atMillis = System.currentTimeMillis(),
+            ),
+        )
         // Re-schedule next window for recurring time-window triggers
-        trackJob(scope.launch {
-            store.get(id)?.let { scheduler.schedule(it) }
-        })
+        trackJob(
+            scope.launch {
+                store.get(id)?.let { scheduler.schedule(it) }
+            },
+        )
     }
 
     private fun handleBatteryChanged(intent: Intent) {
         val level = intent.getIntExtra(DeviceStateReceiver.EXTRA_BATTERY_LEVEL, -1)
         if (level < 0) return
         val isCharging = intent.getBooleanExtra(DeviceStateReceiver.EXTRA_BATTERY_CHARGING, false)
-        dispatchEvent(TriggerEvent.BatteryLevelChanged(
-            eventId = "battery:${System.currentTimeMillis()}",
-            level = level,
-            isCharging = isCharging,
-        ))
+        dispatchEvent(
+            TriggerEvent.BatteryLevelChanged(
+                eventId = "battery:${System.currentTimeMillis()}",
+                level = level,
+                isCharging = isCharging,
+            ),
+        )
     }
 
     private fun handleScreenState(intent: Intent) {
         val stateName = intent.getStringExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE) ?: return
         val state = runCatching { ScreenState.valueOf(stateName) }.getOrNull() ?: return
-        dispatchEvent(TriggerEvent.ScreenStateChanged(
-            eventId = "screen:${System.currentTimeMillis()}",
-            state = state,
-        ))
+        dispatchEvent(
+            TriggerEvent.ScreenStateChanged(
+                eventId = "screen:${System.currentTimeMillis()}",
+                state = state,
+            ),
+        )
     }
 
     private fun handleNotification(intent: Intent) {
@@ -181,140 +208,173 @@ class AutomationService : Service() {
         val title = intent.getStringExtra(AutomationNotificationListener.EXTRA_TITLE) ?: ""
         val text = intent.getStringExtra(AutomationNotificationListener.EXTRA_TEXT) ?: ""
         val sender = intent.getStringExtra(AutomationNotificationListener.EXTRA_SENDER)
-        dispatchEvent(TriggerEvent.NotificationPosted(
-            eventId = "notif:${System.currentTimeMillis()}",
-            pkg = pkg,
-            title = title,
-            text = text,
-            sender = sender,
-        ))
+        dispatchEvent(
+            TriggerEvent.NotificationPosted(
+                eventId = "notif:${System.currentTimeMillis()}",
+                pkg = pkg,
+                title = title,
+                text = text,
+                sender = sender,
+            ),
+        )
     }
 
     private fun handlePhoneState(intent: Intent) {
         val stateStr = intent.getStringExtra(PhoneStateReceiver.EXTRA_PHONE_STATE) ?: return
         val number = intent.getStringExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER) ?: ""
-        val phoneEvent = when (stateStr) {
-            "ringing" -> PhoneEvent.INCOMING_CALL
-            "idle" -> PhoneEvent.CALL_ENDED
-            else -> return
-        }
-        dispatchEvent(TriggerEvent.PhoneStateChanged(
-            eventId = "phone:${System.currentTimeMillis()}",
-            event = phoneEvent,
-            number = number,
-            smsText = null,
-        ))
+        val phoneEvent =
+            when (stateStr) {
+                "ringing" -> PhoneEvent.INCOMING_CALL
+                "idle" -> PhoneEvent.CALL_ENDED
+                else -> return
+            }
+        dispatchEvent(
+            TriggerEvent.PhoneStateChanged(
+                eventId = "phone:${System.currentTimeMillis()}",
+                event = phoneEvent,
+                number = number,
+                smsText = null,
+            ),
+        )
     }
 
     private fun handleSms(intent: Intent) {
         val sender = intent.getStringExtra(PhoneStateReceiver.EXTRA_SMS_SENDER)
         val body = intent.getStringExtra(PhoneStateReceiver.EXTRA_SMS_BODY)
-        dispatchEvent(TriggerEvent.PhoneStateChanged(
-            eventId = "sms:${System.currentTimeMillis()}",
-            event = PhoneEvent.SMS_RECEIVED,
-            number = sender,
-            smsText = body,
-        ))
+        dispatchEvent(
+            TriggerEvent.PhoneStateChanged(
+                eventId = "sms:${System.currentTimeMillis()}",
+                event = PhoneEvent.SMS_RECEIVED,
+                number = sender,
+                smsText = body,
+            ),
+        )
     }
 
     private fun handleConnectivity(intent: Intent) {
         val type = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_TYPE) ?: return
         val stateStr = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_STATE) ?: return
-        val medium = when (type) {
-            "wifi" -> ConnMedium.WIFI
-            "bluetooth" -> ConnMedium.BT
-            else -> return
-        }
-        val state = when (stateStr) {
-            "wifi_enabled", "bt_enabled" -> ConnState.CONNECTED
-            "wifi_disabled", "bt_disabled" -> ConnState.DISCONNECTED
-            else -> return
-        }
-        dispatchEvent(TriggerEvent.ConnectivityChanged(
-            eventId = "conn:${System.currentTimeMillis()}",
-            medium = medium,
-            state = state,
-            match = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_MATCH),
-        ))
+        val medium =
+            when (type) {
+                "wifi" -> ConnMedium.WIFI
+                "bluetooth" -> ConnMedium.BT
+                else -> return
+            }
+        val state =
+            when (stateStr) {
+                "wifi_enabled", "bt_enabled" -> ConnState.CONNECTED
+                "wifi_disabled", "bt_disabled" -> ConnState.DISCONNECTED
+                else -> return
+            }
+        dispatchEvent(
+            TriggerEvent.ConnectivityChanged(
+                eventId = "conn:${System.currentTimeMillis()}",
+                medium = medium,
+                state = state,
+                match = intent.getStringExtra(ConnectivityReceiver.EXTRA_CONNECTIVITY_MATCH),
+            ),
+        )
     }
 
     private fun handleAppForeground(intent: Intent) {
         val pkg = intent.getStringExtra(UsageStatsMonitor.EXTRA_PACKAGE) ?: return
-        dispatchEvent(TriggerEvent.AppForegroundChanged(
-            eventId = "app:${System.currentTimeMillis()}",
-            pkg = pkg,
-            inForeground = true,
-        ))
+        dispatchEvent(
+            TriggerEvent.AppForegroundChanged(
+                eventId = "app:${System.currentTimeMillis()}",
+                pkg = pkg,
+                inForeground = true,
+            ),
+        )
     }
 
     private fun handleGeofence(intent: Intent) {
         val lat = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LAT, 0.0)
         val lng = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LNG, 0.0)
         val transitionStr = intent.getStringExtra(GeofenceReceiver.EXTRA_TRANSITION) ?: return
-        val transition = runCatching { com.tdvorak.nothingmodes.engine.model.Transition.valueOf(transitionStr) }.getOrNull() ?: return
-        dispatchEvent(TriggerEvent.GeofenceTriggered(
-            eventId = "geo:${System.currentTimeMillis()}",
-            lat = lat,
-            lng = lng,
-            transition = transition,
-            geofenceId = intent.getStringExtra(GeofenceReceiver.EXTRA_GEOFENCE_ID),
-        ))
+        val transition =
+            runCatching {
+                com.tdvorak.nothingmodes.engine.model.Transition
+                    .valueOf(transitionStr)
+            }.getOrNull() ?: return
+        dispatchEvent(
+            TriggerEvent.GeofenceTriggered(
+                eventId = "geo:${System.currentTimeMillis()}",
+                lat = lat,
+                lng = lng,
+                transition = transition,
+                geofenceId = intent.getStringExtra(GeofenceReceiver.EXTRA_GEOFENCE_ID),
+            ),
+        )
     }
 
     private fun handleBtDevice(intent: Intent) {
         val stateStr = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_STATE) ?: return
-        val state = when (stateStr) {
-            "connected" -> ConnState.CONNECTED
-            "disconnected" -> ConnState.DISCONNECTED
-            else -> return
-        }
-        dispatchEvent(TriggerEvent.BluetoothDeviceChanged(
-            eventId = "bt_dev:${System.currentTimeMillis()}",
-            state = state,
-            deviceName = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_NAME),
-            deviceAddress = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_ADDRESS),
-        ))
+        val state =
+            when (stateStr) {
+                "connected" -> ConnState.CONNECTED
+                "disconnected" -> ConnState.DISCONNECTED
+                else -> return
+            }
+        dispatchEvent(
+            TriggerEvent.BluetoothDeviceChanged(
+                eventId = "bt_dev:${System.currentTimeMillis()}",
+                state = state,
+                deviceName = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_NAME),
+                deviceAddress = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_ADDRESS),
+            ),
+        )
     }
 
     private fun handleWifiConnected(intent: Intent) {
         val ssid = intent.getStringExtra(ConnectivityReceiver.EXTRA_WIFI_SSID) ?: return
-        dispatchEvent(TriggerEvent.WifiConnectedChanged(
-            eventId = "wifi_conn:${System.currentTimeMillis()}",
-            ssid = ssid,
-        ))
+        dispatchEvent(
+            TriggerEvent.WifiConnectedChanged(
+                eventId = "wifi_conn:${System.currentTimeMillis()}",
+                ssid = ssid,
+            ),
+        )
     }
 
     private fun handleManual(intent: Intent) {
         val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
         val automationId = AutomationId(idStr)
-        dispatchEvent(TriggerEvent.ManualFired(
-            eventId = "manual:${System.currentTimeMillis()}",
-            automationId = automationId,
-        ))
+        dispatchEvent(
+            TriggerEvent.ManualFired(
+                eventId = "manual:${System.currentTimeMillis()}",
+                automationId = automationId,
+            ),
+        )
     }
 
     private fun handleCalendarEvent(intent: Intent) {
         val directionStr = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_DIRECTION) ?: return
-        val direction = runCatching {
-            com.tdvorak.nothingmodes.engine.model.CalendarDirection.valueOf(directionStr)
-        }.getOrNull() ?: return
-        dispatchEvent(TriggerEvent.CalendarEventChanged(
-            eventId = "cal:${System.currentTimeMillis()}",
-            direction = direction,
-            title = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_TITLE),
-            calendarId = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_ID),
-        ))
+        val direction =
+            runCatching {
+                com.tdvorak.nothingmodes.engine.model.CalendarDirection
+                    .valueOf(directionStr)
+            }.getOrNull() ?: return
+        dispatchEvent(
+            TriggerEvent.CalendarEventChanged(
+                eventId = "cal:${System.currentTimeMillis()}",
+                direction = direction,
+                title = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_TITLE),
+                calendarId = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_ID),
+            ),
+        )
     }
 
     private fun dispatchEvent(event: TriggerEvent) {
-        trackJob(scope.launch {
-            val envelope = TriggerEnvelope(
-                id = event.eventId,
-                event = event,
-                receivedAtMillis = System.currentTimeMillis(),
-            )
-            engine.onTrigger(envelope)
-        })
+        trackJob(
+            scope.launch {
+                val envelope =
+                    TriggerEnvelope(
+                        id = event.eventId,
+                        event = event,
+                        receivedAtMillis = System.currentTimeMillis(),
+                    )
+                engine.onTrigger(envelope)
+            },
+        )
     }
 
     /** Registers [job] so the service stays alive until all in-flight work finishes. */
@@ -339,23 +399,26 @@ class AutomationService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Automation Engine",
-                NotificationManager.IMPORTANCE_LOW,
-            ).apply {
-                description = "Processes automation triggers in the background"
-            }
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Automation Engine",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Processes automation triggers in the background"
+                }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
 
-    private fun buildNotification(): Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setContentTitle("Nothing Modes")
-        .setContentText("Processing automation...")
-        .setSmallIcon(android.R.drawable.ic_menu_manage)
-        .setPriority(NotificationCompat.PRIORITY_LOW)
-        .build()
+    private fun buildNotification(): Notification =
+        NotificationCompat
+            .Builder(this, CHANNEL_ID)
+            .setContentTitle("Nothing Modes")
+            .setContentText("Processing automation...")
+            .setSmallIcon(android.R.drawable.ic_menu_manage)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
 
     companion object {
         const val ACTION_RESCHEDULE = "com.tdvorak.nothingmodes.RESCHEDULE"

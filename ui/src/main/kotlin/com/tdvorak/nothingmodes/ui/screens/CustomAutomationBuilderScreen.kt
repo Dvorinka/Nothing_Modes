@@ -1,6 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,14 +8,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,8 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,17 +44,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
@@ -69,7 +63,6 @@ import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -83,24 +76,24 @@ import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
-import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import sh.calvin.reorderable.ReorderableColumn
-import sh.calvin.reorderable.ReorderableListItemScope
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import sh.calvin.reorderable.ReorderableColumn
+import sh.calvin.reorderable.ReorderableListItemScope
+import javax.inject.Inject
 
 // ─── Builder State ───────────────────────────────────────────────────────────
 
@@ -119,169 +112,251 @@ data class BuilderState(
 )
 
 @HiltViewModel
-class CustomBuilderViewModel @Inject constructor(
-    @ApplicationContext private val context: android.content.Context,
-    private val store: AutomationStore,
-) : ViewModel() {
+class CustomBuilderViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: android.content.Context,
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(BuilderState())
+        val state: StateFlow<BuilderState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(BuilderState())
-    val state: StateFlow<BuilderState> = _state.asStateFlow()
+        private val _saved = MutableStateFlow(false)
+        val saved: StateFlow<Boolean> = _saved.asStateFlow()
 
-    private val _saved = MutableStateFlow(false)
-    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+        private val _editingId = MutableStateFlow<String?>(null)
+        val editingId: StateFlow<String?> = _editingId.asStateFlow()
 
-    private val _editingId = MutableStateFlow<String?>(null)
-    val editingId: StateFlow<String?> = _editingId.asStateFlow()
-
-    fun loadForEdit(automationId: String) {
-        viewModelScope.launch {
-            val automation = store.get(AutomationId(automationId)) ?: return@launch
-            _editingId.value = automationId
-            _state.value = BuilderState(
-                name = automation.name,
-                type = automation.type,
-                trigger = automation.trigger,
-                actions = automation.actions,
-                conditions = listOfNotNull(automation.conditions),
-                priority = automation.priority,
-                icon = automation.icon,
-                iconBackground = automation.iconBackground,
-                enabled = automation.enabled,
-                quickAction = automation.quickAction,
-                cooldownMs = automation.cooldownMs,
-            )
-        }
-    }
-
-    fun updateName(name: String) { _state.value = _state.value.copy(name = name) }
-    fun updateType(type: AutomationType) { _state.value = _state.value.copy(type = type) }
-    fun updateTrigger(trigger: Trigger) { _state.value = _state.value.copy(trigger = trigger) }
-    fun updatePriority(priority: Int) { _state.value = _state.value.copy(priority = priority) }
-    fun updateIcon(icon: String) { _state.value = _state.value.copy(icon = icon) }
-    fun updateEnabled(enabled: Boolean) { _state.value = _state.value.copy(enabled = enabled) }
-    fun updateQuickAction(quick: Boolean) { _state.value = _state.value.copy(quickAction = quick) }
-    fun updateCooldown(minutes: Long) { _state.value = _state.value.copy(cooldownMs = minutes.coerceIn(0, 1440) * 60_000) }
-    fun updateIconBackground(color: String) { _state.value = _state.value.copy(iconBackground = color) }
-
-    fun addAction(action: Action) {
-        _state.value = _state.value.copy(actions = _state.value.actions + action)
-    }
-
-    fun updateAction(index: Int, action: Action) {
-        _state.value = _state.value.copy(actions = _state.value.actions.toMutableList().also { it[index] = action })
-    }
-
-    fun removeAction(index: Int) {
-        _state.value = _state.value.copy(actions = _state.value.actions.toMutableList().also { it.removeAt(index) })
-    }
-
-    fun moveAction(fromIndex: Int, toIndex: Int) {
-        val actions = _state.value.actions.toMutableList()
-        if (fromIndex < 0 || fromIndex >= actions.size || toIndex < 0 || toIndex >= actions.size) return
-        val moved = actions.removeAt(fromIndex)
-        actions.add(toIndex, moved)
-        _state.value = _state.value.copy(actions = actions)
-    }
-
-    fun addCondition(condition: Condition) {
-        _state.value = _state.value.copy(conditions = _state.value.conditions + condition)
-    }
-
-    fun removeCondition(index: Int) {
-        _state.value = _state.value.copy(conditions = _state.value.conditions.toMutableList().also { it.removeAt(index) })
-    }
-
-    fun updateCondition(index: Int, condition: Condition) {
-        _state.value = _state.value.copy(
-            conditions = _state.value.conditions.toMutableList().also { it[index] = condition },
-        )
-    }
-
-    fun moveCondition(fromIndex: Int, toIndex: Int) {
-        val conditions = _state.value.conditions.toMutableList()
-        if (fromIndex < 0 || fromIndex >= conditions.size || toIndex < 0 || toIndex >= conditions.size) return
-        val moved = conditions.removeAt(fromIndex)
-        conditions.add(toIndex, moved)
-        _state.value = _state.value.copy(conditions = conditions)
-    }
-
-    // ponytail: save() accepts icon/color directly to eliminate any state-propagation race
-    //          between the picker sheet and the async store write.
-    fun save(icon: String? = null, color: String? = null) {
-        viewModelScope.launch {
-            val current = _state.value
-            val s = if (icon != null || color != null) current.copy(
-                icon = icon ?: current.icon,
-                iconBackground = color ?: current.iconBackground,
-            ) else current
-            _state.value = s
-            val existingId = _editingId.value
-            val id = existingId?.let { AutomationId(it) } ?: AutomationId("auto-${System.currentTimeMillis()}")
-            val conditions = when {
-                s.conditions.isEmpty() -> null
-                s.conditions.size == 1 -> s.conditions[0]
-                else -> Condition.And(s.conditions)
+        fun loadForEdit(automationId: String) {
+            viewModelScope.launch {
+                val automation = store.get(AutomationId(automationId)) ?: return@launch
+                _editingId.value = automationId
+                _state.value =
+                    BuilderState(
+                        name = automation.name,
+                        type = automation.type,
+                        trigger = automation.trigger,
+                        actions = automation.actions,
+                        conditions = listOfNotNull(automation.conditions),
+                        priority = automation.priority,
+                        icon = automation.icon,
+                        iconBackground = automation.iconBackground,
+                        enabled = automation.enabled,
+                        quickAction = automation.quickAction,
+                        cooldownMs = automation.cooldownMs,
+                    )
             }
-            val existing = if (existingId != null) store.get(id) else null
-            val automation = Automation(
-                id = id,
-                name = s.name.ifBlank { "Untitled" },
-                type = s.type,
-                createdBy = existing?.createdBy ?: CreatedBy.USER,
-                status = existing?.status ?: AutomationStatus.ARMED,
-                trigger = s.trigger,
-                actions = s.actions,
-                conditions = conditions,
-                priority = s.priority,
-                quickAction = s.quickAction,
-                cooldownMs = s.cooldownMs,
-                enabled = s.enabled,
-                icon = s.icon,
-                iconBackground = s.iconBackground,
-            )
-            store.save(automation)
-            WidgetRefreshHelper.refresh(context)
-            _saved.value = true
         }
-    }
 
-    /** Save a copy as a new automation (Save as). Leaves the original untouched. */
-    fun saveAs(icon: String? = null, color: String? = null) {
-        viewModelScope.launch {
-            val current = _state.value
-            val s = if (icon != null || color != null) current.copy(
-                icon = icon ?: current.icon,
-                iconBackground = color ?: current.iconBackground,
-            ) else current
-            _state.value = s
-            val id = AutomationId("auto-${System.currentTimeMillis()}")
-            val conditions = when {
-                s.conditions.isEmpty() -> null
-                s.conditions.size == 1 -> s.conditions[0]
-                else -> Condition.And(s.conditions)
+        fun updateName(name: String) {
+            _state.value = _state.value.copy(name = name)
+        }
+
+        fun updateType(type: AutomationType) {
+            _state.value = _state.value.copy(type = type)
+        }
+
+        fun updateTrigger(trigger: Trigger) {
+            _state.value = _state.value.copy(trigger = trigger)
+        }
+
+        fun updatePriority(priority: Int) {
+            _state.value = _state.value.copy(priority = priority)
+        }
+
+        fun updateIcon(icon: String) {
+            _state.value = _state.value.copy(icon = icon)
+        }
+
+        fun updateEnabled(enabled: Boolean) {
+            _state.value = _state.value.copy(enabled = enabled)
+        }
+
+        fun updateQuickAction(quick: Boolean) {
+            _state.value = _state.value.copy(quickAction = quick)
+        }
+
+        fun updateCooldown(minutes: Long) {
+            _state.value = _state.value.copy(cooldownMs = minutes.coerceIn(0, 1440) * 60_000)
+        }
+
+        fun updateIconBackground(color: String) {
+            _state.value = _state.value.copy(iconBackground = color)
+        }
+
+        fun addAction(action: Action) {
+            _state.value = _state.value.copy(actions = _state.value.actions + action)
+        }
+
+        fun updateAction(
+            index: Int,
+            action: Action,
+        ) {
+            _state.value =
+                _state.value.copy(
+                    actions =
+                        _state.value.actions
+                            .toMutableList()
+                            .also { it[index] = action },
+                )
+        }
+
+        fun removeAction(index: Int) {
+            _state.value =
+                _state.value.copy(
+                    actions =
+                        _state.value.actions
+                            .toMutableList()
+                            .also { it.removeAt(index) },
+                )
+        }
+
+        fun moveAction(
+            fromIndex: Int,
+            toIndex: Int,
+        ) {
+            val actions = _state.value.actions.toMutableList()
+            if (fromIndex < 0 || fromIndex >= actions.size || toIndex < 0 || toIndex >= actions.size) return
+            val moved = actions.removeAt(fromIndex)
+            actions.add(toIndex, moved)
+            _state.value = _state.value.copy(actions = actions)
+        }
+
+        fun addCondition(condition: Condition) {
+            _state.value = _state.value.copy(conditions = _state.value.conditions + condition)
+        }
+
+        fun removeCondition(index: Int) {
+            _state.value =
+                _state.value.copy(
+                    conditions =
+                        _state.value.conditions
+                            .toMutableList()
+                            .also { it.removeAt(index) },
+                )
+        }
+
+        fun updateCondition(
+            index: Int,
+            condition: Condition,
+        ) {
+            _state.value =
+                _state.value.copy(
+                    conditions =
+                        _state.value.conditions
+                            .toMutableList()
+                            .also { it[index] = condition },
+                )
+        }
+
+        fun moveCondition(
+            fromIndex: Int,
+            toIndex: Int,
+        ) {
+            val conditions = _state.value.conditions.toMutableList()
+            if (fromIndex < 0 || fromIndex >= conditions.size || toIndex < 0 || toIndex >= conditions.size) return
+            val moved = conditions.removeAt(fromIndex)
+            conditions.add(toIndex, moved)
+            _state.value = _state.value.copy(conditions = conditions)
+        }
+
+        // ponytail: save() accepts icon/color directly to eliminate any state-propagation race
+        //          between the picker sheet and the async store write.
+        fun save(
+            icon: String? = null,
+            color: String? = null,
+        ) {
+            viewModelScope.launch {
+                val current = _state.value
+                val s =
+                    if (icon != null || color != null) {
+                        current.copy(
+                            icon = icon ?: current.icon,
+                            iconBackground = color ?: current.iconBackground,
+                        )
+                    } else {
+                        current
+                    }
+                _state.value = s
+                val existingId = _editingId.value
+                val id = existingId?.let { AutomationId(it) } ?: AutomationId("auto-${System.currentTimeMillis()}")
+                val conditions =
+                    when {
+                        s.conditions.isEmpty() -> null
+                        s.conditions.size == 1 -> s.conditions[0]
+                        else -> Condition.And(s.conditions)
+                    }
+                val existing = if (existingId != null) store.get(id) else null
+                val automation =
+                    Automation(
+                        id = id,
+                        name = s.name.ifBlank { "Untitled" },
+                        type = s.type,
+                        createdBy = existing?.createdBy ?: CreatedBy.USER,
+                        status = existing?.status ?: AutomationStatus.ARMED,
+                        trigger = s.trigger,
+                        actions = s.actions,
+                        conditions = conditions,
+                        priority = s.priority,
+                        quickAction = s.quickAction,
+                        cooldownMs = s.cooldownMs,
+                        enabled = s.enabled,
+                        icon = s.icon,
+                        iconBackground = s.iconBackground,
+                    )
+                store.save(automation)
+                WidgetRefreshHelper.refresh(context)
+                _saved.value = true
             }
-            val automation = Automation(
-                id = id,
-                name = "${s.name.ifBlank { "Untitled" }} (copy)",
-                type = s.type,
-                createdBy = CreatedBy.USER,
-                status = AutomationStatus.ARMED,
-                trigger = s.trigger,
-                actions = s.actions,
-                conditions = conditions,
-                priority = s.priority,
-                quickAction = s.quickAction,
-                cooldownMs = s.cooldownMs,
-                enabled = s.enabled,
-                icon = s.icon,
-                iconBackground = s.iconBackground,
-            )
-            store.save(automation)
-            WidgetRefreshHelper.refresh(context)
-            _saved.value = true
+        }
+
+        /** Save a copy as a new automation (Save as). Leaves the original untouched. */
+        fun saveAs(
+            icon: String? = null,
+            color: String? = null,
+        ) {
+            viewModelScope.launch {
+                val current = _state.value
+                val s =
+                    if (icon != null || color != null) {
+                        current.copy(
+                            icon = icon ?: current.icon,
+                            iconBackground = color ?: current.iconBackground,
+                        )
+                    } else {
+                        current
+                    }
+                _state.value = s
+                val id = AutomationId("auto-${System.currentTimeMillis()}")
+                val conditions =
+                    when {
+                        s.conditions.isEmpty() -> null
+                        s.conditions.size == 1 -> s.conditions[0]
+                        else -> Condition.And(s.conditions)
+                    }
+                val automation =
+                    Automation(
+                        id = id,
+                        name = "${s.name.ifBlank { "Untitled" }} (copy)",
+                        type = s.type,
+                        createdBy = CreatedBy.USER,
+                        status = AutomationStatus.ARMED,
+                        trigger = s.trigger,
+                        actions = s.actions,
+                        conditions = conditions,
+                        priority = s.priority,
+                        quickAction = s.quickAction,
+                        cooldownMs = s.cooldownMs,
+                        enabled = s.enabled,
+                        icon = s.icon,
+                        iconBackground = s.iconBackground,
+                    )
+                store.save(automation)
+                WidgetRefreshHelper.refresh(context)
+                _saved.value = true
+            }
         }
     }
-}
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -311,10 +386,11 @@ fun CustomAutomationBuilderScreen(
     //          If more cross-screen state appears, introduce a builder-scoped ViewModel.
     val backStackEntry by navController?.currentBackStackEntryAsState()
         ?: remember { mutableStateOf<androidx.navigation.NavBackStackEntry?>(null) }
-    val resultFlow = remember(backStackEntry) {
-        backStackEntry?.savedStateHandle?.getStateFlow("trigger_result", "")
-            ?: MutableStateFlow("")
-    }
+    val resultFlow =
+        remember(backStackEntry) {
+            backStackEntry?.savedStateHandle?.getStateFlow("trigger_result", "")
+                ?: MutableStateFlow("")
+        }
     val result by resultFlow.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(result, backStackEntry) {
         if (result.isNotEmpty()) {
@@ -330,10 +406,11 @@ fun CustomAutomationBuilderScreen(
     var conditionSheetCondition by remember { mutableStateOf<Condition?>(null) }
     // Queue of newly added conditions waiting for their config sheet.
     var pendingConditionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
-    val conditionResultFlow = remember(backStackEntry) {
-        backStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
-            ?: MutableStateFlow("")
-    }
+    val conditionResultFlow =
+        remember(backStackEntry) {
+            backStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
+                ?: MutableStateFlow("")
+        }
     val conditionResult by conditionResultFlow.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(conditionResult, backStackEntry) {
         if (conditionResult.isNotEmpty()) {
@@ -346,15 +423,17 @@ fun CustomAutomationBuilderScreen(
     }
     // Multi-select catalog result: a JSON array of conditions, added at once.
     // Each new item then gets its config sheet, one after another.
-    val conditionsResultFlow = remember(backStackEntry) {
-        backStackEntry?.savedStateHandle?.getStateFlow("condition_results", "")
-            ?: MutableStateFlow("")
-    }
+    val conditionsResultFlow =
+        remember(backStackEntry) {
+            backStackEntry?.savedStateHandle?.getStateFlow("condition_results", "")
+                ?: MutableStateFlow("")
+        }
     val conditionsResult by conditionsResultFlow.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(conditionsResult, backStackEntry) {
         if (conditionsResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<List<Condition>>(conditionsResult) }
-                .getOrNull()?.let { conditions ->
+                .getOrNull()
+                ?.let { conditions ->
                     if (conditions.isNotEmpty()) {
                         val firstIndex = state.conditions.size
                         conditions.forEach(viewModel::addCondition)
@@ -382,10 +461,11 @@ fun CustomAutomationBuilderScreen(
     var pendingActionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
-    val actionResultFlow = remember(backStackEntry) {
-        backStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
-            ?: MutableStateFlow("")
-    }
+    val actionResultFlow =
+        remember(backStackEntry) {
+            backStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
+                ?: MutableStateFlow("")
+        }
     val actionResult by actionResultFlow.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(actionResult, backStackEntry) {
         if (actionResult.isNotEmpty()) {
@@ -396,15 +476,17 @@ fun CustomAutomationBuilderScreen(
             backStackEntry?.savedStateHandle?.set("action_result", "")
         }
     }
-    val actionsResultFlow = remember(backStackEntry) {
-        backStackEntry?.savedStateHandle?.getStateFlow("action_results", "")
-            ?: MutableStateFlow("")
-    }
+    val actionsResultFlow =
+        remember(backStackEntry) {
+            backStackEntry?.savedStateHandle?.getStateFlow("action_results", "")
+                ?: MutableStateFlow("")
+        }
     val actionsResult by actionsResultFlow.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(actionsResult, backStackEntry) {
         if (actionsResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<List<Action>>(actionsResult) }
-                .getOrNull()?.let { actions ->
+                .getOrNull()
+                ?.let { actions ->
                     if (actions.isNotEmpty()) {
                         val firstIndex = state.actions.size
                         actions.forEach(viewModel::addAction)
@@ -429,7 +511,10 @@ fun CustomAutomationBuilderScreen(
     // goes through the same Save / Discard / Cancel prompt.
     BackHandler { showDiscardDialog = true }
 
-    if (saved) { onSaved(); return }
+    if (saved) {
+        onSaved()
+        return
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -449,15 +534,17 @@ fun CustomAutomationBuilderScreen(
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(
-                start = NothingSpacing.md,
-                end = NothingSpacing.md,
-                top = NothingSpacing.lg,
-                bottom = NothingSpacing.xxl,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            contentPadding =
+                PaddingValues(
+                    start = NothingSpacing.md,
+                    end = NothingSpacing.md,
+                    top = NothingSpacing.lg,
+                    bottom = NothingSpacing.xxl,
+                ),
         ) {
             // Hero — screen title in Doto
             item {
@@ -492,9 +579,10 @@ fun CustomAutomationBuilderScreen(
             item {
                 AutomationPreviewTile(
                     state = state,
-                    modifier = Modifier
-                        .padding(vertical = NothingSpacing.md)
-                        .clickable { showIconPicker = true },
+                    modifier =
+                        Modifier
+                            .padding(vertical = NothingSpacing.md)
+                            .clickable { showIconPicker = true },
                 )
             }
 
@@ -630,17 +718,22 @@ fun CustomAutomationBuilderScreen(
                 var showAdvanced by rememberSaveable { mutableStateOf(false) }
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showAdvanced = !showAdvanced }
-                            .padding(vertical = NothingSpacing.sm),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { showAdvanced = !showAdvanced }
+                                .padding(vertical = NothingSpacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         NothingLabel(text = "Advanced")
                         Icon(
-                            imageVector = if (showAdvanced) Icons.Filled.ExpandLess
-                            else Icons.Filled.ExpandMore,
+                            imageVector =
+                                if (showAdvanced) {
+                                    Icons.Filled.ExpandLess
+                                } else {
+                                    Icons.Filled.ExpandMore
+                                },
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp),
@@ -676,9 +769,10 @@ fun CustomAutomationBuilderScreen(
                         NothingDivider()
 
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = NothingSpacing.md),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = NothingSpacing.md),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
@@ -697,10 +791,11 @@ fun CustomAutomationBuilderScreen(
                                     viewModel.updateCooldown(text.toLongOrNull() ?: 0)
                                 },
                                 label = "min",
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
-                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-                                ),
+                                keyboardOptions =
+                                    androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                        imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                    ),
                                 modifier = Modifier.width(96.dp),
                             )
                         }
@@ -708,9 +803,10 @@ fun CustomAutomationBuilderScreen(
                         NothingDivider()
 
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = NothingSpacing.md),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = NothingSpacing.md),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
@@ -795,9 +891,10 @@ fun CustomAutomationBuilderScreen(
         if (showDiscardDialog) {
             BasicAlertDialog(
                 onDismissRequest = { showDiscardDialog = false },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = NothingSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = NothingSpacing.md),
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
@@ -866,17 +963,19 @@ private fun AddRowButton(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = NothingSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = NothingSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(NothingColors.accent),
+            modifier =
+                Modifier
+                    .size(28.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(NothingColors.accent),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -936,9 +1035,10 @@ private fun ReorderableListItemScope.ActionRow(
         onClick = { onConfigure(action) },
         leading = {
             Box(
-                modifier = Modifier
-                    .draggableHandle()
-                    .size(44.dp),
+                modifier =
+                    Modifier
+                        .draggableHandle()
+                        .size(44.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -955,9 +1055,10 @@ private fun ReorderableListItemScope.ActionRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
                     fontFamily = SpaceMono,
-                    modifier = Modifier
-                        .clickable(onClick = onRemove)
-                        .padding(horizontal = NothingSpacing.xs),
+                    modifier =
+                        Modifier
+                            .clickable(onClick = onRemove)
+                            .padding(horizontal = NothingSpacing.xs),
                 )
             }
         },
@@ -979,9 +1080,10 @@ private fun ReorderableListItemScope.ConditionRow(
         onClick = { onConfigure(condition) },
         leading = {
             Box(
-                modifier = Modifier
-                    .draggableHandle()
-                    .size(44.dp),
+                modifier =
+                    Modifier
+                        .draggableHandle()
+                        .size(44.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -997,9 +1099,10 @@ private fun ReorderableListItemScope.ConditionRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = NothingColors.accent,
                 fontFamily = SpaceMono,
-                modifier = Modifier
-                    .clickable(onClick = onRemove)
-                    .padding(horizontal = NothingSpacing.xs),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onRemove)
+                        .padding(horizontal = NothingSpacing.xs),
             )
         },
     )
@@ -1017,9 +1120,10 @@ private fun <T> NothingPickerDialog(
 ) {
     BasicAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = NothingSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = NothingSpacing.md),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -1029,10 +1133,11 @@ private fun <T> NothingPickerDialog(
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(NothingSpacing.md),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(NothingSpacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1053,9 +1158,10 @@ private fun <T> NothingPickerDialog(
                 NothingDivider()
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                 ) {
                     items.forEachIndexed { index, (label, item) ->
                         if (index > 0) NothingDivider()
@@ -1092,23 +1198,27 @@ private fun PrioritySegmentedBar(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(height.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             for (i in 0 until total) {
                 val active = i < filled
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(
-                            if (active) NothingColors.accent
-                            else MaterialTheme.colorScheme.outlineVariant,
-                        )
-                        .clickable { onSegmentClick(i + 1) }
-                        .semantics { contentDescription = "Priority level ${i + 1} of $total" },
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(
+                                if (active) {
+                                    NothingColors.accent
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                            ).clickable { onSegmentClick(i + 1) }
+                            .semantics { contentDescription = "Priority level ${i + 1} of $total" },
                 )
             }
         }
@@ -1154,7 +1264,11 @@ private fun AutomationPreviewTile(
                         )
                     } else {
                         Text(
-                            text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            text =
+                                state.name
+                                    .firstOrNull()
+                                    ?.uppercaseChar()
+                                    ?.toString() ?: "?",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontFamily = GeistSans,
@@ -1166,26 +1280,27 @@ private fun AutomationPreviewTile(
     }
 }
 
-internal fun conditionDescription(condition: Condition): String = when (condition) {
-    is Condition.TimeWindow -> "Time window: ${condition.startLocal}-${condition.endLocal}"
-    is Condition.DayOfWeekCondition -> "Days: ${condition.days.joinToString { it.wireName }}"
-    is Condition.BatteryLevel -> "Battery ${condition.op.name} ${condition.level}%"
-    is Condition.Charging -> if (condition.isCharging) "Charging" else "Not charging"
-    is Condition.WifiConnected -> "Wi-Fi connected${condition.ssid?.let { " ($it)" } ?: ""}"
-    is Condition.BluetoothConnected -> "Bluetooth connected${condition.deviceName?.let { " ($it)" } ?: ""}"
-    is Condition.ScreenStateCondition -> "Screen ${condition.state.name}"
-    is Condition.CurrentModeActive -> "Mode ${condition.modeId} active"
-    is Condition.AppInForeground -> "App ${condition.pkg} in foreground"
-    is Condition.DarkModeActive -> "Dark mode ${if (condition.active) "on" else "off"}"
-    is Condition.PowerSaving -> "Power saving ${if (condition.on) "on" else "off"}"
-    is Condition.MediaPlaying -> "Media ${if (condition.playing) "playing" else "not playing"}"
-    is Condition.RingerMode -> "Ringer: ${condition.mode}"
-    is Condition.AirplaneModeOn -> "Airplane mode ${if (condition.on) "on" else "off"}"
-    is Condition.NfcEnabled -> "NFC ${if (condition.enabled) "enabled" else "disabled"}"
-    is Condition.LocationEnabled -> "Location ${if (condition.enabled) "enabled" else "disabled"}"
-    is Condition.CallStateCondition -> "Call: ${condition.state.name.lowercase()}"
-    is Condition.AlarmRinging -> "Alarm ringing${condition.titleMatch?.let { " ($it)" } ?: ""}"
-    is Condition.And -> "AND (${condition.all.size} conditions)"
-    is Condition.Or -> "OR (${condition.any.size} conditions)"
-    is Condition.Not -> "NOT"
-}
+internal fun conditionDescription(condition: Condition): String =
+    when (condition) {
+        is Condition.TimeWindow -> "Time window: ${condition.startLocal}-${condition.endLocal}"
+        is Condition.DayOfWeekCondition -> "Days: ${condition.days.joinToString { it.wireName }}"
+        is Condition.BatteryLevel -> "Battery ${condition.op.name} ${condition.level}%"
+        is Condition.Charging -> if (condition.isCharging) "Charging" else "Not charging"
+        is Condition.WifiConnected -> "Wi-Fi connected${condition.ssid?.let { " ($it)" } ?: ""}"
+        is Condition.BluetoothConnected -> "Bluetooth connected${condition.deviceName?.let { " ($it)" } ?: ""}"
+        is Condition.ScreenStateCondition -> "Screen ${condition.state.name}"
+        is Condition.CurrentModeActive -> "Mode ${condition.modeId} active"
+        is Condition.AppInForeground -> "App ${condition.pkg} in foreground"
+        is Condition.DarkModeActive -> "Dark mode ${if (condition.active) "on" else "off"}"
+        is Condition.PowerSaving -> "Power saving ${if (condition.on) "on" else "off"}"
+        is Condition.MediaPlaying -> "Media ${if (condition.playing) "playing" else "not playing"}"
+        is Condition.RingerMode -> "Ringer: ${condition.mode}"
+        is Condition.AirplaneModeOn -> "Airplane mode ${if (condition.on) "on" else "off"}"
+        is Condition.NfcEnabled -> "NFC ${if (condition.enabled) "enabled" else "disabled"}"
+        is Condition.LocationEnabled -> "Location ${if (condition.enabled) "enabled" else "disabled"}"
+        is Condition.CallStateCondition -> "Call: ${condition.state.name.lowercase()}"
+        is Condition.AlarmRinging -> "Alarm ringing${condition.titleMatch?.let { " ($it)" } ?: ""}"
+        is Condition.And -> "AND (${condition.all.size} conditions)"
+        is Condition.Or -> "OR (${condition.any.size} conditions)"
+        is Condition.Not -> "NOT"
+    }

@@ -2,7 +2,6 @@ package com.tdvorak.nothingmodes.nav
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
@@ -43,10 +42,15 @@ object Routes {
     const val TEMPLATES = "templates"
 
     fun automationDetail(id: String) = "automation/$id"
+
     fun editAutomation(id: String) = "edit/$id"
+
     fun builderEdit(id: String) = "builder/edit/$id"
+
     fun triggerConfig(triggerJson: String) = "trigger_config?trigger=$triggerJson"
+
     fun conditionConfig(conditionJson: String) = "condition_config?condition=$conditionJson"
+
     fun actionConfig(actionJson: String) = "action_config?action=$actionJson"
 }
 

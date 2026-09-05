@@ -65,11 +65,12 @@ internal data class ShellRequest(
         require(command.size <= 128) { "Troppi argomenti" }
         require(command.sumOf { it.length } <= 64 * 1024) { "Comando troppo lungo" }
         require(timeoutMillis in 1..PrivilegedShell.MAX_TIMEOUT_MILLIS) { "Timeout non valido" }
-        val cap = if (destination == null) {
-            PrivilegedShell.DEFAULT_TEXT_OUTPUT_BYTES
-        } else {
-            PrivilegedShell.DEFAULT_FILE_OUTPUT_BYTES
-        }
+        val cap =
+            if (destination == null) {
+                PrivilegedShell.DEFAULT_TEXT_OUTPUT_BYTES
+            } else {
+                PrivilegedShell.DEFAULT_FILE_OUTPUT_BYTES
+            }
         require(maxOutputBytes in 1..cap) { "Output cap non valido" }
         if (executionId != null) {
             require(executionId.isNotBlank()) { "Execution ID vuoto" }
@@ -89,7 +90,8 @@ internal fun interface ShellTransport {
 internal class PrioritizedPrivilegedShell(
     private val transport: ShellTransport,
     scope: CoroutineScope,
-) : PrivilegedShell, AutoCloseable {
+) : PrivilegedShell,
+    AutoCloseable {
     private data class Pending(
         val priority: Int,
         val sequence: Long,
@@ -98,11 +100,13 @@ internal class PrioritizedPrivilegedShell(
     )
 
     private val lock = Any()
-    private val queue = PriorityQueue(
-        compareByDescending<Pending> { it.priority }.thenBy { it.sequence },
-    )
+    private val queue =
+        PriorityQueue(
+            compareByDescending<Pending> { it.priority }.thenBy { it.sequence },
+        )
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private val sequences = AtomicLong()
+
     @Volatile private var closed = false
     private val worker: Job = scope.launch { workLoop() }
 
@@ -112,16 +116,17 @@ internal class PrioritizedPrivilegedShell(
         timeoutMillis: Long,
         maxOutputBytes: Int,
         executionId: String?,
-    ): ShellResult = enqueue(
-        ShellRequest(
-            command.toList(),
-            timeoutMillis,
-            maxOutputBytes,
-            destination = null,
-            executionId = executionId,
-        ),
-        priority,
-    )
+    ): ShellResult =
+        enqueue(
+            ShellRequest(
+                command.toList(),
+                timeoutMillis,
+                maxOutputBytes,
+                destination = null,
+                executionId = executionId,
+            ),
+            priority,
+        )
 
     override suspend fun runToFile(
         command: List<String>,
@@ -130,12 +135,16 @@ internal class PrioritizedPrivilegedShell(
         timeoutMillis: Long,
         maxOutputBytes: Int,
         executionId: String?,
-    ): ShellResult = enqueue(
-        ShellRequest(command.toList(), timeoutMillis, maxOutputBytes, destination, executionId),
-        priority,
-    )
+    ): ShellResult =
+        enqueue(
+            ShellRequest(command.toList(), timeoutMillis, maxOutputBytes, destination, executionId),
+            priority,
+        )
 
-    private suspend fun enqueue(request: ShellRequest, priority: Int): ShellResult {
+    private suspend fun enqueue(
+        request: ShellRequest,
+        priority: Int,
+    ): ShellResult {
         val deferred = CompletableDeferred<ShellResult>()
         synchronized(lock) {
             check(!closed) { "PrivilegedShell chiusa" }
@@ -154,13 +163,15 @@ internal class PrioritizedPrivilegedShell(
         try {
             for (ignored in wake) {
                 while (true) {
-                    val pending = synchronized(lock) {
-                        generateSequence { queue.poll() }.firstOrNull { it.result.isActive }
-                    } ?: break
+                    val pending =
+                        synchronized(lock) {
+                            generateSequence { queue.poll() }.firstOrNull { it.result.isActive }
+                        } ?: break
                     try {
-                        val result = transport.execute(pending.request).copy(
-                            executionId = pending.request.executionId,
-                        )
+                        val result =
+                            transport.execute(pending.request).copy(
+                                executionId = pending.request.executionId,
+                            )
                         pending.result.complete(result)
                     } catch (error: CancellationException) {
                         pending.result.cancel(error)

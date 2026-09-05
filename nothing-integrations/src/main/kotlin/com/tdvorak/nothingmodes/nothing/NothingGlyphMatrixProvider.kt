@@ -23,8 +23,9 @@ import com.nothing.ketchum.GlyphMatrixUtils
  * - Scrolling text marquee (buildWithMarquee)
  * - Visual presets (fill, percent fill, number)
  */
-class NothingGlyphMatrixProvider(private val context: Context) {
-
+class NothingGlyphMatrixProvider(
+    private val context: Context,
+) {
     private var manager: GlyphMatrixManager? = null
     private var connected = false
     private val detector = NothingDeviceDetector(context)
@@ -34,31 +35,37 @@ class NothingGlyphMatrixProvider(private val context: Context) {
 
     fun matrixSize(): Int = detector.detectGlyphHardware().matrixSize
 
-    fun init(onConnected: () -> Unit = {}, onDisconnected: () -> Unit = {}) {
+    fun init(
+        onConnected: () -> Unit = {},
+        onDisconnected: () -> Unit = {},
+    ) {
         if (!isAvailable()) return
         try {
             manager = GlyphMatrixManager.getInstance(context)
-            manager?.init(object : GlyphMatrixManager.Callback {
-                override fun onServiceConnected(componentName: android.content.ComponentName) {
-                    connected = true
-                    val device = when (detector.detectGlyphHardware()) {
-                        GlyphHardware.MATRIX_25 -> Glyph.DEVICE_23112
-                        GlyphHardware.MATRIX_13 -> Glyph.DEVICE_25111p
-                        else -> return
+            manager?.init(
+                object : GlyphMatrixManager.Callback {
+                    override fun onServiceConnected(componentName: android.content.ComponentName) {
+                        connected = true
+                        val device =
+                            when (detector.detectGlyphHardware()) {
+                                GlyphHardware.MATRIX_25 -> Glyph.DEVICE_23112
+                                GlyphHardware.MATRIX_13 -> Glyph.DEVICE_25111p
+                                else -> return
+                            }
+                        try {
+                            manager?.register(device)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "register failed", e)
+                        }
+                        onConnected()
                     }
-                    try {
-                        manager?.register(device)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "register failed", e)
-                    }
-                    onConnected()
-                }
 
-                override fun onServiceDisconnected(componentName: android.content.ComponentName) {
-                    connected = false
-                    onDisconnected()
-                }
-            })
+                    override fun onServiceDisconnected(componentName: android.content.ComponentName) {
+                        connected = false
+                        onDisconnected()
+                    }
+                },
+            )
         } catch (e: Exception) {
             Log.e(TAG, "init failed", e)
         }
@@ -111,18 +118,28 @@ class NothingGlyphMatrixProvider(private val context: Context) {
 
     // ── Structured frames (GlyphMatrixObject) ──
 
-    fun displayText(text: String, x: Int = 0, y: Int = 0, scale: Int = 100, brightness: Int = 255): GlyphResult {
+    fun displayText(
+        text: String,
+        x: Int = 0,
+        y: Int = 0,
+        scale: Int = 100,
+        brightness: Int = 255,
+    ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
-            val obj = GlyphMatrixObject.Builder()
-                .setText(text)
-                .setPosition(x, y)
-                .setScale(scale)
-                .setBrightness(brightness)
-                .build()
-            val frame = GlyphMatrixFrame.Builder()
-                .addTop(obj)
-                .build(context)
+            val obj =
+                GlyphMatrixObject
+                    .Builder()
+                    .setText(text)
+                    .setPosition(x, y)
+                    .setScale(scale)
+                    .setBrightness(brightness)
+                    .build()
+            val frame =
+                GlyphMatrixFrame
+                    .Builder()
+                    .addTop(obj)
+                    .build(context)
             manager?.setAppMatrixFrame(frame)
             GlyphResult.Success
         } catch (e: Exception) {
@@ -130,18 +147,28 @@ class NothingGlyphMatrixProvider(private val context: Context) {
         }
     }
 
-    fun displayImage(bitmap: Bitmap, x: Int = 0, y: Int = 0, scale: Int = 100, brightness: Int = 255): GlyphResult {
+    fun displayImage(
+        bitmap: Bitmap,
+        x: Int = 0,
+        y: Int = 0,
+        scale: Int = 100,
+        brightness: Int = 255,
+    ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
-            val obj = GlyphMatrixObject.Builder()
-                .setImageSource(bitmap)
-                .setPosition(x, y)
-                .setScale(scale)
-                .setBrightness(brightness)
-                .build()
-            val frame = GlyphMatrixFrame.Builder()
-                .addTop(obj)
-                .build(context)
+            val obj =
+                GlyphMatrixObject
+                    .Builder()
+                    .setImageSource(bitmap)
+                    .setPosition(x, y)
+                    .setScale(scale)
+                    .setBrightness(brightness)
+                    .build()
+            val frame =
+                GlyphMatrixFrame
+                    .Builder()
+                    .addTop(obj)
+                    .build(context)
             manager?.setAppMatrixFrame(frame)
             GlyphResult.Success
         } catch (e: Exception) {
@@ -177,22 +204,29 @@ class NothingGlyphMatrixProvider(private val context: Context) {
      * @param durationMs Total scroll duration (0 = until stopped)
      * @param stepMs Step interval in milliseconds (lower = faster)
      */
-    fun displayScrollingText(text: String, durationMs: Int = 0, stepMs: Int = 100): GlyphResult {
+    fun displayScrollingText(
+        text: String,
+        durationMs: Int = 0,
+        stepMs: Int = 100,
+    ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
             stopMarquee()
-            val obj = GlyphMatrixObject.Builder()
-                .setText(text)
-                .build()
+            val obj =
+                GlyphMatrixObject
+                    .Builder()
+                    .setText(text)
+                    .build()
             val builder = GlyphMatrixFrame.Builder().addTop(obj)
             val handler = Handler(Looper.getMainLooper())
-            val marqueeFrame = builder.buildWithMarquee(
-                context,
-                handler,
-                durationMs,
-                stepMs,
-                null,
-            )
+            val marqueeFrame =
+                builder.buildWithMarquee(
+                    context,
+                    handler,
+                    durationMs,
+                    stepMs,
+                    null,
+                )
             marquee = marqueeFrame
             manager?.setAppMatrixFrame(marqueeFrame)
             marqueeFrame.startMarquee()
@@ -206,7 +240,8 @@ class NothingGlyphMatrixProvider(private val context: Context) {
     fun stopMarquee() {
         try {
             marquee?.stopMarquee()
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
         marquee = null
     }
 
@@ -219,16 +254,20 @@ class NothingGlyphMatrixProvider(private val context: Context) {
         return setFrame(colors)
     }
 
-    fun displayPercentFill(percent: Int, color: Int = Color.WHITE): GlyphResult {
+    fun displayPercentFill(
+        percent: Int,
+        color: Int = Color.WHITE,
+    ): GlyphResult {
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
         val clamped = percent.coerceIn(0, 100)
         val fillRows = (size * clamped) / 100
-        val colors = IntArray(size * size) { index ->
-            val row = index / size
-            val fromBottom = size - 1 - row
-            if (fromBottom < fillRows) color else 0
-        }
+        val colors =
+            IntArray(size * size) { index ->
+                val row = index / size
+                val fromBottom = size - 1 - row
+                if (fromBottom < fillRows) color else 0
+            }
         return setFrame(colors)
     }
 
@@ -239,12 +278,16 @@ class NothingGlyphMatrixProvider(private val context: Context) {
         return displayText(clamped.toString(), x = size / 4, y = size / 4, scale = 100)
     }
 
-    fun drawableToBitmap(context: Context, drawableRes: Int): Bitmap? = try {
-        GlyphMatrixUtils.drawableToBitmap(context.getDrawable(drawableRes))
-    } catch (e: Exception) {
-        Log.e(TAG, "drawableToBitmap failed", e)
-        null
-    }
+    fun drawableToBitmap(
+        context: Context,
+        drawableRes: Int,
+    ): Bitmap? =
+        try {
+            GlyphMatrixUtils.drawableToBitmap(context.getDrawable(drawableRes))
+        } catch (e: Exception) {
+            Log.e(TAG, "drawableToBitmap failed", e)
+            null
+        }
 
     companion object {
         private const val TAG = "NothingGlyphMatrix"

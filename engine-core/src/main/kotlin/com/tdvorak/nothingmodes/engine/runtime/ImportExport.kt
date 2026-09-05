@@ -61,7 +61,6 @@ class ImportExportService(
     // now stays last: existing call sites pass it as a trailing lambda
     private val now: () -> Long = System::currentTimeMillis,
 ) {
-
     /** Export all automations to a JSON string. */
     suspend fun export(): ExportResult {
         val automations = store.all()
@@ -75,13 +74,14 @@ class ImportExportService(
     }
 
     private fun encode(automations: List<Automation>): String {
-        val bundle = ExportBundle(
-            schemaVersion = AutomationSchema.supportedVersions.max(),
-            exportedAt = now(),
-            automations = automations,
-            appVersion = appVersion,
-            requiredCapabilities = capabilitiesOf(automations).toList(),
-        )
+        val bundle =
+            ExportBundle(
+                schemaVersion = AutomationSchema.supportedVersions.max(),
+                exportedAt = now(),
+                automations = automations,
+                appVersion = appVersion,
+                requiredCapabilities = capabilitiesOf(automations).toList(),
+            )
         return EngineJson.json.encodeToString(bundle)
     }
 
@@ -90,25 +90,26 @@ class ImportExportService(
      * automations, the union of required capabilities, and blocking errors.
      */
     fun preview(json: String): ImportPreview {
-        val bundle = try {
-            EngineJson.json.decodeFromString(ExportBundle.serializer(), json)
-        } catch (e: Exception) {
-            return ImportPreview(
-                automations = emptyList(),
-                schemaVersion = 0,
-                appVersion = "",
-                requiredCapabilities = emptySet(),
-                errors = listOf("Failed to parse JSON: ${e.message}"),
-            )
-        } catch (e: StackOverflowError) {
-            return ImportPreview(
-                automations = emptyList(),
-                schemaVersion = 0,
-                appVersion = "",
-                requiredCapabilities = emptySet(),
-                errors = listOf("JSON nesting too deep (possible malformed input)"),
-            )
-        }
+        val bundle =
+            try {
+                EngineJson.json.decodeFromString(ExportBundle.serializer(), json)
+            } catch (e: Exception) {
+                return ImportPreview(
+                    automations = emptyList(),
+                    schemaVersion = 0,
+                    appVersion = "",
+                    requiredCapabilities = emptySet(),
+                    errors = listOf("Failed to parse JSON: ${e.message}"),
+                )
+            } catch (e: StackOverflowError) {
+                return ImportPreview(
+                    automations = emptyList(),
+                    schemaVersion = 0,
+                    appVersion = "",
+                    requiredCapabilities = emptySet(),
+                    errors = listOf("JSON nesting too deep (possible malformed input)"),
+                )
+            }
 
         if (!AutomationSchema.isSupportedVersion(bundle.schemaVersion)) {
             return ImportPreview(
@@ -131,12 +132,16 @@ class ImportExportService(
     }
 
     private fun capabilitiesOf(automations: List<Automation>): Set<String> =
-        automations.flatMap {
-            CapabilityRequirements.derive(it.trigger, it.actions, it.conditions)
-        }.toSet()
+        automations
+            .flatMap {
+                CapabilityRequirements.derive(it.trigger, it.actions, it.conditions)
+            }.toSet()
 
     /** Import automations from a JSON string. Validates schema version and deduplicates by ID. */
-    suspend fun import(json: String, overwrite: Boolean = false): ImportResult {
+    suspend fun import(
+        json: String,
+        overwrite: Boolean = false,
+    ): ImportResult {
         val preview = preview(json)
         if (!preview.isSupported) {
             return ImportResult(imported = 0, skipped = 0, errors = preview.errors)
@@ -155,10 +160,11 @@ class ImportExportService(
                     continue
                 }
 
-                val toSave = automation.copy(
-                    createdBy = CreatedBy.IMPORT,
-                    enabled = false,
-                )
+                val toSave =
+                    automation.copy(
+                        createdBy = CreatedBy.IMPORT,
+                        enabled = false,
+                    )
                 store.save(toSave)
                 imported++
             } catch (e: Exception) {

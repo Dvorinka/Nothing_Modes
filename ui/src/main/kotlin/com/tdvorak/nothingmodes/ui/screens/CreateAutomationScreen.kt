@@ -1,6 +1,5 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,67 +43,70 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
-class CreateAutomationViewModel @Inject constructor(
-    private val store: AutomationStore,
-) : ViewModel() {
+class CreateAutomationViewModel
+    @Inject
+    constructor(
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        private val _saved = MutableStateFlow(false)
+        val saved: StateFlow<Boolean> = _saved.asStateFlow()
 
-    private val _saved = MutableStateFlow(false)
-    val saved: StateFlow<Boolean> = _saved.asStateFlow()
+        private val _editingAutomation = MutableStateFlow<Automation?>(null)
+        val editingAutomation: StateFlow<Automation?> = _editingAutomation.asStateFlow()
 
-    private val _editingAutomation = MutableStateFlow<Automation?>(null)
-    val editingAutomation: StateFlow<Automation?> = _editingAutomation.asStateFlow()
-
-    fun loadForEdit(automationId: String) {
-        viewModelScope.launch {
-            val automation = store.get(AutomationId(automationId))
-            _editingAutomation.value = automation
+        fun loadForEdit(automationId: String) {
+            viewModelScope.launch {
+                val automation = store.get(AutomationId(automationId))
+                _editingAutomation.value = automation
+            }
         }
-    }
 
-    /**
-     * Create a new automation shell with the given name and type. The trigger
-     * and actions are left empty for the Custom Builder to populate; a neutral
-     * placeholder trigger is used to keep the model valid.
-     */
-    fun create(name: String, type: AutomationType) {
-        viewModelScope.launch {
-            val id = AutomationId("auto-${System.currentTimeMillis()}")
-            val automation = Automation(
-                id = id,
-                name = name.ifBlank { defaultName(type) },
-                type = type,
-                createdBy = CreatedBy.USER,
-                status = AutomationStatus.ARMED,
-                trigger = Trigger.Manual,
-                actions = listOf(Action.ShowNotification("Custom", "Edit this automation")),
-                priority = if (type == AutomationType.MODE) 10 else 5,
-            )
-            store.save(automation)
-            _saved.value = true
+        /**
+         * Create a new automation shell with the given name and type. The trigger
+         * and actions are left empty for the Custom Builder to populate; a neutral
+         * placeholder trigger is used to keep the model valid.
+         */
+        fun create(
+            name: String,
+            type: AutomationType,
+        ) {
+            viewModelScope.launch {
+                val id = AutomationId("auto-${System.currentTimeMillis()}")
+                val automation =
+                    Automation(
+                        id = id,
+                        name = name.ifBlank { defaultName(type) },
+                        type = type,
+                        createdBy = CreatedBy.USER,
+                        status = AutomationStatus.ARMED,
+                        trigger = Trigger.Manual,
+                        actions = listOf(Action.ShowNotification("Custom", "Edit this automation")),
+                        priority = if (type == AutomationType.MODE) 10 else 5,
+                    )
+                store.save(automation)
+                _saved.value = true
+            }
         }
-    }
 
-    fun saveEdit(name: String) {
-        viewModelScope.launch {
-            val existing = _editingAutomation.value ?: return@launch
-            val updated = existing.copy(name = name.ifBlank { existing.name })
-            store.save(updated)
-            _saved.value = true
+        fun saveEdit(name: String) {
+            viewModelScope.launch {
+                val existing = _editingAutomation.value ?: return@launch
+                val updated = existing.copy(name = name.ifBlank { existing.name })
+                store.save(updated)
+                _saved.value = true
+            }
         }
-    }
 
-    private fun defaultName(type: AutomationType): String =
-        if (type == AutomationType.MODE) "New Mode" else "New Routine"
-}
+        private fun defaultName(type: AutomationType): String = if (type == AutomationType.MODE) "New Mode" else "New Routine"
+    }
 
 @Composable
 fun CreateAutomationScreen(
@@ -149,11 +151,12 @@ fun CreateAutomationScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = NothingSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = NothingSpacing.md),
         ) {
             // Hero — Doto title, the one expressive moment on the screen
             Text(

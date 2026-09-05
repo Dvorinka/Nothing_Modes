@@ -7,7 +7,6 @@ import com.tdvorak.nothingmodes.data.entities.StateSnapshotEntity
 
 @Dao
 interface StateSnapshotDao {
-
     @Insert
     suspend fun insert(entity: StateSnapshotEntity): Long
 

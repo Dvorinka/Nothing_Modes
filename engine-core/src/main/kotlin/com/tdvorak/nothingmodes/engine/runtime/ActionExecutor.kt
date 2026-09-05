@@ -5,10 +5,17 @@ import com.tdvorak.nothingmodes.engine.model.Action
 /** Result of a single action execution. */
 sealed interface ActionResult {
     data object Success : ActionResult
-    data class Failure(val reason: String) : ActionResult
+
+    data class Failure(
+        val reason: String,
+    ) : ActionResult
+
     data object Unsupported : ActionResult
+
     data object PermissionRequired : ActionResult
+
     data object ShizukuRequired : ActionResult
+
     /** The system can't toggle silently — a panel/settings page was opened for the user. */
     data object NeedsUserAction : ActionResult
 }
@@ -24,10 +31,16 @@ data class FireContext(
 
 /** Executes a single action. Implemented by the Android runtime. */
 fun interface ActionExecutor {
-    suspend fun execute(action: Action, context: FireContext): ActionResult
+    suspend fun execute(
+        action: Action,
+        context: FireContext,
+    ): ActionResult
 }
 
 /** No-op executor for testing. */
 object NoopActionExecutor : ActionExecutor {
-    override suspend fun execute(action: Action, context: FireContext): ActionResult = ActionResult.Success
+    override suspend fun execute(
+        action: Action,
+        context: FireContext,
+    ): ActionResult = ActionResult.Success
 }

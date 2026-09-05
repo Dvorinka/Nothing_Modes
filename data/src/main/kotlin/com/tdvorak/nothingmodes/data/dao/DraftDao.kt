@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DraftDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: PendingDraftEntity)
 

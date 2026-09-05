@@ -10,12 +10,17 @@ import android.util.Log
  * The user must activate device admin via the activation flow in Settings.
  */
 class NothingDeviceAdminReceiver : DeviceAdminReceiver() {
-
-    override fun onEnabled(context: Context, intent: Intent) {
+    override fun onEnabled(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.d(TAG, "Device admin enabled")
     }
 
-    override fun onDisabled(context: Context, intent: Intent) {
+    override fun onDisabled(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.d(TAG, "Device admin disabled")
     }
 

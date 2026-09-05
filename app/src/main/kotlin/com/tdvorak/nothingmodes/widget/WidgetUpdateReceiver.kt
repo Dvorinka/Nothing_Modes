@@ -12,8 +12,10 @@ import kotlinx.coroutines.launch
 private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 class WidgetUpdateReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         if (intent?.action != "com.tdvorak.nothingmodes.UPDATE_WIDGET") return
         scope.launch {
             NothingModesWidget().updateAll(context)

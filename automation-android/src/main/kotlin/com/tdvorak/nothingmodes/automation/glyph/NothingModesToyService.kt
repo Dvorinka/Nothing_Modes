@@ -32,41 +32,42 @@ import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
  * </service>
  */
 class NothingModesToyService : Service() {
-
     private lateinit var provider: NothingGlyphMatrixProvider
     private var currentModeIndex = 0
 
-    private val modes = listOf(
-        "Sleep" to "ZZ",
-        "Morning" to "AM",
-        "Work" to "WK",
-        "DND" to "DN",
-        "Movie" to "MV",
-        "Off" to "--",
-    )
+    private val modes =
+        listOf(
+            "Sleep" to "ZZ",
+            "Morning" to "AM",
+            "Work" to "WK",
+            "DND" to "DN",
+            "Movie" to "MV",
+            "Off" to "--",
+        )
 
-    private val serviceHandler = Handler(Looper.getMainLooper()) { msg ->
-        when (msg.what) {
-            GlyphToy.MSG_GLYPH_TOY -> {
-                val bundle = msg.data
-                val event = bundle.getString(GlyphToy.MSG_GLYPH_TOY_DATA)
-                Log.i(TAG, "Glyph Toy event: $event")
-                when (event) {
-                    // Lifecycle statuses sent through the same channel.
-                    GlyphToy.STATUS_PREPARE -> { /* system warming up the toy */ }
-                    GlyphToy.STATUS_START -> displayCurrentMode()
-                    GlyphToy.STATUS_END -> provider.turnOff()
-                    GlyphToy.EVENT_CHANGE -> onLongPress()
-                    GlyphToy.EVENT_AOD -> onAodTick()
-                    GlyphToy.EVENT_ACTION_DOWN -> onTouchDown()
-                    GlyphToy.EVENT_ACTION_UP -> onTouchUp()
-                    else -> Log.d(TAG, "Unknown event: $event")
+    private val serviceHandler =
+        Handler(Looper.getMainLooper()) { msg ->
+            when (msg.what) {
+                GlyphToy.MSG_GLYPH_TOY -> {
+                    val bundle = msg.data
+                    val event = bundle.getString(GlyphToy.MSG_GLYPH_TOY_DATA)
+                    Log.i(TAG, "Glyph Toy event: $event")
+                    when (event) {
+                        // Lifecycle statuses sent through the same channel.
+                        GlyphToy.STATUS_PREPARE -> { /* system warming up the toy */ }
+                        GlyphToy.STATUS_START -> displayCurrentMode()
+                        GlyphToy.STATUS_END -> provider.turnOff()
+                        GlyphToy.EVENT_CHANGE -> onLongPress()
+                        GlyphToy.EVENT_AOD -> onAodTick()
+                        GlyphToy.EVENT_ACTION_DOWN -> onTouchDown()
+                        GlyphToy.EVENT_ACTION_UP -> onTouchUp()
+                        else -> Log.d(TAG, "Unknown event: $event")
+                    }
+                    true
                 }
-                true
+                else -> false
             }
-            else -> false
         }
-    }
 
     private val serviceMessenger = Messenger(serviceHandler)
 
@@ -81,9 +82,7 @@ class NothingModesToyService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = serviceMessenger.binder
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        return false
-    }
+    override fun onUnbind(intent: Intent?): Boolean = false
 
     override fun onDestroy() {
         provider.turnOff()
