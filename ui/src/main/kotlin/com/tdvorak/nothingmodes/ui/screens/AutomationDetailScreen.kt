@@ -40,6 +40,7 @@ import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -97,10 +98,11 @@ class AutomationDetailViewModel
                         runCatching {
                             context.packageManager.getPackageInfo(context.packageName, 0).versionName
                         }.getOrNull().orEmpty()
+                    val creator = CreatorPreferences(context).get()
                     val export =
                         com.tdvorak.nothingmodes.engine.runtime
                             .ImportExportService(store, appVersion)
-                            .export(listOf(current.id))
+                            .export(listOf(current.id), creator)
                     val share =
                         Intent(Intent.ACTION_SEND).apply {
                             type = "application/json"
