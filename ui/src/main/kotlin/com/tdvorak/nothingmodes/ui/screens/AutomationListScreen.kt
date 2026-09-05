@@ -223,7 +223,7 @@ class AutomationListViewModel @Inject constructor(
     }
 
     fun runSelected() {
-        _selected.value.firstOrNull()?.let { runNow(it) }
+        _selected.value.forEach { runNow(it) }
         _selected.value = emptySet()
     }
 
