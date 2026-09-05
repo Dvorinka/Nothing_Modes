@@ -655,15 +655,6 @@ fun CustomAutomationBuilderScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             NothingPillButton(
-                                text = "Save",
-                                onClick = {
-                                    showDiscardDialog = false
-                                    viewModel.save()
-                                },
-                                enabled = state.actions.isNotEmpty(),
-                                modifier = Modifier.weight(1f),
-                            )
-                            NothingPillButton(
                                 text = "Discard",
                                 onClick = {
                                     showDiscardDialog = false
