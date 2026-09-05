@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -72,7 +73,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
-import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -102,6 +104,7 @@ data class BuilderState(
     val priority: Int = 5,
     val icon: String = "",
     val iconBackground: String = "",
+    val enabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -132,6 +135,7 @@ class CustomBuilderViewModel @Inject constructor(
                 priority = automation.priority,
                 icon = automation.icon,
                 iconBackground = automation.iconBackground,
+                enabled = automation.enabled,
             )
         }
     }
@@ -141,6 +145,7 @@ class CustomBuilderViewModel @Inject constructor(
     fun updateTrigger(trigger: Trigger) { _state.value = _state.value.copy(trigger = trigger) }
     fun updatePriority(priority: Int) { _state.value = _state.value.copy(priority = priority) }
     fun updateIcon(icon: String) { _state.value = _state.value.copy(icon = icon) }
+    fun updateEnabled(enabled: Boolean) { _state.value = _state.value.copy(enabled = enabled) }
     fun updateIconBackground(color: String) { _state.value = _state.value.copy(iconBackground = color) }
 
     fun addAction(action: Action) {
@@ -214,7 +219,7 @@ class CustomBuilderViewModel @Inject constructor(
                 conditions = conditions,
                 priority = s.priority,
                 quickAction = true,
-                enabled = existing?.enabled ?: true,
+                enabled = s.enabled,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
             )
@@ -250,7 +255,7 @@ class CustomBuilderViewModel @Inject constructor(
                 conditions = conditions,
                 priority = s.priority,
                 quickAction = true,
-                enabled = true,
+                enabled = s.enabled,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
             )
@@ -306,6 +311,8 @@ fun CustomAutomationBuilderScreen(
     // Handle condition result from catalog (all conditions use the bottom sheet).
     var editingConditionIndex by rememberSaveable { mutableStateOf(-1) }
     var conditionSheetCondition by remember { mutableStateOf<Condition?>(null) }
+    // Queue of newly added conditions waiting for their config sheet.
+    var pendingConditionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
     val conditionResultFlow = remember(backStackEntry) {
         backStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
             ?: MutableStateFlow("")
@@ -320,10 +327,42 @@ fun CustomAutomationBuilderScreen(
             backStackEntry?.savedStateHandle?.set("condition_result", "")
         }
     }
+    // Multi-select catalog result: a JSON array of conditions, added at once.
+    // Each new item then gets its config sheet, one after another.
+    val conditionsResultFlow = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow("condition_results", "")
+            ?: MutableStateFlow("")
+    }
+    val conditionsResult by conditionsResultFlow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(conditionsResult, backStackEntry) {
+        if (conditionsResult.isNotEmpty()) {
+            runCatching { Json.decodeFromString<List<Condition>>(conditionsResult) }
+                .getOrNull()?.let { conditions ->
+                    if (conditions.isNotEmpty()) {
+                        val firstIndex = state.conditions.size
+                        conditions.forEach(viewModel::addCondition)
+                        pendingConditionIndices = (firstIndex until firstIndex + conditions.size).toList()
+                    }
+                }
+            backStackEntry?.savedStateHandle?.set("condition_results", "")
+        }
+    }
+    // Pop the next queued condition into the config sheet whenever none is open.
+    androidx.compose.runtime.LaunchedEffect(conditionSheetCondition, pendingConditionIndices, state.conditions) {
+        if (conditionSheetCondition == null && editingConditionIndex < 0 && pendingConditionIndices.isNotEmpty()) {
+            val next = pendingConditionIndices.first()
+            pendingConditionIndices = pendingConditionIndices.drop(1)
+            state.conditions.getOrNull(next)?.let {
+                editingConditionIndex = next
+                conditionSheetCondition = it
+            }
+        }
+    }
 
     // Handle action result from catalog (all actions use the bottom sheet).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
+    var pendingActionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     val actionResultFlow = remember(backStackEntry) {
@@ -340,6 +379,38 @@ fun CustomAutomationBuilderScreen(
             backStackEntry?.savedStateHandle?.set("action_result", "")
         }
     }
+    val actionsResultFlow = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow("action_results", "")
+            ?: MutableStateFlow("")
+    }
+    val actionsResult by actionsResultFlow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(actionsResult, backStackEntry) {
+        if (actionsResult.isNotEmpty()) {
+            runCatching { Json.decodeFromString<List<Action>>(actionsResult) }
+                .getOrNull()?.let { actions ->
+                    if (actions.isNotEmpty()) {
+                        val firstIndex = state.actions.size
+                        actions.forEach(viewModel::addAction)
+                        pendingActionIndices = (firstIndex until firstIndex + actions.size).toList()
+                    }
+                }
+            backStackEntry?.savedStateHandle?.set("action_results", "")
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(actionSheetAction, pendingActionIndices, state.actions) {
+        if (actionSheetAction == null && editingActionIndex < 0 && pendingActionIndices.isNotEmpty()) {
+            val next = pendingActionIndices.first()
+            pendingActionIndices = pendingActionIndices.drop(1)
+            state.actions.getOrNull(next)?.let {
+                editingActionIndex = next
+                actionSheetAction = it
+            }
+        }
+    }
+
+    // Intercept system back and the back-swipe gesture so leaving always
+    // goes through the same Save / Discard / Cancel prompt.
+    BackHandler { showDiscardDialog = true }
 
     if (saved) { onSaved(); return }
 
@@ -389,7 +460,7 @@ fun CustomAutomationBuilderScreen(
             // Hero — screen title in Doto
             item {
                 Text(
-                    text = "IF / THEN",
+                    text = "WHEN / THEN",
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = Doto,
@@ -417,11 +488,11 @@ fun CustomAutomationBuilderScreen(
                 )
             }
 
-            // IF: Trigger + Conditions
+            // WHEN: the trigger decides when the routine fires.
             item {
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
                     NothingLabel(
-                        text = "IF",
+                        text = "When this happens",
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
@@ -433,7 +504,7 @@ fun CustomAutomationBuilderScreen(
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
-                        text = "AND",
+                        text = "ONLY IF (ALL MUST BE TRUE)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = SpaceMono,
@@ -442,7 +513,7 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.conditions.isEmpty()) {
                         Text(
-                            "NO CONDITIONS — FIRES ON TRIGGER MATCH",
+                            "ALWAYS — RUNS WHENEVER THE TRIGGER FIRES",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = SpaceMono,
@@ -470,14 +541,9 @@ fun CustomAutomationBuilderScreen(
                         }
                     }
                     NothingDivider()
-                    Text(
-                        text = "+ ADD CONDITION",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = NothingColors.accent,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier
-                            .padding(vertical = NothingSpacing.md)
-                            .clickable { onAddCondition?.invoke() },
+                    AddRowButton(
+                        label = "Add condition",
+                        onClick = { onAddCondition?.invoke() },
                     )
                 }
             }
@@ -528,41 +594,87 @@ fun CustomAutomationBuilderScreen(
                         }
                     }
                     NothingDivider()
-                    Text(
-                        text = "+ ADD ACTION",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = NothingColors.accent,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier
-                            .padding(vertical = NothingSpacing.md)
-                            .clickable { onAddAction?.invoke() },
+                    AddRowButton(
+                        label = "Add action",
+                        onClick = { onAddAction?.invoke() },
                     )
                 }
             }
 
-            // Priority
+            // Advanced — folded away; most routines never need it.
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    NothingSectionHeader(text = "Priority")
+                var showAdvanced by rememberSaveable { mutableStateOf(false) }
+                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showAdvanced = !showAdvanced }
+                            .padding(vertical = NothingSpacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        NothingLabel(text = "Higher wins conflicts")
+                        NothingLabel(text = "Advanced")
                         Text(
-                            text = state.priority.toString().padStart(2, '0'),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = if (showAdvanced) "−" else "+",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = SpaceMono,
                         )
                     }
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                    PrioritySegmentedBar(
-                        total = 10,
-                        filled = state.priority.coerceIn(0, 10),
-                        onSegmentClick = { viewModel.updatePriority(it) },
-                    )
+                    if (showAdvanced) {
+                        NothingDivider()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = NothingSpacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                NothingLabel(text = "Enabled")
+                                Text(
+                                    text = "Off keeps the routine saved but never fires it.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = NothingSpacing.xs),
+                                )
+                            }
+                            NothingToggle(
+                                checked = state.enabled,
+                                onCheckedChange = viewModel::updateEnabled,
+                            )
+                        }
+                        NothingDivider()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = NothingSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                NothingLabel(text = "Priority")
+                                Text(
+                                    text = "When two routines fight over the same setting, the higher one wins.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = NothingSpacing.xs),
+                                )
+                            }
+                            Text(
+                                text = state.priority.toString().padStart(2, '0'),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        PrioritySegmentedBar(
+                            total = 10,
+                            filled = state.priority.coerceIn(0, 10),
+                            onSegmentClick = { viewModel.updatePriority(it) },
+                        )
+                    }
                 }
             }
         }
@@ -633,40 +745,91 @@ fun CustomAutomationBuilderScreen(
                 ) {
                     Column(modifier = Modifier.padding(NothingSpacing.lg)) {
                         Text(
-                            text = "Discard changes?",
+                            text = "Leave without saving?",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontFamily = SpaceMono,
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
                         Text(
-                            text = "Unsaved changes will be lost.",
+                            text = "You have unsaved changes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                         ) {
                             NothingPillButton(
-                                text = "Cancel",
-                                onClick = { showDiscardDialog = false },
-                                modifier = Modifier.weight(1f),
-                            )
-                            NothingPillButton(
-                                text = "Discard",
+                                text = "Save",
                                 onClick = {
                                     showDiscardDialog = false
-                                    onBack()
+                                    viewModel.save()
                                 },
-                                modifier = Modifier.weight(1f),
+                                enabled = state.actions.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth(),
                             )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            ) {
+                                NothingSecondaryButton(
+                                    text = "Cancel",
+                                    onClick = { showDiscardDialog = false },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                NothingSecondaryButton(
+                                    text = "Discard",
+                                    onClick = {
+                                        showDiscardDialog = false
+                                        onBack()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+// ─── Add Row Button (red circled + label) ────────────────────────────────────
+
+@Composable
+private fun AddRowButton(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .border(1.dp, NothingColors.accent, androidx.compose.foundation.shape.CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "+",
+                style = MaterialTheme.typography.labelLarge,
+                color = NothingColors.accent,
+                fontFamily = SpaceMono,
+            )
+        }
+        Spacer(modifier = Modifier.width(NothingSpacing.md))
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = NothingColors.accent,
+            fontFamily = SpaceMono,
+        )
     }
 }
 

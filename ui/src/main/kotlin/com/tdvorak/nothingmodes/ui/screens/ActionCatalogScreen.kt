@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -60,6 +61,8 @@ fun ActionCatalogScreen(
     navController: NavController,
 ) {
     var search by remember { mutableStateOf("") }
+    // Multi-select: tapping toggles an action instead of closing the catalog.
+    var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
 
     val items = remember {
         listOf(
@@ -378,15 +381,13 @@ fun ActionCatalogScreen(
                 }
 
                 items(actions, key = { it.label }) { item ->
+                    val isPicked = item.action in selected
                     ActionListItem(
                         label = item.label,
                         icon = item.icon,
+                        picked = isPicked,
                         onClick = {
-                            val json = Json.encodeToString(item.action)
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set("action_result", json)
-                            navController.popBackStack()
+                            selected = if (isPicked) selected - item.action else selected + item.action
                         },
                     )
                 }
@@ -395,6 +396,34 @@ fun ActionCatalogScreen(
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
             }
+
+            item {
+                // Room for the floating Done bar.
+                Spacer(modifier = Modifier.height(96.dp))
+            }
+        }
+
+        // Sticky bottom bar — confirms every picked action in one shot.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(NothingSpacing.md)
+                .navigationBarsPadding(),
+        ) {
+            com.tdvorak.nothingmodes.ui.theme.NothingPillButton(
+                text = if (selected.isEmpty()) "Done" else "Add ${selected.size} action${if (selected.size > 1) "s" else ""}",
+                onClick = {
+                    if (selected.isNotEmpty()) {
+                        val json = Json.encodeToString(selected)
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("action_results", json)
+                    }
+                    navController.popBackStack()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -404,6 +433,7 @@ fun ActionCatalogScreen(
 private fun ActionListItem(
     label: String,
     icon: ImageVector,
+    picked: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
@@ -428,11 +458,21 @@ private fun ActionListItem(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
+        if (picked) {
+            Text(
+                text = "ADDED",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = SpaceMono,
+            )
+        }
         Icon(
-            imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+            imageVector = if (picked) Icons.Outlined.CheckCircle
+            else Icons.AutoMirrored.Outlined.ArrowForwardIos,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp),
+            tint = if (picked) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(if (picked) 20.dp else 16.dp),
         )
     }
 }

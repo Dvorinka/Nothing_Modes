@@ -27,7 +27,6 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
-import com.tdvorak.nothingmodes.ui.theme.NothingCheckbox
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -147,29 +146,40 @@ fun ConditionConfigScreen(
                 }
 
                 is Condition.TimeWindow -> {
-                    NothingInput(
-                        value = c.startLocal,
-                        onValueChange = { condition = c.copy(startLocal = it) },
-                        label = "Start (HH:mm)",
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        com.tdvorak.nothingmodes.ui.components.NothingTimeField(
+                            label = "Starts",
+                            value = c.startLocal,
+                            onValueChange = { condition = c.copy(startLocal = it) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        com.tdvorak.nothingmodes.ui.components.NothingTimeField(
+                            label = "Ends",
+                            value = c.endLocal,
+                            onValueChange = { condition = c.copy(endLocal = it) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    NothingInput(
-                        value = c.endLocal,
-                        onValueChange = { condition = c.copy(endLocal = it) },
-                        label = "End (HH:mm)",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    NothingInput(
+                    com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField(
                         value = c.tz,
                         onValueChange = { condition = c.copy(tz = it) },
-                        label = "Timezone",
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
                 is Condition.DayOfWeekCondition -> {
-                    DayOfWeekSelector(
+                    com.tdvorak.nothingmodes.ui.components.NothingDaySelector(
                         selected = c.days.toSet(),
-                        onChange = { condition = c.copy(days = it.toList()) },
+                        onChange = { days ->
+                            condition = c.copy(
+                                days = DayOfWeek.entries.filter { it in days },
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -297,37 +307,6 @@ fun ConditionConfigScreen(
         }
     }
 }
-}
-
-@Composable
-private fun DayOfWeekSelector(
-    selected: Set<DayOfWeek>,
-    onChange: (Set<DayOfWeek>) -> Unit,
-) {
-    Column {
-        DayOfWeek.entries.forEach { day ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onChange(if (day in selected) selected - day else selected + day) }
-                    .padding(vertical = NothingSpacing.sm),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = day.name.uppercase(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
-                )
-                NothingCheckbox(
-                    checked = day in selected,
-                    onCheckedChange = { checked ->
-                        onChange(if (checked) selected + day else selected - day)
-                    },
-                )
-            }
-        }
-    }
 }
 
 @Composable

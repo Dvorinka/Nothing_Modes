@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -49,6 +50,9 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
+import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
+import com.tdvorak.nothingmodes.ui.components.NothingTimeField
+import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -103,6 +107,7 @@ fun TriggerConfigScreen(
             ?: Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())
     }
     var trigger by remember { mutableStateOf(initial) }
+    var showTypePicker by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -126,21 +131,35 @@ fun TriggerConfigScreen(
             ) {
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-            Text(
-                text = triggerDescription(trigger).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            // Type row: current trigger type, tap to open the picker dialog.
+            // The config fields stay directly below so nothing needs scrolling.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTypePicker = true }
+                    .padding(vertical = NothingSpacing.md),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NothingLabel(text = "Type")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = triggerTypeLabel(trigger).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                    Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                    Text(
+                        text = "CHANGE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NothingColors.accent,
+                        fontFamily = SpaceMono,
+                    )
+                }
+            }
 
-            TriggerTypeSelector(
-                selected = trigger,
-                onSelect = { trigger = it },
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.xl))
+            com.tdvorak.nothingmodes.ui.theme.NothingDivider()
 
             TriggerConfigContent(
                 trigger = trigger,
@@ -160,85 +179,134 @@ fun TriggerConfigScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-    }
-}
-}
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TriggerTypeSelector(
-    selected: Trigger,
-    onSelect: (Trigger) -> Unit,
-) {
-    val types = remember { triggerTypes() }
-    // Group by category for visual catalog
-    val grouped = types.groupBy { it.category }
-
-    grouped.forEach { (category, items) ->
-        Text(
-            text = category.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = NothingSpacing.md, bottom = NothingSpacing.xs),
-        )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
-            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-            maxItemsInEachRow = 4,
-        ) {
-            items.forEach { type ->
-                val isSelected = selected::class == type.trigger::class
-                VisualTriggerChip(
-                    label = type.label,
-                    icon = type.icon,
-                    selected = isSelected,
-                    onClick = { onSelect(type.trigger) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VisualTriggerChip(
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val borderColor = if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline
-    val iconTint = if (selected) NothingColors.accent else MaterialTheme.colorScheme.onSurface
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(NothingSpacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(MaterialTheme.colorScheme.surface, NothingShapes.compact)
-                .border(width = 1.dp, color = borderColor, shape = NothingShapes.compact),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = iconTint,
-                modifier = Modifier.size(24.dp),
+        if (showTypePicker) {
+            TriggerTypePickerDialog(
+                selected = trigger,
+                onSelect = { trigger = it },
+                onDismiss = { showTypePicker = false },
             )
         }
-        Spacer(modifier = Modifier.height(NothingSpacing.xs))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) NothingColors.accent else MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
-        )
+    }
+}
+}
+
+/** Short label for the currently selected trigger type. */
+private fun triggerTypeLabel(trigger: Trigger): String =
+    triggerTypes().firstOrNull { it.trigger::class == trigger::class }?.label
+        ?: triggerDescription(trigger)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TriggerTypePickerDialog(
+    selected: Trigger,
+    onSelect: (Trigger) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val types = remember { triggerTypes() }
+    val grouped = types.groupBy { it.category }
+
+    androidx.compose.material3.BasicAlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = NothingSpacing.md),
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = NothingShapes.dialog,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(NothingSpacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "TRIGGER TYPE",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = SpaceMono,
+                    )
+                    Text(
+                        text = "CLOSE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.clickable(onClick = onDismiss),
+                    )
+                }
+                com.tdvorak.nothingmodes.ui.theme.NothingDivider()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    grouped.forEach { (category, items) ->
+                        Text(
+                            text = category.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(
+                                start = NothingSpacing.md,
+                                top = NothingSpacing.sm,
+                                bottom = NothingSpacing.xs,
+                            ),
+                        )
+                        items.forEach { type ->
+                            val isSelected = selected::class == type.trigger::class
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelect(type.trigger)
+                                        onDismiss()
+                                    }
+                                    .padding(
+                                        horizontal = NothingSpacing.md,
+                                        vertical = NothingSpacing.sm,
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                            ) {
+                                Icon(
+                                    imageVector = type.icon,
+                                    contentDescription = type.label,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = type.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = SpaceMono,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (isSelected) {
+                                    Text(
+                                        text = "•",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontFamily = SpaceMono,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                }
+            }
+        }
     }
 }
 
@@ -322,7 +390,6 @@ private fun TriggerConfigContent(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimeWindowContent(
     trigger: Trigger.TimeWindow,
@@ -333,32 +400,35 @@ private fun TimeWindowContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
         ) {
-            NothingInput(
+            NothingTimeField(
+                label = "Starts",
                 value = trigger.startLocal,
                 onValueChange = { onUpdate(trigger.copy(startLocal = it)) },
-                label = "Start (HH:mm)",
                 modifier = Modifier.weight(1f),
             )
-            NothingInput(
+            NothingTimeField(
+                label = "Ends",
                 value = trigger.endLocal,
                 onValueChange = { onUpdate(trigger.copy(endLocal = it)) },
-                label = "End (HH:mm)",
                 modifier = Modifier.weight(1f),
             )
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
+        NothingTimeZoneField(
             value = trigger.tz,
             onValueChange = { onUpdate(trigger.copy(tz = it)) },
-            label = "Timezone",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.md))
-        NothingLabel(text = "Days (blank = every day)")
+        NothingLabel(text = "Days (none selected = every day)")
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
-        DayOfWeekFlowSelector(
-            selected = trigger.days ?: emptyList(),
+        NothingDaySelector(
+            selected = (trigger.days ?: emptyList()).toSet(),
             onChange = { days ->
-                onUpdate(trigger.copy(days = days.ifEmpty { null }))
+                onUpdate(
+                    trigger.copy(
+                        days = DayOfWeek.entries.filter { it in days }.ifEmpty { null },
+                    ),
+                )
             },
         )
     }
@@ -612,31 +682,6 @@ private fun CalendarEventContent(
             options = CalendarDirection.entries.map { it.name },
             onSelect = { onUpdate(trigger.copy(direction = CalendarDirection.valueOf(it))) },
         )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DayOfWeekFlowSelector(
-    selected: List<DayOfWeek>,
-    onChange: (List<DayOfWeek>) -> Unit,
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
-        verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-    ) {
-        DayOfWeek.entries.forEach { day ->
-            val active = day in selected
-            NothingTag(
-                text = day.name.take(3).uppercase(),
-                active = active,
-                modifier = Modifier.clickable {
-                    val updated = if (active) selected - day else selected + day
-                    onChange(updated)
-                },
-            )
-        }
     }
 }
 

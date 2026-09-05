@@ -248,29 +248,77 @@ fun SettingsScreen(
 
                 // ── Permissions ───────────────────────────────────────────
                 NothingSectionHeader(text = "Permissions")
-                PermissionRow("Write Settings", capabilities.hasWriteSettings) {
+                PermissionRow(
+                    label = "Write Settings",
+                    granted = capabilities.hasWriteSettings,
+                    // Special-access page: no runtime prompt exists.
+                    manageLabel = "Open",
+                ) {
                     context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
                         data = Uri.parse("package:${context.packageName}")
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                 }
-                PermissionRow("Notification Policy", capabilities.hasNotificationPolicyAccess) {
+                PermissionRow(
+                    label = "Notification Policy",
+                    granted = capabilities.hasNotificationPolicyAccess,
+                    manageLabel = "Manage",
+                ) {
                     context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                 }
-                PermissionRow("Notification Listener", capabilities.hasNotificationListenerAccess) {
+                PermissionRow(
+                    label = "Notification Listener",
+                    granted = capabilities.hasNotificationListenerAccess,
+                    manageLabel = "Manage",
+                ) {
                     context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                 }
-                PermissionRow("Usage Access", capabilities.hasUsageAccess) {
+                PermissionRow(
+                    label = "Usage Access",
+                    granted = capabilities.hasUsageAccess,
+                    manageLabel = "Manage",
+                ) {
                     context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                 }
-                PermissionRow("Location", capabilities.hasLocationPermission) {
+                PermissionRow(
+                    label = "Location",
+                    granted = capabilities.hasLocationPermission,
+                    manageLabel = "Grant",
+                ) {
                     locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+
+                // Android 13+ blocks the Notification Listener / Usage Access toggles
+                // for apps that were not installed by a store (sideloaded APKs).
+                // The only unlock is App Info -> ⋮ -> "Allow restricted settings".
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    (!capabilities.hasNotificationListenerAccess || !capabilities.hasUsageAccess)
+                ) {
+                    NothingDivider()
+                    Text(
+                        text = "Restricted by Android: if a toggle above is greyed out, open App Info, tap the ⋮ menu and choose \"Allow restricted settings\", then return and grant it.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                    )
+                    NothingSecondaryButton(
+                        text = "Open App Info",
+                        onClick = {
+                            context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = NothingSpacing.sm),
+                    )
                 }
 
                 // ── Shizuku ───────────────────────────────────────────────
@@ -307,12 +355,80 @@ fun SettingsScreen(
                         )
                     }
                 }
-                if (shizukuStatus == ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED) {
-                    NothingSecondaryButton(
-                        text = "Authorize",
-                        onClick = { viewModel.requestShizukuPermission() },
-                        modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                    )
+                when (shizukuStatus) {
+                    ShizukuGatewayStatus.NOT_INSTALLED -> {
+                        Text(
+                            text = "Shizuku lets Nothing Modes use system-level features without root. Install it, start it, then authorize here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
+                        NothingPillButton(
+                            text = "Get Shizuku",
+                            onClick = {
+                                // Prefer the installed market app; fall back to the web listing.
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    )
+                                }.onFailure {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"))
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = NothingSpacing.sm),
+                        )
+                        NothingGhostButton(
+                            text = "Get from GitHub instead",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            },
+                        )
+                    }
+                    ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> {
+                        Text(
+                            text = "Installed but not running. Open Shizuku and start it (Wireless debugging or root), then come back.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
+                        NothingSecondaryButton(
+                            text = "Open Shizuku",
+                            onClick = { openShizuku(context) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = NothingSpacing.sm),
+                        )
+                    }
+                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> {
+                        NothingSecondaryButton(
+                            text = "Authorize",
+                            onClick = { viewModel.requestShizukuPermission() },
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
+                    }
+                    ShizukuGatewayStatus.AUTHORIZED -> {
+                        NothingGhostButton(
+                            text = "Open Shizuku",
+                            onClick = { openShizuku(context) },
+                        )
+                    }
+                    ShizukuGatewayStatus.UNSUPPORTED -> {
+                        Text(
+                            text = "Installed Shizuku is too old (pre-v11). Update Shizuku and try again.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = NothingColors.accent,
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
+                    }
                 }
                 permissionResult?.let { result ->
                     val resultText = when (result) {
@@ -597,8 +713,31 @@ private fun UpdateSection(
     }
 }
 
+/** Launch the Shizuku manager app so the user can start or manage it. */
+private fun openShizuku(context: android.content.Context) {
+    val intent = context.packageManager
+        .getLaunchIntentForPackage("moe.shizuku.privileged.api")
+        ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    if (intent != null) {
+        context.startActivity(intent)
+    } else {
+        // Manager missing or hidden: send the user to its store listing instead.
+        runCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+}
+
 @Composable
-private fun PermissionRow(label: String, granted: Boolean, onOpenSettings: () -> Unit) {
+private fun PermissionRow(
+    label: String,
+    granted: Boolean,
+    manageLabel: String = "Manage",
+    onOpenSettings: () -> Unit,
+) {
     NothingDivider()
     Row(
         modifier = Modifier
@@ -620,16 +759,16 @@ private fun PermissionRow(label: String, granted: Boolean, onOpenSettings: () ->
                 color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
             )
-            if (!granted) {
-                Text(
-                    text = "GRANT",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clickable(onClick = onOpenSettings)
-                        .padding(start = NothingSpacing.sm),
-                )
-            }
+            // Always offer a way back into the same system page so the
+            // permission can also be revoked without hunting through Settings.
+            Text(
+                text = manageLabel.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onOpenSettings)
+                    .padding(start = NothingSpacing.sm),
+            )
         }
     }
 }

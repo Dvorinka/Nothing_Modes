@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,8 +29,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.ui.components.NothingDateField
+import com.tdvorak.nothingmodes.ui.components.NothingTimeField
+import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
-import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -183,54 +184,53 @@ fun CustomTimePicker(
     )
     Spacer(modifier = Modifier.height(NothingSpacing.md))
 
-    // Time
-    Row(
+    // Time — tappable wheel picker instead of raw text fields.
+    NothingTimeField(
+        label = "At",
+        value = "%02d:%02d".format(schedule.hour, schedule.minute),
+        onValueChange = { v ->
+            val parts = v.split(":")
+            val h = parts.getOrNull(0)?.toIntOrNull() ?: schedule.hour
+            val m = parts.getOrNull(1)?.toIntOrNull() ?: schedule.minute
+            update { copy(hour = h.coerceIn(0, 23), minute = m.coerceIn(0, 59)) }
+        },
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-    ) {
-        NumberField(
-            value = schedule.hour,
-            onValueChange = { update { copy(hour = it.coerceIn(0, 23)) } },
-            label = "Hour",
-            range = 0..23,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = ":",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
-            modifier = Modifier.align(Alignment.CenterVertically),
-        )
-        NumberField(
-            value = schedule.minute,
-            onValueChange = { update { copy(minute = it.coerceIn(0, 59)) } },
-            label = "Minute",
-            range = 0..59,
-            modifier = Modifier.weight(1f),
-        )
-    }
+    )
 
     if (schedule.recurrence == Recurrence.WEEKLY) {
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         NothingLabel(text = "Day of week")
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
-        FlowRow(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             DayOfWeek.entries.forEach { day ->
                 DayChip(
                     label = day.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault()),
                     selected = day == schedule.dayOfWeek,
                     onClick = { update { copy(dayOfWeek = day) } },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
     }
 
-    if (schedule.recurrence == Recurrence.MONTHLY || schedule.recurrence == Recurrence.YEARLY || schedule.recurrence == Recurrence.ONCE) {
+    if (schedule.recurrence == Recurrence.ONCE) {
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+        NothingDateField(
+            label = "Date",
+            date = LocalDate.of(
+                schedule.year.coerceIn(1970, 2100),
+                schedule.month.coerceIn(1, 12),
+                schedule.dayOfMonth.coerceIn(1, 28),
+            ),
+            onDateChange = { d ->
+                update { copy(year = d.year, month = d.monthValue, dayOfMonth = d.dayOfMonth) }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else if (schedule.recurrence == Recurrence.MONTHLY || schedule.recurrence == Recurrence.YEARLY) {
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -243,7 +243,7 @@ fun CustomTimePicker(
                 range = 1..31,
                 modifier = Modifier.weight(1f),
             )
-            if (schedule.recurrence == Recurrence.YEARLY || schedule.recurrence == Recurrence.ONCE) {
+            if (schedule.recurrence == Recurrence.YEARLY) {
                 NumberField(
                     value = schedule.month,
                     onValueChange = { update { copy(month = it.coerceIn(1, 12)) } },
@@ -252,23 +252,14 @@ fun CustomTimePicker(
                     modifier = Modifier.weight(1f),
                 )
             }
-            if (schedule.recurrence == Recurrence.ONCE) {
-                NumberField(
-                    value = schedule.year,
-                    onValueChange = { update { copy(year = it.coerceIn(1900, 2100)) } },
-                    label = "Year",
-                    range = 1900..2100,
-                    modifier = Modifier.weight(1f),
-                )
-            }
         }
     }
 
     Spacer(modifier = Modifier.height(NothingSpacing.md))
-    NothingInput(
+    NothingTimeZoneField(
         value = trigger.tz,
         onValueChange = { onUpdate(trigger.copy(tz = it)) },
-        label = "Timezone",
+        modifier = Modifier.fillMaxWidth(),
     )
     Spacer(modifier = Modifier.height(NothingSpacing.sm))
     val preview = triggerDescription(schedule.toTrigger(trigger.tz))
@@ -308,21 +299,28 @@ private fun DayChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val bg = if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        modifier = Modifier
-            .clip(NothingShapes.pill)
+        modifier = modifier
+            .height(48.dp)
+            .clip(NothingShapes.compact)
             .background(bg)
-            .border(1.dp, if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline, NothingShapes.pill)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .border(
+                1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                NothingShapes.compact,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = label,
+            text = label.uppercase().take(3),
             style = MaterialTheme.typography.labelMedium,
             color = fg,
+            fontFamily = SpaceMono,
             textAlign = TextAlign.Center,
         )
     }

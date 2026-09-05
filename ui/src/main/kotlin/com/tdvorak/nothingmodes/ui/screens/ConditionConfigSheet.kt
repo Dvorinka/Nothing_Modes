@@ -34,7 +34,6 @@ import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
-import com.tdvorak.nothingmodes.ui.theme.NothingCheckbox
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
@@ -358,24 +357,27 @@ private fun TimeWindowSheetContent(
     onChange: (Condition.TimeWindow) -> Unit,
 ) {
     Column {
-        NothingInput(
-            value = condition.startLocal,
-            onValueChange = { onChange(condition.copy(startLocal = it)) },
-            label = "Start (HH:mm)",
+        Row(
             modifier = Modifier.fillMaxWidth(),
-        )
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            com.tdvorak.nothingmodes.ui.components.NothingTimeField(
+                label = "Starts",
+                value = condition.startLocal,
+                onValueChange = { onChange(condition.copy(startLocal = it)) },
+                modifier = Modifier.weight(1f),
+            )
+            com.tdvorak.nothingmodes.ui.components.NothingTimeField(
+                label = "Ends",
+                value = condition.endLocal,
+                onValueChange = { onChange(condition.copy(endLocal = it)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            value = condition.endLocal,
-            onValueChange = { onChange(condition.copy(endLocal = it)) },
-            label = "End (HH:mm)",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
+        com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField(
             value = condition.tz,
             onValueChange = { onChange(condition.copy(tz = it)) },
-            label = "Timezone",
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -386,31 +388,17 @@ private fun DayOfWeekSheetContent(
     condition: Condition.DayOfWeekCondition,
     onChange: (Condition.DayOfWeekCondition) -> Unit,
 ) {
-    val selected = condition.days.toSet()
-    Column {
-        DayOfWeek.entries.forEach { day ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onChange(condition.copy(days = if (day in selected) condition.days - day else condition.days + day)) }
-                    .padding(vertical = NothingSpacing.sm),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = day.name.uppercase(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
-                )
-                NothingCheckbox(
-                    checked = day in selected,
-                    onCheckedChange = { checked ->
-                        onChange(condition.copy(days = if (checked) condition.days + day else condition.days - day))
-                    },
-                )
-            }
-        }
-    }
+    com.tdvorak.nothingmodes.ui.components.NothingDaySelector(
+        selected = condition.days.toSet(),
+        onChange = { days ->
+            onChange(
+                condition.copy(
+                    days = DayOfWeek.entries.filter { it in days },
+                ),
+            )
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
