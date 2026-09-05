@@ -24,7 +24,11 @@ class UpdateViewModel @Inject constructor(
     private val _updateStatus = MutableStateFlow(UpdateStatus.IDLE)
     val updateStatus: StateFlow<UpdateStatus> = _updateStatus.asStateFlow()
 
-    private var activeDownloadId: Long? = null
+    init {
+        viewModelScope.launch {
+            updateManager.downloadCompleted.collect { _updateStatus.value = UpdateStatus.DOWNLOADED }
+        }
+    }
 
     fun checkForUpdate() {
         viewModelScope.launch {
@@ -40,10 +44,8 @@ class UpdateViewModel @Inject constructor(
             _updateStatus.value = UpdateStatus.NEEDS_PERMISSION
             return
         }
-        viewModelScope.launch {
-            _updateStatus.value = UpdateStatus.DOWNLOADING
-            activeDownloadId = updateManager.startDownload(info)
-        }
+        _updateStatus.value = UpdateStatus.DOWNLOADING
+        updateManager.startDownload(info)
     }
 
     fun openInstallPermissionSettings() {
@@ -51,14 +53,8 @@ class UpdateViewModel @Inject constructor(
     }
 
     fun installIfReady() {
-        val downloadId = activeDownloadId ?: return
+        val downloadId = updateManager.activeDownloadId ?: return
         updateManager.installUpdate(downloadId)
-    }
-
-    fun onDownloadComplete(downloadId: Long) {
-        if (activeDownloadId == downloadId) {
-            _updateStatus.value = UpdateStatus.DOWNLOADED
-        }
     }
 
     fun clearUpdate() {

@@ -17,6 +17,7 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
         if (intent?.action != "com.tdvorak.nothingmodes.UPDATE_WIDGET") return
         scope.launch {
             NothingModesWidget().updateAll(context)
+            SingleAutomationWidget().updateAll(context)
         }
     }
 }

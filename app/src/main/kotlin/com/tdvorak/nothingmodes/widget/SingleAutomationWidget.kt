@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
@@ -12,9 +13,11 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -43,8 +46,14 @@ class SingleAutomationWidget : GlanceAppWidget() {
         val store = entryPoint.automationStore()
 
         // Read the configured automation ID from SharedPreferences.
+        // The config activity keys entries by the integer appWidgetId, so
+        // resolve it from the GlanceId — the GlanceId's toString() does not
+        // match and would never find the configured automation.
         val prefs = context.getSharedPreferences("single_widget_prefs", Context.MODE_PRIVATE)
-        val automationId = prefs.getString("widget_${id}", null)
+        val appWidgetId = runCatching {
+            GlanceAppWidgetManager(context).getAppWidgetId(id)
+        }.getOrDefault(AppWidgetManager.INVALID_APPWIDGET_ID)
+        val automationId = prefs.getString("widget_$appWidgetId", null)
 
         val automation = withContext(Dispatchers.IO) {
             runCatching {
@@ -52,29 +61,37 @@ class SingleAutomationWidget : GlanceAppWidget() {
             }.getOrNull()
         }
 
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+
         provideContent {
-            SingleAutomationWidgetContent(automation)
+            SingleAutomationWidgetContent(automation, launchIntent)
         }
     }
 }
 
 @Composable
-private fun SingleAutomationWidgetContent(automation: Automation?) {
+private fun SingleAutomationWidgetContent(automation: Automation?, launchIntent: Intent?) {
     val accent = ColorProvider(Color(0xFFD71921))
     val surface = ColorProvider(Color(0xFF0D0D0D))
     val onSurface = ColorProvider(Color(0xFFEAEAEA))
     val onSurfaceVariant = ColorProvider(Color(0xFF7E7E7E))
 
     if (automation == null) {
+        val openAppModifier = if (launchIntent != null) {
+            GlanceModifier.clickable(actionStartActivity(launchIntent))
+        } else {
+            GlanceModifier
+        }
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(surface)
-                .padding(8.dp),
+                .padding(8.dp)
+                .then(openAppModifier),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Tap to configure",
+                text = "Tap to open app",
                 style = TextStyle(color = onSurfaceVariant, fontSize = 11.sp),
             )
         }

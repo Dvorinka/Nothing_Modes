@@ -29,6 +29,8 @@ class ConnectivityReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             WifiManager.WIFI_STATE_CHANGED_ACTION -> handleWifiState(context, intent)
+            WifiManager.NETWORK_STATE_CHANGED_ACTION,
+            @Suppress("DEPRECATION")
             android.net.ConnectivityManager.CONNECTIVITY_ACTION -> handleWifiConnected(context, intent)
             BluetoothAdapter.ACTION_STATE_CHANGED -> handleBtState(context, intent)
             BluetoothDevice.ACTION_ACL_CONNECTED -> handleBtDevice(context, intent, true)

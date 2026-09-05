@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofencingEvent
 import com.tdvorak.nothingmodes.engine.model.Transition
 
 /**
@@ -16,17 +18,40 @@ class GeofenceReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_GEOFENCE_TRIGGERED) return
 
-        val id = intent.getStringExtra(EXTRA_GEOFENCE_ID) ?: return
-        val lat = intent.getDoubleExtra(EXTRA_LAT, 0.0)
-        val lng = intent.getDoubleExtra(EXTRA_LNG, 0.0)
-        val transitionStr = intent.getStringExtra(EXTRA_TRANSITION) ?: return
-        val transition = runCatching { Transition.valueOf(transitionStr) }.getOrNull() ?: return
+        val event = GeofencingEvent.fromIntent(intent)
+        if (event == null) {
+            Log.w(TAG, "Geofence broadcast without GeofencingEvent, ignoring")
+            return
+        }
+        if (event.hasError()) {
+            Log.e(TAG, "Geofence error: ${event.errorCode}")
+            return
+        }
 
-        Log.d(TAG, "Geofence triggered: id=$id transition=$transition")
+        val transition = when (event.geofenceTransition) {
+            Geofence.GEOFENCE_TRANSITION_ENTER -> Transition.ENTER
+            Geofence.GEOFENCE_TRANSITION_EXIT -> Transition.EXIT
+            Geofence.GEOFENCE_TRANSITION_DWELL -> Transition.DWELL
+            else -> return
+        }
+        val location = event.triggeringLocation
+        val lat = location?.latitude ?: 0.0
+        val lng = location?.longitude ?: 0.0
+        val geofenceIds = event.triggeringGeofences?.mapNotNull { it.requestId } ?: emptyList()
 
+        if (geofenceIds.isEmpty()) {
+            // Fall back to the baked-in ID so a single-geofence event still dispatches.
+            intent.getStringExtra(EXTRA_GEOFENCE_ID)?.let { dispatch(context, it, lat, lng, transition) }
+            return
+        }
+        geofenceIds.forEach { dispatch(context, it, lat, lng, transition) }
+    }
+
+    private fun dispatch(context: Context, geofenceId: String, lat: Double, lng: Double, transition: Transition) {
+        Log.d(TAG, "Geofence triggered: id=$geofenceId transition=$transition")
         val serviceIntent = Intent(context, AutomationService::class.java).apply {
             action = AutomationService.ACTION_GEOFENCE
-            putExtra(EXTRA_GEOFENCE_ID, id)
+            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
             putExtra(EXTRA_LAT, lat)
             putExtra(EXTRA_LNG, lng)
             putExtra(EXTRA_TRANSITION, transition.name)

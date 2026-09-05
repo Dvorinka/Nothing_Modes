@@ -39,8 +39,16 @@ object AutomationModule {
 
     @Provides
     @Singleton
-    fun provideAutomationStore(db: NothingModesDatabase): AutomationStore =
-        RoomAutomationStore(db.automationDao())
+    fun provideAutomationStore(
+        db: NothingModesDatabase,
+        @ApplicationContext context: Context,
+        scheduler: AutomationScheduler,
+    ): AutomationStore =
+        com.tdvorak.nothingmodes.automation.scheduler.SchedulingAutomationStore(
+            context,
+            RoomAutomationStore(db.automationDao()),
+            scheduler,
+        )
 
     @Provides
     @Singleton

@@ -57,6 +57,7 @@ class AutomationService : Service() {
         when (intent?.action) {
             ACTION_RESCHEDULE -> handleReschedule()
             ACTION_BOOT -> handleBoot()
+            ACTION_REGISTERED -> handleRegistered(intent)
             AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
@@ -86,23 +87,31 @@ class AutomationService : Service() {
         }
     }
 
+    private fun handleRegistered(intent: Intent) {
+        val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        dispatchEvent(TriggerEvent.Registered(
+            eventId = "registered:${System.currentTimeMillis()}",
+            automationId = AutomationId(automationId),
+        ))
+    }
+
     private fun handleReschedule() {
-        scope.launch {
+        trackJob(scope.launch {
             store.armed().forEach { automation ->
                 scheduler.schedule(automation)
             }
-        }
+        })
     }
 
     private fun handleBoot() {
-        scope.launch {
+        trackJob(scope.launch {
             store.armed().forEach { automation ->
                 scheduler.schedule(automation)
             }
             dispatchEvent(TriggerEvent.BootCompleted(
                 eventId = "boot:${System.currentTimeMillis()}",
             ))
-        }
+        })
     }
 
     private fun handleTimeFired(intent: Intent) {
@@ -114,14 +123,14 @@ class AutomationService : Service() {
             atMillis = System.currentTimeMillis(),
         ))
         // Re-schedule next cron occurrence for recurring time triggers only
-        scope.launch {
+        trackJob(scope.launch {
             store.get(id)?.let { automation ->
                 val trigger = automation.trigger
                 if (trigger is Trigger.Time && !trigger.isOneShot()) {
                     scheduler.schedule(automation)
                 }
             }
-        }
+        })
     }
 
     private fun handleWindowStart(intent: Intent) {
@@ -142,9 +151,9 @@ class AutomationService : Service() {
             atMillis = System.currentTimeMillis(),
         ))
         // Re-schedule next window for recurring time-window triggers
-        scope.launch {
+        trackJob(scope.launch {
             store.get(id)?.let { scheduler.schedule(it) }
-        }
+        })
     }
 
     private fun handleBatteryChanged(intent: Intent) {
@@ -248,6 +257,7 @@ class AutomationService : Service() {
             lat = lat,
             lng = lng,
             transition = transition,
+            geofenceId = intent.getStringExtra(GeofenceReceiver.EXTRA_GEOFENCE_ID),
         ))
     }
 
@@ -297,14 +307,18 @@ class AutomationService : Service() {
     }
 
     private fun dispatchEvent(event: TriggerEvent) {
-        val job = scope.launch {
+        trackJob(scope.launch {
             val envelope = TriggerEnvelope(
                 id = event.eventId,
                 event = event,
                 receivedAtMillis = System.currentTimeMillis(),
             )
             engine.onTrigger(envelope)
-        }
+        })
+    }
+
+    /** Registers [job] so the service stays alive until all in-flight work finishes. */
+    private fun trackJob(job: Job) {
         synchronized(activeJobs) {
             activeJobs.add(job)
         }
@@ -345,6 +359,7 @@ class AutomationService : Service() {
 
     companion object {
         const val ACTION_RESCHEDULE = "com.tdvorak.nothingmodes.RESCHEDULE"
+        const val ACTION_REGISTERED = "com.tdvorak.nothingmodes.REGISTERED"
         const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
         const val ACTION_BATTERY_CHANGED = "com.tdvorak.nothingmodes.BATTERY_CHANGED"
         const val ACTION_SCREEN_STATE = "com.tdvorak.nothingmodes.SCREEN_STATE"
