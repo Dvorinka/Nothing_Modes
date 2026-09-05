@@ -98,8 +98,8 @@ fun NothingTimeField(
     ) {
         Box(
             modifier = Modifier
-                .clip(NothingShapes.compact)
-                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.compact)
+                .clip(NothingShapes.input)
+                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
                 .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
@@ -252,7 +252,7 @@ private fun WheelColumn(
     Box(
         modifier = modifier
             .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
-            .clip(NothingShapes.compact)
+            .clip(NothingShapes.input)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
@@ -314,8 +314,8 @@ fun NothingDateField(
     ) {
         Box(
             modifier = Modifier
-                .clip(NothingShapes.compact)
-                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.compact)
+                .clip(NothingShapes.input)
+                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
                 .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
@@ -456,8 +456,8 @@ private fun MonthNavButton(
     Box(
         modifier = Modifier
             .size(36.dp)
-            .clip(NothingShapes.compact)
-            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.compact)
+            .clip(NothingShapes.input)
+            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -487,7 +487,7 @@ private fun DayCell(
         modifier = modifier
             .height(44.dp)
             .padding(2.dp)
-            .clip(NothingShapes.compact)
+            .clip(NothingShapes.input)
             .background(bg)
             .clickable(enabled = date != null, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -769,7 +769,7 @@ private fun FieldRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(NothingShapes.compact)
+            .clip(NothingShapes.input)
             .clickable(onClick = onClick)
             .padding(vertical = NothingSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,

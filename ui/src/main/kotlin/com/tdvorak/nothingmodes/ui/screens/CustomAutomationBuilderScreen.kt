@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -71,6 +72,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDestructiveButton
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -449,10 +451,18 @@ fun CustomAutomationBuilderScreen(
             // Hero — screen title in Doto
             item {
                 Text(
-                    text = "WHEN / THEN",
-                    style = MaterialTheme.typography.displaySmall,
+                    text = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
+                    style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = Doto,
+                )
+                Text(
+                    text = "WHEN · ONLY IF · THEN",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    letterSpacing = 1.0.sp,
+                    modifier = Modifier.padding(top = NothingSpacing.xxs),
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
             }
@@ -782,7 +792,7 @@ fun CustomAutomationBuilderScreen(
                                     onClick = { showDiscardDialog = false },
                                     modifier = Modifier.weight(1f),
                                 )
-                                NothingSecondaryButton(
+                                NothingDestructiveButton(
                                     text = "Discard",
                                     onClick = {
                                         showDiscardDialog = false

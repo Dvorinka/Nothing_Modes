@@ -39,6 +39,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,8 +79,10 @@ import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingScreenHero
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -268,6 +274,12 @@ fun AutomationListScreen(
     val importResult by viewModel.importResult.collectAsState()
     val inSelection = selected.isNotEmpty()
 
+    // Type filter chips (All / Modes / Routines) — display-only, client-side.
+    var typeFilter by rememberSaveable { mutableStateOf("ALL") }
+    val visibleItems = remember(items, typeFilter) {
+        if (typeFilter == "ALL") items else items.filter { it.type.name == typeFilter }
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
@@ -366,14 +378,40 @@ fun AutomationListScreen(
                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        RoutineHeroCard(
-                            totalRoutines = items.size,
-                            totalActions = items.sumOf { it.actions.size },
-                            modifier = Modifier.padding(bottom = NothingSpacing.md),
-                        )
+                        Column(modifier = Modifier.padding(bottom = NothingSpacing.sm)) {
+                            NothingScreenHero(
+                                title = "Automations",
+                                caption = "${visibleItems.size} items",
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.md))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            ) {
+                                NothingTag(
+                                    text = "All",
+                                    active = typeFilter == "ALL",
+                                    onClick = { typeFilter = "ALL" },
+                                )
+                                NothingTag(
+                                    text = "Modes",
+                                    active = typeFilter == "MODE",
+                                    onClick = { typeFilter = "MODE" },
+                                )
+                                NothingTag(
+                                    text = "Routines",
+                                    active = typeFilter == "ROUTINE",
+                                    onClick = { typeFilter = "ROUTINE" },
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                            RoutineHeroCard(
+                                totalRoutines = visibleItems.size,
+                                totalActions = visibleItems.sumOf { it.actions.size },
+                            )
+                        }
                     }
 
-                    items(items, key = { it.id.value }) { automation ->
+                    items(visibleItems, key = { it.id.value }) { automation ->
                         RoutineTile(
                             automation = automation,
                             isSelected = selected.contains(automation.id),

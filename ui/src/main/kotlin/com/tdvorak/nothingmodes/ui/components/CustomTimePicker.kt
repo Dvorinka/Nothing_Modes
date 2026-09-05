@@ -34,7 +34,6 @@ import com.tdvorak.nothingmodes.ui.components.NothingDateField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
-import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -308,12 +307,11 @@ private fun DayChip(
     Box(
         modifier = modifier
             .height(48.dp)
-            .clip(NothingShapes.compact)
+            .clip(NothingShapes.input)
             .background(bg)
-            .border(
-                1.dp,
-                if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline,
-                NothingShapes.compact,
+            .then(
+                if (selected) Modifier
+                else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

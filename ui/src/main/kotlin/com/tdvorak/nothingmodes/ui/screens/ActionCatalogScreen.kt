@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
@@ -42,7 +41,9 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
@@ -376,21 +377,24 @@ fun ActionCatalogScreen(
             grouped.forEach { (category, actions) ->
                 item {
                     NothingSectionHeader(text = category)
-                }
-
-                items(actions, key = { it.label }) { item ->
-                    val isPicked = item.action in selected
-                    CatalogListItem(
-                        label = item.label,
-                        icon = item.icon,
-                        picked = isPicked,
-                        onClick = {
-                            selected = if (isPicked) selected - item.action else selected + item.action
-                        },
-                    )
-                }
-
-                item {
+                    NothingCard {
+                        actions.forEachIndexed { index, actionItem ->
+                            if (index > 0) NothingDivider()
+                            val isPicked = actionItem.action in selected
+                            CatalogListItem(
+                                label = actionItem.label,
+                                icon = actionItem.icon,
+                                picked = isPicked,
+                                onClick = {
+                                    selected = if (isPicked) {
+                                        selected - actionItem.action
+                                    } else {
+                                        selected + actionItem.action
+                                    }
+                                },
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
             }
@@ -431,7 +435,7 @@ private fun CatalogListItem(
         selected = picked,
         onClick = onClick,
         leading = {
-            NothingIconCircle(size = 44f) {
+            NothingIconCircle(size = 44f, accent = picked) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,6 +43,8 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.AndroidEntryPoint
@@ -90,7 +91,7 @@ class SingleAutomationWidgetConfigActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            NothingModesThemeDynamic {
                 WidgetConfigScreen(
                     onPick = { automationId ->
                         // Save the selected automation ID for this widget.
@@ -184,7 +185,7 @@ private fun AutomationPickerRow(
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        shape = NothingShapes.card,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
@@ -199,7 +200,7 @@ private fun AutomationPickerRow(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
+                    .clip(NothingShapes.iconChip)
                     .background(iconColor),
                 contentAlignment = Alignment.Center,
             ) {

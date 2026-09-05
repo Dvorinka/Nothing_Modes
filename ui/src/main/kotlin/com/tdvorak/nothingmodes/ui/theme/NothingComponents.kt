@@ -107,6 +107,33 @@ fun NothingCardLarge(
     }
 }
 
+// ── Screen Hero (Doto headline + mono caption) ────────────────────────────────
+
+@Composable
+fun NothingScreenHero(
+    title: String,
+    modifier: Modifier = Modifier,
+    caption: String? = null,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontFamily = Doto,
+        )
+        if (caption != null) {
+            Spacer(modifier = Modifier.height(NothingSpacing.xxs))
+            Text(
+                text = caption.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.0.sp,
+            )
+        }
+    }
+}
+
 // ── Section Header ───────────────────────────────────────────────────────────
 
 @Composable
@@ -284,7 +311,7 @@ fun NothingToggle(
             .height(trackHeight)
             .clip(CircleShape)
             .background(
-                if (checked) NothingColors.accent
+                if (checked) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.outline,
             )
             .clickable { onCheckedChange(!checked) },
@@ -296,7 +323,7 @@ fun NothingToggle(
                 .size(thumbSize)
                 .clip(CircleShape)
                 .background(
-                    if (checked) MaterialTheme.colorScheme.onTertiary
+                    if (checked) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
         )
@@ -695,11 +722,11 @@ fun NothingInput(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.background,
+                unfocusedContainerColor = MaterialTheme.colorScheme.background,
                 cursorColor = MaterialTheme.colorScheme.primary,
             ),
-            shape = NothingShapes.compact,
+            shape = NothingShapes.input,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -724,7 +751,7 @@ fun NothingEnumSelector(
         )
         Surface(
             color = MaterialTheme.colorScheme.background,
-            shape = NothingShapes.compact,
+            shape = NothingShapes.input,
             border = BorderStroke(
                 1.dp,
                 if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
@@ -759,7 +786,7 @@ fun NothingEnumSelector(
             Spacer(modifier = Modifier.height(NothingSpacing.xs))
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shape = NothingShapes.compact,
+                shape = NothingShapes.input,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth(),
             ) {
