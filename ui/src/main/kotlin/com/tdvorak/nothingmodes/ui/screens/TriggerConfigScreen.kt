@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
@@ -143,12 +144,19 @@ fun TriggerConfigScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 NothingLabel(text = "Type")
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                ) {
                     Text(
                         text = triggerTypeLabel(trigger).uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = SpaceMono,
+                        maxLines = 2,
+                        softWrap = true,
+                        textAlign = TextAlign.End,
                     )
                     Spacer(modifier = Modifier.width(NothingSpacing.sm))
                     Text(

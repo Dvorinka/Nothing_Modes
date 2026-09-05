@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,7 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
@@ -64,6 +66,7 @@ import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.update.UpdateInfo
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
@@ -248,79 +251,90 @@ fun SettingsScreen(
                 )
 
                 // ── Permissions ───────────────────────────────────────────
-                NothingSectionHeader(text = "Permissions")
-                PermissionRow(
-                    label = "Write Settings",
-                    granted = capabilities.hasWriteSettings,
-                    // Special-access page: no runtime prompt exists.
-                    manageLabel = "Open",
-                ) {
+                val restrictedMissing = android.os.Build.VERSION.SDK_INT >= 33 &&
+                (!capabilities.hasWriteSettings ||
+                    !capabilities.hasNotificationPolicyAccess ||
+                    !capabilities.hasNotificationListenerAccess ||
+                    !capabilities.hasUsageAccess)
+
+            if (restrictedMissing) {
+                RestrictedSettingsGuide(context, capabilities)
+            }
+
+            NothingSectionHeader(text = "Permissions")
+            PermissionRow(
+                label = "Write Settings",
+                granted = capabilities.hasWriteSettings,
+                onOpenSettings = {
                     context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
                         data = Uri.parse("package:${context.packageName}")
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
-                }
-                PermissionRow(
-                    label = "Notification Policy",
-                    granted = capabilities.hasNotificationPolicyAccess,
-                    manageLabel = "Manage",
-                ) {
+                },
+                onOpenAppInfo = {
+                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                },
+            )
+            PermissionRow(
+                label = "Notification Policy",
+                granted = capabilities.hasNotificationPolicyAccess,
+                onOpenSettings = {
                     context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
-                }
-                PermissionRow(
-                    label = "Notification Listener",
-                    granted = capabilities.hasNotificationListenerAccess,
-                    manageLabel = "Manage",
-                ) {
+                },
+                onOpenAppInfo = {
+                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                },
+            )
+            PermissionRow(
+                label = "Notification Listener",
+                granted = capabilities.hasNotificationListenerAccess,
+                onOpenSettings = {
                     context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
-                }
-                PermissionRow(
-                    label = "Usage Access",
-                    granted = capabilities.hasUsageAccess,
-                    manageLabel = "Manage",
-                ) {
+                },
+                onOpenAppInfo = {
+                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                },
+            )
+            PermissionRow(
+                label = "Usage Access",
+                granted = capabilities.hasUsageAccess,
+                onOpenSettings = {
                     context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
-                }
-                PermissionRow(
-                    label = "Location",
-                    granted = capabilities.hasLocationPermission,
-                    manageLabel = "Grant",
-                ) {
-                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }
-
-                // Android 13+ blocks the Notification Listener / Usage Access toggles
-                // for apps that were not installed by a store (sideloaded APKs).
-                // The only unlock is App Info -> ⋮ -> "Allow restricted settings".
-                if (android.os.Build.VERSION.SDK_INT >= 33 &&
-                    (!capabilities.hasNotificationListenerAccess || !capabilities.hasUsageAccess)
-                ) {
-                    NothingDivider()
-                    Text(
-                        text = "Restricted by Android: if a toggle above is greyed out, open App Info, tap the ⋮ menu and choose \"Allow restricted settings\", then return and grant it.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = NothingSpacing.sm),
-                    )
-                    NothingSecondaryButton(
-                        text = "Open App Info",
-                        onClick = {
-                            context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.parse("package:${context.packageName}")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = NothingSpacing.sm),
-                    )
-                }
+                },
+                onOpenAppInfo = {
+                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                },
+            )
+            PermissionRow(
+                label = "Location",
+                granted = capabilities.hasLocationPermission,
+                isRuntime = true,
+                onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                onOpenSettings = {
+                    context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                },
+            )
 
                 // ── Shizuku ───────────────────────────────────────────────
                 NothingSectionHeader(text = "Shizuku")
@@ -359,15 +373,26 @@ fun SettingsScreen(
                 when (shizukuStatus) {
                     ShizukuGatewayStatus.NOT_INSTALLED -> {
                         Text(
-                            text = "Shizuku lets Nothing Modes use system-level features without root. Install it, start it, then authorize here.",
+                            text = "1. Install Shizuku. 2. Open it and start the service. 3. Authorize Nothing Modes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = NothingSpacing.sm),
                         )
                         NothingPillButton(
-                            text = "Get Shizuku",
+                            text = "Download Shizuku APK",
                             onClick = {
-                                // Prefer the installed market app; fall back to the web listing.
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = NothingSpacing.sm),
+                        )
+                        NothingGhostButton(
+                            text = "Get from Play Store",
+                            onClick = {
                                 runCatching {
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
@@ -380,43 +405,45 @@ fun SettingsScreen(
                                     )
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = NothingSpacing.sm),
-                        )
-                        NothingGhostButton(
-                            text = "Get from GitHub instead",
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                )
-                            },
                         )
                     }
                     ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> {
                         Text(
-                            text = "Installed but not running. Open Shizuku and start it (Wireless debugging or root), then come back.",
+                            text = "Shizuku is installed but not running. Open it and start the service, then return here and authorize.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = NothingSpacing.sm),
                         )
-                        NothingSecondaryButton(
+                        NothingPillButton(
                             text = "Open Shizuku",
                             onClick = { openShizuku(context) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = NothingSpacing.sm),
+                                .padding(vertical = NothingSpacing.sm),
                         )
                     }
                     ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> {
-                        NothingSecondaryButton(
+                        Text(
+                            text = "Shizuku is running. Allow Nothing Modes to use it.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
+                        NothingPillButton(
                             text = "Authorize",
                             onClick = { viewModel.requestShizukuPermission() },
-                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = NothingSpacing.sm),
                         )
                     }
                     ShizukuGatewayStatus.AUTHORIZED -> {
+                        Text(
+                            text = "Shizuku is active and authorized.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                        )
                         NothingGhostButton(
                             text = "Open Shizuku",
                             onClick = { openShizuku(context) },
@@ -733,16 +760,86 @@ private fun openShizuku(context: android.content.Context) {
 }
 
 @Composable
+private fun RestrictedSettingsGuide(
+    context: android.content.Context,
+    capabilities: DeviceCapabilities,
+) {
+    NothingCardLarge(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = NothingSpacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            NothingRedDot(size = 8f)
+            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+            NothingLabel(text = "Restricted settings required")
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Android 13+ blocks special permissions for sideloaded apps. Enable them first, then grant each permission below.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+        ) {
+            listOf(
+                "Open App Info",
+                "Tap the ⋮ menu",
+                "Choose \"Allow restricted settings\"",
+                "Return here and tap each permission's Manage button",
+            ).forEachIndexed { i, step ->
+                Row {
+                    Text(
+                        text = "${i + 1}.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                    )
+                    Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                    Text(
+                        text = step,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+        NothingPillButton(
+            text = "Open App Info",
+            onClick = {
+                context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
 private fun PermissionRow(
     label: String,
     granted: Boolean,
-    manageLabel: String = "Manage",
-    onOpenSettings: () -> Unit,
+    isRuntime: Boolean = false,
+    onOpenSettings: (() -> Unit)? = null,
+    onOpenAppInfo: (() -> Unit)? = null,
+    onGrant: (() -> Unit)? = null,
 ) {
     NothingListRow(
         title = label,
         selected = false,
-        onClick = onOpenSettings,
+        onClick = {
+            when {
+                isRuntime && !granted -> onGrant?.invoke()
+                onOpenSettings != null -> onOpenSettings()
+                else -> onOpenAppInfo?.invoke()
+            }
+        },
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NothingStatusDot(
@@ -757,11 +854,17 @@ private fun PermissionRow(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = manageLabel.uppercase(),
+                    text = if (granted) "MANAGE" else if (isRuntime) "GRANT" else "MANAGE",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
                     modifier = Modifier
-                        .clickable(onClick = onOpenSettings)
+                        .clickable {
+                            when {
+                                isRuntime && !granted -> onGrant?.invoke()
+                                onOpenSettings != null -> onOpenSettings()
+                                else -> onOpenAppInfo?.invoke()
+                            }
+                        }
                         .padding(start = NothingSpacing.sm),
                 )
             }

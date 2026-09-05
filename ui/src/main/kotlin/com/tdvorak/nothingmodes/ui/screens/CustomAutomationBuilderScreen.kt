@@ -480,6 +480,13 @@ fun CustomAutomationBuilderScreen(
             // WHEN: the trigger decides when the routine fires.
             item {
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
+                    Text(
+                        text = "TRIGGER — the event that starts this routine.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                    )
                     NothingLabel(
                         text = "When this happens",
                         color = MaterialTheme.colorScheme.primary,
@@ -492,6 +499,13 @@ fun CustomAutomationBuilderScreen(
                     )
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    Text(
+                        text = "CONDITIONS — optional checks that must be true after the trigger.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                    )
                     Text(
                         text = "ONLY IF (ALL MUST BE TRUE)",
                         style = MaterialTheme.typography.labelSmall,

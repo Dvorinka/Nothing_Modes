@@ -723,19 +723,19 @@ fun NothingDaySelector(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         DayOfWeek.entries.forEach { day ->
             val isSelected = day in selected
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                     .then(
                         if (isSelected) Modifier
-                        else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                        else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                     )
                     .clickable {
                         onChange(
@@ -746,7 +746,7 @@ fun NothingDaySelector(
             ) {
                 Text(
                     text = day.name.take(3).uppercase(Locale.ENGLISH),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = SpaceMono,
