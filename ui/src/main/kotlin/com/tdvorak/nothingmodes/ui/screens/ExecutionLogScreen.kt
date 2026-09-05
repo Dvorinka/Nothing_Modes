@@ -31,7 +31,6 @@ import com.tdvorak.nothingmodes.data.NothingModesDatabase
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -131,10 +130,6 @@ fun ExecutionLogScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             if (entries.isEmpty()) {
                 NothingEmptyState(
                     title = "No executions yet",
@@ -150,28 +145,23 @@ fun ExecutionLogScreen(
                     bottom = NothingSpacing.xxxl,
                 ),
             ) {
-                // Hero — title + success rate
+                // Hero — success rate as the single Doto moment
                 item {
-                    Text(
-                        text = "LOG",
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     Text(
                         text = "%.0f%%".format(stats.successRate * 100),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.primary,
+                        fontFamily = Doto,
                     )
                     NothingLabel(text = "Success Rate")
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
-                    // Segmented bar — visual proportion
+                    // Segmented bar — visual proportion; primary fill, accent only for errors.
                     NothingSegmentedBar(
                         total = 20,
                         filled = (stats.successRate * 20).toInt().coerceIn(0, 20),
-                        fillColor = if (stats.errorCount > 0) NothingColors.warning
-                        else NothingColors.success,
+                        fillColor = if (stats.errorCount > 0) NothingColors.accent
+                        else MaterialTheme.colorScheme.primary,
                         height = 12f,
                     )
                 }
@@ -186,7 +176,7 @@ fun ExecutionLogScreen(
                     NothingInfoRow(
                         label = "Fired",
                         value = stats.firedCount.toString(),
-                        valueColor = NothingColors.success,
+                        valueColor = MaterialTheme.colorScheme.primary,
                     )
                     NothingDivider()
                     NothingInfoRow(label = "Mode Activated", value = stats.modeActivatedCount.toString())
@@ -196,7 +186,7 @@ fun ExecutionLogScreen(
                     NothingInfoRow(
                         label = "Suppressed",
                         value = stats.suppressedCount.toString(),
-                        valueColor = NothingColors.warning,
+                        valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     NothingDivider()
                     NothingInfoRow(
@@ -221,10 +211,10 @@ fun ExecutionLogScreen(
 
                 itemsIndexed(entries) { index, entry ->
                     val kindColor = when (entry.kind) {
-                        "FIRED" -> NothingColors.success
-                        "MODE_ACTIVATED" -> NothingColors.success
+                        "FIRED" -> MaterialTheme.colorScheme.primary
+                        "MODE_ACTIVATED" -> MaterialTheme.colorScheme.primary
                         "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
-                        "SUPPRESSED_COOLDOWN" -> NothingColors.warning
+                        "SUPPRESSED_COOLDOWN" -> MaterialTheme.colorScheme.onSurfaceVariant
                         "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
                         "ERROR" -> NothingColors.accent
                         else -> MaterialTheme.colorScheme.onSurface

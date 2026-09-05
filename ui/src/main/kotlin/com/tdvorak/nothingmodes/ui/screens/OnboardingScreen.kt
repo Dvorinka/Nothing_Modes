@@ -248,7 +248,7 @@ private fun OnboardingStep(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NothingStatusDot(
-                    color = if (done) NothingColors.success else NothingColors.accent,
+                    color = if (done) MaterialTheme.colorScheme.primary else NothingColors.accent,
                     size = 6f,
                 )
                 Spacer(modifier = Modifier.padding(end = 6.dp))

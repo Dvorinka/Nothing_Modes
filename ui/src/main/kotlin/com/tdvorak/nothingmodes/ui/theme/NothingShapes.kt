@@ -5,23 +5,31 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Nothing Design System shapes.
+ * Nothing Design System shape scale.
  *
- * Cards: 12–16px radius. Compact: 8px. Technical: 4px.
- * Buttons: pill (999px) or technical (4–8px).
- * No border-radius > 16px on cards.
+ * Nothing OS uses razor-sharp surfaces. Most cards have a subtle radius;
+ * small interactive tiles and bottom sheets stay technical and flat.
+ *
+ *   technical  → 4dp
+ *   compact    → 8dp
+ *   cards      → 8dp (small) / 12dp (large)
+ *   buttons    → pill (999dp)
  */
 object NothingShapes {
     val shapes = Shapes(
-        extraSmall = RoundedCornerShape(4.dp),   // technical
-        small = RoundedCornerShape(8.dp),        // compact cards, inputs
-        medium = RoundedCornerShape(12.dp),      // standard cards
-        large = RoundedCornerShape(16.dp),       // large cards
-        extraLarge = RoundedCornerShape(16.dp),  // max 16px
+        extraSmall = RoundedCornerShape(4.dp),
+        small = RoundedCornerShape(8.dp),
+        medium = RoundedCornerShape(8.dp),
+        large = RoundedCornerShape(12.dp),
+        extraLarge = RoundedCornerShape(12.dp),
     )
 
     val pill = RoundedCornerShape(999.dp)
     val technical = RoundedCornerShape(4.dp)
-    val card = RoundedCornerShape(12.dp)
-    val cardLarge = RoundedCornerShape(16.dp)
+    val compact = RoundedCornerShape(8.dp)
+    val card = RoundedCornerShape(8.dp)
+    val cardLarge = RoundedCornerShape(12.dp)
+    val sheet = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    // Modals per components.md: 16px radius dialog surface.
+    val dialog = RoundedCornerShape(16.dp)
 }

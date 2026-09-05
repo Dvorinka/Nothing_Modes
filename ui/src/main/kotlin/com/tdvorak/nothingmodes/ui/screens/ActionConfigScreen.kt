@@ -35,7 +35,6 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -72,10 +71,6 @@ fun ActionConfigScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()

@@ -48,7 +48,6 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -215,10 +214,6 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -247,7 +242,7 @@ fun SettingsScreen(
                 NothingInfoRow(
                     label = "Nothing Device",
                     value = if (capabilities.isNothingDevice) "Yes" else "No",
-                    valueColor = if (capabilities.isNothingDevice) NothingColors.success
+                    valueColor = if (capabilities.isNothingDevice) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
@@ -289,8 +284,8 @@ fun SettingsScreen(
                     ShizukuGatewayStatus.UNSUPPORTED -> "Unsupported"
                 }
                 val shizukuColor = when (shizukuStatus) {
-                    ShizukuGatewayStatus.AUTHORIZED -> NothingColors.success
-                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> NothingColors.warning
+                    ShizukuGatewayStatus.AUTHORIZED -> MaterialTheme.colorScheme.primary
+                    ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> NothingColors.accent
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 Row(
@@ -327,7 +322,7 @@ fun SettingsScreen(
                         ShizukuPermissionResult.UNAVAILABLE -> "[ UNAVAILABLE ]"
                     }
                     val resultColor = when (result) {
-                        ShizukuPermissionResult.GRANTED -> NothingColors.success
+                        ShizukuPermissionResult.GRANTED -> MaterialTheme.colorScheme.primary
                         else -> NothingColors.accent
                     }
                     Text(
@@ -349,28 +344,28 @@ fun SettingsScreen(
                 NothingInfoRow(
                     label = "Flashlight",
                     value = if (capabilities.hasFlashlight) "Yes" else "No",
-                    valueColor = if (capabilities.hasFlashlight) NothingColors.success
+                    valueColor = if (capabilities.hasFlashlight) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NothingDivider()
                 NothingInfoRow(
                     label = "Vibration",
                     value = if (capabilities.hasVibrator) "Yes" else "No",
-                    valueColor = if (capabilities.hasVibrator) NothingColors.success
+                    valueColor = if (capabilities.hasVibrator) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NothingDivider()
                 NothingInfoRow(
                     label = "Glyph Stripe",
                     value = if (capabilities.hasGlyphLightStripe) "Yes" else "No",
-                    valueColor = if (capabilities.hasGlyphLightStripe) NothingColors.success
+                    valueColor = if (capabilities.hasGlyphLightStripe) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NothingDivider()
                 NothingInfoRow(
                     label = "Glyph Matrix",
                     value = if (capabilities.hasGlyphMatrix) "Yes" else "No",
-                    valueColor = if (capabilities.hasGlyphMatrix) NothingColors.success
+                    valueColor = if (capabilities.hasGlyphMatrix) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
@@ -615,14 +610,14 @@ private fun PermissionRow(label: String, granted: Boolean, onOpenSettings: () ->
         NothingLabel(text = label)
         Row(verticalAlignment = Alignment.CenterVertically) {
             NothingStatusDot(
-                color = if (granted) NothingColors.success else NothingColors.accent,
+                color = if (granted) MaterialTheme.colorScheme.primary else NothingColors.accent,
                 size = 6f,
             )
             Spacer(modifier = Modifier.padding(end = 6.dp))
             Text(
                 text = if (granted) "Granted" else "Not Granted",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (granted) NothingColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
             )
             if (!granted) {
@@ -677,14 +672,14 @@ private fun DeviceAdminSection(context: android.content.Context) {
         NothingLabel(text = "Status")
         Row(verticalAlignment = Alignment.CenterVertically) {
             NothingStatusDot(
-                color = if (isActive) NothingColors.success else NothingColors.accent,
+                color = if (isActive) MaterialTheme.colorScheme.primary else NothingColors.accent,
                 size = 6f,
             )
             Spacer(modifier = Modifier.padding(end = 6.dp))
             Text(
                 text = if (isActive) "Active" else "Not Active",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isActive) NothingColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
             )
         }

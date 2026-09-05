@@ -68,10 +68,11 @@ fun NothingCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
+        elevation = CardDefaults.cardElevation(0.dp),
         shape = NothingShapes.card,
         border = if (borderless) null else BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant,
+            MaterialTheme.colorScheme.outline,
         ),
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -86,11 +87,11 @@ fun NothingCardLarge(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, NothingShapes.cardLarge),
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.cardLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
             content()
@@ -193,14 +194,15 @@ fun NothingDotGrid(
     modifier: Modifier = Modifier,
     dotSize: Float = 1.5f,
     spacing: Float = 16f,
-    alpha: Float = 0.08f,
+    alpha: Float = 0.12f,
 ) {
+    val baseColor = MaterialTheme.colorScheme.outline
+    val dotColor = baseColor.copy(alpha = alpha.coerceIn(0.10f, 0.20f))
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
         val spacingPx = spacing.dp.toPx()
         val dotRadiusPx = (dotSize / 2).dp.toPx()
-        val dotColor = Color.White.copy(alpha = alpha)
 
         var x = 0f
         while (x <= canvasWidth) {
@@ -313,7 +315,7 @@ fun NothingPrimaryButton(
     enabled: Boolean = true,
 ) {
     Surface(
-        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
         modifier = modifier
             .height(44.dp)
@@ -322,7 +324,7 @@ fun NothingPrimaryButton(
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.wrapContentSize(Alignment.Center),
         )
@@ -468,7 +470,7 @@ fun NothingEmptyState(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
@@ -576,7 +578,7 @@ fun NothingPillButton(
     enabled: Boolean = true,
 ) {
     Surface(
-        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
         modifier = modifier
             .height(48.dp)
@@ -585,7 +587,7 @@ fun NothingPillButton(
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .wrapContentSize(Alignment.Center)
@@ -658,19 +660,19 @@ fun NothingInput(
             value = value,
             onValueChange = onValueChange,
             placeholder = if (placeholder.isNotEmpty()) {
-                { Text(placeholder, color = MaterialTheme.colorScheme.outline) }
+                { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else null,
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = SpaceMono),
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 cursorColor = MaterialTheme.colorScheme.primary,
             ),
-            shape = NothingShapes.technical,
+            shape = NothingShapes.compact,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -695,10 +697,10 @@ fun NothingEnumSelector(
         )
         Surface(
             color = MaterialTheme.colorScheme.background,
-            shape = NothingShapes.technical,
+            shape = NothingShapes.compact,
             border = BorderStroke(
                 1.dp,
-                if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -718,9 +720,10 @@ fun NothingEnumSelector(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = if (expanded) "▴" else "▾",
+                    text = if (expanded) "[CLOSE]" else "[OPEN]",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
                 )
             }
         }
@@ -729,8 +732,8 @@ fun NothingEnumSelector(
             Spacer(modifier = Modifier.height(NothingSpacing.xs))
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shape = NothingShapes.technical,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shape = NothingShapes.compact,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -757,11 +760,7 @@ fun NothingEnumSelector(
                                 fontFamily = SpaceMono,
                             )
                             if (option.equals(value, ignoreCase = true)) {
-                                Text(
-                                    text = "●",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = NothingColors.accent,
-                                )
+                                NothingRedDot(size = 6f)
                             }
                         }
                     }
@@ -792,10 +791,9 @@ fun NothingSegmentedBar(
                 modifier = Modifier
                     .weight(1f)
                     .height(height.dp)
-                    .clip(NothingShapes.technical)
                     .background(
                         if (i < filled) fillColor
-                        else MaterialTheme.colorScheme.outlineVariant,
+                        else MaterialTheme.colorScheme.outline,
                     ),
             )
         }
@@ -894,6 +892,62 @@ fun NothingSelectionTopBar(
     }
 }
 
+// ── Checkbox (monoline square, red dot when checked) ─────────────────────────
+
+/**
+ * Nothing-style checkbox. Empty square with thin border; when checked, a red
+ * accent dot fills the center. Replaces Material [Checkbox] for theme parity.
+ */
+@Composable
+fun NothingCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    size: Float = 20f,
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .clip(NothingShapes.technical)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.technical)
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            NothingRedDot(size = size * 0.5f)
+        }
+    }
+}
+
+// ── Radio (monoline circle, red dot when selected) ───────────────────────────
+
+/**
+ * Nothing-style radio. Thin circle outline; when selected, a red accent dot
+ * fills the center. Replaces Material [RadioButton] for theme parity.
+ */
+@Composable
+fun NothingRadio(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Float = 20f,
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            NothingRedDot(size = size * 0.5f)
+        }
+    }
+}
+
 // ── Circular Add Button ──────────────────────────────────────────────────────
 
 /**
@@ -910,14 +964,15 @@ fun NothingAddCircle(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = "+",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = NothingColors.accent,
         )
     }
 }

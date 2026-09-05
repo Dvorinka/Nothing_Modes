@@ -40,9 +40,12 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -60,10 +63,11 @@ fun ActionConfigSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = NothingShapes.sheet,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
-        scrimColor = Color.Black.copy(alpha = 0.6f),
+        scrimColor = Color.Black.copy(alpha = 0.8f),
         dragHandle = { SheetDragHandle() },
     ) {
         Column(
@@ -77,7 +81,7 @@ fun ActionConfigSheet(
                 text = actionTitle(action),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
+                fontFamily = GeistSans,
                 modifier = Modifier.padding(bottom = NothingSpacing.md),
             )
 
@@ -617,8 +621,8 @@ private fun SheetDragHandle() {
     Box(
         modifier = Modifier
             .padding(vertical = NothingSpacing.sm)
-            .size(32.dp, 4.dp)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+            .size(32.dp, 2.dp)
+            .background(MaterialTheme.colorScheme.outline, RoundedCornerShape(1.dp))
     )
 }
 
@@ -781,20 +785,21 @@ private fun AppPickerField(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = if (showList) "▲" else "▼",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = if (showList) "[CLOSE]" else "[OPEN]",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
                 )
             }
         }
 
         if (showList) {
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            androidx.compose.material3.OutlinedTextField(
+            NothingInput(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search apps...", fontFamily = SpaceMono) },
-                singleLine = true,
+                label = "Search",
+                placeholder = "Search apps...",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -806,8 +811,12 @@ private fun AppPickerField(
             ) {
                 items(filteredApps, key = { it.second }) { (label, pkg) ->
                     androidx.compose.material3.Surface(
-                        color = if (pkg == currentPackage) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline,
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
@@ -816,13 +825,28 @@ private fun AppPickerField(
                                 searchQuery = ""
                             },
                     ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
-                            modifier = Modifier.padding(NothingSpacing.sm),
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(NothingSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (pkg == currentPackage) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(2.dp)
+                                        .height(20.dp)
+                                        .background(NothingColors.accent),
+                                )
+                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                            }
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        }
                     }
                 }
             }

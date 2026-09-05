@@ -26,8 +26,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.outlined.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -42,10 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.content.ContextCompat
@@ -63,13 +63,13 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
-import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
-import com.tdvorak.nothingmodes.ui.theme.NothingCircleButton
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
@@ -292,8 +292,8 @@ fun AutomationListScreen(
                     listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
                 } else {
                     listOf(
-                        TopBarAction("LOG", icon = Icons.AutoMirrored.Default.List, onLogClick),
-                        TopBarAction("SETTINGS", icon = Icons.Default.Settings, onSettingsClick),
+                        TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onLogClick),
+                        TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onSettingsClick),
                     )
                 },
             )
@@ -306,7 +306,6 @@ fun AutomationListScreen(
         ) {
             NothingDotGrid(
                 modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
             )
 
             if (items.isEmpty() && !loading) {
@@ -408,9 +407,8 @@ private fun RoutineCard(
     onToggleEnabled: () -> Unit,
     onRun: () -> Unit = {},
 ) {
-    val iconColor = if (automation.iconBackground.isNotBlank()) colorForHex(automation.iconBackground) else routineColor(automation.name)
-    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
-    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
+    val iconTextColor = MaterialTheme.colorScheme.onSurface
+    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outline
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -428,13 +426,7 @@ private fun RoutineCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(iconColor),
-                    contentAlignment = Alignment.Center,
-                ) {
+                NothingIconCircle(size = 48f) {
                     if (automation.icon.isNotBlank()) {
                         Icon(
                             imageVector = iconForName(automation.icon),
@@ -445,9 +437,9 @@ private fun RoutineCard(
                     } else {
                         Text(
                             text = automation.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             color = iconTextColor,
-                            fontFamily = Doto,
+                            fontFamily = GeistSans,
                         )
                     }
                 }
@@ -457,21 +449,17 @@ private fun RoutineCard(
                 if (inSelectionMode) {
                     SelectionIndicator(isSelected = isSelected)
                 } else if (automation.trigger is Trigger.Manual) {
-                    // Manual trigger routines show a play button instead of a toggle.
-                    Box(
+                    // Manual trigger routines show a RUN text action instead of a toggle.
+                    Text(
+                        text = "RUN",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NothingColors.accent,
+                        fontFamily = SpaceMono,
+                        letterSpacing = 1.0.sp,
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(NothingColors.success)
-                            .clickable(onClick = onRun),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "▶",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
-                        )
-                    }
+                            .clickable(onClick = onRun)
+                            .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                    )
                 } else {
                     NothingToggle(
                         checked = automation.enabled,
@@ -539,21 +527,7 @@ private fun SelectionIndicator(isSelected: Boolean) {
     }
 }
 
-private val routineColors = listOf(
-    Color(0xFF4A9E5C),
-    Color(0xFFD4A843),
-    Color(0xFF5B9BF6),
-    Color(0xFFD71921),
-    Color(0xFF9B59B6),
-    Color(0xFF1ABC9C),
-)
 
-private fun routineColor(name: String): Color {
-    val index = name.hashCode().rem(routineColors.size).let {
-        if (it < 0) it + routineColors.size else it
-    }
-    return routineColors[index]
-}
 
 // ── Multi-Select Bottom Action Bar ───────────────────────────────────────────
 
@@ -567,7 +541,7 @@ private fun MultiSelectBottomBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.cardLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
@@ -577,11 +551,38 @@ private fun MultiSelectBottomBar(
                 .fillMaxWidth()
                 .padding(vertical = NothingSpacing.sm),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            NothingCircleButton(icon = "A", label = "All", onClick = onSelectAll)
-            NothingCircleButton(icon = "D", label = "Delete", onClick = onDelete, color = NothingColors.accent)
-            NothingCircleButton(icon = "R", label = "Run", onClick = onRun, color = NothingColors.success)
+            Text(
+                text = "ALL",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SpaceMono,
+                letterSpacing = 1.0.sp,
+                modifier = Modifier
+                    .clickable(onClick = onSelectAll)
+                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            )
+            Text(
+                text = "DELETE",
+                style = MaterialTheme.typography.labelLarge,
+                color = NothingColors.accent,
+                fontFamily = SpaceMono,
+                letterSpacing = 1.0.sp,
+                modifier = Modifier
+                    .clickable(onClick = onDelete)
+                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            )
+            Text(
+                text = "RUN",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = SpaceMono,
+                letterSpacing = 1.0.sp,
+                modifier = Modifier
+                    .clickable(onClick = onRun)
+                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            )
         }
     }
 }
