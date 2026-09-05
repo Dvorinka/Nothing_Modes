@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.engine.model.CreatorProfile
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
@@ -48,12 +49,15 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
+import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
+import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -649,6 +653,55 @@ fun SettingsScreen(
                             NothingGhostButton(
                                 text = "Dismiss",
                                 onClick = { viewModel.clearImportResult() },
+                            )
+                        }
+                    }
+
+                    // ── Creator profile ───────────────────────────────────────
+                    val creatorPrefs = remember { CreatorPreferences(context) }
+                    var profile by remember { mutableStateOf(creatorPrefs.get()) }
+
+                    NothingSectionHeader(text = "Creator Profile")
+                    NothingCard {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .padding(vertical = NothingSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                        ) {
+                            NothingInput(
+                                value = profile.displayName,
+                                onValueChange = { profile = profile.copy(displayName = it) },
+                                label = "Display name",
+                                placeholder = "Your name or alias",
+                            )
+                            NothingInput(
+                                value = profile.handle,
+                                onValueChange = { profile = profile.copy(handle = it) },
+                                label = "Handle / email",
+                                placeholder = "@handle or email",
+                            )
+                            NothingInput(
+                                value = profile.note,
+                                onValueChange = { profile = profile.copy(note = it) },
+                                label = "Description",
+                                placeholder = "Short note about your routines",
+                                singleLine = false,
+                            )
+                            NothingEnumSelector(
+                                label = "License",
+                                value = profile.license,
+                                options = CreatorProfile.COMMON_LICENSES,
+                                onSelect = { profile = profile.copy(license = it) },
+                            )
+                            NothingSecondaryButton(
+                                text = "Save Profile",
+                                onClick = {
+                                    val saved = profile.sanitized()
+                                    creatorPrefs.save(saved)
+                                    profile = saved
+                                },
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }

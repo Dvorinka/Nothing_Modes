@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,13 +41,17 @@ import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
+import com.tdvorak.nothingmodes.ui.R
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
@@ -58,6 +63,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -114,6 +120,64 @@ class AutomationDetailViewModel
                     context.startActivity(chooser)
                 }.onFailure {
                     Toast.makeText(context, "Share failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        fun submitToCatalog() {
+            val current = _automation.value ?: return
+            viewModelScope.launch {
+                runCatching {
+                    val appVersion =
+                        runCatching {
+                            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                        }.getOrNull().orEmpty()
+                    val creator = CreatorPreferences(context).get()
+                    val export = ImportExportService(store, appVersion).export(listOf(current.id), creator)
+
+                    val submissionDir = File(context.cacheDir, "submissions")
+                    submissionDir.mkdirs()
+                    val file = File(submissionDir, "${current.id.value}.json")
+                    file.writeText(export.json)
+
+                    val uri =
+                        FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file,
+                        )
+
+                    val email = context.getString(R.string.template_submission_email)
+                    val body =
+                        """
+                        Hello,
+
+                        I would like to submit the attached Nothing Modes routine for the public template catalog.
+
+                        Routine name: ${current.name}
+                        License: ${creator.license}
+                        Created by: ${creator.displayName.ifBlank { "Anonymous" }}
+                        Handle/email: ${creator.handle}
+
+                        Please review the attached JSON.
+
+                        Kind regards
+                        """.trimIndent()
+
+                    val intent =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "application/json"
+                            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
+                            putExtra(Intent.EXTRA_SUBJECT, "[Nothing Modes Template] ${current.name}")
+                            putExtra(Intent.EXTRA_TEXT, body)
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                    val chooser = Intent.createChooser(intent, "Submit routine")
+                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(chooser)
+                }.onFailure {
+                    Toast.makeText(context, "Submit failed: ${it.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -315,6 +379,14 @@ fun AutomationDetailScreen(
                             )
                         }
                     }
+                }
+
+                NothingCard {
+                    NothingPillButton(
+                        text = "Submit to public catalog",
+                        onClick = { viewModel.submitToCatalog() },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))

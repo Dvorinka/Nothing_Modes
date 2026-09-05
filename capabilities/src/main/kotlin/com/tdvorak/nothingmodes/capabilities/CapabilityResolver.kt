@@ -36,13 +36,20 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_PHONE_CALL,
             -> capabilities.hasTelephony
 
-            CapabilityIds.TRIGGER_CONNECTIVITY_WIFI -> capabilities.hasWifi
-            CapabilityIds.TRIGGER_CONNECTIVITY_BT -> capabilities.hasBluetooth
+            CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
+            CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
+            CapabilityIds.TRIGGER_WIFI_CONNECTED,
+            -> capabilities.hasWifi
+            CapabilityIds.TRIGGER_CONNECTIVITY_BT,
+            CapabilityIds.TRIGGER_BT_DEVICE,
+            -> capabilities.hasBluetooth
             CapabilityIds.TRIGGER_CONNECTIVITY_POWER -> true
             CapabilityIds.TRIGGER_BATTERY_LEVEL -> true
             CapabilityIds.TRIGGER_SCREEN_STATE -> true
             CapabilityIds.TRIGGER_APP_OPENED -> capabilities.hasUsageAccess
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
+            CapabilityIds.TRIGGER_MANUAL -> true
+            CapabilityIds.TRIGGER_CALENDAR_EVENT -> true
 
             // State readers
             CapabilityIds.STATE_READER_BUILTIN -> true
@@ -74,6 +81,11 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_BRIGHTNESS -> capabilities.hasWriteSettings
             CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS -> capabilities.hasWriteSettings
             CapabilityIds.ACTION_SET_SCREEN_TIMEOUT -> capabilities.hasWriteSettings
+            CapabilityIds.ACTION_SET_AUTO_ROTATE,
+            CapabilityIds.ACTION_SET_REFRESH_RATE,
+            CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+            -> capabilities.hasWriteSettings
+            CapabilityIds.ACTION_SET_AOD -> capabilities.hasWriteSettings
             CapabilityIds.ACTION_OPEN_SETTINGS_SCREEN -> true
             CapabilityIds.ACTION_VIBRATE -> capabilities.hasVibrator
             CapabilityIds.ACTION_SET_GLYPH -> capabilities.hasGlyphLightStripe
@@ -86,6 +98,20 @@ class CapabilityResolver(
             CapabilityIds.ACTION_GLYPH_TURNOFF -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_COPY_TEXT -> true
             CapabilityIds.ACTION_WAIT -> true
+            CapabilityIds.ACTION_SET_BATTERY_SAVER,
+            CapabilityIds.ACTION_SET_AIRPLANE_MODE,
+            CapabilityIds.ACTION_SET_DATA_SAVER,
+            CapabilityIds.ACTION_SET_HOTSPOT,
+            CapabilityIds.ACTION_SET_NFC,
+            CapabilityIds.ACTION_SET_AUTO_SYNC,
+            -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_SEND_SMS,
+            CapabilityIds.ACTION_SET_LOCATION_MODE,
+            -> capabilities.hasTelephony
+            CapabilityIds.ACTION_MEDIA_CONTROL -> true
+            CapabilityIds.ACTION_TAKE_SCREENSHOT -> true
+            CapabilityIds.ACTION_LOCK_SCREEN -> true
+            CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -100,12 +126,22 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_EXTRA_DIM,
             CapabilityIds.ACTION_SET_MOBILE_DATA,
             CapabilityIds.ACTION_WRITE_SETTING,
+            CapabilityIds.ACTION_SET_BATTERY_SAVER,
+            CapabilityIds.ACTION_SET_AIRPLANE_MODE,
+            CapabilityIds.ACTION_SET_DATA_SAVER,
+            CapabilityIds.ACTION_SET_HOTSPOT,
+            CapabilityIds.ACTION_SET_NFC,
+            CapabilityIds.ACTION_SET_AUTO_SYNC,
             -> "Shizuku required but not authorized"
 
             CapabilityIds.ACTION_SET_DND -> "Notification policy access required"
             CapabilityIds.ACTION_SET_BRIGHTNESS,
             CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
             CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
+            CapabilityIds.ACTION_SET_AUTO_ROTATE,
+            CapabilityIds.ACTION_SET_REFRESH_RATE,
+            CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+            CapabilityIds.ACTION_SET_AOD,
             -> "WRITE_SETTINGS permission required"
 
             CapabilityIds.ACTION_SET_GLYPH -> "No Glyph light stripe on this device"
@@ -121,6 +157,14 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"
             CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
             CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
+            CapabilityIds.ACTION_SEND_SMS,
+            CapabilityIds.ACTION_SET_LOCATION_MODE,
+            -> "Telephony not available on this device"
+            CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
+            CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware unavailable"
+            CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware unavailable"
+            CapabilityIds.ACTION_SET_FLASHLIGHT -> "Flashlight unavailable"
+            CapabilityIds.ACTION_VIBRATE -> "Vibrator unavailable"
             else -> "Capability not available: $capability"
         }
 }

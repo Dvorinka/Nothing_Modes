@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Template catalog submission contact. Replace with a confirmed maintainer address. -->
+    <string name="template_submission_email" translatable="false">info@tdvorak.dev</string>
+</resources>
