@@ -8,9 +8,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -34,16 +43,14 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
-import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.NothingToggle
+import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
@@ -78,12 +85,23 @@ class AutomationDetailViewModel @Inject constructor(
         }
     }
 
-    fun toggleEnabled() {
+    fun share() {
         val current = _automation.value ?: return
         viewModelScope.launch {
-            val updated = current.copy(enabled = !current.enabled)
-            store.save(updated)
-            _automation.value = updated
+            runCatching {
+                val export = com.tdvorak.nothingmodes.engine.runtime.ImportExportService(store)
+                    .export(listOf(current.id))
+                val share = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes routine: ${current.name}")
+                    putExtra(Intent.EXTRA_TEXT, export.json)
+                }
+                val chooser = Intent.createChooser(share, "Share routine")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooser)
+            }.onFailure {
+                Toast.makeText(context, "Share failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -128,10 +146,11 @@ fun AutomationDetailScreen(
                 title = "Detail",
                 onBack = onBack,
                 actions = listOf(
-                    TopBarAction("RUN", onClick = { viewModel.runNow() }),
-                    TopBarAction("EDIT", onClick = onEdit),
-                    TopBarAction("COPY", onClick = { viewModel.duplicate(onBack) }),
-                    TopBarAction("DEL", onClick = { viewModel.delete(onBack) }),
+                    TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
+                    TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
+                    TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
+                    TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
+                    TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
                 ),
             )
         },
@@ -158,16 +177,6 @@ fun AutomationDetailScreen(
                     .padding(horizontal = NothingSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                // Hero — automation name in Doto
-                Text(
-                    text = data.name,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = Doto,
-                    modifier = Modifier.padding(top = NothingSpacing.lg),
-                )
-
-                // Status word — large ALL CAPS, status-colored
                 val statusText = when (data.status) {
                     AutomationStatus.ARMED -> "ARMED"
                     AutomationStatus.DISABLED -> "DISABLED"
@@ -180,28 +189,56 @@ fun AutomationDetailScreen(
                     AutomationStatus.PENDING_APPROVAL -> NothingColors.accent
                     AutomationStatus.NEEDS_REVIEW -> NothingColors.accent
                 }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = statusColor,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier.padding(top = NothingSpacing.xs),
-                )
 
-                // Toggle row
-                NothingCard(modifier = Modifier.padding(top = NothingSpacing.lg)) {
+                NothingCardLarge(
+                    modifier = Modifier.padding(top = NothingSpacing.lg),
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        NothingLabel(
-                            text = "Enabled",
-                            modifier = Modifier.weight(1f),
-                        )
-                        NothingToggle(
-                            checked = data.enabled,
-                            onCheckedChange = { viewModel.toggleEnabled() },
-                        )
+                        NothingIconCircle(size = 56f) {
+                            Text(
+                                text = data.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(NothingSpacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = data.name,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontFamily = Doto,
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                NothingStatusDot(color = statusColor, size = 6f)
+                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                                Text(
+                                    text = "${data.type.name.uppercase()} · $statusText",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = SpaceMono,
+                                )
+                            }
+                        }
+                    }
+
+                    if (!data.enabled) {
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            NothingStatusDot(color = NothingColors.accent, size = 6f)
+                            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                            Text(
+                                text = "DISABLED — open the editor to enable.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        }
                     }
                 }
 
@@ -212,13 +249,14 @@ fun AutomationDetailScreen(
                     NothingListRow(
                         title = triggerDescription(data.trigger),
                         subtitle = "Tap to reconfigure",
+                        onClick = onEdit,
                         leading = {
-                            NothingIconCircle(size = 44f) {
-                                Text(
-                                    text = data.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = SpaceMono,
+                            NothingIconCircle(size = 44f, accent = true) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         },
@@ -240,6 +278,7 @@ fun AutomationDetailScreen(
                             NothingDivider()
                             NothingListRow(
                                 title = actionDescription(action),
+                                onClick = onEdit,
                                 leading = {
                                     NothingIconCircle(size = 40f) {
                                         Text(

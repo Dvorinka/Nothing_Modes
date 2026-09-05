@@ -46,7 +46,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
-import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
@@ -108,7 +107,6 @@ fun NothingTimeField(
                     text = display,
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = Doto,
                 )
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                 Text(
@@ -176,7 +174,6 @@ fun NothingTimePickerDialog(
                         text = ":",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
                         modifier = Modifier.padding(horizontal = NothingSpacing.sm),
                     )
                     WheelColumn(
@@ -279,7 +276,6 @@ private fun WheelColumn(
                         style = MaterialTheme.typography.headlineSmall,
                         color = if (isSelected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     )
                 }
@@ -324,7 +320,6 @@ fun NothingDateField(
                     text = display,
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = Doto,
                 )
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                 Text(

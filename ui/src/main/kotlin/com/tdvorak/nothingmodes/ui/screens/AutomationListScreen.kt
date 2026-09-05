@@ -308,8 +308,8 @@ fun AutomationListScreen(
                     listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
                 } else {
                     listOf(
-                        TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onLogClick),
-                        TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onSettingsClick),
+                        TopBarAction("LOG", icon = Icons.Outlined.List, onClick = onLogClick),
+                        TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
                     )
                 },
             )

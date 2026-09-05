@@ -624,18 +624,44 @@ fun SettingsScreen(
                     packageInfo?.versionCode?.toString() ?: "?"
                 }
                 NothingSectionHeader(text = "About")
-                NothingCard {
+                NothingCardLarge {
                     NothingInfoRow(label = "Version", value = versionName)
                     NothingDivider()
                     NothingInfoRow(label = "Build", value = versionCode)
                     NothingDivider()
                     NothingInfoRow(label = "Application ID", value = context.packageName)
                     NothingDivider()
+                    NothingListRow(
+                        title = "GitHub repository",
+                        subtitle = "View source, report issues, or contribute",
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Dvorinka/Nothing_Modes")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                        trailing = {
+                            Text(
+                                text = "OPEN",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        },
+                    )
+                    NothingDivider()
                     Text(
-                        text = "Nothing Modes is open-source software released under GPL-3.0.",
+                        text = "Nothing Modes is open-source software released under GPL-3.0. Built for the Nothing community.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = NothingSpacing.md),
+                    )
+                    NothingPillButton(
+                        text = "Open source license",
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Dvorinka/Nothing_Modes/blob/main/LICENSE")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
                     )
                 }
 
@@ -680,9 +706,12 @@ private fun UpdateSection(
         when (updateStatus) {
             UpdateStatus.IDLE,
             UpdateStatus.UP_TO_DATE -> {
-                NothingSecondaryButton(
+                NothingPillButton(
                     text = if (updateStatus == UpdateStatus.UP_TO_DATE) "Up to date" else "Check for updates",
                     onClick = onCheck,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = NothingSpacing.sm),
                 )
             }
             UpdateStatus.CHECKING -> {

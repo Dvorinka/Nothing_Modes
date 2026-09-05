@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -111,6 +114,8 @@ data class BuilderState(
     val icon: String = "",
     val iconBackground: String = "",
     val enabled: Boolean = true,
+    val quickAction: Boolean = true,
+    val cooldownMs: Long = 0,
 )
 
 @HiltViewModel
@@ -142,6 +147,8 @@ class CustomBuilderViewModel @Inject constructor(
                 icon = automation.icon,
                 iconBackground = automation.iconBackground,
                 enabled = automation.enabled,
+                quickAction = automation.quickAction,
+                cooldownMs = automation.cooldownMs,
             )
         }
     }
@@ -152,6 +159,8 @@ class CustomBuilderViewModel @Inject constructor(
     fun updatePriority(priority: Int) { _state.value = _state.value.copy(priority = priority) }
     fun updateIcon(icon: String) { _state.value = _state.value.copy(icon = icon) }
     fun updateEnabled(enabled: Boolean) { _state.value = _state.value.copy(enabled = enabled) }
+    fun updateQuickAction(quick: Boolean) { _state.value = _state.value.copy(quickAction = quick) }
+    fun updateCooldown(minutes: Long) { _state.value = _state.value.copy(cooldownMs = minutes.coerceIn(0, 1440) * 60_000) }
     fun updateIconBackground(color: String) { _state.value = _state.value.copy(iconBackground = color) }
 
     fun addAction(action: Action) {
@@ -224,7 +233,8 @@ class CustomBuilderViewModel @Inject constructor(
                 actions = s.actions,
                 conditions = conditions,
                 priority = s.priority,
-                quickAction = true,
+                quickAction = s.quickAction,
+                cooldownMs = s.cooldownMs,
                 enabled = s.enabled,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
@@ -260,7 +270,8 @@ class CustomBuilderViewModel @Inject constructor(
                 actions = s.actions,
                 conditions = conditions,
                 priority = s.priority,
-                quickAction = true,
+                quickAction = s.quickAction,
+                cooldownMs = s.cooldownMs,
                 enabled = s.enabled,
                 icon = s.icon,
                 iconBackground = s.iconBackground,
@@ -627,37 +638,75 @@ fun CustomAutomationBuilderScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         NothingLabel(text = "Advanced")
-                        Text(
-                            text = if (showAdvanced) "−" else "+",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                        Icon(
+                            imageVector = if (showAdvanced) Icons.Filled.ExpandLess
+                            else Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                     if (showAdvanced) {
                         NothingDivider()
+
+                        NothingListRow(
+                            title = "Enabled",
+                            subtitle = "Routine is saved and will fire",
+                            onClick = { viewModel.updateEnabled(!state.enabled) },
+                            trailing = {
+                                NothingToggle(
+                                    checked = state.enabled,
+                                    onCheckedChange = viewModel::updateEnabled,
+                                )
+                            },
+                        )
+                        NothingDivider()
+
+                        NothingListRow(
+                            title = "Quick action",
+                            subtitle = "Show in widget / Quick Settings",
+                            onClick = { viewModel.updateQuickAction(!state.quickAction) },
+                            trailing = {
+                                NothingToggle(
+                                    checked = state.quickAction,
+                                    onCheckedChange = viewModel::updateQuickAction,
+                                )
+                            },
+                        )
+                        NothingDivider()
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = NothingSpacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .padding(top = NothingSpacing.md),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                NothingLabel(text = "Enabled")
+                                NothingLabel(text = "Cooldown")
                                 Text(
-                                    text = "Off keeps the routine saved but never fires it.",
+                                    text = "Minimum minutes before the routine can fire again.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = NothingSpacing.xs),
                                 )
                             }
-                            NothingToggle(
-                                checked = state.enabled,
-                                onCheckedChange = viewModel::updateEnabled,
+                            NothingInput(
+                                value = (state.cooldownMs / 60_000).toString(),
+                                onValueChange = { text ->
+                                    viewModel.updateCooldown(text.toLongOrNull() ?: 0)
+                                },
+                                label = "min",
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                ),
+                                modifier = Modifier.width(96.dp),
                             )
                         }
+
                         NothingDivider()
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -668,7 +717,7 @@ fun CustomAutomationBuilderScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 NothingLabel(text = "Priority")
                                 Text(
-                                    text = "When two routines fight over the same setting, the higher one wins.",
+                                    text = "Higher wins when two routines fight.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = NothingSpacing.xs),

@@ -563,6 +563,7 @@ fun NothingEmptyState(
 data class TopBarAction(
     val label: String,
     val icon: ImageVector? = null,
+    val accent: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -618,33 +619,41 @@ fun NothingTopBar(
             color = MaterialTheme.colorScheme.primary,
             fontFamily = SpaceMono,
             letterSpacing = 1.5.sp,
-            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
         )
 
-        // Actions — text labels with optional icon
+        // Push actions to the right without forcing the title to fill
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Actions — icon chips, label only as a fallback
         actions.forEach { action ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
                 modifier = Modifier
-                    .clickable(onClick = action.onClick)
-                    .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.sm),
+                    .padding(start = NothingSpacing.xs)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = action.onClick),
+                contentAlignment = Alignment.Center,
             ) {
-                action.icon?.let { icon ->
+                if (action.icon != null) {
                     Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
+                        imageVector = action.icon,
+                        contentDescription = action.label,
+                        tint = if (action.accent) NothingColors.accent else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
                     )
-                    Spacer(modifier = Modifier.width(NothingSpacing.xs))
+                } else {
+                    Text(
+                        text = action.label.uppercase().take(4),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                    )
                 }
-                Text(
-                    text = action.label.uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.0.sp,
-                    modifier = Modifier.padding(horizontal = NothingSpacing.xs),
-                )
             }
         }
     }
