@@ -283,12 +283,12 @@ fun NothingSegmentedControl(
     ) {
         segments.forEachIndexed { index, label ->
             val isSelected = index == selectedIndex
-            Surface(
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else Color.Transparent,
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
                     .height(40.dp)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                     .clickable { onSelected(index) },
             ) {
                 Text(
@@ -297,7 +297,6 @@ fun NothingSegmentedControl(
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.wrapContentSize(Alignment.Center),
                 )
             }
         }
