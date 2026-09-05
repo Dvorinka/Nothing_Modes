@@ -18,6 +18,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Downloading
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.outlined.DownloadForOffline
+import androidx.compose.material.icons.outlined.Downloading
+import androidx.compose.material.icons.outlined.NewReleases
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -64,6 +76,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
@@ -723,11 +736,13 @@ fun SettingsScreen(
                     // ── Update ────────────────────────────────────────────────
                     if (FeatureFlags.enableInAppUpdates) {
                         NothingSectionHeader(text = "Update")
+                        val downloadProgress by updateViewModel.downloadProgress.collectAsState()
                         NothingCard {
                             UpdateSection(
                                 currentVersion = updateViewModel.currentVersionName(),
                                 updateInfo = updateInfo,
                                 updateStatus = updateStatus,
+                                downloadProgress = downloadProgress,
                                 onCheck = { updateViewModel.checkForUpdate() },
                                 onDownload = { info -> updateViewModel.startDownload(info) },
                                 onInstall = { updateViewModel.installIfReady() },
@@ -813,6 +828,7 @@ private fun UpdateSection(
     currentVersion: String,
     updateInfo: UpdateInfo?,
     updateStatus: UpdateStatus,
+    downloadProgress: Float,
     onCheck: () -> Unit,
     onDownload: (UpdateInfo) -> Unit,
     onInstall: () -> Unit,
@@ -823,15 +839,23 @@ private fun UpdateSection(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                .padding(NothingSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            NothingLabel(text = "Current version")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.SystemUpdate,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = NothingSpacing.sm),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                NothingLabel(text = "Nothing Modes")
+            }
             Text(
                 text = currentVersion.ifBlank { "unknown" },
                 style = MaterialTheme.typography.bodyMedium,
@@ -844,42 +868,162 @@ private fun UpdateSection(
             UpdateStatus.IDLE,
             UpdateStatus.UP_TO_DATE,
             -> {
-                NothingPillButton(
-                    text = if (updateStatus == UpdateStatus.UP_TO_DATE) "Up to date" else "Check for updates",
-                    onClick = onCheck,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = NothingSpacing.sm),
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (updateStatus == UpdateStatus.UP_TO_DATE) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = NothingColors.accent,
+                        )
+                        Text(
+                            text = "Up to date",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = NothingColors.accent,
+                            fontFamily = SpaceMono,
+                        )
+                    }
+                    NothingPillButton(
+                        text = if (updateStatus == UpdateStatus.UP_TO_DATE) "Check again" else "Check for updates",
+                        onClick = onCheck,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
             UpdateStatus.CHECKING -> {
-                Text(
-                    text = "Checking...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(20.dp).height(20.dp),
+                        color = NothingColors.accent,
+                        strokeWidth = 2.dp,
+                    )
+                    Text(
+                        text = "Checking GitHub...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = SpaceMono,
+                    )
+                }
             }
             UpdateStatus.AVAILABLE -> {
                 updateInfo?.let { info ->
-                    Text(
-                        text = "Update available: ${info.displayVersion}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.NewReleases,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = NothingSpacing.sm),
+                            tint = NothingColors.accent,
+                        )
+                        Column {
+                            Text(
+                                text = "Update available",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = SpaceMono,
+                            )
+                            Text(
+                                text = info.displayVersion,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                    }
                     if (info.releaseNotes.isNotBlank()) {
                         Text(
                             text = info.releaseNotes,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = SpaceMono,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp)
+                                    .verticalScroll(rememberScrollState()),
                         )
                     }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        NothingPillButton(
+                            text = "Download",
+                            onClick = { onDownload(info) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        NothingGhostButton(
+                            text = "Dismiss",
+                            onClick = onDismiss,
+                        )
+                    }
+                }
+            }
+            UpdateStatus.DOWNLOADING -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Downloading,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = NothingSpacing.sm),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Column {
+                        Text(
+                            text = "Downloading ${updateInfo?.displayVersion ?: ""}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                        )
+                        Text(
+                            text = "${(downloadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                        )
+                    }
+                }
+                NothingSegmentedBar(
+                    total = 20,
+                    filled = (downloadProgress * 20).toInt().coerceIn(0, 20),
+                    height = 6f,
+                    fillColor = NothingColors.accent,
+                )
+            }
+            UpdateStatus.DOWNLOADED -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DownloadForOffline,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = NothingSpacing.sm),
+                        tint = NothingColors.accent,
+                    )
+                    Text(
+                        text = "Ready to install",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                ) {
                     NothingPillButton(
-                        text = "Download and install",
-                        onClick = { onDownload(info) },
+                        text = "Install update",
+                        onClick = onInstall,
+                        modifier = Modifier.weight(1f),
                     )
                     NothingGhostButton(
                         text = "Dismiss",
@@ -887,39 +1031,37 @@ private fun UpdateSection(
                     )
                 }
             }
-            UpdateStatus.DOWNLOADING -> {
-                Text(
-                    text = "Downloading ${updateInfo?.displayVersion ?: ""}...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                )
-            }
-            UpdateStatus.DOWNLOADED -> {
-                NothingPillButton(
-                    text = "Install update",
-                    onClick = onInstall,
-                )
-                NothingGhostButton(
-                    text = "Dismiss",
-                    onClick = onDismiss,
-                )
-            }
             UpdateStatus.NEEDS_PERMISSION -> {
-                Text(
-                    text = "Install permission required to update.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                )
-                NothingSecondaryButton(
-                    text = "Open settings",
-                    onClick = onGrantPermission,
-                )
-                NothingGhostButton(
-                    text = "Dismiss",
-                    onClick = onDismiss,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Security,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = NothingSpacing.sm),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Install permission required to update.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = SpaceMono,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                ) {
+                    NothingSecondaryButton(
+                        text = "Open settings",
+                        onClick = onGrantPermission,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NothingGhostButton(
+                        text = "Dismiss",
+                        onClick = onDismiss,
+                    )
+                }
             }
         }
     }

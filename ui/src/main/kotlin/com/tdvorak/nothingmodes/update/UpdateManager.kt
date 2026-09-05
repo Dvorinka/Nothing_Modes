@@ -86,6 +86,20 @@ class UpdateManager
             return downloadManager.enqueue(request).also { activeDownloadId = it }
         }
 
+        /** Query the current progress of an active download. Returns 0..1 or null if unknown. */
+        fun queryProgress(downloadId: Long): Float? {
+            val query = DownloadManager.Query().setFilterById(downloadId)
+            return downloadManager.query(query).use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val bytesIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                val totalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                if (bytesIdx < 0 || totalIdx < 0) return@use null
+                val bytes = cursor.getLong(bytesIdx)
+                val total = cursor.getLong(totalIdx)
+                if (total <= 0) null else (bytes.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+            }
+        }
+
         /** Called by [UpdateDownloadReceiver] when a download finishes. Only acts on our own download. */
         fun onDownloadComplete(downloadId: Long) {
             if (downloadId != activeDownloadId) return

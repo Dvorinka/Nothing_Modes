@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +27,11 @@ class UpdateViewModel
 
         private val _updateStatus = MutableStateFlow(UpdateStatus.IDLE)
         val updateStatus: StateFlow<UpdateStatus> = _updateStatus.asStateFlow()
+
+        private val _downloadProgress = MutableStateFlow(0f)
+        val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+
+        private var progressJob: Job? = null
 
         init {
             viewModelScope.launch {
@@ -51,7 +59,20 @@ class UpdateViewModel
                 return
             }
             _updateStatus.value = UpdateStatus.DOWNLOADING
-            updateManager.startDownload(info)
+            _downloadProgress.value = 0f
+            val downloadId = updateManager.startDownload(info)
+            progressJob?.cancel()
+            progressJob =
+                viewModelScope.launch {
+                    while (isActive && _updateStatus.value == UpdateStatus.DOWNLOADING) {
+                        val progress = updateManager.queryProgress(downloadId)
+                        if (progress != null) {
+                            _downloadProgress.value = progress
+                            if (progress >= 0.99f) break
+                        }
+                        delay(250)
+                    }
+                }
         }
 
         fun openInstallPermissionSettings() {
@@ -66,8 +87,10 @@ class UpdateViewModel
         }
 
         fun clearUpdate() {
+            progressJob?.cancel()
             _updateInfo.value = null
             _updateStatus.value = UpdateStatus.IDLE
+            _downloadProgress.value = 0f
         }
 
         fun currentVersionName(): String {
