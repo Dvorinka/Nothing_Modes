@@ -7,6 +7,7 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.affectedSettings
+import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import kotlinx.coroutines.CancellationException
 import java.time.Instant
@@ -94,6 +95,22 @@ class Engine(
                 // Mode window-end: restore snapshots before executing actions
                 if (event is TriggerEvent.ModeWindowEnd && automation.type == AutomationType.MODE) {
                     restoreSnapshots(automation.id, batchNow)
+                    // Glyph output isn't a settings key — clear it explicitly so
+                    // text/matrix/stripes never linger after the mode ends.
+                    if (automation.actions.any { it.isGlyphAction }) {
+                        runCatching {
+                            executor.execute(
+                                Action.GlyphTurnOff,
+                                FireContext(
+                                    eventId = "restore:${automation.id.value}",
+                                    executionId = "restore:${automation.id.value}:$batchNow",
+                                    automationId = automation.id,
+                                    actionIndex = -2,
+                                    priority = 100,
+                                ),
+                            )
+                        }
+                    }
                 }
 
                 // Mode window-start: snapshot affected settings before executing
@@ -123,7 +140,9 @@ class Engine(
                     executionId = executionId,
                     automationId = automation.id,
                     atMillis = batchNow,
-                    status = if (actionResults.all { it is ActionResult.Success }) ExecutionStatus.COMPLETED else ExecutionStatus.FAILED,
+                    status = if (actionResults.all {
+                        it is ActionResult.Success || it is ActionResult.NeedsUserAction
+                    }) ExecutionStatus.COMPLETED else ExecutionStatus.FAILED,
                     actionCount = actionResults.size,
                 ))
 

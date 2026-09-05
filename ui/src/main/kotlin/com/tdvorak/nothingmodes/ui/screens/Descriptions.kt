@@ -121,3 +121,36 @@ fun actionDescription(action: Action): String = (when (action) {
     is Action.SetAlwaysOnDisplay -> "AOD: ${if (action.on) "On" else "Off"}"
     is Action.TakeScreenshot -> "Screenshot"
 }).uppercase()
+
+/**
+ * One-line requirement/behavior note shown at the top of the action config
+ * sheet. Keeps users from discovering silent failures at run time.
+ */
+fun actionRequirementHint(action: Action): String? = when (action) {
+    is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
+    is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
+    is Action.GlyphPreset ->
+        "Needs a Nothing phone. Output stays lit until a \"Glyph off\" action runs or the mode ends."
+
+    is Action.GlyphTurnOff ->
+        "Clears anything currently on the Glyph."
+
+    is Action.SetWifi, is Action.SetBluetooth, is Action.SetMobileData,
+    is Action.SetAirplaneMode, is Action.SetHotspot, is Action.SetNfc,
+    is Action.SetDataSaver, is Action.SetAutoSync, is Action.SetBatterySaver,
+    is Action.SetAlwaysOnDisplay, is Action.SetLocationMode ->
+        "Silent toggle needs Shizuku — without it, the matching system panel opens for one tap."
+
+    is Action.SetBrightness, is Action.SetAutoBrightness, is Action.SetExtraDim,
+    is Action.SetScreenTimeout, is Action.SetAutoRotate, is Action.SetScreenRotation,
+    is Action.SetRefreshRate, is Action.SetDarkMode ->
+        "Needs the Write Settings permission (Settings → Permissions)."
+
+    is Action.SetDnd -> "Needs Do-Not-Disturb access (Settings → Permissions)."
+    is Action.ShowNotification -> "Needs the notification permission."
+    is Action.SendSms -> "Needs the SMS permission."
+    is Action.LockScreen -> "Needs device admin — enable it in Settings."
+    is Action.WriteSetting -> "Advanced. Secure and global keys need Shizuku."
+    is Action.TakeScreenshot -> "Not supported on most devices yet."
+    else -> null
+}

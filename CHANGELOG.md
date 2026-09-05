@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Glyph Toys system integration: required `toy.image`/`toy.introduction` metadata, `GlyphToysBridge` to enumerate toys + open the Nothing OS manager/AOD-picker/timeout screens, system section on the Glyph Preview screen
+- Glyph reset semantics: modes auto-clear glyph output on window end, "Glyph off" catalog action, TURN OFF control on Glyph Preview
+- New `ActionResult.NeedsUserAction`: shell actions without Shizuku now open the matching system panel (Wi-Fi connectivity, mobile data, Bluetooth, airplane, hotspot, NFC, data saver, battery saver, auto-sync, AOD, location) instead of silently failing
+- Per-action requirement hints shown in the action config sheet (Nothing hardware, Shizuku, permissions, panel fallback)
+- Friendlier glyph config: preset dropdown, zone selector, matrix on/off/custom modes
 - New `NothingPickers` components: wheel time picker, calendar date picker, timezone field (device default + searchable list + raw-id advanced input), large neutral day selector
 - Settings: Manage button on every permission row so access can be granted and revoked from the app; restricted-settings guidance for sideloaded installs (App Info → Allow restricted settings)
 - Settings: full Shizuku flow — Get Shizuku (Play/GitHub), Open Shizuku, Authorize, per-status guidance

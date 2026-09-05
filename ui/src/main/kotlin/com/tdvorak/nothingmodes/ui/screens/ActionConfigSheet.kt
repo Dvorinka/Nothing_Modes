@@ -82,8 +82,20 @@ fun ActionConfigSheet(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = GeistSans,
-                modifier = Modifier.padding(bottom = NothingSpacing.md),
+                modifier = Modifier.padding(bottom = NothingSpacing.sm),
             )
+
+            // Requirement note — tells the user upfront what this action needs
+            // (Shizuku, Nothing hardware, a permission, a panel tap).
+            actionRequirementHint(action)?.let { hint ->
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                )
+            }
 
             ActionConfigContent(
                 action = current,
@@ -317,11 +329,11 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphPreset -> {
-            NothingInput(
+            NothingEnumSelector(
+                label = "Preset",
                 value = a.preset,
-                onValueChange = { onActionChange(a.copy(preset = it)) },
-                label = "Preset name",
-                modifier = Modifier.fillMaxWidth(),
+                options = GLYPH_PRESET_NAMES,
+                onSelect = { onActionChange(a.copy(preset = it)) },
             )
         }
 
@@ -504,21 +516,53 @@ fun ActionConfigContent(
                     val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
-                label = "Channels (comma separated)",
+                label = "Channels (blank = all)",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
 
         is Action.SetGlyphMatrix -> {
-            NothingInput(
-                value = a.colors?.joinToString(",") { String.format("#%06X", 0xFFFFFF and it) } ?: "",
-                onValueChange = { text ->
-                    val list = text.split(",").mapNotNull { parseColorHex(it.trim()) }
-                    onActionChange(a.copy(colors = list.ifEmpty { null }))
+            // Friendly presets instead of raw hex lists; custom stays available.
+            var matrixMode by remember(a) {
+                mutableStateOf(
+                    when {
+                        a.restore -> "Off"
+                        a.colors.isNullOrEmpty() -> "Off"
+                        a.colors!!.all { it == 0xFFFFFF.toInt() } -> "All on"
+                        else -> "Custom"
+                    },
+                )
+            }
+            NothingEnumSelector(
+                label = "Matrix",
+                value = matrixMode,
+                options = listOf("All on", "Off", "Custom"),
+                onSelect = { sel ->
+                    matrixMode = sel
+                    when (sel) {
+                        "All on" -> onActionChange(
+                            a.copy(
+                                colors = List(25 * 25) { 0xFFFFFF.toInt() },
+                                restore = false,
+                            ),
+                        )
+                        "Off" -> onActionChange(a.copy(colors = null, restore = false))
+                        else -> Unit
+                    }
                 },
-                label = "Colors (comma separated hex)",
-                modifier = Modifier.fillMaxWidth(),
             )
+            if (matrixMode == "Custom") {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = a.colors?.joinToString(",") { String.format("#%06X", 0xFFFFFF and it) } ?: "",
+                    onValueChange = { text ->
+                        val list = text.split(",").mapNotNull { parseColorHex(it.trim()) }
+                        onActionChange(a.copy(colors = list.ifEmpty { null }, restore = false))
+                    },
+                    label = "Colors (comma separated hex, row-major)",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             BooleanRow(
                 label = "Restore previous",
                 checked = a.restore,
@@ -554,31 +598,24 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphAnimate -> {
+            NothingEnumSelector(
+                label = "Zone",
+                value = a.zone ?: "All",
+                options = listOf("All", "A", "B", "C", "D", "E"),
+                onSelect = { onActionChange(a.copy(zone = if (it == "All") null else it)) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
                 value = a.periodMs.toString(),
                 onValueChange = { onActionChange(a.copy(periodMs = it.toIntOrNull() ?: a.periodMs)) },
-                label = "Period (ms)",
+                label = "Blink speed (ms per cycle)",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
                 value = a.cycles.toString(),
                 onValueChange = { onActionChange(a.copy(cycles = it.toIntOrNull() ?: a.cycles)) },
-                label = "Cycles",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = a.intervalMs.toString(),
-                onValueChange = { onActionChange(a.copy(intervalMs = it.toIntOrNull() ?: a.intervalMs)) },
-                label = "Interval (ms)",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = a.zone ?: "",
-                onValueChange = { onActionChange(a.copy(zone = it.ifBlank { null })) },
-                label = "Zone (A/B/C/D/E, blank = all)",
+                label = "Repeats",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -588,7 +625,7 @@ fun ActionConfigContent(
                     val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
-                label = "Channels (comma separated, overrides zone)",
+                label = "Advanced — raw channels (overrides zone)",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -615,6 +652,12 @@ fun ActionConfigContent(
         }
     }
 }
+
+/** Named glyph presets understood by the executor's presetFor(). */
+private val GLYPH_PRESET_NAMES = listOf(
+    "sleep", "morning", "work", "dnd", "dnd_off", "fired", "error",
+    "success", "charging", "charging_complete", "call", "sms", "timer", "off",
+)
 
 @Composable
 private fun SheetDragHandle() {

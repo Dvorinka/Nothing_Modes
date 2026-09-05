@@ -9,6 +9,8 @@ sealed interface ActionResult {
     data object Unsupported : ActionResult
     data object PermissionRequired : ActionResult
     data object ShizukuRequired : ActionResult
+    /** The system can't toggle silently — a panel/settings page was opened for the user. */
+    data object NeedsUserAction : ActionResult
 }
 
 /** Context passed to action executors at fire time. */

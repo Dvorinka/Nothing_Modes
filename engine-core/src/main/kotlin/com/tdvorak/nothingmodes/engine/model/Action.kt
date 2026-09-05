@@ -229,6 +229,21 @@ enum class MediaCommand { PLAY_PAUSE, NEXT, PREVIOUS, STOP }
 @Serializable
 enum class LocationMode { HIGH_ACCURACY, BATTERY_SAVING, DEVICE_ONLY, OFF }
 
+/** Actions that draw on Glyph hardware — used to auto-clear output on mode end. */
+val Action.isGlyphAction: Boolean
+    get() = when (this) {
+        is Action.SetGlyph,
+        is Action.SetGlyphMatrix,
+        is Action.GlyphAnimate,
+        is Action.GlyphProgress,
+        is Action.GlyphText,
+        is Action.GlyphScrollingText,
+        is Action.GlyphPreset,
+        -> true
+        is Action.GlyphTurnOff -> false
+        else -> false
+    }
+
 /** Actions that support state restoration (snapshot previous value before applying). */
 val Action.supportsRestore: Boolean
     get() = when (this) {

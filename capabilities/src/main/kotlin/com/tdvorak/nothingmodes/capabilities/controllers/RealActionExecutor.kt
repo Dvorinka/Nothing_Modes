@@ -75,7 +75,10 @@ class RealActionExecutor(
         // Shizuku-required actions (with public-API fallbacks where possible)
         is Action.SetWifi -> setWifi(action.on)
         is Action.SetBluetooth -> setBluetooth(action.on)
-        is Action.SetMobileData -> executeShell(mobileDataCommand(action.on))
+        is Action.SetMobileData -> shellOrPanel(
+            mobileDataCommand(action.on),
+            connectivityPanel(),
+        )
         is Action.WriteSetting -> writeSetting(action)
 
         // Flashlight
@@ -97,11 +100,24 @@ class RealActionExecutor(
 
         // System settings toggles (Phase 4)
         is Action.SetAutoRotate -> setAutoRotate(action.on)
-        is Action.SetBatterySaver -> executeShell(batterySaverCommand(action.on))
+        is Action.SetBatterySaver -> shellOrPanel(
+            batterySaverCommand(action.on),
+            Settings.ACTION_BATTERY_SAVER_SETTINGS,
+        )
         is Action.SetAirplaneMode -> setAirplaneMode(action.on)
-        is Action.SetDataSaver -> executeShell(dataSaverCommand(action.on))
-        is Action.SetHotspot -> executeShell(hotspotCommand(action.on))
-        is Action.SetNfc -> executeShell(nfcCommand(action.on))
+        is Action.SetDataSaver -> shellOrPanel(
+            dataSaverCommand(action.on),
+            // Not a public Settings constant; resolves on most skins.
+            "android.settings.DATA_SAVER_SETTINGS",
+        )
+        is Action.SetHotspot -> shellOrPanel(
+            hotspotCommand(action.on),
+            "android.settings.TETHER_SETTINGS",
+        )
+        is Action.SetNfc -> shellOrPanel(
+            nfcCommand(action.on),
+            Settings.ACTION_NFC_SETTINGS,
+        )
         is Action.SetRefreshRate -> setRefreshRate(action.hz)
         is Action.SetScreenRotation -> setScreenRotation(action.orientation)
         is Action.MediaControl -> mediaControl(action.command)
@@ -110,9 +126,15 @@ class RealActionExecutor(
         is Action.SendSms -> sendSms(action.number, action.text)
         is Action.LockScreen -> lockScreen()
         is Action.SetLocationMode -> setLocationMode(action.mode)
-        is Action.SetAutoSync -> executeShell(autoSyncCommand(action.on))
+        is Action.SetAutoSync -> shellOrPanel(
+            autoSyncCommand(action.on),
+            Settings.ACTION_SYNC_SETTINGS,
+        )
         is Action.ClearNotifications -> clearNotifications()
-        is Action.SetAlwaysOnDisplay -> executeShell(aodCommand(action.on))
+        is Action.SetAlwaysOnDisplay -> shellOrPanel(
+            aodCommand(action.on),
+            Settings.ACTION_DISPLAY_SETTINGS,
+        )
         is Action.TakeScreenshot -> ActionResult.Unsupported
     }
 
@@ -128,6 +150,32 @@ class RealActionExecutor(
             ActionResult.Failure(e.message ?: "shell command failed")
         }
     }
+
+    /**
+     * Try the privileged shell first; when Shizuku isn't available, open the
+     * relevant system panel/settings page so the user can finish the toggle.
+     * Beats a dead "Shizuku required" on unprivileged phones.
+     */
+    private suspend fun shellOrPanel(command: List<String>, panelAction: String): ActionResult {
+        val shellResult = executeShell(command)
+        if (shellResult !is ActionResult.ShizukuRequired) return shellResult
+        return openPanel(panelAction)
+    }
+
+    /** Open a system settings page/panel; returns NeedsUserAction on success. */
+    private fun openPanel(action: String): ActionResult = try {
+        context.startActivity(
+            Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        ActionResult.NeedsUserAction
+    } catch (e: Exception) {
+        ActionResult.ShizukuRequired
+    }
+
+    /** Internet connectivity panel (API 29+); falls back to Wi-Fi settings. */
+    private fun connectivityPanel(): String =
+        if (Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_INTERNET_CONNECTIVITY
+        else Settings.ACTION_WIFI_SETTINGS
 
     private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
     private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
@@ -482,12 +530,12 @@ class RealActionExecutor(
                 ?: return executeShell(bluetoothCommand(on))
             val enabled = if (on) adapter.enable() else adapter.disable()
             if (enabled) ActionResult.Success
-            else executeShell(bluetoothCommand(on))
+            else shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
         } catch (_: SecurityException) {
-            executeShell(bluetoothCommand(on))
+            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
         } catch (e: Exception) {
-            // Public API failed — fall back to Shizuku
-            executeShell(bluetoothCommand(on))
+            // Public API failed — Shizuku, else the Bluetooth settings page
+            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
         }
     }
 
@@ -500,14 +548,14 @@ class RealActionExecutor(
             @Suppress("DEPRECATION")
             val enabled = wm.setWifiEnabled(on)
             if (enabled) ActionResult.Success
-            else executeShell(wifiCommand(on))
+            else shellOrPanel(wifiCommand(on), connectivityPanel())
         } catch (_: SecurityException) {
-            executeShell(wifiCommand(on))
+            shellOrPanel(wifiCommand(on), connectivityPanel())
         } catch (_: NoSuchMethodError) {
-            // Method removed on newer API levels — Shizuku required
-            executeShell(wifiCommand(on))
+            // Method removed on newer API levels — Shizuku or the panel
+            shellOrPanel(wifiCommand(on), connectivityPanel())
         } catch (e: Exception) {
-            executeShell(wifiCommand(on))
+            shellOrPanel(wifiCommand(on), connectivityPanel())
         }
     }
 
@@ -541,6 +589,9 @@ class RealActionExecutor(
         // ACTION_AIRPLANE_MODE_CHANGED is a protected broadcast that third-party apps cannot send
         // on Android 12+, so we use `am broadcast` through the privileged shell.
         val writeResult = executeShell(airplaneModeCommand(on))
+        if (writeResult is ActionResult.ShizukuRequired) {
+            return openPanel(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
+        }
         if (writeResult !is ActionResult.Success) return writeResult
         return executeShell(listOf(
             "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE",
@@ -703,7 +754,8 @@ class RealActionExecutor(
             Settings.Secure.putInt(context.contentResolver, Settings.Secure.LOCATION_MODE, value)
             ActionResult.Success
         } catch (e: SecurityException) {
-            ActionResult.PermissionRequired
+            // No secure-settings write access — open Location settings instead.
+            openPanel(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "setLocationMode failed")
         }

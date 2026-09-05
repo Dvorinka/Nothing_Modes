@@ -42,10 +42,33 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
+import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
+@HiltViewModel
+class GlyphPreviewViewModel @Inject constructor(
+    private val stripeProvider: NothingGlyphProvider,
+    private val matrixProvider: NothingGlyphMatrixProvider,
+) : ViewModel() {
+
+    val glyphAvailable: Boolean
+        get() = stripeProvider.isAvailable() || matrixProvider.isAvailable()
+
+    /** Blank every glyph output — the manual "reset" for stuck text/frames. */
+    fun turnOffNow() {
+        runCatching { stripeProvider.turnOff() }
+        runCatching { matrixProvider.turnOff() }
+    }
+}
 
 @Composable
 fun GlyphPreviewScreen(
     onBack: () -> Unit,
+    viewModel: GlyphPreviewViewModel = hiltViewModel(),
 ) {
     val presets = remember {
         listOf(
@@ -152,6 +175,44 @@ fun GlyphPreviewScreen(
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
                         )
                     }
+                }
+            }
+
+            // Live control — the reset the user was missing.
+            item {
+                NothingDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = NothingSpacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        NothingLabel(text = "Glyph output")
+                        Text(
+                            text = if (viewModel.glyphAvailable) "Hardware detected"
+                            else "No Glyph hardware on this device",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = NothingSpacing.xs),
+                        )
+                    }
+                    Text(
+                        text = "TURN OFF",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = NothingColors.accent,
+                        fontFamily = SpaceMono,
+                        modifier = Modifier
+                            .clip(NothingShapes.compact)
+                            .clickable(enabled = viewModel.glyphAvailable) {
+                                viewModel.turnOffNow()
+                            }
+                            .padding(
+                                horizontal = NothingSpacing.md,
+                                vertical = NothingSpacing.sm,
+                            ),
+                    )
                 }
             }
 
