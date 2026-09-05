@@ -68,6 +68,7 @@ fun NothingCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
+        elevation = CardDefaults.cardElevation(0.dp),
         shape = NothingShapes.card,
         border = if (borderless) null else BorderStroke(
             1.dp,
@@ -86,11 +87,11 @@ fun NothingCardLarge(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.cardLarge),
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = NothingShapes.cardLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
             content()
@@ -193,14 +194,15 @@ fun NothingDotGrid(
     modifier: Modifier = Modifier,
     dotSize: Float = 1.5f,
     spacing: Float = 16f,
-    alpha: Float = 0.08f,
+    alpha: Float = 0.12f,
 ) {
+    val baseColor = MaterialTheme.colorScheme.outline
+    val dotColor = baseColor.copy(alpha = alpha.coerceIn(0.10f, 0.20f))
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
         val spacingPx = spacing.dp.toPx()
         val dotRadiusPx = (dotSize / 2).dp.toPx()
-        val dotColor = Color.White.copy(alpha = alpha)
 
         var x = 0f
         while (x <= canvasWidth) {
@@ -670,7 +672,7 @@ fun NothingInput(
                 unfocusedContainerColor = Color.Transparent,
                 cursorColor = MaterialTheme.colorScheme.primary,
             ),
-            shape = NothingShapes.technical,
+            shape = NothingShapes.compact,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -695,7 +697,7 @@ fun NothingEnumSelector(
         )
         Surface(
             color = MaterialTheme.colorScheme.background,
-            shape = NothingShapes.technical,
+            shape = NothingShapes.compact,
             border = BorderStroke(
                 1.dp,
                 if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
@@ -718,9 +720,10 @@ fun NothingEnumSelector(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = if (expanded) "▴" else "▾",
+                    text = if (expanded) "[CLOSE]" else "[OPEN]",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
                 )
             }
         }
@@ -729,7 +732,7 @@ fun NothingEnumSelector(
             Spacer(modifier = Modifier.height(NothingSpacing.xs))
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shape = NothingShapes.technical,
+                shape = NothingShapes.compact,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -757,11 +760,7 @@ fun NothingEnumSelector(
                                 fontFamily = SpaceMono,
                             )
                             if (option.equals(value, ignoreCase = true)) {
-                                Text(
-                                    text = "●",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = NothingColors.accent,
-                                )
+                                NothingRedDot(size = 6f)
                             }
                         }
                     }
@@ -792,7 +791,6 @@ fun NothingSegmentedBar(
                 modifier = Modifier
                     .weight(1f)
                     .height(height.dp)
-                    .clip(NothingShapes.technical)
                     .background(
                         if (i < filled) fillColor
                         else MaterialTheme.colorScheme.outline,
@@ -894,6 +892,62 @@ fun NothingSelectionTopBar(
     }
 }
 
+// ── Checkbox (monoline square, red dot when checked) ─────────────────────────
+
+/**
+ * Nothing-style checkbox. Empty square with thin border; when checked, a red
+ * accent dot fills the center. Replaces Material [Checkbox] for theme parity.
+ */
+@Composable
+fun NothingCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    size: Float = 20f,
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .clip(NothingShapes.technical)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.technical)
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            NothingRedDot(size = size * 0.5f)
+        }
+    }
+}
+
+// ── Radio (monoline circle, red dot when selected) ───────────────────────────
+
+/**
+ * Nothing-style radio. Thin circle outline; when selected, a red accent dot
+ * fills the center. Replaces Material [RadioButton] for theme parity.
+ */
+@Composable
+fun NothingRadio(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Float = 20f,
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            NothingRedDot(size = size * 0.5f)
+        }
+    }
+}
+
 // ── Circular Add Button ──────────────────────────────────────────────────────
 
 /**
@@ -910,14 +964,15 @@ fun NothingAddCircle(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = "+",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = NothingColors.accent,
         )
     }
 }

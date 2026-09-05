@@ -72,8 +72,6 @@ private val NothingLight = lightColorScheme(
 object NothingColors {
     val accent = Color(0xFFFF3030)
     val accentSubtle = Color(0x33FF3030)
-    val success = Color(0xFF4A9E5C)
-    val warning = Color(0xFFD4A843)
     val interactive = Color(0xFFFF3030)
     val interactiveLight = Color(0xFFFF3030)
     val muted = Color(0xFF555555)

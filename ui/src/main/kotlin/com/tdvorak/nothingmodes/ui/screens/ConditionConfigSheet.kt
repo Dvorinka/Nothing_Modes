@@ -14,11 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -36,8 +34,10 @@ import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingCheckbox
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingRadio
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -60,7 +60,7 @@ fun ConditionConfigSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
-        scrimColor = Color.Black.copy(alpha = 0.6f),
+        scrimColor = Color.Black.copy(alpha = 0.8f),
         dragHandle = { SheetDragHandle() },
     ) {
         Column(
@@ -211,8 +211,8 @@ private fun SheetDragHandle() {
     Box(
         modifier = Modifier
             .padding(vertical = NothingSpacing.sm)
-            .size(32.dp, 4.dp)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+            .size(32.dp, 2.dp)
+            .background(MaterialTheme.colorScheme.outline, RoundedCornerShape(1.dp))
     )
 }
 
@@ -402,7 +402,7 @@ private fun DayOfWeekSheetContent(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = SpaceMono,
                 )
-                Checkbox(
+                NothingCheckbox(
                     checked = day in selected,
                     onCheckedChange = { checked ->
                         onChange(condition.copy(days = if (checked) condition.days + day else condition.days - day))
@@ -427,7 +427,7 @@ internal fun RadioOption(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        NothingRadio(selected = selected, onClick = onClick)
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,

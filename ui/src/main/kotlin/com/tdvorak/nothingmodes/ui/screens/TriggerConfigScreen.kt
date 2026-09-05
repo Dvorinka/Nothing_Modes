@@ -2,6 +2,7 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -18,13 +19,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,7 +50,6 @@ import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -61,20 +61,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.decodeFromString
@@ -89,21 +76,21 @@ private data class TriggerType(
 )
 
 private fun triggerTypes(): List<TriggerType> = listOf(
-    TriggerType("Time", "Schedule", Icons.Default.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
-    TriggerType("Time window", "Schedule", Icons.Default.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
-    TriggerType("Manual", "Manual", Icons.Default.TouchApp, Trigger.Manual),
-    TriggerType("Immediate", "Manual", Icons.Default.PowerSettingsNew, Trigger.Immediate),
-    TriggerType("Boot", "Device", Icons.Default.PowerSettingsNew, Trigger.Boot),
-    TriggerType("Screen", "Device", Icons.Default.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
-    TriggerType("Battery", "Device", Icons.Default.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
-    TriggerType("App opened", "Apps", Icons.Default.Apps, Trigger.AppOpened("")),
-    TriggerType("Notification", "Apps", Icons.Default.Notifications, Trigger.Notification("")),
-    TriggerType("Phone", "Connections", Icons.Default.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
-    TriggerType("Connectivity", "Connections", Icons.Default.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
-    TriggerType("WiFi", "Connections", Icons.Default.Wifi, Trigger.WifiConnected()),
-    TriggerType("Bluetooth", "Connections", Icons.Default.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
-    TriggerType("Geofence", "Location", Icons.Default.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-    TriggerType("Calendar", "Schedule", Icons.Default.CalendarMonth, Trigger.CalendarEvent()),
+    TriggerType("Time", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
+    TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
+    TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
+    TriggerType("Immediate", "Manual", Icons.Outlined.PowerSettingsNew, Trigger.Immediate),
+    TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
+    TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
+    TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
+    TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
+    TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
+    TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
+    TriggerType("Connectivity", "Connections", Icons.Outlined.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
+    TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
+    TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
+    TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
+    TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
 )
 
 @Composable
@@ -131,10 +118,6 @@ fun TriggerConfigScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -760,20 +743,21 @@ private fun AppPickerContent(
                     fontFamily = SpaceMono,
                 )
                 Text(
-                    text = if (showList) "▲" else "▼",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = if (showList) "[CLOSE]" else "[OPEN]",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
                 )
             }
         }
 
         if (showList) {
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            OutlinedTextField(
+            NothingInput(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search apps...", fontFamily = SpaceMono) },
-                singleLine = true,
+                label = "Search",
+                placeholder = "Search apps...",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -785,8 +769,9 @@ private fun AppPickerContent(
             ) {
                 items(filteredApps, key = { it.pkg }) { app ->
                     Surface(
-                        color = if (app.pkg == currentPackage) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
@@ -795,13 +780,28 @@ private fun AppPickerContent(
                                 searchQuery = ""
                             },
                     ) {
-                        Text(
-                            text = app.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
-                            modifier = Modifier.padding(NothingSpacing.sm),
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(NothingSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (app.pkg == currentPackage) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(2.dp)
+                                        .height(20.dp)
+                                        .background(NothingColors.accent),
+                                )
+                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                            }
+                            Text(
+                                text = app.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = SpaceMono,
+                            )
+                        }
                     }
                 }
             }

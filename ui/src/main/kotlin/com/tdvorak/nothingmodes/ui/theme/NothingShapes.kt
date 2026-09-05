@@ -29,5 +29,7 @@ object NothingShapes {
     val compact = RoundedCornerShape(8.dp)
     val card = RoundedCornerShape(8.dp)
     val cardLarge = RoundedCornerShape(12.dp)
-    val sheet = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+    val sheet = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    // Modals per components.md: 16px radius dialog surface.
+    val dialog = RoundedCornerShape(16.dp)
 }

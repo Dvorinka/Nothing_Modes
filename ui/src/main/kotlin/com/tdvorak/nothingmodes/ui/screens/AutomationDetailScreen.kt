@@ -156,10 +156,10 @@ fun AutomationDetailScreen(
                     AutomationStatus.NEEDS_REVIEW -> "REVIEW"
                 }
                 val statusColor = when (data.status) {
-                    AutomationStatus.ARMED -> NothingColors.success
+                    AutomationStatus.ARMED -> MaterialTheme.colorScheme.primary
                     AutomationStatus.DISABLED -> MaterialTheme.colorScheme.onSurfaceVariant
                     AutomationStatus.PENDING_APPROVAL -> NothingColors.accent
-                    AutomationStatus.NEEDS_REVIEW -> NothingColors.warning
+                    AutomationStatus.NEEDS_REVIEW -> NothingColors.accent
                 }
                 Text(
                     text = statusText,

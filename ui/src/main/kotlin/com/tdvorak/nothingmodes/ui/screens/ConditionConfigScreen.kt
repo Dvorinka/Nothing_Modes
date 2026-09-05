@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +27,7 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
+import com.tdvorak.nothingmodes.ui.theme.NothingCheckbox
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -65,10 +64,6 @@ fun ConditionConfigScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -324,7 +319,7 @@ private fun DayOfWeekSelector(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = SpaceMono,
                 )
-                androidx.compose.material3.Checkbox(
+                NothingCheckbox(
                     checked = day in selected,
                     onCheckedChange = { checked ->
                         onChange(if (checked) selected + day else selected - day)

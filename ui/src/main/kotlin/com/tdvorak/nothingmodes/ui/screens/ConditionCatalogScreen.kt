@@ -1,7 +1,5 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,24 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.automirrored.outlined.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,9 +35,8 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
-import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
-import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -81,111 +62,111 @@ fun ConditionCatalogScreen(
             ConditionItem(
                 label = "Battery level",
                 category = "Device status",
-                icon = Icons.Default.BatteryFull,
+                icon = Icons.Outlined.BatteryFull,
                 condition = Condition.BatteryLevel(CmpOp.LT, 20),
             ),
             ConditionItem(
                 label = "Charging status",
                 category = "Device status",
-                icon = Icons.Default.Power,
+                icon = Icons.Outlined.Power,
                 condition = Condition.Charging(true),
             ),
             ConditionItem(
                 label = "Screen state",
                 category = "Device status",
-                icon = Icons.Default.Devices,
+                icon = Icons.Outlined.Devices,
                 condition = Condition.ScreenStateCondition(ScreenState.ON),
             ),
             ConditionItem(
                 label = "Wi-Fi",
                 category = "Connections",
-                icon = Icons.Default.Wifi,
+                icon = Icons.Outlined.Wifi,
                 condition = Condition.WifiConnected(),
             ),
             ConditionItem(
                 label = "Bluetooth",
                 category = "Connections",
-                icon = Icons.Default.Bluetooth,
+                icon = Icons.Outlined.Bluetooth,
                 condition = Condition.BluetoothConnected(),
             ),
             ConditionItem(
                 label = "Time period",
                 category = "Time",
-                icon = Icons.Default.Schedule,
+                icon = Icons.Outlined.Schedule,
                 condition = Condition.TimeWindow("22:00", "07:00", defaultTimeZone()),
             ),
             ConditionItem(
                 label = "Day of week",
                 category = "Time",
-                icon = Icons.Default.CalendarMonth,
+                icon = Icons.Outlined.CalendarMonth,
                 condition = Condition.DayOfWeekCondition(DayOfWeek.entries),
             ),
             ConditionItem(
                 label = "App in foreground",
                 category = "Apps",
-                icon = Icons.Default.Devices,
+                icon = Icons.Outlined.Devices,
                 condition = Condition.AppInForeground("com.example.app"),
             ),
             ConditionItem(
                 label = "Current mode active",
                 category = "Device status",
-                icon = Icons.Default.Star,
+                icon = Icons.Outlined.Star,
                 condition = Condition.CurrentModeActive("mode-id"),
             ),
             // ── Device status (extended) ──
             ConditionItem(
                 label = "Power saving",
                 category = "Device status",
-                icon = Icons.Default.PowerSettingsNew,
+                icon = Icons.Outlined.PowerSettingsNew,
                 condition = Condition.PowerSaving(true),
             ),
             ConditionItem(
                 label = "Dark mode",
                 category = "Device status",
-                icon = Icons.Default.DarkMode,
+                icon = Icons.Outlined.DarkMode,
                 condition = Condition.DarkModeActive(true),
             ),
             ConditionItem(
                 label = "Media playing",
                 category = "Device status",
-                icon = Icons.Default.GraphicEq,
+                icon = Icons.Outlined.GraphicEq,
                 condition = Condition.MediaPlaying(true),
             ),
             ConditionItem(
                 label = "Ringer mode",
                 category = "Device status",
-                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                icon = Icons.AutoMirrored.Outlined.VolumeUp,
                 condition = Condition.RingerMode("normal"),
             ),
             // ── Connections / system ──
             ConditionItem(
                 label = "Airplane mode",
                 category = "Connections",
-                icon = Icons.Default.Flight,
+                icon = Icons.Outlined.Flight,
                 condition = Condition.AirplaneModeOn(true),
             ),
             ConditionItem(
                 label = "NFC",
                 category = "Connections",
-                icon = Icons.Default.Bluetooth,
+                icon = Icons.Outlined.Bluetooth,
                 condition = Condition.NfcEnabled(true),
             ),
             ConditionItem(
                 label = "Location",
                 category = "Connections",
-                icon = Icons.Default.LocationOn,
+                icon = Icons.Outlined.LocationOn,
                 condition = Condition.LocationEnabled(true),
             ),
             ConditionItem(
                 label = "Call state",
                 category = "Device status",
-                icon = Icons.Default.PhoneAndroid,
+                icon = Icons.Outlined.PhoneAndroid,
                 condition = Condition.CallStateCondition(CallState.INCOMING),
             ),
             ConditionItem(
                 label = "Alarm ringing",
                 category = "Time",
-                icon = Icons.Default.Alarm,
+                icon = Icons.Outlined.Alarm,
                 condition = Condition.AlarmRinging(),
             ),
         )
@@ -211,10 +192,6 @@ fun ConditionCatalogScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-                alpha = 0.04f,
-            )
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -279,13 +256,7 @@ private fun ConditionListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(MaterialTheme.colorScheme.surface, NothingShapes.compact)
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outline, shape = NothingShapes.compact),
-            contentAlignment = Alignment.Center,
-        ) {
+        NothingIconCircle(size = 44f) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
@@ -300,7 +271,7 @@ private fun ConditionListItem(
             modifier = Modifier.weight(1f),
         )
         Icon(
-            imageVector = Icons.AutoMirrored.Default.ArrowForwardIos,
+            imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp),

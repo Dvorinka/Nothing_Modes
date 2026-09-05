@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,9 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,9 +64,11 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -421,11 +420,9 @@ fun CustomAutomationBuilderScreen(
             // IF: Trigger + Conditions
             item {
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
-                    Text(
+                    NothingLabel(
                         text = "IF",
-                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
                     TriggerEditor(
@@ -488,11 +485,9 @@ fun CustomAutomationBuilderScreen(
             // THEN: Actions
             item {
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
-                    Text(
+                    NothingLabel(
                         text = "THEN",
-                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = Doto,
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
                     NothingDivider()
@@ -632,7 +627,7 @@ fun CustomAutomationBuilderScreen(
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
-                    shape = NothingShapes.technical,
+                    shape = NothingShapes.dialog,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -865,7 +860,7 @@ private fun <T> NothingPickerDialog(
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            shape = NothingShapes.technical,
+            shape = NothingShapes.dialog,
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
                 MaterialTheme.colorScheme.outline,
@@ -943,14 +938,14 @@ private fun PrioritySegmentedBar(
     filled: Int,
     onSegmentClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: Float = 20f,
+    height: Float = 14f,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             for (i in 0 until total) {
                 val active = i < filled
@@ -958,23 +953,13 @@ private fun PrioritySegmentedBar(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(NothingShapes.technical)
                         .background(
                             if (active) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.outlineVariant,
                         )
                         .clickable { onSegmentClick(i + 1) }
                         .semantics { contentDescription = "Priority level ${i + 1} of $total" },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = (i + 1).toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (active) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
-                    )
-                }
+                )
             }
         }
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -1003,12 +988,8 @@ private fun AutomationPreviewTile(
     state: BuilderState,
     modifier: Modifier = Modifier,
 ) {
-    // Neutral icon tile: surfaceVariant background, outline border, onSurface icon.
-    // A custom iconBackground is honored only when explicitly set; otherwise neutral.
-    val customBg = state.iconBackground.isNotBlank()
-    val iconColor = if (customBg) colorForHex(state.iconBackground) else MaterialTheme.colorScheme.surfaceVariant
-    val iconTextColor = if (customBg) (if (iconColor.luminance() > 0.5f) Color.Black else Color.White) else MaterialTheme.colorScheme.onSurface
-
+    // Monochrome icon tile: surface background, outline border, onSurface icon.
+    // iconBackground is intentionally ignored per Nothing OS monochrome spec.
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.card,
@@ -1019,27 +1000,20 @@ private fun AutomationPreviewTile(
             modifier = Modifier.padding(NothingSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(iconColor)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
+            NothingIconCircle(size = 48f) {
                 if (state.icon.isNotBlank()) {
                     Icon(
                         imageVector = iconForName(state.icon),
                         contentDescription = null,
-                        tint = if (customBg) iconTextColor else MaterialTheme.colorScheme.onSurface,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(28.dp),
                     )
                 } else {
                     Text(
                         text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = iconTextColor,
-                        fontFamily = Doto,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = GeistSans,
                     )
                 }
             }
