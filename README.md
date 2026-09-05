@@ -1,25 +1,28 @@
 # Nothing Modes
 
-Open-source automation app for Nothing phones. Samsung Modes & Routines simplicity meets Argus-class automation engine, wrapped in Nothing OS design language.
+Open-source Android automation for Nothing phones — and every other Android device.
 
-## Features
+Built like a premium system app: OLED-black surfaces, monoline iconography, dot-matrix hero type, and a single red accent. The engine is pure Kotlin; the UI is Jetpack Compose. Shizuku and Nothing Glyph are supported, not required.
 
-- **Modes** — persistent state configurations (Sleep, Work, Gaming) with automatic state restoration
-- **Routines** — event-based automations (trigger + conditions + actions)
-- **Custom Automation Builder** — WHEN/IF/THEN UI with all trigger, condition, and action types
-- **Nothing Glyph / Glyph Matrix** integration (light stripe + matrix on supported devices)
-- **Glyph Toy** service for Glyph Matrix toy integration
-- **Shizuku** support for privileged operations (optional, graceful degradation)
-- **Capability-based** feature detection (no hardcoded device assumptions)
-- **State restoration** — modes snapshot and restore previous values on deactivation
-- **Conflict management** — priority-based deterministic execution order
-- **Import/Export** — portable JSON automation format with schema versioning
-- **11 trigger types** — Time, TimeWindow, Notification, PhoneState, Connectivity, Boot, BatteryLevel, ScreenState, AppOpened, Geofence, Immediate
-- **12 condition types** — TimeWindow, DayOfWeek, BatteryLevel, Charging, WiFi, Bluetooth, ScreenState, CurrentModeActive, AppInForeground, AND, OR, NOT
-- **37 action types** — WiFi, Bluetooth, MobileData, DND, Ringer, Volume, Flashlight, DarkMode, Brightness, AutoBrightness, ExtraDim, ScreenTimeout, Glyph (7 types), Vibrate, CopyText, Wait, WriteSetting, LaunchApp, OpenUrl, OpenSettings, ShowNotification
-- **Nothing OS design language** — monochrome, geometric, technical, red accent
+<p align="center">
+  <img src="art/screenshots/home.png" width="24%" alt="Automation list" />
+  <img src="art/screenshots/detail.png" width="24%" alt="Mode detail" />
+  <img src="art/screenshots/builder.png" width="24%" alt="Routine builder" />
+  <img src="art/screenshots/catalog.png" width="24%" alt="Action catalog" />
+</p>
 
-## Target Devices
+## What it does
+
+- **Modes** — persistent state configurations (Sleep, Work, Gaming) with automatic state restoration.
+- **Routines** — event-based automations: trigger, optional conditions, actions.
+- **WHEN / ONLY IF / THEN builder** — explicit, no confusion about what runs when.
+- **Nothing Glyph / Glyph Matrix** — light stripe and matrix on supported devices.
+- **Shizuku** — optional, graceful degradation everywhere else.
+- **Capability detection** — the app asks what the device can do instead of guessing.
+- **Priority + cooldown** — deterministic conflict resolution and fire suppression.
+- **Import / export / share** — JSON bundles with schema versioning.
+
+## Glyph support
 
 | Device | Glyph Stripe | Glyph Matrix | Glyph Toy |
 |---|---|---|---|
@@ -36,109 +39,81 @@ Open-source automation app for Nothing phones. Samsung Modes & Routines simplici
 ## Build
 
 ```bash
-# Debug build
 ./gradlew assembleDebug
-
-# Unit tests
-./gradlew test
-
-# Release build (R8 + resource shrinking)
-./gradlew assembleRelease
-
-# Lint
-./gradlew lint
+./gradlew :engine-core:test
+./gradlew :ui:lintDebug
 ```
 
-Requires JDK 17+ and Android SDK with API 36 (Android 16).
+Requires JDK 17+ and Android SDK API 36.
 
 ## Architecture
 
 ```
-app (entry point, nav host, manifest)
-├── ui (Compose screens, theme, design primitives)
-├── automation-android (services, receivers, scheduler, DI)
-│   ├── engine-core (pure Kotlin: triggers, conditions, actions, matcher, evaluator, fire policy)
-│   ├── data (Room: 8 entities, 8 DAOs, stores)
-│   ├── capabilities (action executors, state provider, capability resolver)
-│   ├── core-shizuku (Shizuku gateway, privileged shell)
-│   ├── device-tools (shell-based state readers)
-│   └── nothing-integrations (Glyph SDK: stripe + matrix providers, channels, presets)
+app
+├── ui                 — Compose screens, theme, design primitives
+├── automation-android — services, receivers, scheduler
+│   ├── engine-core    — pure Kotlin engine
+│   ├── data           — Room stores
+│   ├── capabilities   — action executors, capability resolver
+│   ├── core-shizuku   — Shizuku gateway
+│   ├── device-tools   — shell-based state readers
+│   └── nothing-integrations — Glyph SDK wrapper
 ```
 
-The engine is pure Kotlin with no Android dependencies. The capability layer resolves each action through: Public Android API → Nothing API → Shizuku → Unsupported.
+The engine resolves each action through: Public Android API → Nothing API → Shizuku → settings panel fallback.
 
 ## Modules
 
-| Module | Lines | Role |
-|---|---|---|
-| `engine-core` | ~2,200 | Pure Kotlin automation engine |
-| `device-tools` | ~1,700 | Shell-based device state readers |
-| `automation-android` | ~1,500 | Android lifecycle, services, receivers |
-| `ui` | ~1,300 | Jetpack Compose screens + theme |
-| `core-shizuku` | ~1,200 | Shizuku privileged shell transport |
-| `capabilities` | ~1,200 | Action executors, state provider, capability resolver |
-| `nothing-integrations` | ~800 | Nothing Glyph SDK wrapper |
-| `data` | ~600 | Room database |
-| `app` | ~150 | Application entry, nav host |
+| Module | Role |
+|---|---|
+| `engine-core` | Pure Kotlin automation engine |
+| `device-tools` | Shell-based device state readers |
+| `automation-android` | Android lifecycle, services, receivers |
+| `ui` | Jetpack Compose screens and design system |
+| `core-shizuku` | Shizuku privileged shell transport |
+| `capabilities` | Action executors and resolver |
+| `nothing-integrations` | Nothing Glyph SDK wrapper |
+| `data` | Room persistence |
+| `app` | Entry point and nav host |
 
-## Setup
+## Quick start
 
-1. Install on a Nothing phone (or any Android 9+ device for non-Glyph features)
-2. Follow the onboarding guide to grant permissions
-3. Optionally install Shizuku for WiFi/Bluetooth/mobile data toggles
-4. Create automations from templates or use the custom builder
-5. Automations fire based on triggers, evaluate conditions, and execute actions
+1. Install on Android 9+.
+2. Follow the in-app onboarding for restricted settings and optional Shizuku.
+3. Create a mode or routine from the builder, a template, or a shared JSON link.
+4. Automations fire on triggers, check conditions, then execute actions in order.
+
+## Templates and sharing
+
+Community templates live in [Nothing-Modes-Templates](https://github.com/Dvorinka/Nothing-Modes-Templates). Contributions follow the repository `CONTRIBUTING.md`.
+
+Share any routine from the detail screen as JSON. Import from a file or a shared bundle. Schema version mismatches are reported before import.
 
 ## Shizuku
 
-Shizuku is an optional capability provider. Without it, the app still works for all actions that use public Android APIs. Shizuku enables:
-- WiFi toggle
-- Bluetooth toggle
-- Mobile data toggle
-- Dark mode toggle (on some Android versions)
-- Extra dim toggle (on some Android versions)
-- Write system settings
+Optional. Without it, public-API actions still work; Shizuku enables silent toggles for Wi-Fi, Bluetooth, mobile data, dark mode, extra dim, and system settings.
 
-Install Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or Play Store.
+Get Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or the Play Store.
 
 ## Testing
 
 ```bash
-# Engine unit tests (pure Kotlin)
 ./gradlew :engine-core:test
-
-# All unit tests
-./gradlew test
-
-# Instrumented tests (require device/emulator)
 ./gradlew connectedCheck
 ```
 
-173 unit tests covering: engine execution, trigger matching, condition evaluation, conflict management, state restoration, cooldown suppression, import/export, serialization round-trips.
+## Documentation
 
-## Proxmox Build Worker
-
-For resource-constrained local machines, a Proxmox worker can be used for heavy builds:
-
-```bash
-ssh proxmox
-cd /opt/Nothing_Modes
-git pull origin main
-./gradlew assembleDebug test --no-daemon --parallel --build-cache
-```
+- [Architecture](docs/compatibility.md)
+- [Nothing SDK](docs/nothing-sdk.md)
+- [Shizuku](docs/shizuku.md)
+- [TASKS.md](TASKS.md)
+- [DECISIONS.md](DECISIONS.md)
+- [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
-GPL-3.0 (derivative of [Argus](https://github.com/JackRushante/argus))
-
-## Documentation
-
-- [Architecture](docs/compatibility.md) — device compatibility matrix
-- [Nothing SDK](docs/nothing-sdk.md) — Glyph SDK reference
-- [Shizuku](docs/shizuku.md) — Shizuku integration guide
-- [TASKS.md](TASKS.md) — task checklist
-- [DECISIONS.md](DECISIONS.md) — architecture decision records
-- [CHANGELOG.md](CHANGELOG.md) — changelog
+GPL-3.0
 
 ---
 
