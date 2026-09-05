@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Full Nothing OS visual overhaul merged from `proxmox-20260905-185035`:
+  OLED black canvas, dark `#161616` cards, dot-matrix (Doto) hero type,
+  red accent for toggles/FAB/selected dots, 24-28dp rounded cards and
+  sheets, monochrome icon chips, and Nothing-style top bars with a
+  circular back button
 - Glyph Toys system integration: required `toy.image`/`toy.introduction` metadata, `GlyphToysBridge` to enumerate toys + open the Nothing OS manager/AOD-picker/timeout screens, system section on the Glyph Preview screen
 - Glyph reset semantics: modes auto-clear glyph output on window end, "Glyph off" catalog action, TURN OFF control on Glyph Preview
 - New `ActionResult.NeedsUserAction`: shell actions without Shizuku now open the matching system panel (Wi-Fi connectivity, mobile data, Bluetooth, airplane, hotspot, NFC, data saver, battery saver, auto-sync, AOD, location) instead of silently failing
