@@ -40,9 +40,11 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
-import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
@@ -131,82 +133,84 @@ fun OnboardingScreen(
             NothingSectionHeader(text = "Setup")
 
             caps?.let { capabilities ->
-                OnboardingStep(
-                    step = 1,
-                    title = "Write Settings",
-                    description = "Brightness, screen timeout, system settings.",
-                    done = capabilities.hasWriteSettings,
-                    onAction = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                OnboardingStep(
-                    step = 2,
-                    title = "Notification Policy",
-                    description = "Control Do Not Disturb mode.",
-                    done = capabilities.hasNotificationPolicyAccess,
-                    onAction = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                OnboardingStep(
-                    step = 3,
-                    title = "Notification Access",
-                    description = "Notification-based triggers.",
-                    done = capabilities.hasNotificationListenerAccess,
-                    onAction = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                OnboardingStep(
-                    step = 4,
-                    title = "Usage Access",
-                    description = "App-opened triggers.",
-                    done = capabilities.hasUsageAccess,
-                    onAction = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
-                    },
-                )
-                OnboardingStep(
-                    step = 5,
-                    title = "Location",
-                    description = "Geofence triggers, WiFi SSID detection.",
-                    done = capabilities.hasLocationPermission,
-                    onAction = {
-                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                    },
-                )
-
-                if (capabilities.isNothingDevice) {
+                NothingCardLarge {
                     OnboardingStep(
-                        step = 6,
-                        title = "Glyph",
-                        description = "Stripe: ${if (capabilities.hasGlyphLightStripe) "Available" else "Unavailable"}. Matrix: ${if (capabilities.hasGlyphMatrix) "Available" else "Unavailable"}.",
-                        done = capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix,
-                        onAction = {},
+                        step = 1,
+                        title = "Write Settings",
+                        description = "Brightness, screen timeout, system settings.",
+                        done = capabilities.hasWriteSettings,
+                        onAction = {
+                            context.startActivity(Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                    )
+                    OnboardingStep(
+                        step = 2,
+                        title = "Notification Policy",
+                        description = "Control Do Not Disturb mode.",
+                        done = capabilities.hasNotificationPolicyAccess,
+                        onAction = {
+                            context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                    )
+                    OnboardingStep(
+                        step = 3,
+                        title = "Notification Access",
+                        description = "Notification-based triggers.",
+                        done = capabilities.hasNotificationListenerAccess,
+                        onAction = {
+                            context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                    )
+                    OnboardingStep(
+                        step = 4,
+                        title = "Usage Access",
+                        description = "App-opened triggers.",
+                        done = capabilities.hasUsageAccess,
+                        onAction = {
+                            context.startActivity(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        },
+                    )
+                    OnboardingStep(
+                        step = 5,
+                        title = "Location",
+                        description = "Geofence triggers, WiFi SSID detection.",
+                        done = capabilities.hasLocationPermission,
+                        onAction = {
+                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        },
+                    )
+
+                    if (capabilities.isNothingDevice) {
+                        OnboardingStep(
+                            step = 6,
+                            title = "Glyph",
+                            description = "Stripe: ${if (capabilities.hasGlyphLightStripe) "Available" else "Unavailable"}. Matrix: ${if (capabilities.hasGlyphMatrix) "Available" else "Unavailable"}.",
+                            done = capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix,
+                            onAction = {},
+                        )
+                    }
+
+                    OnboardingStep(
+                        step = if (capabilities.isNothingDevice) 7 else 6,
+                        title = "Shizuku (Optional)",
+                        description = "Wi-Fi, Bluetooth, mobile data toggles.",
+                        done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
+                        onAction = {
+                            if (shizukuStatus == ShizukuGatewayStatus.NOT_INSTALLED) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")))
+                            }
+                        },
                     )
                 }
-
-                OnboardingStep(
-                    step = if (capabilities.isNothingDevice) 7 else 6,
-                    title = "Shizuku (Optional)",
-                    description = "Wi-Fi, Bluetooth, mobile data toggles.",
-                    done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
-                    onAction = {
-                        if (shizukuStatus == ShizukuGatewayStatus.NOT_INSTALLED) {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")))
-                        }
-                    },
-                )
             }
 
             Spacer(modifier = Modifier.height(NothingSpacing.xxl))
@@ -230,50 +234,37 @@ private fun OnboardingStep(
     done: Boolean,
     onAction: () -> Unit,
 ) {
-    NothingDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Step number — Space Mono
-        Text(
-            text = String.format("%02d", step),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
-            modifier = Modifier.padding(end = NothingSpacing.md),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                NothingStatusDot(
-                    color = if (done) MaterialTheme.colorScheme.primary else NothingColors.accent,
-                    size = 6f,
-                )
-                Spacer(modifier = Modifier.padding(end = 6.dp))
+    NothingListRow(
+        title = title,
+        subtitle = description,
+        onClick = onAction,
+        leading = {
+            NothingIconCircle(size = 40f) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = String.format("%02d", step),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
                 )
             }
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp, start = 14.dp),
-            )
-        }
-        if (!done) {
-            Text(
-                text = "GRANT",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .clickable(onClick = onAction)
-                    .padding(horizontal = NothingSpacing.sm),
-            )
-        }
-    }
+        },
+        trailing = {
+            if (done) {
+                NothingStatusDot(
+                    color = MaterialTheme.colorScheme.primary,
+                    size = 6f,
+                )
+            } else {
+                Text(
+                    text = "GRANT",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier
+                        .clickable(onClick = onAction)
+                        .padding(horizontal = NothingSpacing.sm),
+                )
+            }
+        },
+    )
 }

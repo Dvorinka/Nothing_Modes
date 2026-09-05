@@ -30,9 +30,12 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -139,7 +142,7 @@ fun AutomationDetailScreen(
                     .padding(horizontal = NothingSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                // Hero — automation name in Doto, vast gap to content
+                // Hero — automation name in Doto
                 Text(
                     text = data.name,
                     style = MaterialTheme.typography.displaySmall,
@@ -169,7 +172,7 @@ fun AutomationDetailScreen(
                     modifier = Modifier.padding(top = NothingSpacing.xs),
                 )
 
-                // Toggle — tight to status
+                // Toggle row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -186,86 +189,58 @@ fun AutomationDetailScreen(
                     )
                 }
 
-                // Vast gap — new context
                 Spacer(modifier = Modifier.height(NothingSpacing.xxl))
 
-                // Trigger section
-                NothingSectionHeader(text = "Trigger")
-                TriggerSection(data.trigger)
+                NothingCardLarge {
+                    NothingSectionHeader(text = "Trigger")
+                    NothingListRow(
+                        title = triggerDescription(data.trigger),
+                        subtitle = "Tap to reconfigure",
+                        leading = {
+                            NothingIconCircle(size = 44f) {
+                                Text(
+                                    text = data.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = SpaceMono,
+                                )
+                            }
+                        },
+                    )
 
-                // Wide gap — new group
-                Spacer(modifier = Modifier.height(NothingSpacing.xl))
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
 
-                // Actions section
-                NothingSectionHeader(text = "Actions")
-                ActionsSection(data.actions)
+                    NothingSectionHeader(text = "Actions")
+                    if (data.actions.isEmpty()) {
+                        NothingDivider()
+                        Text(
+                            text = "No actions configured",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
+                    } else {
+                        data.actions.forEachIndexed { index, action ->
+                            NothingDivider()
+                            NothingListRow(
+                                title = actionDescription(action),
+                                leading = {
+                                    NothingIconCircle(size = 40f) {
+                                        Text(
+                                            text = String.format("%02d", index + 1),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontFamily = SpaceMono,
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
             }
         }
-    }
-}
-
-@Composable
-private fun TriggerSection(trigger: Trigger) {
-    Column(modifier = Modifier.padding(top = NothingSpacing.sm)) {
-        NothingDivider()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            NothingLabel(
-                text = "Type",
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = triggerDescription(trigger),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(2f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionsSection(actions: List<Action>) {
-    if (actions.isEmpty()) {
-        NothingDivider()
-        Text(
-            text = "No actions configured",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = NothingSpacing.md),
-        )
-    } else {
-        actions.forEachIndexed { index, action ->
-            NothingDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = NothingSpacing.md),
-                verticalAlignment = Alignment.Top,
-            ) {
-                // Numbered index — Space Mono
-                Text(
-                    text = String.format("%02d", index + 1),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                    modifier = Modifier.width(40.dp),
-                )
-                Text(
-                    text = actionDescription(action),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-        NothingDivider()
     }
 }

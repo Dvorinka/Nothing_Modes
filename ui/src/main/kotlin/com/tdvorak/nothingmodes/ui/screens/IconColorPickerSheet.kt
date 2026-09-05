@@ -38,9 +38,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -123,6 +126,7 @@ fun IconColorPickerSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
         scrimColor = Color.Black.copy(alpha = 0.8f),
+        dragHandle = { NothingDragHandle() },
     ) {
         Column(
             modifier = Modifier
@@ -195,7 +199,7 @@ fun IconColorPickerSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
             ) {
-                NothingPillButton(
+                NothingSecondaryButton(
                     text = "Cancel",
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
@@ -219,11 +223,15 @@ private fun IconOption(
     Box(
         modifier = Modifier
             .size(48.dp)
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .background(
+                if (selected) NothingColors.accent.copy(alpha = 0.16f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+                NothingShapes.iconChip,
+            )
             .border(
                 width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(12.dp),
+                color = if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline,
+                shape = NothingShapes.iconChip,
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

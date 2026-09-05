@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +34,7 @@ import com.tdvorak.nothingmodes.ui.components.NothingDateField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -301,8 +303,8 @@ private fun DayChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val bg = if (selected) NothingColors.accent else Color.Transparent
+    val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
             .height(48.dp)
@@ -310,7 +312,7 @@ private fun DayChip(
             .background(bg)
             .border(
                 1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline,
                 NothingShapes.compact,
             )
             .clickable(onClick = onClick),

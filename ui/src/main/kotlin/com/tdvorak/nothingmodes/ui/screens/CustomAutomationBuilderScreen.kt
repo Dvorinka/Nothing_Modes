@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -66,12 +67,15 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -424,26 +428,11 @@ fun CustomAutomationBuilderScreen(
         },
         // Sticky bottom bar — save button always visible, not clipped by system insets.
         bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.background,
-                tonalElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = NothingSpacing.md)
-                        .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
-                ) {
-                    NothingPillButton(
-                        text = if (automationId != null) "Save Changes" else "Create Automation",
-                        onClick = { viewModel.save() },
-                        enabled = state.actions.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
+            NothingBottomActionBar(
+                text = if (automationId != null) "Save Changes" else "Create Automation",
+                onClick = { viewModel.save() },
+                enabled = state.actions.isNotEmpty(),
+            )
         },
     ) { padding ->
         LazyColumn(
@@ -813,13 +802,14 @@ private fun AddRowButton(
         Box(
             modifier = Modifier
                 .size(28.dp)
-                .border(1.dp, NothingColors.accent, androidx.compose.foundation.shape.CircleShape),
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(NothingColors.accent),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "+",
                 style = MaterialTheme.typography.labelLarge,
-                color = NothingColors.accent,
+                color = Color.White,
                 fontFamily = SpaceMono,
             )
         }
@@ -841,37 +831,21 @@ private fun TriggerEditor(
     onUpdate: (Trigger) -> Unit,
     onConfigure: () -> Unit,
 ) {
-    val triggerLabel = triggerDescription(trigger)
-
-    NothingDivider()
-
-    // Single tappable row — opens the dedicated trigger config page.
-    // Trigger type selection happens inside the config page, not inline.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onConfigure)
-            .padding(vertical = NothingSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        NothingLabel(text = "Trigger")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = triggerLabel.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
-            )
-            Spacer(modifier = Modifier.width(NothingSpacing.sm))
-            Text(
-                text = ">",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    NothingDivider()
+    NothingListRow(
+        title = triggerDescription(trigger),
+        subtitle = "Trigger",
+        onClick = onConfigure,
+        leading = {
+            NothingIconCircle(size = 44f) {
+                Text(
+                    text = "T",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
+                )
+            }
+        },
+    )
 }
 
 // ─── Action Row & Picker ─────────────────────────────────────────────────────
@@ -884,13 +858,10 @@ private fun ReorderableListItemScope.ActionRow(
     onUpdate: (Action) -> Unit = {},
     onConfigure: (Action) -> Unit = {},
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    NothingListRow(
+        title = actionDescription(action),
+        onClick = { onConfigure(action) },
+        leading = {
             Box(
                 modifier = Modifier
                     .draggableHandle()
@@ -903,41 +874,21 @@ private fun ReorderableListItemScope.ActionRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = String.format("%02d", index + 1),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier.width(32.dp),
-            )
-            Text(
-                text = actionDescription(action),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = ">",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier
-                    .clickable { onConfigure(action) }
-                    .padding(horizontal = NothingSpacing.xs),
-            )
-            Text(
-                text = "DEL",
-                style = MaterialTheme.typography.labelSmall,
-                color = NothingColors.accent,
-                fontFamily = SpaceMono,
-                modifier = Modifier
-                    .clickable(onClick = onRemove)
-                    .padding(horizontal = NothingSpacing.xs),
-            )
-        }
-
-        NothingDivider()
-    }
+        },
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "DEL",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = SpaceMono,
+                    modifier = Modifier
+                        .clickable(onClick = onRemove)
+                        .padding(horizontal = NothingSpacing.xs),
+                )
+            }
+        },
+    )
 }
 
 // ─── Condition Row & Picker ──────────────────────────────────────────────────
@@ -950,13 +901,10 @@ private fun ReorderableListItemScope.ConditionRow(
     onUpdate: (Condition) -> Unit = {},
     onConfigure: (Condition) -> Unit = {},
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NothingSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    NothingListRow(
+        title = conditionDescription(condition),
+        onClick = { onConfigure(condition) },
+        leading = {
             Box(
                 modifier = Modifier
                     .draggableHandle()
@@ -969,28 +917,8 @@ private fun ReorderableListItemScope.ConditionRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = String.format("%02d", index + 1),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier.width(32.dp),
-            )
-            Text(
-                text = conditionDescription(condition),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = ">",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier
-                    .clickable { onConfigure(condition) }
-                    .padding(horizontal = NothingSpacing.xs),
-            )
+        },
+        trailing = {
             Text(
                 text = "DEL",
                 style = MaterialTheme.typography.labelSmall,
@@ -1000,9 +928,8 @@ private fun ReorderableListItemScope.ConditionRow(
                     .clickable(onClick = onRemove)
                     .padding(horizontal = NothingSpacing.xs),
             )
-        }
-    }
-    NothingDivider()
+        },
+    )
 }
 
 // ─── Nothing Picker Dialog (shared) ──────────────────────────────────────────
@@ -1024,14 +951,10 @@ private fun <T> NothingPickerDialog(
         Surface(
             color = MaterialTheme.colorScheme.surface,
             shape = NothingShapes.dialog,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outline,
-            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Title bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1041,7 +964,7 @@ private fun <T> NothingPickerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = title,
+                        text = title.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = SpaceMono,
@@ -1056,37 +979,28 @@ private fun <T> NothingPickerDialog(
                 }
                 NothingDivider()
 
-                // Scrollable list
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
                     items.forEachIndexed { index, (label, item) ->
-                        NothingDivider()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onPick(item) }
-                                .padding(NothingSpacing.md),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = String.format("%02d", index + 1),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
-                                modifier = Modifier.width(32.dp),
-                            )
-                            Text(
-                                text = label.uppercase(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
-                            )
-                        }
+                        if (index > 0) NothingDivider()
+                        NothingListRow(
+                            title = label,
+                            leading = {
+                                NothingIconCircle(size = 36f) {
+                                    Text(
+                                        text = String.format("%02d", index + 1),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = SpaceMono,
+                                    )
+                                }
+                            },
+                            onClick = { onPick(item) },
+                        )
                     }
-                    NothingDivider()
                 }
             }
         }
@@ -1117,7 +1031,7 @@ private fun PrioritySegmentedBar(
                         .weight(1f)
                         .fillMaxHeight()
                         .background(
-                            if (active) MaterialTheme.colorScheme.primary
+                            if (active) NothingColors.accent
                             else MaterialTheme.colorScheme.outlineVariant,
                         )
                         .clickable { onSegmentClick(i + 1) }
@@ -1151,60 +1065,31 @@ private fun AutomationPreviewTile(
     state: BuilderState,
     modifier: Modifier = Modifier,
 ) {
-    // Monochrome icon tile: surface background, outline border, onSurface icon.
-    // iconBackground is intentionally ignored per Nothing OS monochrome spec.
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = NothingShapes.card,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(NothingSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NothingIconCircle(size = 48f) {
-                if (state.icon.isNotBlank()) {
-                    Icon(
-                        imageVector = iconForName(state.icon),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(28.dp),
-                    )
-                } else {
-                    Text(
-                        text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = GeistSans,
-                    )
+    NothingCard(modifier = modifier) {
+        NothingListRow(
+            title = state.name.ifBlank { "Untitled" },
+            subtitle = "${state.actions.size} actions · ${state.conditions.size} conditions",
+            onClick = { /* icon/color picking is wired via the outer sheet */ },
+            leading = {
+                NothingIconCircle(size = 48f) {
+                    if (state.icon.isNotBlank()) {
+                        Icon(
+                            imageVector = iconForName(state.icon),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    } else {
+                        Text(
+                            text = state.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = GeistSans,
+                        )
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.width(NothingSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = state.name.ifBlank { "Untitled" },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = triggerDescription(state.trigger),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${state.actions.size} actions · ${state.conditions.size} conditions",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
-                )
-            }
-        }
+            },
+        )
     }
 }
 

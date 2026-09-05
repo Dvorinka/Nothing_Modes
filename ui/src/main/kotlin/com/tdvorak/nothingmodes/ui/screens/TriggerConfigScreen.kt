@@ -53,6 +53,7 @@ import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
+import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -121,13 +122,13 @@ fun TriggerConfigScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .padding(NothingSpacing.md),
         ) {
-            Column(
+            NothingCardLarge(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(NothingSpacing.md),
+                    .verticalScroll(rememberScrollState()),
             ) {
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 

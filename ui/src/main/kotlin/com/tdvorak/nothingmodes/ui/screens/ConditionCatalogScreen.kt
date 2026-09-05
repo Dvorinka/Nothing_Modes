@@ -36,8 +36,12 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
+import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -213,18 +217,12 @@ fun ConditionCatalogScreen(
 
             grouped.forEach { (category, conditions) ->
                 item {
-                    Text(
-                        text = category,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
-                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                    )
+                    NothingSectionHeader(text = category)
                 }
 
                 items(conditions, key = { it.label }) { item ->
                     val isPicked = item.condition in selected
-                    ConditionListItem(
+                    CatalogListItem(
                         label = item.label,
                         icon = item.icon,
                         picked = isPicked,
@@ -246,75 +244,51 @@ fun ConditionCatalogScreen(
         }
 
         // Sticky bottom bar — confirms every picked condition in one shot.
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(NothingSpacing.md)
-                .navigationBarsPadding(),
-        ) {
-            com.tdvorak.nothingmodes.ui.theme.NothingPillButton(
-                text = if (selected.isEmpty()) "Done" else "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}",
-                onClick = {
-                    if (selected.isNotEmpty()) {
-                        val json = Json.encodeToString(selected)
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("condition_results", json)
-                    }
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        NothingBottomActionBar(
+            text = if (selected.isEmpty()) "Done" else "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}",
+            onClick = {
+                if (selected.isNotEmpty()) {
+                    val json = Json.encodeToString(selected)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("condition_results", json)
+                }
+                navController.popBackStack()
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 }
 
 @Composable
-private fun ConditionListItem(
+private fun CatalogListItem(
     label: String,
     icon: ImageVector,
     picked: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = NothingSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-    ) {
-        NothingIconCircle(size = 44f) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp),
-            )
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (picked) {
+    NothingListRow(
+        title = label,
+        selected = picked,
+        onClick = onClick,
+        leading = {
+            NothingIconCircle(size = 44f) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        },
+        trailing = {
             Text(
-                text = "ADDED",
+                text = if (picked) "ADDED" else "",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = NothingColors.accent,
                 fontFamily = SpaceMono,
             )
-        }
-        Icon(
-            imageVector = if (picked) Icons.Outlined.CheckCircle
-            else Icons.AutoMirrored.Outlined.ArrowForwardIos,
-            contentDescription = null,
-            tint = if (picked) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(if (picked) 20.dp else 16.dp),
-        )
-    }
+        },
+    )
 }

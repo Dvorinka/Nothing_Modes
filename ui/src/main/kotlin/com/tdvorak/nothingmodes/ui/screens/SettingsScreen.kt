@@ -51,6 +51,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInfoRow
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
@@ -738,39 +739,34 @@ private fun PermissionRow(
     manageLabel: String = "Manage",
     onOpenSettings: () -> Unit,
 ) {
-    NothingDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        NothingLabel(text = label)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            NothingStatusDot(
-                color = if (granted) MaterialTheme.colorScheme.primary else NothingColors.accent,
-                size = 6f,
-            )
-            Spacer(modifier = Modifier.padding(end = 6.dp))
-            Text(
-                text = if (granted) "Granted" else "Not Granted",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-            )
-            // Always offer a way back into the same system page so the
-            // permission can also be revoked without hunting through Settings.
-            Text(
-                text = manageLabel.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .clickable(onClick = onOpenSettings)
-                    .padding(start = NothingSpacing.sm),
-            )
-        }
-    }
+    NothingListRow(
+        title = label,
+        selected = false,
+        onClick = onOpenSettings,
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NothingStatusDot(
+                    color = if (granted) MaterialTheme.colorScheme.primary else NothingColors.accent,
+                    size = 6f,
+                )
+                Spacer(modifier = Modifier.padding(end = 6.dp))
+                Text(
+                    text = if (granted) "GRANTED" else "NOT GRANTED",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+                Text(
+                    text = manageLabel.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    modifier = Modifier
+                        .clickable(onClick = onOpenSettings)
+                        .padding(start = NothingSpacing.sm),
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -800,35 +796,25 @@ private fun DeviceAdminSection(context: android.content.Context) {
     }
     var isActive by remember { mutableStateOf(dm.isAdminActive(comp)) }
 
-    NothingDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = NothingSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        NothingLabel(text = "Status")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            NothingStatusDot(
-                color = if (isActive) MaterialTheme.colorScheme.primary else NothingColors.accent,
-                size = 6f,
-            )
-            Spacer(modifier = Modifier.padding(end = 6.dp))
-            Text(
-                text = if (isActive) "Active" else "Not Active",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-            )
-        }
-    }
-    NothingDivider()
-    Text(
-        text = "Required for Lock Screen action.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(vertical = NothingSpacing.md),
+    NothingListRow(
+        title = "Device Admin",
+        subtitle = "Required for Lock Screen action",
+        onClick = {},
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NothingStatusDot(
+                    color = if (isActive) MaterialTheme.colorScheme.primary else NothingColors.accent,
+                    size = 6f,
+                )
+                Spacer(modifier = Modifier.padding(end = 6.dp))
+                Text(
+                    text = if (isActive) "ACTIVE" else "NOT ACTIVE",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = SpaceMono,
+                )
+            }
+        },
     )
 
     val launcher = rememberLauncherForActivityResult(
@@ -846,7 +832,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
+                .padding(vertical = NothingSpacing.sm),
         )
     } else {
         NothingSecondaryButton(
@@ -863,7 +849,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
+                .padding(vertical = NothingSpacing.sm),
         )
     }
 }

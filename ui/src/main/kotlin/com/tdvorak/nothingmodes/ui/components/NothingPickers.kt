@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BasicAlertDialog
@@ -477,12 +478,17 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val bg = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        date != null -> MaterialTheme.colorScheme.surfaceVariant
+        else -> Color.Transparent
+    }
     Box(
         modifier = modifier
             .height(44.dp)
             .padding(2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .clip(NothingShapes.compact)
+            .background(bg)
             .clickable(enabled = date != null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -504,7 +510,7 @@ private fun DayCell(
                     Box(
                         modifier = Modifier
                             .size(4.dp)
-                            .clip(RoundedCornerShape(50))
+                            .clip(CircleShape)
                             .background(NothingColors.accent),
                     )
                 }
