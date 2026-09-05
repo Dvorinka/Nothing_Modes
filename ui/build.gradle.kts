@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.hilt.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.reorderable)
+    implementation(libs.play.services.location)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit4)

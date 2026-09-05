@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="160dp"
+    android:viewportWidth="240"
+    android:viewportHeight="160">
+    <!-- Background -->
+    <path android:fillColor="#0D0D0D" android:pathData="M0,0h240v160h-240z" />
+    <!-- Title text area -->
+    <path android:fillColor="#D71921" android:pathData="M12,12h80v4h-80z" />
+    <!-- Item row 1 -->
+    <path android:fillColor="#1A1A1A" android:pathData="M12,28h216v28h-216z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,36h60v3h-60z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,42h40v3h-40z" />
+    <path android:fillColor="#D71921" android:pathData="M200,38h20v8h-20z" />
+    <!-- Item row 2 -->
+    <path android:fillColor="#1A1A1A" android:pathData="M12,64h216v28h-216z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,72h60v3h-60z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,78h40v3h-40z" />
+    <path android:fillColor="#D71921" android:pathData="M200,74h20v8h-20z" />
+    <!-- Item row 3 -->
+    <path android:fillColor="#1A1A1A" android:pathData="M12,100h216v28h-216z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,108h60v3h-60z" />
+    <path android:fillColor="#EAEAEA" android:pathData="M20,114h40v3h-40z" />
+    <path android:fillColor="#D71921" android:pathData="M200,110h20v8h-20z" />
+</vector>

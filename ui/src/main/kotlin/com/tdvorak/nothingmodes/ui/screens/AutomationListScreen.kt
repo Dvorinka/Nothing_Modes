@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,8 +39,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -49,6 +54,7 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.Doto
@@ -219,6 +225,18 @@ fun AutomationListScreen(
     val selected by viewModel.selected.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val inSelection = selected.isNotEmpty()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Reload on resume so changes from builder/detail are reflected immediately.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.load()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -227,7 +245,7 @@ fun AutomationListScreen(
                 title = if (inSelection) "${selected.size} SELECTED" else "Nothing Modes",
                 showLeadingDot = !inSelection,
                 actions = if (inSelection) {
-                    emptyList()
+                    listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
                 } else {
                     listOf(
                         TopBarAction("LOG", icon = Icons.AutoMirrored.Default.List, onLogClick),
@@ -273,6 +291,7 @@ fun AutomationListScreen(
                             onClick = { onAutomationClick(automation.id.value) },
                             onToggleSelection = { viewModel.toggleSelected(automation.id) },
                             onToggleEnabled = { viewModel.toggleEnabled(automation) },
+                            onRun = { viewModel.runNow(automation) },
                         )
                     }
                 }
@@ -281,11 +300,8 @@ fun AutomationListScreen(
             if (inSelection) {
                 MultiSelectBottomBar(
                     onSelectAll = viewModel::selectAll,
-                    onEnable = { viewModel.enableSelected(true) },
-                    onDisable = { viewModel.enableSelected(false) },
                     onDelete = viewModel::deleteSelected,
                     onRun = viewModel::runSelected,
-                    onClear = viewModel::clearSelection,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding(),
@@ -311,6 +327,7 @@ private fun RoutineCard(
     onClick: () -> Unit,
     onToggleSelection: () -> Unit,
     onToggleEnabled: () -> Unit,
+    onRun: () -> Unit = {},
 ) {
     val iconColor = if (automation.iconBackground.isNotBlank()) colorForHex(automation.iconBackground) else routineColor(automation.name)
     val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
@@ -360,6 +377,22 @@ private fun RoutineCard(
 
                 if (inSelectionMode) {
                     SelectionIndicator(isSelected = isSelected)
+                } else if (automation.trigger is Trigger.Manual) {
+                    // Manual trigger routines show a play button instead of a toggle.
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(NothingColors.success),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "▶",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                            modifier = Modifier.clickable(onClick = onRun),
+                        )
+                    }
                 } else {
                     NothingToggle(
                         checked = automation.enabled,
@@ -448,11 +481,8 @@ private fun routineColor(name: String): Color {
 @Composable
 private fun MultiSelectBottomBar(
     onSelectAll: () -> Unit,
-    onEnable: () -> Unit,
-    onDisable: () -> Unit,
     onDelete: () -> Unit,
     onRun: () -> Unit,
-    onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -471,11 +501,8 @@ private fun MultiSelectBottomBar(
             verticalAlignment = Alignment.Bottom,
         ) {
             NothingCircleButton(icon = "A", label = "All", onClick = onSelectAll)
-            NothingCircleButton(icon = "1", label = "On", onClick = onEnable)
-            NothingCircleButton(icon = "0", label = "Off", onClick = onDisable)
-            NothingCircleButton(icon = "D", label = "Del", onClick = onDelete, color = NothingColors.accent)
+            NothingCircleButton(icon = "D", label = "Delete", onClick = onDelete, color = NothingColors.accent)
             NothingCircleButton(icon = "R", label = "Run", onClick = onRun, color = NothingColors.success)
-            NothingCircleButton(icon = "X", label = "X", onClick = onClear)
         }
     }
 }

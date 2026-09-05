@@ -119,7 +119,7 @@ class CapabilityDetector(
         model.startsWith("A142P") -> "Phone (2a) Plus"
         model.startsWith("A059") -> "Phone (3a)"
         model.startsWith("A059P") -> "Phone (3a) Pro"
-        model.startsWith("A001") -> "Phone (3)"
+        model.startsWith("A024") -> "Phone (3)"
         model.startsWith("A063P") -> "Phone (4a) Pro"
         model.startsWith("A172") -> "Phone (4a)"
         model.startsWith("A172P") -> "Phone (4b)"

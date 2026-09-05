@@ -57,6 +57,23 @@
             </intent-filter>
         </receiver>
 
+        <activity
+            android:name=".widget.SingleAutomationWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.NothingModes" />
+
+        <receiver
+            android:name=".widget.SingleAutomationWidgetReceiver"
+            android:exported="true"
+            android:label="Nothing Mode Action">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/single_automation_widget_info" />
+        </receiver>
+
         <service
             android:name=".quicksettings.NothingModesTileService"
             android:exported="true"

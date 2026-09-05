@@ -25,7 +25,7 @@ class NothingModesApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ThemeManager.init(this)
-        appScope.launch { SeedAutomations.seedIfEmpty(store) }
+        // Seed automations removed — user starts with a clean slate.
         // Start persistent monitor on fresh install (not just on boot)
         runCatching {
             val intent = Intent(this, PersistentMonitorService::class.java)

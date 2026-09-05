@@ -17,7 +17,7 @@ class NothingDeviceDetector(private val context: Context) {
             model.startsWith("A142P") -> NothingDeviceIds.PHONE_2A_PLUS
             model.startsWith("A059") && !model.contains("P") -> NothingDeviceIds.PHONE_3A
             model.startsWith("A059P") -> NothingDeviceIds.PHONE_3A
-            model.startsWith("A001") -> NothingDeviceIds.PHONE_3
+            model.startsWith("A024") -> NothingDeviceIds.PHONE_3
             model.startsWith("A063P") -> NothingDeviceIds.PHONE_4A_PRO
             model.startsWith("A172") && !model.contains("P") -> NothingDeviceIds.PHONE_4A
             model.startsWith("A172P") -> NothingDeviceIds.PHONE_4B

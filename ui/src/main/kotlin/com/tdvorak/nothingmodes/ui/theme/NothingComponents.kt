@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
@@ -488,6 +491,7 @@ fun NothingTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
             .height(88.dp)
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = NothingSpacing.lg),

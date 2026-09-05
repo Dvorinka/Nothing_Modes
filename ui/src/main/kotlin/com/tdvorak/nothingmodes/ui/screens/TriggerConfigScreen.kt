@@ -1,6 +1,10 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +15,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
@@ -45,6 +58,24 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -52,25 +83,27 @@ import kotlinx.serialization.json.Json
 private data class TriggerType(
     val label: String,
     val category: String,
+    val icon: ImageVector,
+    val iconBg: Color,
     val trigger: Trigger,
 )
 
 private fun triggerTypes(): List<TriggerType> = listOf(
-    TriggerType("Time", "Schedule", Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
-    TriggerType("Time window", "Schedule", Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
-    TriggerType("Immediate", "Manual", Trigger.Immediate),
-    TriggerType("Manual", "Manual", Trigger.Manual),
-    TriggerType("Boot", "Device", Trigger.Boot),
-    TriggerType("Screen", "Device", Trigger.ScreenStateTrigger(ScreenState.ON)),
-    TriggerType("Battery", "Device", Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
-    TriggerType("App opened", "Apps", Trigger.AppOpened("")),
-    TriggerType("Notification", "Apps", Trigger.Notification("")),
-    TriggerType("Phone", "Connections", Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
-    TriggerType("Connectivity", "Connections", Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
-    TriggerType("WiFi", "Connections", Trigger.WifiConnected()),
-    TriggerType("Bluetooth", "Connections", Trigger.BluetoothDevice(ConnState.CONNECTED)),
-    TriggerType("Geofence", "Location", Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-    TriggerType("Calendar", "Schedule", Trigger.CalendarEvent()),
+    TriggerType("Time", "Schedule", Icons.Default.Schedule, Color(0xFF5B9BF6), Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
+    TriggerType("Time window", "Schedule", Icons.Default.Alarm, Color(0xFF9B59B6), Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
+    TriggerType("Manual", "Manual", Icons.Default.TouchApp, Color(0xFFD71921), Trigger.Manual),
+    TriggerType("Immediate", "Manual", Icons.Default.PowerSettingsNew, Color(0xFFE67E22), Trigger.Immediate),
+    TriggerType("Boot", "Device", Icons.Default.PowerSettingsNew, Color(0xFF2C3E50), Trigger.Boot),
+    TriggerType("Screen", "Device", Icons.Default.Devices, Color(0xFF1ABC9C), Trigger.ScreenStateTrigger(ScreenState.ON)),
+    TriggerType("Battery", "Device", Icons.Default.BatteryFull, Color(0xFF4A9E5C), Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
+    TriggerType("App opened", "Apps", Icons.Default.Apps, Color(0xFFD4A843), Trigger.AppOpened("")),
+    TriggerType("Notification", "Apps", Icons.Default.Notifications, Color(0xFFD71921), Trigger.Notification("")),
+    TriggerType("Phone", "Connections", Icons.Default.Phone, Color(0xFF2980B9), Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
+    TriggerType("Connectivity", "Connections", Icons.Default.Wifi, Color(0xFF5B9BF6), Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
+    TriggerType("WiFi", "Connections", Icons.Default.Wifi, Color(0xFF27AE60), Trigger.WifiConnected()),
+    TriggerType("Bluetooth", "Connections", Icons.Default.Bluetooth, Color(0xFF3498DB), Trigger.BluetoothDevice(ConnState.CONNECTED)),
+    TriggerType("Geofence", "Location", Icons.Default.LocationOn, Color(0xFFE67E22), Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
+    TriggerType("Calendar", "Schedule", Icons.Default.CalendarMonth, Color(0xFF8E44AD), Trigger.CalendarEvent()),
 )
 
 @Composable
@@ -155,19 +188,80 @@ private fun TriggerTypeSelector(
     onSelect: (Trigger) -> Unit,
 ) {
     val types = remember { triggerTypes() }
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
-        verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+    // Group by category for visual catalog
+    val grouped = types.groupBy { it.category }
+
+    grouped.forEach { (category, items) ->
+        Text(
+            text = category.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = NothingSpacing.md, bottom = NothingSpacing.xs),
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            maxItemsInEachRow = 4,
+        ) {
+            items.forEach { type ->
+                val isSelected = selected::class == type.trigger::class
+                VisualTriggerChip(
+                    label = type.label,
+                    icon = type.icon,
+                    iconBg = type.iconBg,
+                    selected = isSelected,
+                    onClick = { onSelect(type.trigger) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VisualTriggerChip(
+    label: String,
+    icon: ImageVector,
+    iconBg: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(NothingSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        types.forEach { type ->
-            val isSelected = selected::class == type.trigger::class
-            NothingTag(
-                text = type.label.uppercase(),
-                active = isSelected,
-                modifier = Modifier.clickable { onSelect(type.trigger) },
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(iconBg, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .then(
+                    if (selected) Modifier.border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    ) else Modifier,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp),
             )
         }
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            fontFamily = SpaceMono,
+        )
     }
 }
 
@@ -208,10 +302,9 @@ private fun TriggerConfigContent(
             onUpdate = onUpdate,
         )
 
-        is Trigger.AppOpened -> NothingInput(
-            value = t.pkg,
-            onValueChange = { onUpdate(t.copy(pkg = it)) },
-            label = "Package name",
+        is Trigger.AppOpened -> AppPickerContent(
+            currentPackage = t.pkg,
+            onPkgChange = { onUpdate(t.copy(pkg = it)) },
         )
 
         is Trigger.Notification -> NotificationContent(
@@ -459,24 +552,42 @@ private fun GeofenceContent(
     trigger: Trigger.Geofence,
     onUpdate: (Trigger.Geofence) -> Unit,
 ) {
+    val context = LocalContext.current
+
     Column {
-        Row(
+        // "Use current location" button — fetches last known location from FusedLocationProvider.
+        NothingPillButton(
+            text = "Use current location",
+            onClick = {
+                runCatching {
+                    val fusedLocationClient = com.google.android.gms.location.LocationServices
+                        .getFusedLocationProviderClient(context)
+                    if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                        context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) {
+                        fusedLocationClient.lastLocation
+                            .addOnSuccessListener { location ->
+                                if (location != null) {
+                                    onUpdate(trigger.copy(lat = location.latitude, lng = location.longitude))
+                                }
+                            }
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-        ) {
-            NothingInput(
-                value = trigger.lat.toString(),
-                onValueChange = { onUpdate(trigger.copy(lat = it.toDoubleOrNull() ?: trigger.lat)) },
-                label = "Latitude",
-                modifier = Modifier.weight(1f),
-            )
-            NothingInput(
-                value = trigger.lng.toString(),
-                onValueChange = { onUpdate(trigger.copy(lng = it.toDoubleOrNull() ?: trigger.lng)) },
-                label = "Longitude",
-                modifier = Modifier.weight(1f),
-            )
-        }
+        )
+
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+        // Show coordinates as read-only text (set by the button above or manually if needed).
+        Text(
+            text = "Location: ${String.format("%.4f", trigger.lat)}, ${String.format("%.4f", trigger.lng)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.radiusM.toString(),
@@ -581,4 +692,125 @@ private fun BooleanRow(
 @Composable
 private fun NothingLabel(text: String) {
     com.tdvorak.nothingmodes.ui.theme.NothingLabel(text = text)
+}
+
+// ─── Installed App Picker ────────────────────────────────────────────────────
+
+private data class InstalledApp(
+    val label: String,
+    val pkg: String,
+)
+
+@Composable
+private fun AppPickerContent(
+    currentPackage: String,
+    onPkgChange: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    var showList by remember { mutableStateOf(false) }
+
+    val installedApps = remember {
+        runCatching {
+            val pm = context.packageManager
+            val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            }
+            pm.queryIntentActivities(mainIntent, 0)
+                .map { ri ->
+                    InstalledApp(
+                        label = ri.loadLabel(pm).toString(),
+                        pkg = ri.activityInfo.packageName,
+                    )
+                }
+                .sortedBy { it.label.lowercase() }
+        }.getOrDefault(emptyList())
+    }
+
+    val filteredApps = remember(searchQuery, installedApps) {
+        if (searchQuery.isBlank()) installedApps
+        else installedApps.filter {
+            it.label.contains(searchQuery, ignoreCase = true) ||
+                it.pkg.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    val selectedLabel = installedApps.find { it.pkg == currentPackage }?.label ?: currentPackage
+
+    Column {
+        Text(
+            text = "Selected app",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showList = !showList },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(NothingSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = selectedLabel.ifBlank { "Tap to select an app" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
+                )
+                Text(
+                    text = if (showList) "▲" else "▼",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (showList) {
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search apps...", fontFamily = SpaceMono) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+            ) {
+                items(filteredApps, key = { it.pkg }) { app ->
+                    Surface(
+                        color = if (app.pkg == currentPackage) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onPkgChange(app.pkg)
+                                showList = false
+                                searchQuery = ""
+                            },
+                    ) {
+                        Text(
+                            text = app.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(NothingSpacing.sm),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

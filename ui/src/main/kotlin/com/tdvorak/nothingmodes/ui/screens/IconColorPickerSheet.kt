@@ -12,40 +12,60 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Textsms
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -59,54 +79,86 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.tdvorak.nothingmodes.ui.theme.NothingDestructiveButton
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
+private data class IconEntry(
+    val name: String,
+    val icon: ImageVector,
+    val keywords: List<String>,
+)
+
 private val iconOptions = listOf(
-    "star" to Icons.Default.Star,
-    "home" to Icons.Default.Home,
-    "wifi" to Icons.Default.Wifi,
-    "bluetooth" to Icons.Default.Bluetooth,
-    "sun" to Icons.Default.WbSunny,
-    "dark_mode" to Icons.Default.DarkMode,
-    "brightness" to Icons.Default.Brightness6,
-    "lightbulb" to Icons.Default.Lightbulb,
-    "notification" to Icons.Default.Notifications,
-    "volume" to Icons.AutoMirrored.Filled.VolumeUp,
-    "music" to Icons.Default.MusicNote,
-    "alarm" to Icons.Default.Alarm,
-    "timer" to Icons.Default.Timer,
-    "location" to Icons.Default.LocationOn,
-    "language" to Icons.Default.Language,
-    "airplane" to Icons.Default.Flight,
-    "power" to Icons.Default.PowerSettingsNew,
-    "battery" to Icons.Default.BatteryFull,
-    "flashlight" to Icons.Default.FlashlightOn,
-    "campaign" to Icons.Default.Campaign,
-    "message" to Icons.Default.Textsms,
-    "settings" to Icons.Default.Settings,
-    "speed" to Icons.Default.Speed,
+    IconEntry("star", Icons.Default.Star, listOf("star", "favorite", "rate")),
+    IconEntry("home", Icons.Default.Home, listOf("home", "house", "start")),
+    IconEntry("wifi", Icons.Default.Wifi, listOf("wifi", "wireless", "network", "internet")),
+    IconEntry("bluetooth", Icons.Default.Bluetooth, listOf("bluetooth", "wireless", "bt")),
+    IconEntry("sun", Icons.Default.WbSunny, listOf("sun", "day", "light", "bright", "morning")),
+    IconEntry("dark_mode", Icons.Default.DarkMode, listOf("dark", "night", "moon", "sleep")),
+    IconEntry("brightness", Icons.Default.Brightness6, listOf("brightness", "screen", "dim")),
+    IconEntry("lightbulb", Icons.Default.Lightbulb, listOf("light", "bulb", "idea", "lamp")),
+    IconEntry("notification", Icons.Default.Notifications, listOf("notification", "alert", "bell", "notify")),
+    IconEntry("volume", Icons.AutoMirrored.Filled.VolumeUp, listOf("volume", "sound", "audio", "loud")),
+    IconEntry("music", Icons.Default.MusicNote, listOf("music", "song", "audio", "play", "media")),
+    IconEntry("alarm", Icons.Default.Alarm, listOf("alarm", "wake", "clock", "time")),
+    IconEntry("timer", Icons.Default.Timer, listOf("timer", "countdown", "stopwatch", "time")),
+    IconEntry("clock", Icons.Default.AccessTime, listOf("clock", "time", "watch", "hour")),
+    IconEntry("location", Icons.Default.LocationOn, listOf("location", "gps", "map", "place", "pin")),
+    IconEntry("language", Icons.Default.Language, listOf("language", "translate", "global", "world")),
+    IconEntry("airplane", Icons.Default.Flight, listOf("airplane", "flight", "travel", "plane")),
+    IconEntry("power", Icons.Default.PowerSettingsNew, listOf("power", "off", "shutdown", "reboot")),
+    IconEntry("battery", Icons.Default.BatteryFull, listOf("battery", "charge", "power", "energy")),
+    IconEntry("flashlight", Icons.Default.FlashlightOn, listOf("flashlight", "torch", "light", "led")),
+    IconEntry("campaign", Icons.Default.Campaign, listOf("campaign", "announce", "broadcast", "megaphone")),
+    IconEntry("message", Icons.Default.Textsms, listOf("message", "sms", "text", "chat")),
+    IconEntry("email", Icons.Default.Email, listOf("email", "mail", "inbox", "letter")),
+    IconEntry("phone", Icons.Default.Phone, listOf("phone", "call", "dial", "ring")),
+    IconEntry("settings", Icons.Default.Settings, listOf("settings", "gear", "config", "preferences")),
+    IconEntry("speed", Icons.Default.Speed, listOf("speed", "fast", "performance", "gauge")),
+    IconEntry("lock", Icons.Default.Lock, listOf("lock", "secure", "password", "screen lock")),
+    IconEntry("vibration", Icons.Default.Vibration, listOf("vibration", "vibrate", "haptic", "buzz")),
+    IconEntry("mic", Icons.Default.Mic, listOf("mic", "microphone", "record", "voice")),
+    IconEntry("cloud", Icons.Default.Cloud, listOf("cloud", "weather", "sync", "sky")),
+    IconEntry("air", Icons.Default.Air, listOf("air", "wind", "breeze", "fan")),
+    IconEntry("work", Icons.Default.Work, listOf("work", "office", "business", "briefcase", "job")),
+    IconEntry("fitness", Icons.Default.FitnessCenter, listOf("fitness", "gym", "workout", "exercise", "health")),
+    IconEntry("food", Icons.Default.Fastfood, listOf("food", "eat", "meal", "lunch", "dinner", "restaurant")),
+    IconEntry("shopping", Icons.Default.ShoppingCart, listOf("shopping", "cart", "buy", "store", "shop")),
+    IconEntry("game", Icons.Default.Gamepad, listOf("game", "play", "controller", "gaming")),
+    IconEntry("person", Icons.Default.AccountCircle, listOf("person", "user", "account", "profile", "contact")),
+    IconEntry("check", Icons.Default.CheckCircle, listOf("check", "done", "complete", "confirm", "ok")),
 )
 
 private val colorOptions = listOf(
-    "#4A9E5C",
-    "#D4A843",
-    "#5B9BF6",
-    "#D71921",
-    "#9B59B6",
-    "#1ABC9C",
-    "#E67E22",
-    "#2C3E50",
-    "#7F8C8D",
-    "#C0392B",
-    "#2980B9",
-    "#27AE60",
+    "#D71921", // Nothing red
+    "#FFFFFF", // White
+    "#000000", // Black
+    "#4A9E5C", // Green
+    "#D4A843", // Gold
+    "#5B9BF6", // Blue
+    "#9B59B6", // Purple
+    "#1ABC9C", // Teal
+    "#E67E22", // Orange
+    "#2C3E50", // Dark blue
+    "#7F8C8D", // Gray
+    "#C0392B", // Dark red
+    "#2980B9", // Ocean
+    "#27AE60", // Emerald
+    "#F1C40F", // Yellow
+    "#E74C3C", // Coral
+    "#3498DB", // Sky
+    "#16A085", // Forest
+    "#8E44AD", // Violet
+    "#2ECC71", // Lime
+    "#D35400", // Pumpkin
+    "#34495E", // Slate
+    "#95A5A6", // Silver
+    "#BDC3C7", // Light gray
 )
 
 fun iconForName(name: String): ImageVector =
-    iconOptions.find { it.first == name }?.second ?: Icons.Default.Star
+    iconOptions.find { it.name == name }?.icon ?: Icons.Default.Star
 
 fun colorForHex(hex: String): Color =
     runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(Color(0xFF9B9B9B))
@@ -121,7 +173,17 @@ fun IconColorPickerSheet(
 ) {
     var selectedIcon by remember { mutableStateOf(initialIcon.ifBlank { "star" }) }
     var selectedColor by remember { mutableStateOf(initialColor.ifBlank { colorOptions.first() }) }
+    var searchQuery by remember { mutableStateOf("") }
+    var customColorHex by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val filteredIcons = remember(searchQuery) {
+        if (searchQuery.isBlank()) iconOptions
+        else iconOptions.filter { entry ->
+            entry.name.contains(searchQuery, ignoreCase = true) ||
+                entry.keywords.any { it.contains(searchQuery, ignoreCase = true) }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -148,6 +210,7 @@ fun IconColorPickerSheet(
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
+            // Live preview
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -164,8 +227,20 @@ fun IconColorPickerSheet(
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
+            // Icon search
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search icons...", fontFamily = SpaceMono) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
             Text(
-                text = "ICON",
+                text = "ICON (${filteredIcons.size})",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = SpaceMono,
@@ -173,16 +248,18 @@ fun IconColorPickerSheet(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
-                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 240.dp),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                 maxItemsInEachRow = 6,
             ) {
-                iconOptions.forEach { (name, icon) ->
+                filteredIcons.forEach { entry ->
                     IconOption(
-                        icon = icon,
-                        selected = selectedIcon == name,
-                        onClick = { selectedIcon = name },
+                        icon = entry.icon,
+                        selected = selectedIcon == entry.name,
+                        onClick = { selectedIcon = entry.name },
                     )
                 }
             }
@@ -199,18 +276,41 @@ fun IconColorPickerSheet(
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
-                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                maxItemsInEachRow = 6,
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                maxItemsInEachRow = 8,
             ) {
                 colorOptions.forEach { hex ->
                     ColorOption(
                         color = colorForHex(hex),
-                        selected = selectedColor == hex,
+                        selected = selectedColor.equals(hex, ignoreCase = true),
                         onClick = { selectedColor = hex },
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+            // Custom color input
+            OutlinedTextField(
+                value = customColorHex,
+                onValueChange = { customColorHex = it },
+                placeholder = { Text("#RRGGBB", fontFamily = SpaceMono) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            NothingPillButton(
+                text = "Apply custom color",
+                onClick = {
+                    val trimmed = customColorHex.trim()
+                    if (trimmed.matches(Regex("^#?[0-9A-Fa-f]{6}$"))) {
+                        val normalized = if (trimmed.startsWith("#")) trimmed else "#$trimmed"
+                        selectedColor = normalized
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
@@ -277,158 +377,4 @@ private fun ColorOption(
             )
             .clickable(onClick = onClick),
     )
-}
-
-// ─── Save Sheet (icon/color + save actions) ──────────────────────────────────
-
-/**
- * Save bottom sheet: icon/color selection plus save action options.
- * Actions: Save, Save as, Go back, Cancel, Cancel this card.
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-fun SaveSheet(
-    initialIcon: String,
-    initialColor: String,
-    isEditing: Boolean,
-    onSave: (String, String) -> Unit,
-    onSaveAs: (String, String) -> Unit,
-    onGoBack: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    var selectedIcon by remember { mutableStateOf(initialIcon.ifBlank { "star" }) }
-    var selectedColor by remember { mutableStateOf(initialColor.ifBlank { colorOptions.first() }) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onGoBack,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        scrimColor = Color.Black.copy(alpha = 0.6f),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(NothingSpacing.md)
-                .padding(bottom = NothingSpacing.xl)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "SAVE",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
-            )
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(colorForHex(selectedColor), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = iconForName(selectedIcon),
-                    contentDescription = selectedIcon,
-                    tint = if (colorForHex(selectedColor).luminance() > 0.5f) Color.Black else Color.White,
-                    modifier = Modifier.size(40.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            Text(
-                text = "ICON",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
-                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                maxItemsInEachRow = 6,
-            ) {
-                iconOptions.forEach { (name, icon) ->
-                    IconOption(
-                        icon = icon,
-                        selected = selectedIcon == name,
-                        onClick = { selectedIcon = name },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            Text(
-                text = "COLOR",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md, Alignment.Start),
-                verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                maxItemsInEachRow = 6,
-            ) {
-                colorOptions.forEach { hex ->
-                    ColorOption(
-                        color = colorForHex(hex),
-                        selected = selectedColor == hex,
-                        onClick = { selectedColor = hex },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(NothingSpacing.xl))
-
-            // Primary save action
-            NothingPillButton(
-                text = if (isEditing) "Save" else "Save",
-                onClick = { onSave(selectedIcon, selectedColor) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-            // Save as copy
-            NothingPillButton(
-                text = "Save As",
-                onClick = { onSaveAs(selectedIcon, selectedColor) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-            ) {
-                NothingPillButton(
-                    text = "Go Back",
-                    onClick = onGoBack,
-                    modifier = Modifier.weight(1f),
-                )
-                NothingPillButton(
-                    text = "Cancel Card",
-                    onClick = onGoBack,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-            NothingDestructiveButton(
-                text = "Cancel",
-                onClick = onCancel,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
 }

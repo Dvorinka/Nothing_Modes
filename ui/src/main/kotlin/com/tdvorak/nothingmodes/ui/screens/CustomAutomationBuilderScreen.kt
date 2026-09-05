@@ -320,7 +320,8 @@ fun CustomAutomationBuilderScreen(
     // Handle action result from catalog (all actions use the bottom sheet).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
-    var showSaveSheet by remember { mutableStateOf(false) }
+    var showIconPicker by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
     val actionResultFlow = remember(navController) {
         navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
             ?: MutableStateFlow("")
@@ -343,11 +344,7 @@ fun CustomAutomationBuilderScreen(
         topBar = {
             NothingTopBar(
                 title = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
-                onBack = onBack,
-                actions = listOf(
-                    TopBarAction("+ COND") { onAddCondition?.invoke() },
-                    TopBarAction("+ ACT") { onAddAction?.invoke() },
-                ),
+                onBack = { showDiscardDialog = true },
             )
         },
         // Sticky bottom bar — save button always visible, not clipped by system insets.
@@ -366,7 +363,7 @@ fun CustomAutomationBuilderScreen(
                 ) {
                     NothingPillButton(
                         text = if (automationId != null) "Save Changes" else "Create Automation",
-                        onClick = { showSaveSheet = true },
+                        onClick = { viewModel.save() },
                         enabled = state.actions.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -406,11 +403,13 @@ fun CustomAutomationBuilderScreen(
                 )
             }
 
-            // Preview tile — live visual of the saved routine card
+            // Preview tile — live visual of the saved routine card, tappable to pick icon/color
             item {
                 AutomationPreviewTile(
                     state = state,
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                    modifier = Modifier
+                        .padding(vertical = NothingSpacing.md)
+                        .clickable { showIconPicker = true },
                 )
             }
 
@@ -606,22 +605,76 @@ fun CustomAutomationBuilderScreen(
             )
         }
 
-        if (showSaveSheet) {
-            SaveSheet(
+        if (showIconPicker) {
+            IconColorPickerSheet(
                 initialIcon = state.icon,
                 initialColor = state.iconBackground,
-                isEditing = automationId != null,
-                onSave = { icon, color ->
-                    viewModel.save(icon, color)
-                    showSaveSheet = false
+                onDone = { icon, color ->
+                    viewModel.updateIcon(icon)
+                    viewModel.updateIconBackground(color)
+                    showIconPicker = false
                 },
-                onSaveAs = { icon, color ->
-                    viewModel.saveAs(icon, color)
-                    showSaveSheet = false
-                },
-                onGoBack = { showSaveSheet = false },
-                onCancel = { onBack() },
+                onDismiss = { showIconPicker = false },
             )
+        }
+
+        if (showDiscardDialog) {
+            BasicAlertDialog(
+                onDismissRequest = { showDiscardDialog = false },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = NothingSpacing.md),
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = NothingShapes.technical,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(NothingSpacing.lg)) {
+                        Text(
+                            text = "Discard changes?",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        Text(
+                            text = "Unsaved changes will be lost.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        ) {
+                            NothingPillButton(
+                                text = "Cancel",
+                                onClick = { showDiscardDialog = false },
+                                modifier = Modifier.weight(1f),
+                            )
+                            NothingPillButton(
+                                text = "Save",
+                                onClick = {
+                                    showDiscardDialog = false
+                                    viewModel.save()
+                                },
+                                enabled = state.actions.isNotEmpty(),
+                                modifier = Modifier.weight(1f),
+                            )
+                            NothingPillButton(
+                                text = "Discard",
+                                onClick = {
+                                    showDiscardDialog = false
+                                    onBack()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

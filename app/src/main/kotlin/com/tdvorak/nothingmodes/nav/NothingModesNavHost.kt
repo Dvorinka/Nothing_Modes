@@ -64,7 +64,9 @@ fun NothingModesNavHost() {
             OnboardingScreen(
                 onComplete = {
                     prefs.edit().putBoolean("onboarding_completed", true).apply()
-                    navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                    navController.navigate(Routes.AUTOMATION_LIST) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
                 },
             )
         }

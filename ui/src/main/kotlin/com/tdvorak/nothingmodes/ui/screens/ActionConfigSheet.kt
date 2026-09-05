@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -356,11 +358,9 @@ fun ActionConfigContent(
         }
 
         is Action.LaunchApp -> {
-            NothingInput(
-                value = a.pkg,
-                onValueChange = { onActionChange(a.copy(pkg = it)) },
-                label = "Package name",
-                modifier = Modifier.fillMaxWidth(),
+            AppPickerField(
+                currentPackage = a.pkg,
+                onPkgChange = { onActionChange(a.copy(pkg = it)) },
             )
         }
 
@@ -716,3 +716,116 @@ internal fun parseColorHex(text: String): Int? = runCatching {
     if (hex.length != 6) return@runCatching null
     Integer.parseInt(hex, 16) or 0xFF000000.toInt()
 }.getOrNull()
+
+// ─── Installed App Picker Field ──────────────────────────────────────────────
+
+@Composable
+private fun AppPickerField(
+    currentPackage: String,
+    onPkgChange: (String) -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    var showList by remember { mutableStateOf(false) }
+
+    val installedApps = remember {
+        runCatching {
+            val pm = context.packageManager
+            val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            }
+            pm.queryIntentActivities(mainIntent, 0)
+                .map { ri ->
+                    ri.loadLabel(pm).toString() to ri.activityInfo.packageName
+                }
+                .sortedBy { it.first.lowercase() }
+        }.getOrDefault(emptyList())
+    }
+
+    val filteredApps = remember(searchQuery, installedApps) {
+        if (searchQuery.isBlank()) installedApps
+        else installedApps.filter {
+            it.first.contains(searchQuery, ignoreCase = true) ||
+                it.second.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    val selectedLabel = installedApps.find { it.second == currentPackage }?.first ?: currentPackage
+
+    Column {
+        Text(
+            text = "Selected app",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showList = !showList },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(NothingSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = selectedLabel.ifBlank { "Tap to select an app" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SpaceMono,
+                )
+                Text(
+                    text = if (showList) "▲" else "▼",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (showList) {
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            androidx.compose.material3.OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search apps...", fontFamily = SpaceMono) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            androidx.compose.foundation.lazy.LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp),
+                verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+            ) {
+                items(filteredApps, key = { it.second }) { (label, pkg) ->
+                    androidx.compose.material3.Surface(
+                        color = if (pkg == currentPackage) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onPkgChange(pkg)
+                                showList = false
+                                searchQuery = ""
+                            },
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.padding(NothingSpacing.sm),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

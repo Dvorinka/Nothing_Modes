@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -15,6 +16,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
@@ -52,31 +54,43 @@ class NothingModesWidget : GlanceAppWidget() {
 
         val automations = withContext(Dispatchers.IO) {
             runCatching {
-                // quickAction is always enabled — show enabled armed manual automations as tiles.
                 store.all().filter {
-                    it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
-                }.take(2) // allow up to 2 tiles
+                    it.enabled && it.status == AutomationStatus.ARMED
+                }.sortedBy { it.priority }.take(4)
             }.getOrDefault(emptyList())
         }
 
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+
         provideContent {
-            NothingModesWidgetContent(automations)
+            NothingModesWidgetContent(automations, launchIntent)
         }
     }
 }
 
 @Composable
-private fun NothingModesWidgetContent(automations: List<Automation>) {
+private fun NothingModesWidgetContent(
+    automations: List<Automation>,
+    launchIntent: Intent?,
+) {
     val accent = ColorProvider(Color(0xFFD71921))
     val surface = ColorProvider(Color(0xFF0D0D0D))
     val onSurface = ColorProvider(Color(0xFFEAEAEA))
     val onSurfaceVariant = ColorProvider(Color(0xFF7E7E7E))
 
+    // Outer Box: clicking blank space or the title opens the app.
+    val openAppModifier = if (launchIntent != null) {
+        GlanceModifier.clickable(actionStartActivity(launchIntent))
+    } else {
+        GlanceModifier
+    }
+
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(surface)
-            .padding(12.dp),
+            .padding(12.dp)
+            .then(openAppModifier),
     ) {
         Column(
             modifier = GlanceModifier.fillMaxWidth(),
@@ -93,7 +107,7 @@ private fun NothingModesWidgetContent(automations: List<Automation>) {
 
             if (automations.isEmpty()) {
                 Text(
-                    text = "No quick actions yet",
+                    text = "No automations yet. Tap to open.",
                     style = TextStyle(
                         color = onSurfaceVariant,
                         fontSize = 12.sp,
@@ -142,12 +156,10 @@ private fun QuickActionItem(
                 style = TextStyle(color = onSurface, fontSize = 13.sp),
             )
         }
-        if (automation.trigger is Trigger.Manual) {
-            Text(
-                text = "RUN",
-                style = TextStyle(color = accent, fontSize = 11.sp, fontWeight = FontWeight.Medium),
-            )
-        }
+        Text(
+            text = "RUN",
+            style = TextStyle(color = accent, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+        )
     }
     Spacer(modifier = GlanceModifier.height(6.dp))
 }
