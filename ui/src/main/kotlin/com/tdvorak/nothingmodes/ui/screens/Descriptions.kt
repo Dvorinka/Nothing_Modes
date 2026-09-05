@@ -44,7 +44,7 @@ private fun dayName(day: String): String = when (day) {
 
 /** Shared description functions for triggers and actions. */
 
-fun triggerDescription(trigger: Trigger): String = when (trigger) {
+fun triggerDescription(trigger: Trigger): String = (when (trigger) {
     is Trigger.Time -> {
         trigger.at?.let { "Once · ${it.take(16).replace("T", " ")}" }
             ?: trigger.cron?.let { cronToSummary(it) }
@@ -65,9 +65,9 @@ fun triggerDescription(trigger: Trigger): String = when (trigger) {
     is Trigger.BluetoothDevice -> "BT device ${trigger.state}${trigger.deviceName?.let { ": $it" } ?: ""}"
     is Trigger.WifiConnected -> "WiFi connected${trigger.ssid?.let { ": $it" } ?: ""}"
     is Trigger.CalendarEvent -> "Calendar ${trigger.direction.name.lowercase()}${trigger.titleMatch?.let { ": $it" } ?: ""}"
-}
+}).uppercase()
 
-fun actionDescription(action: Action): String = when (action) {
+fun actionDescription(action: Action): String = (when (action) {
     is Action.SetWifi -> "Wi-Fi: ${if (action.on) "On" else "Off"}"
     is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
     is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
@@ -112,4 +112,4 @@ fun actionDescription(action: Action): String = when (action) {
     is Action.ClearNotifications -> "Clear notifications"
     is Action.SetAlwaysOnDisplay -> "AOD: ${if (action.on) "On" else "Off"}"
     is Action.TakeScreenshot -> "Screenshot"
-}
+}).uppercase()

@@ -31,6 +31,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -285,35 +287,37 @@ fun CustomAutomationBuilderScreen(
     // Handle trigger config result.
     // ponytail: using savedStateHandle to pass the trigger JSON back avoids a shared ViewModel for now.
     //          If more cross-screen state appears, introduce a builder-scoped ViewModel.
-    val resultFlow = remember(navController) {
-        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("trigger_result", "")
+    val backStackEntry by navController?.currentBackStackEntryAsState()
+        ?: remember { mutableStateOf<androidx.navigation.NavBackStackEntry?>(null) }
+    val resultFlow = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow("trigger_result", "")
             ?: MutableStateFlow("")
     }
-    val result by resultFlow.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(result) {
+    val result by resultFlow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(result, backStackEntry) {
         if (result.isNotEmpty()) {
             runCatching { Json.decodeFromString<Trigger>(result) }.getOrNull()?.let {
                 viewModel.updateTrigger(it)
             }
-            navController?.currentBackStackEntry?.savedStateHandle?.set("trigger_result", "")
+            backStackEntry?.savedStateHandle?.set("trigger_result", "")
         }
     }
 
     // Handle condition result from catalog (all conditions use the bottom sheet).
     var editingConditionIndex by rememberSaveable { mutableStateOf(-1) }
     var conditionSheetCondition by remember { mutableStateOf<Condition?>(null) }
-    val conditionResultFlow = remember(navController) {
-        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
+    val conditionResultFlow = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
             ?: MutableStateFlow("")
     }
-    val conditionResult by conditionResultFlow.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(conditionResult) {
+    val conditionResult by conditionResultFlow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(conditionResult, backStackEntry) {
         if (conditionResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<Condition>(conditionResult) }.getOrNull()?.let { condition ->
                 editingConditionIndex = -1
                 conditionSheetCondition = condition
             }
-            navController?.currentBackStackEntry?.savedStateHandle?.set("condition_result", "")
+            backStackEntry?.savedStateHandle?.set("condition_result", "")
         }
     }
 
@@ -322,18 +326,18 @@ fun CustomAutomationBuilderScreen(
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
-    val actionResultFlow = remember(navController) {
-        navController?.currentBackStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
+    val actionResultFlow = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
             ?: MutableStateFlow("")
     }
-    val actionResult by actionResultFlow.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(actionResult) {
+    val actionResult by actionResultFlow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(actionResult, backStackEntry) {
         if (actionResult.isNotEmpty()) {
             runCatching { Json.decodeFromString<Action>(actionResult) }.getOrNull()?.let { action ->
                 editingActionIndex = -1
                 actionSheetAction = action
             }
-            navController?.currentBackStackEntry?.savedStateHandle?.set("action_result", "")
+            backStackEntry?.savedStateHandle?.set("action_result", "")
         }
     }
 
