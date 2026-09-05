@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nothing Modes — Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --bg: #050505;
+  --surface: #0D0D0D;
+  --card: #1A1A1A;
+  --outline: #2A2A2A;
+  --on-surface: #EAEAEA;
+  --on-surface-variant: #7E7E7E;
+  --accent: #D71921;
+  --success: #4A9E5C;
+  --info: #5B9BF6;
+  --font-display: 'Doto', 'Courier New', monospace;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--on-surface); font-family: var(--font-body); }
+a { color: var(--info); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header { position: fixed; top: 0; left: 0; right: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background: rgba(5,5,5,0.9); border-bottom: 1px solid var(--outline); z-index: 100; backdrop-filter: blur(8px); }
+.brand { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+.red-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.tag { color: var(--on-surface-variant); font-size: 11px; border: 1px solid var(--outline); padding: 2px 8px; border-radius: 999px; }
+.controls { display: flex; align-items: center; gap: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--on-surface-variant); }
+button { background: transparent; color: var(--on-surface); border: 1px solid var(--outline); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-family: var(--font-mono); font-size: 12px; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+main { padding-top: 64px; }
+.slide { display: none; min-height: calc(100vh - 64px); align-items: center; justify-content: center; gap: 64px; padding: 48px; }
+.slide.active { display: flex; }
+.slide-visual { flex-shrink: 0; }
+.slide-text { max-width: 520px; }
+.slide-no { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin-bottom: 8px; }
+.slide h2 { font-family: var(--font-display); font-size: 48px; font-weight: 400; margin: 0 0 8px; line-height: 1.1; }
+.slide-subtitle { color: var(--on-surface-variant); font-size: 16px; margin: 0 0 24px; }
+.slide-body { font-size: 14px; line-height: 1.6; color: var(--on-surface-variant); }
+.slide-body ul { padding-left: 18px; margin: 0; }
+.slide-body li { margin-bottom: 10px; }
+.slide-body code { font-family: var(--font-mono); background: var(--card); padding: 1px 5px; border-radius: 4px; color: var(--on-surface); border: 1px solid var(--outline); }
+.phone { width: 360px; height: 760px; border-radius: 48px; background: linear-gradient(145deg, #1a1a1a, #0d0d0d); border: 2px solid #222; padding: 12px; box-shadow: 0 20px 80px rgba(0,0,0,0.8); position: relative; }
+.notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 28px; background: #000; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; z-index: 10; }
+.screen { width: 100%; height: 100%; border-radius: 36px; background: var(--surface); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+.dot-grid { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; }
+.status-bar { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-family: var(--font-mono); font-size: 11px; color: var(--on-surface); border-bottom: 1px solid var(--outline); z-index: 5; position: relative; }
+.status-icons { display: flex; align-items: center; gap: 4px; }
+.topbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--outline); z-index: 5; position: relative; }
+.topbar-title { font-family: var(--font-display); font-size: 18px; letter-spacing: 1px; color: var(--on-surface); text-transform: uppercase; }
+.topbar-actions { color: var(--on-surface-variant); display: flex; gap: 12px; align-items: center; font-family: var(--font-mono); font-size: 11px; }
+.app-content { flex: 1; overflow-y: auto; padding: 16px; position: relative; z-index: 2; }
+.app-content::-webkit-scrollbar { width: 0; }
+.cover { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 32px; }
+.hero-title { font-family: var(--font-display); font-size: 80px; font-weight: 700; color: var(--on-surface); letter-spacing: 2px; line-height: 1; }
+.hero-subtitle { font-family: var(--font-mono); font-size: 16px; letter-spacing: 2px; color: var(--on-surface); margin-top: 8px; }
+.hero-tagline { color: var(--on-surface-variant); font-size: 13px; margin-top: 12px; }
+.pill { background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 999px; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; text-align: center; letter-spacing: 1px; }
+.card { background: var(--card); border: 1px solid var(--outline); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.card-title { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 10px; }
+.label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--on-surface-variant); }
+.value { color: var(--on-surface); font-size: 13px; }
+.list-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--outline); }
+.list-item:last-child { border-bottom: none; }
+.icon-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.list-body { flex: 1; min-width: 0; }
+.routine-card { background: var(--card); border: 1px solid var(--outline); border-radius: 8px; padding: 12px; }
+.routine-name { font-size: 14px; color: var(--on-surface); margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.multi-select { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #111; border: 1px solid var(--outline); border-radius: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--on-surface-variant); }
+.chip { padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--on-surface); border: 1px solid currentColor; text-transform: uppercase; text-align: center; }
+.chip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip-sm { padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--on-surface); }
+.input { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border: 1px solid var(--outline); border-radius: 8px; }
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--outline); }
+.status-row:last-child { border-bottom: none; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.time-box { width: 36px; height: 36px; background: var(--card); border: 1px solid var(--outline); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 16px; }
+.input-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.priority-seg { flex: 1; height: 16px; border-radius: 2px; }
+.stat-row { display: flex; justify-content: space-between; }
+.log-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--outline); font-family: var(--font-mono); font-size: 10px; }
+.log-no { color: var(--on-surface-variant); width: 20px; }
+.log-kind { flex: 1; }
+.log-time { color: var(--on-surface-variant); }
+.widget-row { display: flex; gap: 8px; margin-top: 8px; }
+.widget-tile { flex: 1; background: var(--card); border: 1px solid var(--outline); border-radius: 6px; padding: 10px; text-align: center; }
+.slider { height: 8px; background: var(--card); border-radius: 4px; margin: 12px 0; position: relative; }
+.slider-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 18px; line-height: 1; }
+footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 32px; font-family: var(--font-mono); font-size: 10px; color: var(--on-surface-variant); border-top: 1px solid var(--outline); background: rgba(5,5,5,0.9); z-index: 100; display: flex; justify-content: space-between; }
+@media (max-width: 960px) {
+  .slide { flex-direction: column; gap: 32px; padding: 24px; }
+  .phone { transform: scale(0.85); transform-origin: top center; }
+}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="red-dot"></span> Nothing Modes <span class="tag">proxmox-20250904-1845</span></div>
+  <div class="controls">
+    <button id="prev">← prev</button>
+    <span id="counter">1 / 11</span>
+    <button id="next">next →</button>
+  </div>
+</header>
+<main>
+<section class="slide active" data-index="0">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="app-content"><div class="cover">
+  <div class="red-dot" style="width:20px;height:20px;margin-bottom:24px"></div>
+  <div class="hero-title">NM</div>
+  <div class="hero-subtitle">NOTHING MODES</div>
+  <p class="hero-tagline">If this, then that. Nothing design.</p>
+  <div class="pill" style="margin-top:48px">Get started</div>
+  <div style="margin-top:auto;padding-bottom:40px"><div class="label" style="text-align:center">v0.9.0 · proxmox-20250904-1845</div></div>
+</div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">01</div>
+    <h2>Nothing Modes</h2>
+    <p class="slide-subtitle">Samsung-style modes, Nothing design language</p>
+    <div class="slide-body"><ul><li>Android automation app: <strong>If this, then that</strong> for Nothing phones.</li><li>Current branch <code>proxmox-20250904-1845</code> · commit <code>ecc0744</code>.</li><li>Open pull request: <a href="https://github.com/Dvorinka/Nothing_Modes/pull/3" target="_blank">github.com/Dvorinka/Nothing_Modes/pull/3</a></li></ul></div>
+  </div>
+</section><section class="slide" data-index="1">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">STATUS</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card"><div class="card-title" style="color:#D71921">Health</div><div class="status-row"><div class="label">Build</div><div style="display:flex;align-items:center;gap:8px;color:#4A9E5C;font-family:'Space Mono',monospace;font-size:12px"><span class="status-dot" style="background:#4A9E5C"></span>BUILD SUCCESSFUL</div></div><div class="status-row"><div class="label">Tests</div><div style="display:flex;align-items:center;gap:8px;color:#4A9E5C;font-family:'Space Mono',monospace;font-size:12px"><span class="status-dot" style="background:#4A9E5C"></span>:engine-core:test passed</div></div><div class="status-row"><div class="label">Lint</div><div style="display:flex;align-items:center;gap:8px;color:#4A9E5C;font-family:'Space Mono',monospace;font-size:12px"><span class="status-dot" style="background:#4A9E5C"></span>:app:lintDebug passed</div></div><div class="status-row"><div class="label">Commits ahead</div><div style="display:flex;align-items:center;gap:8px;color:#5B9BF6;font-family:'Space Mono',monospace;font-size:12px"><span class="status-dot" style="background:#5B9BF6"></span>8 commits on PR branch</div></div><div class="status-row"><div class="label">Pull request</div><div style="display:flex;align-items:center;gap:8px;color:#D71921;font-family:'Space Mono',monospace;font-size:12px"><span class="status-dot" style="background:#D71921"></span>PR #3 open</div></div></div><div class="pill" style="margin-top:16px">Merge PR #3</div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">02</div>
+    <h2>Status & merge readiness</h2>
+    <p class="slide-subtitle">Build, test and lint are green</p>
+    <div class="slide-body"><ul><li>Latest push verified locally: <code>:engine-core:test</code>, <code>:app:assembleDebug</code>, <code>:app:lintDebug</code> all pass.</li><li>Branch is 8 commits ahead of the previous rework base.</li><li>No compiler TODOs/FIXMEs in the Kotlin source.</li><li>Safe to merge from a CI standpoint; only remaining risk is on-device runtime validation.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="2">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">ARCHITECTURE</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card"><div class="card-title">Multi-module stack</div><div class="chip-grid"><div class="chip" style="background:#D7192120;border-color:#D7192160">app</div><div class="chip" style="background:#9B9B9B20;border-color:#9B9B9B60">ui</div><div class="chip" style="background:#4A9E5C20;border-color:#4A9E5C60">engine-core</div><div class="chip" style="background:#5B9BF620;border-color:#5B9BF660">capabilities</div><div class="chip" style="background:#D7192120;border-color:#D7192160">automation-android</div><div class="chip" style="background:#9B9B9B20;border-color:#9B9B9B60">data</div><div class="chip" style="background:#5B9BF620;border-color:#5B9BF660">core-shizuku</div><div class="chip" style="background:#4A9E5C20;border-color:#4A9E5C60">device-tools</div><div class="chip" style="background:#D7192120;border-color:#D7192160">nothing-integrations</div></div></div>
+<div class="card"><div class="card-title">Runtime</div><div class="list-item"><div class="icon-circle" style="background:#333"><span class="material-symbols-outlined">settings</span></div><div class="list-body"><div class="label">AutomationService</div><div class="value">Foreground lifecycle</div></div></div><div class="list-item"><div class="icon-circle" style="background:#333"><span class="material-symbols-outlined">schedule</span></div><div class="list-body"><div class="label">AutomationScheduler</div><div class="value">Cron / boot</div></div></div><div class="list-item"><div class="icon-circle" style="background:#333"><span class="material-symbols-outlined">analytics</span></div><div class="list-body"><div class="label">ConditionEvaluator</div><div class="value">State + logic</div></div></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">03</div>
+    <h2>Architecture</h2>
+    <p class="slide-subtitle">Multi-module Android stack</p>
+    <div class="slide-body"><ul><li><strong>app</strong> — Hilt Application, manifest, widget, tile service.</li><li><strong>ui</strong> — Jetpack Compose screens, theme, catalogs.</li><li><strong>engine-core</strong> — automation model, conditions, actions, evaluator.</li><li><strong>capabilities</strong> — Android state readers, action executor, permission logic.</li><li><strong>automation-android</strong> — service, scheduler, receivers, boot lifecycle.</li><li><strong>data</strong> — Room persistence, execution journal, store.</li><li><strong>core-shizuku / device-tools / nothing-integrations</strong> — Shizuku, Nothing Glyph SDK, system integrations.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="3">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">NOTHING MODES</div><div class="topbar-actions"><span class="material-symbols-outlined">settings</span></div></div><div class="app-content"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="routine-card" style="border-left:3px solid #7E7E7E">
+  <div class="icon-circle" style="background:#7E7E7E20;color:#7E7E7E"><span class="material-symbols-outlined">bedtime</span></div>
+  <div class="routine-name">Sleep</div>
+  <div class="label">22:00 daily</div>
+</div><div class="routine-card" style="border-left:3px solid #D71921">
+  <div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">wb_sunny</span></div>
+  <div class="routine-name">Morning</div>
+  <div class="label">07:00 weekdays</div>
+</div><div class="routine-card" style="border-left:3px solid #5B9BF6">
+  <div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">work</span></div>
+  <div class="routine-name">Work</div>
+  <div class="label">08:30 Mon-Fri</div>
+</div><div class="routine-card" style="border-left:3px solid #4A9E5C">
+  <div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">directions_car</span></div>
+  <div class="routine-name">Drive</div>
+  <div class="label">BT car connected</div>
+</div></div>
+<div class="multi-select" style="margin-top:16px"><span>0 selected</span><span class="pill" style="padding:6px 12px;font-size:10px">Delete</span></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">04</div>
+    <h2>Home — Automation list</h2>
+    <p class="slide-subtitle">Grid of routine cards with quick actions</p>
+    <div class="slide-body"><ul><li>Nothing-styled top bar with red dot, LOG and SETTINGS actions.</li><li>Routine cards with user-chosen icon, background color, trigger summary.</li><li>Long-press multi-select with bottom action bar (Delete, etc.).</li><li>Tap opens detail; manual automations can run directly from the list.</li><li>Widget supports up to two armed manual automations.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="4">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">NEW ROUTINE</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card" style="background:#111;border:1px solid #2A2A2A"><div class="list-item" style="padding:0"><div class="icon-circle" style="background:#D71921"><span class="material-symbols-outlined">bedtime</span></div><div class="list-body"><div class="value" style="font-size:14px">Good Night</div><div class="label">Daily at 22:00</div><div class="label">2 actions · 1 condition</div></div></div></div><div class="card"><div class="card-title" style="color:#D71921">IF</div><div class="list-item" style="padding:8px 0"><div><span class="material-symbols-outlined">schedule</span></div><div class="list-body"><div class="value">Daily at 22:00</div></div><div class="label">&gt;</div></div>
+<div class="chip-row"><div class="chip-sm" style="background:#5B9BF620">Wi-Fi home</div></div></div><div class="card"><div class="card-title" style="color:#D71921">THEN</div><div class="chip-row"><div class="chip-sm" style="background:#D7192120">DND</div><div class="chip-sm" style="background:#9B9B9B20">Dark mode</div><div class="chip-sm" style="background:#4A9E5C20">Vibrate</div></div></div><div class="card"><div class="card-title">Priority</div><div style="display:flex;gap:4px;margin:8px 0"><div class="priority-seg" style="background:#D71921"></div><div class="priority-seg" style="background:#D71921"></div><div class="priority-seg" style="background:#D71921"></div><div class="priority-seg" style="background:#D71921"></div><div class="priority-seg" style="background:#D71921"></div><div class="priority-seg" style="background:#333"></div><div class="priority-seg" style="background:#333"></div><div class="priority-seg" style="background:#333"></div><div class="priority-seg" style="background:#333"></div><div class="priority-seg" style="background:#333"></div></div><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;color:#7E7E7E"><span>LOW</span><span>HIGH</span></div></div><div class="pill" style="position:sticky;bottom:0;margin-top:8px">Create automation</div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">05</div>
+    <h2>Builder</h2>
+    <p class="slide-subtitle">If / Then with live preview</p>
+    <div class="slide-body"><ul><li>Name input, live preview tile showing icon + trigger + counts.</li><li>Mode/Routine type selector removed; builder uses If/Then semantics only.</li><li>Tappable trigger row opens dedicated trigger config page.</li><li>Conditions and actions are reorderable, removable, configurable.</li><li>Priority bar 1-10 with LOW/HIGH labels.</li><li>Sticky bottom save bar opens SaveSheet with icon + color picker.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="5">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">TRIGGER</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card"><div class="card-title" style="color:#D71921">Trigger type</div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#D71921;color:#fff"><span class="material-symbols-outlined">schedule</span></div><div class="list-body"><div class="value">Time</div></div><div class="label" style="color:#D71921">SELECTED</div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">timelapse</span></div><div class="list-body"><div class="value">Time window</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">battery_full</span></div><div class="list-body"><div class="value">Battery level</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">smartphone</span></div><div class="list-body"><div class="value">Screen state</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">notifications</span></div><div class="list-body"><div class="value">Notification</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">phone</span></div><div class="list-body"><div class="value">Phone state</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">wifi</span></div><div class="list-body"><div class="value">Connectivity</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">bluetooth</span></div><div class="list-body"><div class="value">Bluetooth device</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">location_on</span></div><div class="list-body"><div class="value">Geofence</div></div></div><div class="list-item" style="padding:10px 0"><div class="icon-circle" style="background:#333;color:#7E7E7E"><span class="material-symbols-outlined">event</span></div><div class="list-body"><div class="value">Calendar event</div></div></div></div><div class="card" style="margin-top:12px"><div class="card-title">Time</div><div class="input-row"><div class="time-box">22</div><span style="color:#7E7E7E">:</span><div class="time-box">00</div></div><div class="chip-row" style="margin-top:8px"><div class="chip-sm" style="background:#D7192120">Mon</div><div class="chip-sm" style="background:#D7192120">Tue</div><div class="chip-sm" style="background:#D7192120">Wed</div><div class="chip-sm" style="background:#D7192120">Thu</div><div class="chip-sm" style="background:#D7192120">Fri</div><div class="chip-sm" style="background:#333">Sat</div><div class="chip-sm" style="background:#333">Sun</div></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">06</div>
+    <h2>Trigger config</h2>
+    <p class="slide-subtitle">Dedicated page for every trigger type</p>
+    <div class="slide-body"><ul><li>Time, Time window, Battery level, Screen state, Notification.</li><li>Phone state, Connectivity, Bluetooth device, Geofence, Calendar event.</li><li>Time editor with hour/minute boxes and day chips.</li><li>Battery uses comparator + percentage; calendar allows title match.</li><li>Geofence uses radius + entry/exit.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="6">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">CONDITIONS</div><div class="topbar-actions"></div></div><div class="app-content"><div class="input" style="margin-bottom:12px"><span class="material-symbols-outlined" style="color:#7E7E7E">search</span><span style="color:#7E7E7E;font-size:12px">Search conditions</span></div><div class="card" style="margin-bottom:8px"><div class="card-title">Device status</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">airplanemode_active</span></div><div class="list-body"><div class="value" style="font-size:12px">Airplane mode</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">nfc</span></div><div class="list-body"><div class="value" style="font-size:12px">NFC</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">location_on</span></div><div class="list-body"><div class="value" style="font-size:12px">Location</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">volume_up</span></div><div class="list-body"><div class="value" style="font-size:12px">Ringer mode</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">dark_mode</span></div><div class="list-body"><div class="value" style="font-size:12px">Dark mode</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">battery_saver</span></div><div class="list-body"><div class="value" style="font-size:12px">Power saving</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">music_note</span></div><div class="list-body"><div class="value" style="font-size:12px">Media playing</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">phone</span></div><div class="list-body"><div class="value" style="font-size:12px">Call state</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">alarm</span></div><div class="list-body"><div class="value" style="font-size:12px">Alarm ringing</div></div></div></div><div class="card" style="margin-bottom:8px"><div class="card-title">Connectivity</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">wifi</span></div><div class="list-body"><div class="value" style="font-size:12px">Wi-Fi connected</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">bluetooth</span></div><div class="list-body"><div class="value" style="font-size:12px">Bluetooth device</div></div></div></div><div class="card" style="margin-bottom:8px"><div class="card-title">Other</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">schedule</span></div><div class="list-body"><div class="value" style="font-size:12px">Time window</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">calendar_today</span></div><div class="list-body"><div class="value" style="font-size:12px">Day of week</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">android</span></div><div class="list-body"><div class="value" style="font-size:12px">App in foreground</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">star</span></div><div class="list-body"><div class="value" style="font-size:12px">Current mode active</div></div></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">07</div>
+    <h2>Condition catalog</h2>
+    <p class="slide-subtitle">Searchable, grouped, icon-driven</p>
+    <div class="slide-body"><ul><li>15+ conditions across Device status, Connectivity, App, Time, Day of week.</li><li>Airplane, NFC, Location, Ringer, Dark mode, Power saving, Media, Call, Alarm.</li><li>Search bar and category headers.</li><li>Tapping a condition opens a bottom sheet or dedicated config screen.</li><li>Each item has a colored icon circle consistent with Nothing design.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="7">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">ACTIONS</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card" style="margin-bottom:8px"><div class="card-title">Display</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">dark_mode</span></div><div class="list-body"><div class="value" style="font-size:12px">Dark mode</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">brightness_6</span></div><div class="list-body"><div class="value" style="font-size:12px">Brightness</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">brightness_auto</span></div><div class="list-body"><div class="value" style="font-size:12px">Auto brightness</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">schedule</span></div><div class="list-body"><div class="value" style="font-size:12px">Always-on</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">timer</span></div><div class="list-body"><div class="value" style="font-size:12px">Screen timeout</div></div></div></div><div class="card" style="margin-bottom:8px"><div class="card-title">Sound</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">volume_up</span></div><div class="list-body"><div class="value" style="font-size:12px">Ringer mode</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">do_not_disturb_on</span></div><div class="list-body"><div class="value" style="font-size:12px">DND</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">volume_up</span></div><div class="list-body"><div class="value" style="font-size:12px">Volume</div></div></div></div><div class="card" style="margin-bottom:8px"><div class="card-title">System</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">airplanemode_active</span></div><div class="list-body"><div class="value" style="font-size:12px">Airplane</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">wifi</span></div><div class="list-body"><div class="value" style="font-size:12px">Wi-Fi</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">bluetooth</span></div><div class="list-body"><div class="value" style="font-size:12px">Bluetooth</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">location_on</span></div><div class="list-body"><div class="value" style="font-size:12px">Location</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">wifi_tethering</span></div><div class="list-body"><div class="value" style="font-size:12px">Hotspot</div></div></div></div><div class="card" style="margin-bottom:8px"><div class="card-title">Glyph</div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#D7192120;color:#D71921"><span class="material-symbols-outlined">lightbulb</span></div><div class="list-body"><div class="value" style="font-size:12px">Glyph on</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#5B9BF620;color:#5B9BF6"><span class="material-symbols-outlined">grid_view</span></div><div class="list-body"><div class="value" style="font-size:12px">Glyph matrix</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#9B9B9B20;color:#9B9B9B"><span class="material-symbols-outlined">emoji_objects</span></div><div class="list-body"><div class="value" style="font-size:12px">Glyph preset</div></div></div><div class="list-item" style="padding:8px 0"><div class="icon-circle" style="background:#4A9E5C20;color:#4A9E5C"><span class="material-symbols-outlined">animation</span></div><div class="list-body"><div class="value" style="font-size:12px">Glyph animate</div></div></div></div><div class="card" style="margin-top:12px"><div class="card-title">Brightness</div><div class="slider"><div class="slider-fill" style="width:65%"></div></div><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:10px"><span>0%</span><span>65%</span><span>100%</span></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">08</div>
+    <h2>Action catalog</h2>
+    <p class="slide-subtitle">Grouped system actions</p>
+    <div class="slide-body"><ul><li>30+ actions across Display, Sound, System, Apps, Glyph, Communications.</li><li>Dark mode, brightness slider, ringer, DND, volume, airplane, Wi-Fi, Bluetooth, location.</li><li>Glyph SDK: on/off, matrix colors, preset, text, scrolling text, animate, progress, turn off.</li><li>Communications: SMS, notification, copy text, open URL, launch app.</li><li>Each action opens a bottom sheet or dedicated page with a slider or toggle.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="8">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">EXECUTION LOG</div><div class="topbar-actions"></div></div><div class="app-content"><div style="text-align:center;margin:24px 0"><div class="hero-title" style="font-size:48px">LOG</div><div class="hero-subtitle" style="font-size:36px;color:#D71921">100%</div><div class="label" style="color:#7E7E7E">Success rate</div></div><div style="height:8px;background:#1A1A1A;border-radius:4px;overflow:hidden;margin:8px 0"><div style="width:100%;height:100%;background:#4A9E5C"></div></div><div class="card"><div class="card-title" style="color:#D71921">Stats</div><div class="stat-row"><div><div class="label">Total</div><div class="value">42</div></div><div><div class="label">Success</div><div class="value" style="color:#4A9E5C">40</div></div><div><div class="label">Errors</div><div class="value" style="color:#D71921">2</div></div></div></div><div class="card"><div class="card-title" style="color:#D71921">Timeline</div><div class="log-row"><span class="log-no">01</span><span class="log-kind" style="color:#4A9E5C">FIRED</span><span class="log-time">20:09:15</span></div>
+<div class="log-row"><span class="log-no">02</span><span class="log-kind" style="color:#7E7E7E">SUPPRESSED COOLDOWN</span><span class="log-time">20:08:02</span></div>
+<div class="log-row"><span class="log-no">03</span><span class="log-kind" style="color:#D71921">ERROR</span><span class="log-time">20:07:11</span></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">09</div>
+    <h2>Execution log</h2>
+    <p class="slide-subtitle">Success rate and timeline</p>
+    <div class="slide-body"><ul><li>Hero "LOG" in dot-matrix-style Doto font with success-rate percentage.</li><li>Segmented bar visualizing success proportion.</li><li>Total / success / error counters.</li><li>Timeline of FIRED, MODE_ACTIVATED, SUPPRESSED_COOLDOWN, CONDITIONS_NOT_MET, ERROR events.</li><li>Space Mono for index, event kind and timestamps.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="9">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">SETTINGS</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card"><div class="card-title" style="color:#D71921">Capabilities</div><div class="list-item" style="padding:8px 0"><div class="label">Flashlight</div><div class="value" style="color:#4A9E5C">Yes</div></div><div class="list-item" style="padding:8px 0"><div class="label">Vibration</div><div class="value" style="color:#4A9E5C">Yes</div></div><div class="list-item" style="padding:8px 0"><div class="label">Glyph</div><div class="value" style="color:#4A9E5C">Yes</div></div><div class="list-item" style="padding:8px 0"><div class="label">Location</div><div class="value" style="color:#D71921">No</div></div></div><div class="list-item"><div class="icon-circle" style="background:#4A9E5C"><span class="material-symbols-outlined">lock</span></div><div class="list-body"><div class="label">Device admin</div><div class="value">Active</div></div></div><div class="card" style="margin-top:12px"><div class="card-title">Widget preview</div><div class="widget-row"><div class="widget-tile"><div class="value" style="font-size:12px">Sleep</div><div class="label">RUN</div></div><div class="widget-tile"><div class="value" style="font-size:12px">Morning</div><div class="label">RUN</div></div></div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">10</div>
+    <h2>Settings & widget</h2>
+    <p class="slide-subtitle">Capabilities and quick actions</p>
+    <div class="slide-body"><ul><li>Real-time capability detection (flashlight, vibrator, glyph, location, etc.).</li><li>Device admin toggle for Lock Screen action.</li><li>Permission navigation for usage access, location, phone, calendar.</li><li>Home-screen widget shows up to 2 armed manual automations as RUN tiles.</li><li>Quick Settings tile for fast toggles.</li></ul></div>
+  </div>
+</section><section class="slide" data-index="10">
+  <div class="slide-visual"><div class="phone"><div class="notch"></div><div class="screen"><div class="dot-grid"></div><div class="status-bar"><span>22:12</span><span class="status-icons">●●● <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">battery_full</span></span></div><div class="topbar"><div class="topbar-title">NEXT</div><div class="topbar-actions"></div></div><div class="app-content"><div class="card"><div class="card-title" style="color:#D71921">Merge readiness</div><div class="status-row"><div class="label">Build passes</div><div class="status-dot" style="background:#4A9E5C"></div></div><div class="status-row"><div class="label">Tests pass</div><div class="status-dot" style="background:#4A9E5C"></div></div><div class="status-row"><div class="label">Lint passes</div><div class="status-dot" style="background:#4A9E5C"></div></div><div class="status-row"><div class="label">All catalog screens covered</div><div class="status-dot" style="background:#4A9E5C"></div></div><div class="status-row"><div class="label">Dedicated trigger config</div><div class="status-dot" style="background:#4A9E5C"></div></div><div class="status-row"><div class="label">Execution log + widget</div><div class="status-dot" style="background:#4A9E5C"></div></div></div><div class="pill" style="margin-top:16px">Merge PR #3</div><div class="card" style="margin-top:12px"><div class="card-title">Optional next</div><div class="label">• Release build / app bundle</div><div class="label">• On-device smoke test</div><div class="label">• Animation / haptic polish</div><div class="label">• More trigger types (alarm dismissed, headset)</div></div></div></div></div></div>
+  <div class="slide-text">
+    <div class="slide-no">11</div>
+    <h2>What next</h2>
+    <p class="slide-subtitle">Merge or continue</p>
+    <div class="slide-body"><ul><li>The branch is in a <strong>merge-ready</strong> state from build / test / lint.</li><li>Open PR #3 already tracks all 8 commits.</li><li>Recommended: merge, then do a release build and on-device smoke test.</li><li>Optional polish: animations, haptics, additional trigger/action types, Play Store screenshots, full end-to-end test on a real Nothing device.</li></ul></div>
+  </div>
+</section>
+</main>
+<footer><span>Nothing Modes design walkthrough</span><span>Use arrow keys or the buttons above to navigate</span></footer>
+<script>
+
+const slides = document.querySelectorAll('.slide');
+let idx = 0;
+function show(i) {
+  slides.forEach(s => s.classList.remove('active'));
+  idx = (i + slides.length) % slides.length;
+  slides[idx].classList.add('active');
+  document.getElementById('counter').textContent = (idx+1) + ' / ' + slides.length;
+}
+document.getElementById('prev').addEventListener('click', () => show(idx-1));
+document.getElementById('next').addEventListener('click', () => show(idx+1));
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') show(idx+1);
+  if (e.key === 'ArrowLeft') show(idx-1);
+});
+
+</script>
+</body>
+</html>
