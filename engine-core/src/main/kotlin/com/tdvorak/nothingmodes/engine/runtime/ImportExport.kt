@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationSchema
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
+import com.tdvorak.nothingmodes.engine.model.CreatorProfile
 import com.tdvorak.nothingmodes.engine.model.EngineJson
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -24,6 +25,8 @@ data class ExportBundle(
     val appVersion: String = "",
     /** Union of capability IDs every automation in this bundle needs. */
     val requiredCapabilities: List<String> = emptyList(),
+    /** Optional attribution metadata for published/shared routines. */
+    val creatorProfile: CreatorProfile = CreatorProfile(),
 )
 
 /** Result of an import operation. */
@@ -44,6 +47,7 @@ data class ImportPreview(
     val appVersion: String,
     val requiredCapabilities: Set<String>,
     val errors: List<String>,
+    val creatorProfile: CreatorProfile = CreatorProfile(),
 ) {
     val isSupported: Boolean get() = errors.isEmpty()
 }
@@ -62,18 +66,24 @@ class ImportExportService(
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     /** Export all automations to a JSON string. */
-    suspend fun export(): ExportResult {
+    suspend fun export(creator: CreatorProfile = CreatorProfile()): ExportResult {
         val automations = store.all()
-        return ExportResult(json = encode(automations), count = automations.size)
+        return ExportResult(json = encode(automations, creator), count = automations.size)
     }
 
     /** Export specific automations by ID. */
-    suspend fun export(ids: List<AutomationId>): ExportResult {
+    suspend fun export(
+        ids: List<AutomationId>,
+        creator: CreatorProfile = CreatorProfile(),
+    ): ExportResult {
         val automations = ids.mapNotNull { store.get(it) }
-        return ExportResult(json = encode(automations), count = automations.size)
+        return ExportResult(json = encode(automations, creator), count = automations.size)
     }
 
-    private fun encode(automations: List<Automation>): String {
+    private fun encode(
+        automations: List<Automation>,
+        creator: CreatorProfile,
+    ): String {
         val bundle =
             ExportBundle(
                 schemaVersion = AutomationSchema.supportedVersions.max(),
@@ -81,6 +91,7 @@ class ImportExportService(
                 automations = automations,
                 appVersion = appVersion,
                 requiredCapabilities = capabilitiesOf(automations).toList(),
+                creatorProfile = creator.sanitized(),
             )
         return EngineJson.json.encodeToString(bundle)
     }
@@ -118,6 +129,7 @@ class ImportExportService(
                 appVersion = bundle.appVersion,
                 requiredCapabilities = emptySet(),
                 errors = listOf("Unsupported schema version: ${bundle.schemaVersion}. Supported: ${AutomationSchema.supportedVersions}"),
+                creatorProfile = bundle.creatorProfile,
             )
         }
 
@@ -128,6 +140,7 @@ class ImportExportService(
             // Trust derive() over the declared field: the exporter may be older.
             requiredCapabilities = capabilitiesOf(bundle.automations),
             errors = emptyList(),
+            creatorProfile = bundle.creatorProfile,
         )
     }
 
