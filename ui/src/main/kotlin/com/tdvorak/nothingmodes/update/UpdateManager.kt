@@ -102,18 +102,9 @@ class UpdateManager @Inject constructor(
         val file = File(localUri.path ?: return)
         val contentUri = FileProvider.getUriForFile(context, authority, file)
 
-        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-                data = contentUri
-                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(contentUri, "application/vnd.android.package-archive")
-                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            }
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(contentUri, "application/vnd.android.package-archive")
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         }
 
         if (intent.resolveActivity(context.packageManager) != null) {
