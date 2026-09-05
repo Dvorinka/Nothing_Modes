@@ -36,36 +36,9 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".lifecycle.DeviceStateReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BATTERY_CHANGED" />
-                <action android:name="android.intent.action.SCREEN_ON" />
-                <action android:name="android.intent.action.SCREEN_OFF" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".lifecycle.PhoneStateReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.PHONE_STATE" />
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".lifecycle.ConnectivityReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
-                <action android:name="android.net.wifi.NETWORK_STATE_CHANGED_ACTION" />
-                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
-                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
-                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
-            </intent-filter>
-        </receiver>
+        <!-- Battery/screen, phone state/SMS, and connectivity broadcasts are
+             implicit broadcasts blocked for manifest-declared receivers since
+             API 26. They are registered dynamically by PersistentMonitorService. -->
 
         <receiver
             android:name=".lifecycle.GeofenceReceiver"

@@ -27,6 +27,9 @@ class PersistentMonitorService : Service() {
 
     private var batteryReceiver: BroadcastReceiver? = null
     private var screenReceiver: BroadcastReceiver? = null
+    private var connectivityReceiver: BroadcastReceiver? = null
+    private var phoneStateReceiver: BroadcastReceiver? = null
+    private var usageStatsMonitor: UsageStatsMonitor? = null
     private var calendarObserver: CalendarObserver? = null
 
     override fun onCreate() {
@@ -46,6 +49,8 @@ class PersistentMonitorService : Service() {
 
     override fun onDestroy() {
         unregisterReceivers()
+        usageStatsMonitor?.stop()
+        usageStatsMonitor = null
         calendarObserver?.stop()
         calendarObserver = null
         Log.i(TAG, "Persistent monitor stopped")
@@ -107,13 +112,43 @@ class PersistentMonitorService : Service() {
             addAction(Intent.ACTION_SCREEN_OFF)
         }
         registerReceiver(screenReceiver, screenFilter)
+
+        // Connectivity (WiFi state/network, Bluetooth adapter + ACL devices).
+        // These are implicit broadcasts blocked for manifest-declared receivers
+        // since API 26, so they must be registered dynamically here.
+        connectivityReceiver = ConnectivityReceiver()
+        val connFilter = IntentFilter().apply {
+            addAction(android.net.wifi.WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        }
+        runCatching { registerReceiver(connectivityReceiver, connFilter) }
+            .onFailure { Log.e(TAG, "Failed to register connectivity receiver", it) }
+
+        // Phone state + SMS — same implicit-broadcast restriction applies.
+        phoneStateReceiver = PhoneStateReceiver()
+        val phoneFilter = IntentFilter().apply {
+            addAction("android.intent.action.PHONE_STATE")
+            addAction("android.provider.Telephony.SMS_RECEIVED")
+        }
+        runCatching { registerReceiver(phoneStateReceiver, phoneFilter) }
+            .onFailure { Log.e(TAG, "Failed to register phone state receiver", it) }
+
+        // App-foreground polling via UsageStats (no-ops without Usage Access).
+        usageStatsMonitor = UsageStatsMonitor(this).also { it.start() }
     }
 
     private fun unregisterReceivers() {
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         screenReceiver?.let { runCatching { unregisterReceiver(it) } }
+        connectivityReceiver?.let { runCatching { unregisterReceiver(it) } }
+        phoneStateReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
         screenReceiver = null
+        connectivityReceiver = null
+        phoneStateReceiver = null
     }
 
     private fun startCalendarObserver() {

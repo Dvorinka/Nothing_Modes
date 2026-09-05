@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.automation.lifecycle
 
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -56,18 +57,23 @@ class UsageStatsMonitor(private val context: Context) {
 
     private fun checkForegroundApp() {
         val now = System.currentTimeMillis()
-        val stats = usageStatsManager?.queryUsageStats(
-            UsageStatsManager.INTERVAL_BEST,
-            now - TimeUnit.SECONDS.toMillis(5),
+        // queryEvents emits MOVE_TO_FOREGROUND as it happens; queryUsageStats
+        // aggregates can lag minutes behind, which would fire the trigger late.
+        val events = usageStatsManager?.queryEvents(
+            now - TimeUnit.SECONDS.toMillis(10),
             now,
         ) ?: return
 
-        val foreground = stats
-            .filter { it.lastTimeStamp > now - TimeUnit.SECONDS.toMillis(5) }
-            .maxByOrNull { it.lastTimeStamp }
-            ?: return
+        val event = UsageEvents.Event()
+        var pkg: String? = null
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                pkg = event.packageName
+            }
+        }
+        if (pkg == null) return
 
-        val pkg = foreground.packageName
         if (pkg != lastForegroundPackage) {
             Log.d(TAG, "Foreground app changed: $lastForegroundPackage -> $pkg")
             lastForegroundPackage = pkg

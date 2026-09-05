@@ -69,40 +69,47 @@ class GeofenceMonitor(private val context: Context) {
             .addGeofence(geofence)
             .build()
 
-        val intent = Intent(context, GeofenceReceiver::class.java).apply {
-            action = GeofenceReceiver.ACTION_GEOFENCE_TRIGGERED
-            putExtra(GeofenceReceiver.EXTRA_GEOFENCE_ID, id)
-            putExtra(GeofenceReceiver.EXTRA_LAT, lat)
-            putExtra(GeofenceReceiver.EXTRA_LNG, lng)
-            putExtra(GeofenceReceiver.EXTRA_TRANSITION, transition.name)
-        }
-
-        val pendingIntent = android.app.PendingIntent.getBroadcast(
-            context,
-            id.hashCode(),
-            intent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
-        )
+        val pendingIntent = pendingIntentFor(id)
 
         try {
             geofencingClient.addGeofences(request, pendingIntent)
+                .addOnSuccessListener { Log.i(TAG, "Geofence registered in GMS: $id") }
+                .addOnFailureListener { e -> Log.e(TAG, "GMS rejected geofence $id: ${e.message}") }
             pendingIntents[id] = pendingIntent
-            Log.i(TAG, "Geofence added: $id at ($lat, $lng) radius=${radiusM}m")
+            Log.i(TAG, "Geofence add requested: $id at ($lat, $lng) radius=${radiusM}m")
         } catch (e: SecurityException) {
             Log.e(TAG, "Failed to add geofence $id", e)
         }
     }
 
-    fun removeGeofence(id: String) {
-        pendingIntents[id]?.let { pi ->
-            try {
-                geofencingClient.removeGeofences(pi)
-                Log.i(TAG, "Geofence removed: $id")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to remove geofence $id", e)
-            }
+    /** Rebuilds the geofence PendingIntent for [id]. PendingIntent equality
+     * ignores extras, so this matches the one created in [addGeofence] even
+     * after a process restart. */
+    private fun pendingIntentFor(id: String): android.app.PendingIntent {
+        val intent = Intent(context, GeofenceReceiver::class.java).apply {
+            action = GeofenceReceiver.ACTION_GEOFENCE_TRIGGERED
+            putExtra(GeofenceReceiver.EXTRA_GEOFENCE_ID, id)
         }
-        pendingIntents.remove(id)
+        return android.app.PendingIntent.getBroadcast(
+            context,
+            id.hashCode(),
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    fun removeGeofence(id: String) {
+        // Rebuild the PendingIntent if the in-memory map lost it (process death) —
+        // PendingIntent matching ignores extras, so the rebuilt instance removes
+        // the geofence registered earlier.
+        val pi = pendingIntents.remove(id) ?: pendingIntentFor(id)
+        try {
+            geofencingClient.removeGeofences(pi)
+                .addOnFailureListener { e -> Log.e(TAG, "GMS failed to remove geofence $id: ${e.message}") }
+            Log.i(TAG, "Geofence remove requested: $id")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to remove geofence $id", e)
+        }
     }
 
     fun removeAll() {
