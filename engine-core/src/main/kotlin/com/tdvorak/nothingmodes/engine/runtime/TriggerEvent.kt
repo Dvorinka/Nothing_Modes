@@ -76,6 +76,8 @@ sealed interface TriggerEvent {
         val lat: Double,
         val lng: Double,
         val transition: com.tdvorak.nothingmodes.engine.model.Transition,
+        /** The geofence registration ID — the automation ID that registered it. */
+        val geofenceId: String? = null,
     ) : TriggerEvent
 
     data class ManualFired(

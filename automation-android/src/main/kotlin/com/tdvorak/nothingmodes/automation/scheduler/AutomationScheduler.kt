@@ -42,9 +42,10 @@ class AutomationScheduler(private val context: Context) {
         alarmManager.cancel(timePendingIntent(automationId, isStart = false))
         alarmManager.cancel(windowPendingIntent(automationId, isStart = true))
         alarmManager.cancel(windowPendingIntent(automationId, isStart = false))
-        if (registeredGeofences.remove(automationId.value)) {
-            geofenceMonitor.removeGeofence(automationId.value)
-        }
+        // Always attempt removal — the registeredGeofences set is lost on
+        // process death but the OS-side geofence registration persists.
+        geofenceMonitor.removeGeofence(automationId.value)
+        registeredGeofences.remove(automationId.value)
     }
 
     private fun scheduleGeofence(id: AutomationId, trigger: Trigger.Geofence) {
@@ -85,16 +86,21 @@ class AutomationScheduler(private val context: Context) {
         setAlarm(id, triggerAtMillis, isTime = true)
     }
 
+    private fun canScheduleExactAlarms(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
     private fun setAlarm(id: AutomationId, triggerAtMillis: Long, isTime: Boolean) {
         val pendingIntent = timePendingIntent(id, isStart = isTime)
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (canScheduleExactAlarms()) {
                 alarmManager.setAlarmClock(
                     AlarmManager.AlarmClockInfo(triggerAtMillis, null),
                     pendingIntent,
                 )
             } else {
-                alarmManager.setExactAndAllowWhileIdle(
+                // SCHEDULE_EXACT_ALARM is denied by default on Android 13+ —
+                // fall back to an inexact alarm so the trigger still fires.
+                alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent,
@@ -120,18 +126,45 @@ class AutomationScheduler(private val context: Context) {
             return
         }
 
-        val nextStart = if (startToday.isAfter(now)) startToday else startToday.plusDays(1)
+        // If the window is already active (including overnight windows where
+        // startLocal > endLocal), fire the start alarm immediately so the
+        // mode activates now instead of waiting for the next occurrence.
+        val crossesMidnight = !endToday.isAfter(startToday)
+        val insideWindow = if (crossesMidnight) {
+            now >= startToday || now < endToday
+        } else {
+            now >= startToday && now < endToday
+        }
+
+        val nextStart = when {
+            insideWindow -> now
+            startToday.isAfter(now) -> startToday
+            else -> startToday.plusDays(1)
+        }
         val nextEnd = if (endToday.isAfter(now)) endToday else endToday.plusDays(1)
 
         try {
-            alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(nextStart.toInstant().toEpochMilli(), null),
-                windowPendingIntent(id, isStart = true),
-            )
-            alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(nextEnd.toInstant().toEpochMilli(), null),
-                windowPendingIntent(id, isStart = false),
-            )
+            if (canScheduleExactAlarms()) {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(nextStart.toInstant().toEpochMilli(), null),
+                    windowPendingIntent(id, isStart = true),
+                )
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(nextEnd.toInstant().toEpochMilli(), null),
+                    windowPendingIntent(id, isStart = false),
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextStart.toInstant().toEpochMilli(),
+                    windowPendingIntent(id, isStart = true),
+                )
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextEnd.toInstant().toEpochMilli(),
+                    windowPendingIntent(id, isStart = false),
+                )
+            }
         } catch (e: SecurityException) {
             Log.e(TAG, "Cannot schedule window alarms for ${id.value}: ${e.message}")
         }

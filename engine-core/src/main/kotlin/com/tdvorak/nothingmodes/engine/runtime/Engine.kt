@@ -37,6 +37,11 @@ class Engine(
             is TriggerEvent.TimeFired -> listOfNotNull(store.get(event.automationId))
             is TriggerEvent.ModeWindowStart -> listOfNotNull(store.get(event.automationId))
             is TriggerEvent.ModeWindowEnd -> listOfNotNull(store.get(event.automationId))
+            // Geofence events carry the registering automation's ID, so only that
+            // automation is a candidate instead of every armed geofence automation.
+            is TriggerEvent.GeofenceTriggered -> event.geofenceId
+                ?.let { listOfNotNull(store.get(AutomationId(it))) }
+                ?: store.armed()
             else -> store.armed()
         }.filter { it.status == AutomationStatus.ARMED && it.enabled }
             .sortedWith(compareByDescending<Automation> { it.priority }.thenBy { it.id.value })
@@ -192,6 +197,9 @@ class Engine(
     }
 
     private suspend fun snapshotSettings(automation: Automation, batchNow: Long) {
+        // Don't overwrite existing snapshots — if the mode is already active,
+        // re-capturing would store the mode's own values and break restore.
+        if (snapshotStore.forAutomation(automation.id).isNotEmpty()) return
         val keys = automation.actions.filter { it.supportsRestore }.flatMap { it.affectedSettings }.toSet()
         for (key in keys) {
             val value = runCatching { settingReader.read(key) }.getOrNull() ?: continue
