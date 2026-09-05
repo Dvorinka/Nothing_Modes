@@ -22,21 +22,15 @@ android {
 
     signingConfigs {
         create("release") {
-            // Priority 1: environment variables (CI). Priority 2: local keystore (dev).
+            // Play Store / release signing must come from environment or CI secrets.
+            // Never hardcode passwords. If no config is present, release builds fall
+            // back to the debug key for local testing.
             val keystorePath = System.getenv("NOTHING_MODES_KEYSTORE")
             if (keystorePath != null) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("NOTHING_MODES_KEYSTORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("NOTHING_MODES_KEY_ALIAS") ?: ""
                 keyPassword = System.getenv("NOTHING_MODES_KEY_PASSWORD") ?: ""
-            } else {
-                val local = rootProject.file("keystore/nothing-modes-release.jks")
-                if (local.exists()) {
-                    storeFile = local
-                    storePassword = "nothingmodes2024"
-                    keyAlias = "nothing-modes"
-                    keyPassword = "nothingmodes2024"
-                }
             }
         }
     }
@@ -53,7 +47,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
+                ?.takeIf { it.storeFile?.exists() == true }
+                ?: signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

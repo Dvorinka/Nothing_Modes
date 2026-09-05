@@ -64,3 +64,5 @@ secrets/
 # Release keystore (do not commit)
 keystore/
 .proxmox-refs
+.desloppify/
+scorecard.png
