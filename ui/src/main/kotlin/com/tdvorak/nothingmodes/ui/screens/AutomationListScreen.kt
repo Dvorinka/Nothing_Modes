@@ -63,6 +63,7 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
@@ -115,7 +116,15 @@ class AutomationListViewModel @Inject constructor(
     private val _importResult = MutableStateFlow<ImportResult?>(null)
     val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
 
-    private val importExportService = ImportExportService(store)
+    private val _importWarnings = MutableStateFlow<List<String>>(emptyList())
+    val importWarnings: StateFlow<List<String>> = _importWarnings.asStateFlow()
+
+    private val importExportService = ImportExportService(
+        store,
+        appVersion = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull().orEmpty(),
+    )
 
     init { load() }
 
@@ -239,6 +248,11 @@ class AutomationListViewModel @Inject constructor(
 
     fun import(json: String) {
         viewModelScope.launch {
+            // Surface compatibility warnings before the write, not after.
+            val preview = importExportService.preview(json)
+            _importWarnings.value = preview.requiredCapabilities
+                .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                .distinct()
             _importResult.value = importExportService.import(json)
             load()
             WidgetRefreshHelper.refresh(context)
@@ -256,7 +270,10 @@ class AutomationListViewModel @Inject constructor(
         }
     }
 
-    fun clearImportResult() { _importResult.value = null }
+    fun clearImportResult() {
+        _importResult.value = null
+        _importWarnings.value = emptyList()
+    }
 }
 
 @Composable
@@ -265,6 +282,7 @@ fun AutomationListScreen(
     onSettingsClick: () -> Unit,
     onLogClick: () -> Unit,
     onCreateClick: () -> Unit = {},
+    onTemplatesClick: () -> Unit = {},
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -272,6 +290,7 @@ fun AutomationListScreen(
     val selected by viewModel.selected.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
+    val importWarnings by viewModel.importWarnings.collectAsState()
     val inSelection = selected.isNotEmpty()
 
     // Type filter chips (All / Modes / Routines) — display-only, client-side.
@@ -308,7 +327,8 @@ fun AutomationListScreen(
                     listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
                 } else {
                     listOf(
-                        TopBarAction("LOG", icon = Icons.Outlined.List, onClick = onLogClick),
+                        TopBarAction("TEMPLATES", icon = Icons.Outlined.GridView, onClick = onTemplatesClick),
+                        TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onClick = onLogClick),
                         TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
                     )
                 },
@@ -336,10 +356,18 @@ fun AutomationListScreen(
                         title = "No routines yet",
                         description = "Tap + to create your first mode or routine",
                         action = {
-                            NothingGhostButton(
-                                text = "Import from backup",
-                                onClick = { importLauncher.launch(arrayOf("application/json")) },
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                NothingGhostButton(
+                                    text = "Import from backup",
+                                    onClick = { importLauncher.launch(arrayOf("application/json")) },
+                                )
+                                NothingGhostButton(
+                                    text = "Browse templates",
+                                    onClick = onTemplatesClick,
+                                )
+                            }
                         },
                     )
                     importResult?.let { result ->
@@ -355,6 +383,14 @@ fun AutomationListScreen(
                                 text = "[ ERROR: $error ]",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = NothingColors.accent,
+                                fontFamily = SpaceMono,
+                            )
+                        }
+                        importWarnings.forEach { warning ->
+                            Text(
+                                text = "[ REQUIRES: $warning ]",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = SpaceMono,
                             )
                         }

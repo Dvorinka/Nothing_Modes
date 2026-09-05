@@ -89,7 +89,10 @@ class AutomationDetailViewModel @Inject constructor(
         val current = _automation.value ?: return
         viewModelScope.launch {
             runCatching {
-                val export = com.tdvorak.nothingmodes.engine.runtime.ImportExportService(store)
+                val appVersion = runCatching {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                }.getOrNull().orEmpty()
+                val export = com.tdvorak.nothingmodes.engine.runtime.ImportExportService(store, appVersion)
                     .export(listOf(current.id))
                 val share = Intent(Intent.ACTION_SEND).apply {
                     type = "application/json"

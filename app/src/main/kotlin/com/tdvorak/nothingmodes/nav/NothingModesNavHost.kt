@@ -21,6 +21,7 @@ import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
+import com.tdvorak.nothingmodes.ui.screens.TemplateCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.TriggerConfigScreen
 
 object Routes {
@@ -39,6 +40,7 @@ object Routes {
     const val EXECUTION_LOG = "log"
     const val GLYPH_PREVIEW = "glyph_preview"
     const val SETTINGS = "settings"
+    const val TEMPLATES = "templates"
 
     fun automationDetail(id: String) = "automation/$id"
     fun editAutomation(id: String) = "edit/$id"
@@ -77,6 +79,7 @@ fun NothingModesNavHost() {
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 onLogClick = { navController.navigate(Routes.EXECUTION_LOG) },
                 onCreateClick = { navController.navigate(Routes.CREATE_AUTOMATION) },
+                onTemplatesClick = { navController.navigate(Routes.TEMPLATES) },
             )
         }
 
@@ -241,6 +244,10 @@ fun NothingModesNavHost() {
                 onOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onGlyphPreview = { navController.navigate(Routes.GLYPH_PREVIEW) },
             )
+        }
+
+        composable(Routes.TEMPLATES) {
+            TemplateCatalogScreen(onBack = { navController.popBackStack() })
         }
     }
 }

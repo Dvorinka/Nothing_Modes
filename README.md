@@ -85,9 +85,9 @@ The engine resolves each action through: Public Android API → Nothing API → 
 
 ## Templates and sharing
 
-Community templates live in [Nothing-Modes-Templates](https://github.com/Dvorinka/Nothing-Modes-Templates). Contributions follow the repository `CONTRIBUTING.md`.
+Community templates live in [`templates/`](templates/) — browse them in-app via the grid icon on the Modes screen. To contribute one, see [`templates/README.md`](templates/README.md).
 
-Share any routine from the detail screen as JSON. Import from a file or a shared bundle. Schema version mismatches are reported before import.
+Share any routine from the detail screen as a JSON bundle. Bundles carry `schemaVersion`, `appVersion`, and `requiredCapabilities`, so imports across users and app versions show compatibility warnings before anything is written.
 
 ## Shizuku
 

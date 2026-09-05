@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": 0,
+  "appVersion": "templates",
+  "requiredCapabilities": ["trigger_time", "action_set_dnd", "action_set_brightness", "action_set_dark_mode"],
+  "automations": [
+    {
+      "id": "tmpl-night-owl",
+      "name": "Night Owl",
+      "type": "ROUTINE",
+      "createdBy": "IMPORT",
+      "status": "ARMED",
+      "trigger": { "type": "time", "at": "23:30", "tz": "UTC" },
+      "actions": [
+        { "type": "set_dnd", "mode": "PRIORITY" },
+        { "type": "set_brightness", "level": 40 },
+        { "type": "set_dark_mode", "mode": "ON" }
+      ],
+      "enabled": false,
+      "quickAction": true,
+      "priority": 0,
+      "cooldownMs": 0,
+      "schemaVersion": 1,
+      "icon": "dark_mode",
+      "iconBackground": "#1A1A2E"
+    }
+  ]
+}

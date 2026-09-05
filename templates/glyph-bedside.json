@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": 0,
+  "appVersion": "templates",
+  "requiredCapabilities": ["trigger_time_window", "action_glyph_preset"],
+  "automations": [
+    {
+      "id": "tmpl-glyph-bedside",
+      "name": "Glyph Bedside",
+      "type": "MODE",
+      "createdBy": "IMPORT",
+      "status": "ARMED",
+      "trigger": { "type": "time_window", "startLocal": "23:00", "endLocal": "07:00", "tz": "UTC" },
+      "actions": [
+        { "type": "glyph_preset", "preset": "sleep" }
+      ],
+      "enabled": false,
+      "quickAction": true,
+      "priority": 0,
+      "cooldownMs": 0,
+      "schemaVersion": 1,
+      "icon": "lightbulb",
+      "iconBackground": "#141414"
+    }
+  ]
+}

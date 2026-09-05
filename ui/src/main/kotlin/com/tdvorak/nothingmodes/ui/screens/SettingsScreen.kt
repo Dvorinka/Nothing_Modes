@@ -87,7 +87,12 @@ class SettingsViewModel @Inject constructor(
     private val store: AutomationStore,
 ) : ViewModel() {
 
-    private val importExportService = ImportExportService(store)
+    private val importExportService = ImportExportService(
+        store,
+        appVersion = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull().orEmpty(),
+    )
 
     private val _capabilities = MutableStateFlow<DeviceCapabilities?>(null)
     val capabilities: StateFlow<DeviceCapabilities?> = _capabilities.asStateFlow()

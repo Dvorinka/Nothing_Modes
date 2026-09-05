@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "night-owl",
+      "name": "Night Owl",
+      "description": "Dims the screen, switches to dark mode and silences notifications every night at 23:30.",
+      "creator": "TDvorak",
+      "emoji": "🌙",
+      "tags": ["sleep", "dnd", "display"],
+      "minSchemaVersion": 1,
+      "file": "night-owl.json"
+    },
+    {
+      "id": "glyph-bedside",
+      "name": "Glyph Bedside",
+      "description": "Mode that shows a soft sleep preset on the Glyph interface while the phone charges overnight.",
+      "creator": "TDvorak",
+      "emoji": "💡",
+      "tags": ["glyph", "nothing", "night"],
+      "minSchemaVersion": 1,
+      "file": "glyph-bedside.json"
+    },
+    {
+      "id": "commute-tunes",
+      "name": "Commute Tunes",
+      "description": "When headphones connect over Bluetooth, set media volume and open your music app.",
+      "creator": "TDvorak",
+      "emoji": "🎧",
+      "tags": ["bluetooth", "music", "commute"],
+      "minSchemaVersion": 1,
+      "file": "commute-tunes.json"
+    }
+  ]
+}

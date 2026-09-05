@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": 0,
+  "appVersion": "templates",
+  "requiredCapabilities": ["trigger_connectivity_bt", "action_set_volume", "action_launch_app"],
+  "automations": [
+    {
+      "id": "tmpl-commute-tunes",
+      "name": "Commute Tunes",
+      "type": "ROUTINE",
+      "createdBy": "IMPORT",
+      "status": "ARMED",
+      "trigger": { "type": "connectivity", "medium": "BT", "state": "CONNECTED" },
+      "actions": [
+        { "type": "set_volume", "stream": "MEDIA", "level": 60 },
+        { "type": "launch_app", "pkg": "com.spotify.music" }
+      ],
+      "enabled": false,
+      "quickAction": true,
+      "priority": 0,
+      "cooldownMs": 0,
+      "schemaVersion": 1,
+      "icon": "music",
+      "iconBackground": "#0E2A1A"
+    }
+  ]
+}

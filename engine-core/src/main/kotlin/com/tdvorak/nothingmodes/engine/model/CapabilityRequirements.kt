@@ -82,6 +82,49 @@ object CapabilityIds {
     const val SHIZUKU_REQUIRED = "shizuku_required"
 }
 
+/** Human-readable requirement text for capability IDs — used by import previews and warnings. */
+object CapabilityLabels {
+    fun describe(capabilityId: String): String = when (capabilityId) {
+        CapabilityIds.SHIZUKU_REQUIRED -> "Shizuku"
+        CapabilityIds.ACTION_SET_DND -> "Do Not Disturb access"
+        CapabilityIds.ACTION_SET_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
+        CapabilityIds.ACTION_SET_AUTO_ROTATE,
+        CapabilityIds.ACTION_SET_REFRESH_RATE,
+        CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+        -> "Write system settings permission"
+        CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
+        CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
+        CapabilityIds.ACTION_SET_FLASHLIGHT -> "Camera flashlight"
+        CapabilityIds.ACTION_VIBRATE -> "Vibrator"
+        CapabilityIds.ACTION_SEND_SMS -> "SMS permission"
+        CapabilityIds.ACTION_LOCK_SCREEN -> "Device admin or accessibility service"
+        CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access"
+        CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Screen capture consent"
+        CapabilityIds.ACTION_SET_GLYPH,
+        CapabilityIds.ACTION_GLYPH_ANIMATE,
+        CapabilityIds.ACTION_GLYPH_PROGRESS,
+        CapabilityIds.ACTION_GLYPH_PRESET,
+        CapabilityIds.ACTION_GLYPH_TURNOFF,
+        -> "Nothing Glyph light interface"
+        CapabilityIds.ACTION_SET_GLYPH_MATRIX,
+        CapabilityIds.ACTION_GLYPH_TEXT,
+        CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
+        -> "Nothing Glyph Matrix"
+        CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
+        CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
+        CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
+        CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
+        CapabilityIds.STATE_READER_SETTING,
+        CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
+        CapabilityIds.STATE_READER_SYSFS,
+        CapabilityIds.STATE_READER_DUMPSYS_FIELD,
+        -> "Shizuku"
+        else -> ""
+    }
+}
+
 /** Derives required capabilities from an automation's trigger, actions, and conditions. */
 object CapabilityRequirements {
     fun derive(
