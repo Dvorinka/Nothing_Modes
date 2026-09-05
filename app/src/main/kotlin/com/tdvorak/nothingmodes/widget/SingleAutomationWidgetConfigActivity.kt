@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.updateAll
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
@@ -100,14 +99,20 @@ class SingleAutomationWidgetConfigActivity : ComponentActivity() {
                             .putString("widget_$appWidgetId", automationId)
                             .apply()
 
-                        // Update the widget.
-                        lifecycleScope.launch {
-                            SingleAutomationWidget().updateAll(this@SingleAutomationWidgetConfigActivity)
-                        }
-
                         val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                         setResult(RESULT_OK, resultValue)
-                        finish()
+
+                        // Update the widget and only then finish — otherwise
+                        // lifecycleScope is cancelled before the update lands
+                        // and the widget keeps its pre-config content.
+                        lifecycleScope.launch {
+                            runCatching {
+                                val glanceId = GlanceAppWidgetManager(this@SingleAutomationWidgetConfigActivity)
+                                    .getGlanceIdBy(appWidgetId)
+                                SingleAutomationWidget().update(this@SingleAutomationWidgetConfigActivity, glanceId)
+                            }
+                            finish()
+                        }
                     },
                     onCancel = { finish() },
                 )
