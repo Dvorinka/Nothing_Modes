@@ -35,8 +35,10 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -54,6 +56,7 @@ fun ConditionConfigSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = NothingShapes.sheet,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -71,7 +74,7 @@ fun ConditionConfigSheet(
                 text = conditionTitle(condition),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
+                fontFamily = GeistSans,
                 modifier = Modifier.padding(bottom = NothingSpacing.md),
             )
 

@@ -48,10 +48,12 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -74,7 +76,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -84,26 +85,25 @@ private data class TriggerType(
     val label: String,
     val category: String,
     val icon: ImageVector,
-    val iconBg: Color,
     val trigger: Trigger,
 )
 
 private fun triggerTypes(): List<TriggerType> = listOf(
-    TriggerType("Time", "Schedule", Icons.Default.Schedule, Color(0xFF5B9BF6), Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
-    TriggerType("Time window", "Schedule", Icons.Default.Alarm, Color(0xFF9B59B6), Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
-    TriggerType("Manual", "Manual", Icons.Default.TouchApp, Color(0xFFD71921), Trigger.Manual),
-    TriggerType("Immediate", "Manual", Icons.Default.PowerSettingsNew, Color(0xFFE67E22), Trigger.Immediate),
-    TriggerType("Boot", "Device", Icons.Default.PowerSettingsNew, Color(0xFF2C3E50), Trigger.Boot),
-    TriggerType("Screen", "Device", Icons.Default.Devices, Color(0xFF1ABC9C), Trigger.ScreenStateTrigger(ScreenState.ON)),
-    TriggerType("Battery", "Device", Icons.Default.BatteryFull, Color(0xFF4A9E5C), Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
-    TriggerType("App opened", "Apps", Icons.Default.Apps, Color(0xFFD4A843), Trigger.AppOpened("")),
-    TriggerType("Notification", "Apps", Icons.Default.Notifications, Color(0xFFD71921), Trigger.Notification("")),
-    TriggerType("Phone", "Connections", Icons.Default.Phone, Color(0xFF2980B9), Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
-    TriggerType("Connectivity", "Connections", Icons.Default.Wifi, Color(0xFF5B9BF6), Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
-    TriggerType("WiFi", "Connections", Icons.Default.Wifi, Color(0xFF27AE60), Trigger.WifiConnected()),
-    TriggerType("Bluetooth", "Connections", Icons.Default.Bluetooth, Color(0xFF3498DB), Trigger.BluetoothDevice(ConnState.CONNECTED)),
-    TriggerType("Geofence", "Location", Icons.Default.LocationOn, Color(0xFFE67E22), Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-    TriggerType("Calendar", "Schedule", Icons.Default.CalendarMonth, Color(0xFF8E44AD), Trigger.CalendarEvent()),
+    TriggerType("Time", "Schedule", Icons.Default.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
+    TriggerType("Time window", "Schedule", Icons.Default.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
+    TriggerType("Manual", "Manual", Icons.Default.TouchApp, Trigger.Manual),
+    TriggerType("Immediate", "Manual", Icons.Default.PowerSettingsNew, Trigger.Immediate),
+    TriggerType("Boot", "Device", Icons.Default.PowerSettingsNew, Trigger.Boot),
+    TriggerType("Screen", "Device", Icons.Default.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
+    TriggerType("Battery", "Device", Icons.Default.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
+    TriggerType("App opened", "Apps", Icons.Default.Apps, Trigger.AppOpened("")),
+    TriggerType("Notification", "Apps", Icons.Default.Notifications, Trigger.Notification("")),
+    TriggerType("Phone", "Connections", Icons.Default.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
+    TriggerType("Connectivity", "Connections", Icons.Default.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
+    TriggerType("WiFi", "Connections", Icons.Default.Wifi, Trigger.WifiConnected()),
+    TriggerType("Bluetooth", "Connections", Icons.Default.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
+    TriggerType("Geofence", "Location", Icons.Default.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
+    TriggerType("Calendar", "Schedule", Icons.Default.CalendarMonth, Trigger.CalendarEvent()),
 )
 
 @Composable
@@ -212,7 +212,6 @@ private fun TriggerTypeSelector(
                 VisualTriggerChip(
                     label = type.label,
                     icon = type.icon,
-                    iconBg = type.iconBg,
                     selected = isSelected,
                     onClick = { onSelect(type.trigger) },
                 )
@@ -225,10 +224,11 @@ private fun TriggerTypeSelector(
 private fun VisualTriggerChip(
     label: String,
     icon: ImageVector,
-    iconBg: Color,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val borderColor = if (selected) NothingColors.accent else MaterialTheme.colorScheme.outline
+    val iconTint = if (selected) NothingColors.accent else MaterialTheme.colorScheme.onSurface
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
@@ -238,20 +238,14 @@ private fun VisualTriggerChip(
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(iconBg, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                .then(
-                    if (selected) Modifier.border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                    ) else Modifier,
-                ),
+                .background(MaterialTheme.colorScheme.surface, NothingShapes.compact)
+                .border(width = 1.dp, color = borderColor, shape = NothingShapes.compact),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.White,
+                tint = iconTint,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -259,7 +253,7 @@ private fun VisualTriggerChip(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = if (selected) NothingColors.accent else MaterialTheme.colorScheme.onSurface,
             fontFamily = SpaceMono,
         )
     }

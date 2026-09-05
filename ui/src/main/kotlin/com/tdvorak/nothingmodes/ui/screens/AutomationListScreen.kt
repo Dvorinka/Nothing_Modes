@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -408,9 +408,9 @@ private fun RoutineCard(
     onToggleEnabled: () -> Unit,
     onRun: () -> Unit = {},
 ) {
-    val iconColor = if (automation.iconBackground.isNotBlank()) colorForHex(automation.iconBackground) else routineColor(automation.name)
-    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
-    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
+    val iconColor = MaterialTheme.colorScheme.surfaceVariant
+    val iconTextColor = MaterialTheme.colorScheme.onSurface
+    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outline
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -432,7 +432,8 @@ private fun RoutineCard(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(iconColor),
+                        .background(iconColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (automation.icon.isNotBlank()) {
@@ -462,14 +463,15 @@ private fun RoutineCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(NothingColors.success)
+                            .background(NothingColors.accent)
                             .clickable(onClick = onRun),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = "▶",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.Black,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 } else {
@@ -539,21 +541,7 @@ private fun SelectionIndicator(isSelected: Boolean) {
     }
 }
 
-private val routineColors = listOf(
-    Color(0xFF4A9E5C),
-    Color(0xFFD4A843),
-    Color(0xFF5B9BF6),
-    Color(0xFFD71921),
-    Color(0xFF9B59B6),
-    Color(0xFF1ABC9C),
-)
 
-private fun routineColor(name: String): Color {
-    val index = name.hashCode().rem(routineColors.size).let {
-        if (it < 0) it + routineColors.size else it
-    }
-    return routineColors[index]
-}
 
 // ── Multi-Select Bottom Action Bar ───────────────────────────────────────────
 
@@ -567,7 +555,7 @@ private fun MultiSelectBottomBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = NothingShapes.cardLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),

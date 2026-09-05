@@ -79,7 +79,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
@@ -131,30 +133,12 @@ private val iconOptions = listOf(
 )
 
 private val colorOptions = listOf(
-    "#D71921", // Nothing red
+    "#FF3030", // Nothing accent red
     "#FFFFFF", // White
     "#000000", // Black
-    "#4A9E5C", // Green
-    "#D4A843", // Gold
-    "#5B9BF6", // Blue
-    "#9B59B6", // Purple
-    "#1ABC9C", // Teal
-    "#E67E22", // Orange
-    "#2C3E50", // Dark blue
-    "#7F8C8D", // Gray
-    "#C0392B", // Dark red
-    "#2980B9", // Ocean
-    "#27AE60", // Emerald
-    "#F1C40F", // Yellow
-    "#E74C3C", // Coral
-    "#3498DB", // Sky
-    "#16A085", // Forest
-    "#8E44AD", // Violet
-    "#2ECC71", // Lime
-    "#D35400", // Pumpkin
-    "#34495E", // Slate
-    "#95A5A6", // Silver
-    "#BDC3C7", // Light gray
+    "#555555", // Muted gray
+    "#999999", // Secondary gray
+    "#1A1A1A", // Surface-2
 )
 
 fun iconForName(name: String): ImageVector =
@@ -188,6 +172,7 @@ fun IconColorPickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = NothingShapes.sheet,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -205,22 +190,25 @@ fun IconColorPickerSheet(
                 text = "Choose icon & color",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
+                fontFamily = GeistSans,
             )
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-            // Live preview
+            // Live preview — shows the selected Nothing palette color.
+            val previewColor = colorForHex(selectedColor)
+            val previewIconColor = if (previewColor.luminance() > 0.5f) Color.Black else Color.White
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .background(colorForHex(selectedColor), CircleShape),
+                    .background(previewColor, CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = iconForName(selectedIcon),
                     contentDescription = selectedIcon,
-                    tint = if (colorForHex(selectedColor).luminance() > 0.5f) Color.Black else Color.White,
+                    tint = previewIconColor,
                     modifier = Modifier.size(40.dp),
                 )
             }

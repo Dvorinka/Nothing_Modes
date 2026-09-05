@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
@@ -475,7 +476,7 @@ fun CustomAutomationBuilderScreen(
                     Text(
                         text = "+ ADD CONDITION",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = NothingColors.accent,
                         fontFamily = SpaceMono,
                         modifier = Modifier
                             .padding(vertical = NothingSpacing.md)
@@ -499,7 +500,7 @@ fun CustomAutomationBuilderScreen(
                         Text(
                             "0 ACTIONS",
                             style = MaterialTheme.typography.labelSmall,
-                            color = NothingColors.accent,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = SpaceMono,
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
@@ -535,7 +536,7 @@ fun CustomAutomationBuilderScreen(
                     Text(
                         text = "+ ADD ACTION",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = NothingColors.accent,
                         fontFamily = SpaceMono,
                         modifier = Modifier
                             .padding(vertical = NothingSpacing.md)
@@ -1002,8 +1003,11 @@ private fun AutomationPreviewTile(
     state: BuilderState,
     modifier: Modifier = Modifier,
 ) {
-    val iconColor = if (state.iconBackground.isNotBlank()) colorForHex(state.iconBackground) else NothingColors.accent
-    val iconTextColor = if (iconColor.luminance() > 0.5f) Color.Black else Color.White
+    // Neutral icon tile: surfaceVariant background, outline border, onSurface icon.
+    // A custom iconBackground is honored only when explicitly set; otherwise neutral.
+    val customBg = state.iconBackground.isNotBlank()
+    val iconColor = if (customBg) colorForHex(state.iconBackground) else MaterialTheme.colorScheme.surfaceVariant
+    val iconTextColor = if (customBg) (if (iconColor.luminance() > 0.5f) Color.Black else Color.White) else MaterialTheme.colorScheme.onSurface
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1019,14 +1023,15 @@ private fun AutomationPreviewTile(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(iconColor),
+                    .background(iconColor)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (state.icon.isNotBlank()) {
                     Icon(
                         imageVector = iconForName(state.icon),
                         contentDescription = null,
-                        tint = iconTextColor,
+                        tint = if (customBg) iconTextColor else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(28.dp),
                     )
                 } else {

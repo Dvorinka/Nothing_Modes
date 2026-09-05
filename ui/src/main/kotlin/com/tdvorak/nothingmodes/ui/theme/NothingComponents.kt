@@ -71,7 +71,7 @@ fun NothingCard(
         shape = NothingShapes.card,
         border = if (borderless) null else BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant,
+            MaterialTheme.colorScheme.outline,
         ),
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -90,7 +90,7 @@ fun NothingCardLarge(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, NothingShapes.cardLarge),
+            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.cardLarge),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
             content()
@@ -313,7 +313,7 @@ fun NothingPrimaryButton(
     enabled: Boolean = true,
 ) {
     Surface(
-        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
         modifier = modifier
             .height(44.dp)
@@ -322,7 +322,7 @@ fun NothingPrimaryButton(
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.wrapContentSize(Alignment.Center),
         )
@@ -468,7 +468,7 @@ fun NothingEmptyState(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
@@ -576,7 +576,7 @@ fun NothingPillButton(
     enabled: Boolean = true,
 ) {
     Surface(
-        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
         modifier = modifier
             .height(48.dp)
@@ -585,7 +585,7 @@ fun NothingPillButton(
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .wrapContentSize(Alignment.Center)
@@ -658,14 +658,14 @@ fun NothingInput(
             value = value,
             onValueChange = onValueChange,
             placeholder = if (placeholder.isNotEmpty()) {
-                { Text(placeholder, color = MaterialTheme.colorScheme.outline) }
+                { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else null,
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = SpaceMono),
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 cursorColor = MaterialTheme.colorScheme.primary,
@@ -698,7 +698,7 @@ fun NothingEnumSelector(
             shape = NothingShapes.technical,
             border = BorderStroke(
                 1.dp,
-                if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -730,7 +730,7 @@ fun NothingEnumSelector(
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = NothingShapes.technical,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -795,7 +795,7 @@ fun NothingSegmentedBar(
                     .clip(NothingShapes.technical)
                     .background(
                         if (i < filled) fillColor
-                        else MaterialTheme.colorScheme.outlineVariant,
+                        else MaterialTheme.colorScheme.outline,
                     ),
             )
         }
