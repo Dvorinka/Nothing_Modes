@@ -20,7 +20,6 @@
     // carved in the top-right (angles 285deg..345deg; 0deg = +x, y down).
     // Inner ring around the centre evokes the camera-module glyph, and a
     // detached dash plus a short straight segment complete the layout.
-    const ringCells = [];
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const dx = x - cx, dy = y - cy;
@@ -29,19 +28,17 @@
           const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
           if (a > 285 && a < 345) continue; // top-right gap
           grid[y][x] = 1;
-          if (a >= 150 && a <= 250) ringCells.push([x, y]); // lower-left arc
         }
         if (d >= 2.4 && d <= 3.8) grid[y][x] = 1; // inner camera ring
       }
     }
 
-    // Detached diagonal dash of 3 dots near the top-right gap.
-    grid[4][17] = 1;
-    grid[3][18] = 1;
-    grid[2][19] = 1;
-
     // Short straight segment on the right, inside the arc.
     for (let y = 10; y <= 14; y++) grid[y][19] = 1;
+
+    // Red plus signature inside the top-right gap — the accent element.
+    for (let y = 2; y <= 6; y++) grid[y][19] = 2;
+    for (let x = 17; x <= 21; x++) grid[4][x] = 2;
 
     const frag = document.createDocumentFragment();
     const cells = [];
@@ -49,7 +46,8 @@
       for (let x = 0; x < N; x++) {
         const c = document.createElement("div");
         c.className = "cell";
-        if (grid[y][x]) c.classList.add("on");
+        if (grid[y][x] === 1) c.classList.add("on");
+        if (grid[y][x] === 2) c.classList.add("red");
         frag.appendChild(c);
         cells.push(c);
       }
@@ -78,28 +76,6 @@
       matrix.addEventListener("mouseleave", () => {
         cells.forEach((c) => c.classList.remove("hover"));
       });
-
-      // Stepped mechanical "breathe": six dots on the ring's lower-left arc
-      // pulse red on a hard timer.
-      const redCells = [];
-      if (ringCells.length) {
-        const step = Math.max(1, Math.floor(ringCells.length / 6));
-        for (let i = 0; i < 6 && i * step < ringCells.length; i++) {
-          const [rx, ry] = ringCells[i * step];
-          redCells.push(cells[ry * N + rx]);
-        }
-      }
-      let phase = 0;
-      const tick = () => {
-        redCells.forEach((c, i) => {
-          const on = ((phase + i) % 4) < 2;
-          c.classList.toggle("red", on);
-          c.classList.toggle("on", !on && !c.classList.contains("red"));
-        });
-        phase++;
-      };
-      tick();
-      setInterval(tick, 600);
     }
   }
 })();

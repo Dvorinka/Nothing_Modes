@@ -410,18 +410,18 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
 }
 .board td.cap-cell { text-align: left; }
-.cap-dots {
-  display: inline-flex;
-  gap: 4px;
-}
-.cap-dots i {
-  width: 7px; height: 7px;
+.cap-dot {
+  width: 14px; height: 14px;
   display: inline-block;
-  border-radius: 1px;
+  border-radius: 2px;
   background: #161616;
+  vertical-align: middle;
 }
-.cap-dots i.on { background: var(--text); }
-.cap-dots i.red { background: var(--red); }
+.cap-dot.on {
+  background: var(--text);
+  border: 2px solid var(--red);
+  box-sizing: border-box;
+}
 .board .any-row .dev { color: var(--text-2); }
 .board .any-cell {
   color: var(--text-3);
@@ -490,8 +490,7 @@ a { color: inherit; text-decoration: none; }
   .board-wrap, .compat-note { width: calc(100% - 36px); }
   .board .dev { font-size: 11px; letter-spacing: 0.06em; }
   .board th, .board td { padding: 12px 12px; }
-  .cap-dots { gap: 3px; }
-  .cap-dots i { width: 6px; height: 6px; }
+  .cap-dot { width: 12px; height: 12px; }
   .glyph { padding: 64px 0; }
   .glyph-layout {
     grid-template-columns: 1fr;
