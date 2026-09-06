@@ -38,6 +38,32 @@ Built like a premium system app: OLED-black surfaces, monoline iconography, dot-
 | Nothing Phone (4b) | Yes | No | No |
 | Non-Nothing devices | No | No | No |
 
+### How Glyph output works — read this first
+
+Nothing OS hands the Glyph interface to **one selected toy at a time**. Whoever
+owns the current Glyph Toy slot (or the Always-on toy slot) is the only app whose
+frames reach the lights. There is no API to switch that selection
+programmatically — Nothing controls it.
+
+What this means in practice:
+
+- **To see Nothing Modes output**, select **Nothing Modes** in
+  *Settings → Glyph Interface → Glyph Toys* (or as the Always-on toy). The
+  Glyph Preview screen in the app has shortcut buttons to both pickers and
+  shows a live "Matrix owner" status.
+- **We cannot trigger other apps' Glyph Toys.** Toy apps can be bound and
+  sent lifecycle messages, but their frames never reach the lights while
+  another toy owns the slot — we verified this on-device. Nothing Modes
+  renders its own equivalents (battery ring, progress, text, marquee, icons)
+  instead.
+- **If another toy is selected, Glyph actions fail honestly** with
+  "matrix owned by another toy" instead of pretending to render. Check the
+  "Matrix owner" row in Settings → Glyph Preview — it always shows who
+  currently controls the lights.
+
+This exclusivity is Nothing's platform rule, not a limitation we chose. If
+Nothing ever exposes a public toy-switching API, we will use it.
+
 ## Build
 
 ```bash

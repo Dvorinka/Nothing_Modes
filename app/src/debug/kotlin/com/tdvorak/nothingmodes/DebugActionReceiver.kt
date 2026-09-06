@@ -331,6 +331,8 @@ class DebugActionReceiver : BroadcastReceiver() {
                             EntryPointAccessors
                                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
                                 .matrixProvider()
+                        // Cold broadcasts arrive before any screen has run init().
+                        if (!provider.isConnected()) provider.init()
                         var waited = 0
                         while (!provider.isConnected() && waited < 4000) {
                             kotlinx.coroutines.delay(200)

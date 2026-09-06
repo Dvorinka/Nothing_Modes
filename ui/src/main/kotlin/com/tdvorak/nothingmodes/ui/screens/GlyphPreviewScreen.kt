@@ -187,6 +187,43 @@ fun GlyphPreviewScreen(
                                 modifier = Modifier.padding(top = NothingSpacing.sm),
                             )
                         }
+                        // Ownership verdict — Nothing arbitrates the matrix:
+                        // exactly one toy can drive the lights at a time.
+                        val ours = systemToys.firstOrNull { it.packageName == context.packageName }
+                        val weOwnMatrix = ours?.let { it.isActive || it.isAodActive } == true
+                        NothingDivider(modifier = Modifier.padding(top = NothingSpacing.md))
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = NothingSpacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            NothingLabel(text = "Matrix owner")
+                            Text(
+                                text = if (weOwnMatrix) "NOTHING MODES" else "ANOTHER TOY",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color =
+                                    if (weOwnMatrix) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        NothingColors.accent
+                                    },
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                        Text(
+                            text =
+                                if (weOwnMatrix) {
+                                    "This app currently controls the lights. Every Glyph action will be visible."
+                                } else {
+                                    "Nothing reserves the matrix for one selected toy. Pick Nothing Modes under " +
+                                        "Open toys (or as the Always-on toy) — we cannot start other apps' toys " +
+                                        "or show output while another toy owns the lights."
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

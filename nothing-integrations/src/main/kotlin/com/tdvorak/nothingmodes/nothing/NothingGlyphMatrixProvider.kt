@@ -35,6 +35,8 @@ class NothingGlyphMatrixProvider(
     @Volatile
     private var marqueeRunning = false
 
+    private val toysBridge by lazy { GlyphToysBridge(context) }
+
     fun isAvailable(): Boolean = detector.detectGlyphHardware().isMatrix
 
     fun isConnected(): Boolean = connected
@@ -92,6 +94,9 @@ class NothingGlyphMatrixProvider(
 
     fun setFrame(colors: IntArray): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         val expected = matrixSize() * matrixSize()
         if (colors.size != expected) return GlyphResult.Failure("Expected $expected colors, got ${colors.size}")
         return try {
@@ -161,6 +166,9 @@ class NothingGlyphMatrixProvider(
         brightness: Int = 255,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         return try {
             // (0,0) is the grid's top-left corner — outside the round matrix.
             // NDot glyphs are ~5 dots wide with 1-dot spacing, ~7 dots tall.
@@ -196,6 +204,9 @@ class NothingGlyphMatrixProvider(
         brightness: Int = 255,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         return try {
             val obj =
                 GlyphMatrixObject
@@ -223,6 +234,9 @@ class NothingGlyphMatrixProvider(
         low: GlyphMatrixObject? = null,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         return try {
             val builder = GlyphMatrixFrame.Builder()
             if (low != null) builder.addLow(low)
@@ -251,6 +265,9 @@ class NothingGlyphMatrixProvider(
         stepPx: Int = 1,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         return try {
             stopMarquee()
             // Marquee text is ~7 dots tall; center it vertically on the grid.
@@ -342,6 +359,9 @@ class NothingGlyphMatrixProvider(
         label: String? = null,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
         return try {

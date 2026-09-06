@@ -137,6 +137,18 @@ class GlyphToysBridge(
     /** The toy currently selected for always-on display, if any. */
     fun activeAodToy(): String? = queryProvider(AOD_TOY_URI).firstOrNull()
 
+    /**
+     * True when this app owns the visible Glyph layer — selected as the
+     * active toy or configured as the Always-on toy. Nothing arbitrates the
+     * matrix: only the owner's frames reach the lights.
+     */
+    fun ownsMatrix(): Boolean =
+        runCatching {
+            listSystemToys().any {
+                it.packageName == context.packageName && (it.isActive || it.isAodActive)
+            }
+        }.getOrDefault(false)
+
     // ── Launchers into the system app ─────────────────────────────────────────
 
     /** Open the system Glyph Toys manager (toy carousel, enable/disable). */
