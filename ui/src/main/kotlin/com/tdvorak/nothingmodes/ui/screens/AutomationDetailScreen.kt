@@ -45,6 +45,7 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.ui.R
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -289,7 +290,7 @@ fun AutomationDetailScreen(
                                         ?.toString() ?: "?",
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                         Spacer(modifier = Modifier.width(NothingSpacing.md))
@@ -298,7 +299,7 @@ fun AutomationDetailScreen(
                                 text = data.name,
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = Doto,
+                                fontFamily = NothingFonts.doto(),
                             )
                             Spacer(modifier = Modifier.height(NothingSpacing.xs))
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -308,7 +309,7 @@ fun AutomationDetailScreen(
                                     text = "${data.type.name.uppercase()} · $statusText",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                 )
                             }
                         }
@@ -323,7 +324,7 @@ fun AutomationDetailScreen(
                                 text = "DISABLED — open the editor to enable.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = NothingColors.accent,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                     }
@@ -372,7 +373,7 @@ fun AutomationDetailScreen(
                                             text = String.format("%02d", index + 1),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontFamily = SpaceMono,
+                                            fontFamily = NothingFonts.mono(),
                                         )
                                     }
                                 },

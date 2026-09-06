@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -155,7 +156,7 @@ fun GlyphPreviewScreen(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                     if (!systemInstalled) {
@@ -182,7 +183,7 @@ fun GlyphPreviewScreen(
                                 text = "Always-on toy: $it",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                                 modifier = Modifier.padding(top = NothingSpacing.sm),
                             )
                         }
@@ -217,7 +218,7 @@ fun GlyphPreviewScreen(
                             text = "TURN OFF",
                             style = MaterialTheme.typography.labelMedium,
                             color = NothingColors.accent,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier =
                                 Modifier
                                     .clip(NothingShapes.input)
@@ -250,7 +251,7 @@ fun GlyphPreviewScreen(
                                     text = toy.label,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                     modifier = Modifier.weight(1f),
                                 )
                                 if (toy.isOurs) {
@@ -258,7 +259,7 @@ fun GlyphPreviewScreen(
                                         text = "THIS APP",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = NothingColors.accent,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                 }
                             }
@@ -285,13 +286,13 @@ fun GlyphPreviewScreen(
                                         text = toy.shortName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                     Text(
                                         text = toy.packageName,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                 }
                                 val status =
@@ -307,7 +308,7 @@ fun GlyphPreviewScreen(
                                         text = status,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = NothingColors.accent,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                 }
                             }
@@ -323,7 +324,7 @@ fun GlyphPreviewScreen(
                     text = selectedName,
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = Doto,
+                    fontFamily = NothingFonts.doto(),
                 )
                 NothingLabel(text = "Glyph Preset")
             }
@@ -504,7 +505,7 @@ private fun GlyphLinkButton(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
     }
 }

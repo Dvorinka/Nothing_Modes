@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
@@ -115,7 +116,7 @@ fun OnboardingScreen(
                 text = "Nothing Modes",
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontFamily = Doto,
+                fontFamily = NothingFonts.doto(),
                 modifier = Modifier.padding(top = NothingSpacing.xxxl),
             )
             Text(
@@ -253,7 +254,7 @@ private fun OnboardingStep(
                     text = String.format("%02d", step),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         },
@@ -268,7 +269,7 @@ private fun OnboardingStep(
                     text = "GRANT",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     modifier =
                         Modifier
                             .clickable(onClick = onAction)

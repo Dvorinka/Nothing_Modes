@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
@@ -277,7 +278,7 @@ fun CustomTimePicker(
         text = preview,
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontFamily = SpaceMono,
+        fontFamily = NothingFonts.mono(),
     )
 }
 
@@ -333,7 +334,7 @@ private fun DayChip(
             text = label.uppercase().take(3),
             style = MaterialTheme.typography.labelMedium,
             color = fg,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             textAlign = TextAlign.Center,
         )
     }

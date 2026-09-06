@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -113,7 +114,7 @@ fun NothingTimeField(
                     text = ">",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -155,7 +156,7 @@ fun NothingTimePickerDialog(
                     text = "SET TIME",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.md))
 
@@ -335,7 +336,7 @@ fun NothingDateField(
                     text = ">",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -400,7 +401,7 @@ fun NothingDatePickerDialog(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.weight(1f),
                         )
@@ -477,7 +478,7 @@ private fun MonthNavButton(
             text = text,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
     }
 }
@@ -520,7 +521,7 @@ private fun DayCell(
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         },
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 )
                 if (isToday && !isSelected) {
@@ -598,14 +599,14 @@ fun NothingTimeZoneField(
                     text = value,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                 Text(
                     text = ">",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -622,7 +623,7 @@ fun NothingTimeZoneField(
                 text = if (advanced) "ADVANCED  –" else "ADVANCED  +",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
 
@@ -682,7 +683,7 @@ private fun TimeZonePickerDialog(
                     text = "TIME ZONE",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
@@ -762,7 +763,7 @@ private fun ZoneRow(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         )
     }
@@ -811,7 +812,7 @@ fun NothingDaySelector(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     textAlign = TextAlign.Center,
                 )
             }

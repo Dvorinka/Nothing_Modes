@@ -51,6 +51,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// LocalUiStyle and ThemeManager are in the same package (com.tdvorak.nothingmodes.ui.theme).
+
 /**
  * Nothing Design System reusable components.
  *
@@ -119,17 +121,18 @@ fun NothingScreenHero(
     modifier: Modifier = Modifier,
     caption: String? = null,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = title.uppercase(),
+            text = if (classic) title else title.uppercase(),
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.primary,
-            fontFamily = Doto,
+            fontFamily = if (classic) null else Doto,
         )
         if (caption != null) {
             Spacer(modifier = Modifier.height(NothingSpacing.xxs))
             Text(
-                text = caption.uppercase(),
+                text = if (classic) caption else caption.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.0.sp,
@@ -145,8 +148,9 @@ fun NothingSectionHeader(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Text(
-        text = text.uppercase(),
+        text = if (classic) text else text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         letterSpacing = 1.4.sp,
@@ -166,8 +170,9 @@ fun NothingLabel(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Text(
-        text = text.uppercase(),
+        text = if (classic) text else text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         color = color,
         letterSpacing = 1.1.sp,
@@ -194,7 +199,7 @@ fun NothingInfoRow(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = valueColor,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
     }
 }
@@ -217,9 +222,10 @@ fun NothingRedDot(
     modifier: Modifier = Modifier,
     size: Float = 4f,
 ) {
+    val accent = NothingColors.accent
     Canvas(modifier = modifier.size(size.dp)) {
         drawCircle(
-            color = NothingColors.accent,
+            color = accent,
             radius = (size / 2).dp.toPx(),
         )
     }
@@ -353,6 +359,7 @@ fun NothingSegmentedControl(
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Row(
         modifier =
             modifier
@@ -376,7 +383,7 @@ fun NothingSegmentedControl(
                         .clickable { onSelected(index) },
             ) {
                 Text(
-                    text = label.uppercase(),
+                    text = if (classic) label else label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color =
                         if (isSelected) {
@@ -400,6 +407,7 @@ fun NothingPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Surface(
         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         shape = NothingShapes.pill,
@@ -409,7 +417,7 @@ fun NothingPrimaryButton(
                 .clickable(enabled = enabled, onClick = onClick),
     ) {
         Text(
-            text = text.uppercase(),
+            text = if (classic) text else text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -440,6 +448,7 @@ fun NothingSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Surface(
         color = Color.Transparent,
         shape = NothingShapes.pill,
@@ -450,7 +459,7 @@ fun NothingSecondaryButton(
                 .clickable(enabled = enabled, onClick = onClick),
     ) {
         Text(
-            text = text.uppercase(),
+            text = if (classic) text else text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
@@ -465,12 +474,13 @@ fun NothingGhostButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     TextButton(
         onClick = onClick,
         modifier = modifier,
     ) {
         Text(
-            text = text.uppercase(),
+            text = if (classic) text else text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -483,6 +493,7 @@ fun NothingDestructiveButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Surface(
         color = Color.Transparent,
         shape = NothingShapes.pill,
@@ -493,7 +504,7 @@ fun NothingDestructiveButton(
                 .clickable(onClick = onClick),
     ) {
         Text(
-            text = text.uppercase(),
+            text = if (classic) text else text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = NothingColors.accent,
             textAlign = TextAlign.Center,
@@ -511,6 +522,7 @@ fun NothingTag(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     val clickable = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Surface(
         color = if (active) NothingColors.accent else Color.Transparent,
@@ -519,7 +531,7 @@ fun NothingTag(
         modifier = modifier.then(clickable),
     ) {
         Text(
-            text = text.uppercase(),
+            text = if (classic) text else text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color =
                 if (active) {
@@ -605,6 +617,7 @@ fun NothingTopBar(
     actions: List<TopBarAction> = emptyList(),
     showLeadingDot: Boolean = false,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Row(
         modifier =
             modifier
@@ -630,7 +643,7 @@ fun NothingTopBar(
                     text = "<",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
             Spacer(modifier = Modifier.width(NothingSpacing.md))
@@ -644,10 +657,10 @@ fun NothingTopBar(
 
         // Title — Space Mono ALL CAPS
         Text(
-            text = title.uppercase(),
+            text = if (classic) title else title.uppercase(),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             letterSpacing = 1.5.sp,
             maxLines = 1,
             softWrap = false,
@@ -679,10 +692,10 @@ fun NothingTopBar(
                     )
                 } else {
                     Text(
-                        text = action.label.uppercase().take(4),
+                        text = if (classic) action.label.take(4) else action.label.uppercase().take(4),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
             }
@@ -701,6 +714,7 @@ fun NothingCircleButton(
     enabled: Boolean = true,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Column(
         modifier = modifier.width(56.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -719,16 +733,16 @@ fun NothingCircleButton(
                 text = icon,
                 style = MaterialTheme.typography.labelLarge,
                 color = if (enabled) color else MaterialTheme.colorScheme.outline,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
                 textAlign = TextAlign.Center,
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = label.uppercase(),
+            text = if (classic) label else label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             textAlign = TextAlign.Center,
         )
     }
@@ -762,7 +776,7 @@ fun NothingInput(
                 },
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = SpaceMono),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = NothingFonts.mono()),
             colors =
                 OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -787,6 +801,7 @@ fun NothingEnumSelector(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -816,16 +831,16 @@ fun NothingEnumSelector(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = value.uppercase(),
+                    text = if (classic) value else value.uppercase(),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Text(
                     text = if (expanded) "[CLOSE]" else "[OPEN]",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -856,10 +871,10 @@ fun NothingEnumSelector(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = option.uppercase(),
+                                text = if (classic) option else option.uppercase(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                             if (option.equals(value, ignoreCase = true)) {
                                 NothingRedDot(size = 6f)
@@ -1039,6 +1054,7 @@ fun NothingSelectionTopBar(
     onCancel: () -> Unit = {},
     actions: List<TopBarAction> = emptyList(),
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Row(
         modifier =
             modifier
@@ -1064,7 +1080,7 @@ fun NothingSelectionTopBar(
         )
         actions.forEach { action ->
             Text(
-                text = action.label.uppercase(),
+                text = if (classic) action.label else action.label.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.0.sp,

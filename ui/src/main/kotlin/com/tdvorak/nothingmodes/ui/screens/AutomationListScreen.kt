@@ -68,6 +68,7 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -389,14 +390,14 @@ fun AutomationListScreen(
                             text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                         result.errors.forEach { error ->
                             Text(
                                 text = "[ ERROR: $error ]",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = NothingColors.accent,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                         importWarnings.forEach { warning ->
@@ -404,7 +405,7 @@ fun AutomationListScreen(
                                 text = "[ REQUIRES: $warning ]",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                         NothingGhostButton(
@@ -518,13 +519,13 @@ private fun RoutineHeroCard(
                     text = "$totalRoutines",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = Doto,
+                    fontFamily = NothingFonts.doto(),
                 )
                 Text(
                     text = "ROUTINES",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -532,13 +533,13 @@ private fun RoutineHeroCard(
                     text = "$totalActions",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = Doto,
+                    fontFamily = NothingFonts.doto(),
                 )
                 Text(
                     text = "ACTIONS",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -611,7 +612,7 @@ private fun RoutineTile(
                         text = "RUN",
                         style = MaterialTheme.typography.labelSmall,
                         color = NothingColors.accent,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         letterSpacing = 1.0.sp,
                         modifier =
                             Modifier
@@ -716,7 +717,7 @@ private fun MultiSelectBottomBar(
                 text = "ALL",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
                 letterSpacing = 1.0.sp,
                 modifier =
                     Modifier
@@ -727,7 +728,7 @@ private fun MultiSelectBottomBar(
                 text = "DELETE",
                 style = MaterialTheme.typography.labelLarge,
                 color = NothingColors.accent,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
                 letterSpacing = 1.0.sp,
                 modifier =
                     Modifier
@@ -738,7 +739,7 @@ private fun MultiSelectBottomBar(
                 text = "RUN",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
                 letterSpacing = 1.0.sp,
                 modifier =
                     Modifier

@@ -85,6 +85,18 @@ class DebugActionReceiver : BroadcastReceiver() {
             }.onFailure { Log.e(TAG, "probe failed", it) }
             return
         }
+        if (intent.getStringExtra("type") == "ui_style") {
+            // Flip the visual language without navigating settings:
+            // -e style auto|nothing|classic
+            val style =
+                intent.getStringExtra("style").orEmpty().uppercase().let {
+                    runCatching { com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle.valueOf(it) }
+                        .getOrNull()
+                } ?: com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle.AUTO
+            com.tdvorak.nothingmodes.ui.theme.ThemeManager.init(context).setUiStyle(style)
+            Log.i(TAG, "ui_style -> $style (resolved=${com.tdvorak.nothingmodes.ui.theme.ThemeManager.instance.resolvedUiStyle()})")
+            return
+        }
         if (intent.getStringExtra("type") == "toy_preview") {
             toyPreview(context, intent)
             return

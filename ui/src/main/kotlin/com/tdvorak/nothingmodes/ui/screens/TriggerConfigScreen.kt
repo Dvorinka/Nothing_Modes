@@ -57,6 +57,7 @@ import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -157,7 +158,7 @@ fun TriggerConfigScreen(
                             text = triggerTypeLabel(trigger).uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             maxLines = 2,
                             softWrap = true,
                             textAlign = TextAlign.End,
@@ -167,7 +168,7 @@ fun TriggerConfigScreen(
                             text = "CHANGE",
                             style = MaterialTheme.typography.labelSmall,
                             color = NothingColors.accent,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 }
@@ -247,13 +248,13 @@ private fun TriggerTypePickerDialog(
                         text = "TRIGGER TYPE",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                     Text(
                         text = "CLOSE",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         modifier = Modifier.clickable(onClick = onDismiss),
                     )
                 }
@@ -272,7 +273,7 @@ private fun TriggerTypePickerDialog(
                             text = category.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier =
                                 Modifier.padding(
                                     start = NothingSpacing.md,
@@ -316,7 +317,7 @@ private fun TriggerTypePickerDialog(
                                         } else {
                                             MaterialTheme.colorScheme.onSurface
                                         },
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                     modifier = Modifier.weight(1f),
                                 )
                                 if (isSelected) {
@@ -324,7 +325,7 @@ private fun TriggerTypePickerDialog(
                                         text = "•",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.primary,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                 }
                             }
@@ -364,7 +365,7 @@ private fun TriggerConfigContent(
                 text = triggerDescription(trigger),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
 
@@ -710,7 +711,7 @@ private fun GeofenceContent(
             text = "Location: ${String.format("%.4f", trigger.lat)}, ${String.format("%.4f", trigger.lng)}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -782,7 +783,7 @@ private fun BooleanRow(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         NothingToggle(
             checked = checked,
@@ -851,7 +852,7 @@ private fun AppPickerContent(
             text = "Selected app",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
         Surface(
@@ -875,13 +876,13 @@ private fun AppPickerContent(
                     text = selectedLabel.ifBlank { "Tap to select an app" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Text(
                     text = if (showList) "[CLOSE]" else "[OPEN]",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -938,7 +939,7 @@ private fun AppPickerContent(
                                 text = app.label,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                     }

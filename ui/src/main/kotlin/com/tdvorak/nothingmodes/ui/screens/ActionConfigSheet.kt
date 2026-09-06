@@ -39,6 +39,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
@@ -93,7 +94,7 @@ fun ActionConfigSheet(
                     text = hint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     modifier = Modifier.padding(bottom = NothingSpacing.sm),
                 )
             }
@@ -178,7 +179,7 @@ fun ActionConfigContent(
                 text = "BRIGHTNESS",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.xs))
             Row(
@@ -190,7 +191,7 @@ fun ActionConfigContent(
                     text = "$percent%",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     modifier = Modifier.width(56.dp),
                 )
                 androidx.compose.material3.Slider(
@@ -582,7 +583,7 @@ fun ActionConfigContent(
                     text = "${a.progress}%",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     modifier = Modifier.width(56.dp),
                 )
                 androidx.compose.material3.Slider(
@@ -641,7 +642,7 @@ fun ActionConfigContent(
                 text = actionDescription(action),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
 
@@ -650,7 +651,7 @@ fun ActionConfigContent(
                 text = actionDescription(action),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
     }
@@ -746,7 +747,7 @@ private fun BooleanRow(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         NothingToggle(
             checked = checked,
@@ -823,7 +824,7 @@ private fun AppPickerField(
             text = "Selected app",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
         androidx.compose.material3.Surface(
@@ -851,13 +852,13 @@ private fun AppPickerField(
                     text = selectedLabel.ifBlank { "Tap to select an app" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Text(
                     text = if (showList) "[CLOSE]" else "[OPEN]",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -918,7 +919,7 @@ private fun AppPickerField(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                     }

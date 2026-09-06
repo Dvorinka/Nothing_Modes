@@ -1,13 +1,10 @@
 package com.tdvorak.nothingmodes.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -15,7 +12,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
 /**
  * Nothing Design System color palette.
@@ -78,13 +74,110 @@ private val NothingLight =
         onErrorContainer = Color(0xFFFF3030),
     )
 
+// ── Classic Theme (curated, non-dynamic) ─────────────────────────────────────
+// One restrained indigo accent (#4F5DD3 family) over warm-neutral surfaces.
+// Identical on every device — no Material You wallpaper tinting.
+private val ClassicDark =
+    darkColorScheme(
+        primary = Color(0xFF8E97E8), // lightened indigo for dark canvas
+        onPrimary = Color(0xFF14162B),
+        primaryContainer = Color(0xFF363E7A),
+        onPrimaryContainer = Color(0xFFDEE0FF),
+        secondary = Color(0xFF9099B0), // cool low-chroma neutral
+        onSecondary = Color(0xFF1A1C21),
+        secondaryContainer = Color(0xFF363A45),
+        onSecondaryContainer = Color(0xFFD6DAEC),
+        tertiary = Color(0xFF6B73A0), // muted indigo-grey
+        onTertiary = Color(0xFF1A1C21),
+        background = Color(0xFF121316), // near-neutral dark canvas
+        onBackground = Color(0xFFE6E6E4),
+        surface = Color(0xFF1A1C21), // raised cards
+        onSurface = Color(0xFFE6E6E4),
+        surfaceVariant = Color(0xFF22252B), // elevated surfaces
+        onSurfaceVariant = Color(0xFFA8ABBA), // secondary text
+        outline = Color(0xFF2D3038), // visible borders
+        outlineVariant = Color(0xFF22252B), // hairline separators
+        error = Color(0xFFF2B8B5),
+        onError = Color(0xFF601410),
+        errorContainer = Color(0xFF8C1D18),
+        onErrorContainer = Color(0xFFF9DEDC),
+    )
+
+private val ClassicLight =
+    lightColorScheme(
+        primary = Color(0xFF3F4DBF), // deepened indigo for white contrast
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFDEE0FF),
+        onPrimaryContainer = Color(0xFF1A1F4A),
+        secondary = Color(0xFF5B6071), // cool low-chroma neutral
+        onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = Color(0xFFDDE0F0),
+        onSecondaryContainer = Color(0xFF1A1C21),
+        tertiary = Color(0xFF6B73A0), // muted indigo-grey
+        onTertiary = Color(0xFFFFFFFF),
+        background = Color(0xFFFAFAF8), // warm off-white canvas
+        onBackground = Color(0xFF1A1C21),
+        surface = Color(0xFFFFFFFF), // white cards on off-white
+        onSurface = Color(0xFF1A1C21),
+        surfaceVariant = Color(0xFFF0F0EE), // raised surfaces
+        onSurfaceVariant = Color(0xFF5B6071), // secondary text
+        outline = Color(0xFFD8D8D4), // visible borders
+        outlineVariant = Color(0xFFECECE8), // hairline separators
+        error = Color(0xFFB3261E),
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Color(0xFFF9DEDC),
+        onErrorContainer = Color(0xFF410E0B),
+    )
+
 // ── Semantic Colors (identical in both modes) ────────────────────────────────
 object NothingColors {
-    val accent = Color(0xFFFF3030)
-    val accentSubtle = Color(0x33FF3030)
-    val interactive = Color(0xFFFF3030)
-    val interactiveLight = Color(0xFFFF3030)
-    val muted = Color(0xFF555555)
+    private val accentConstant = Color(0xFFFF3030)
+    private val accentSubtleConstant = Color(0x33FF3030)
+    private val mutedConstant = Color(0xFF555555)
+
+    /**
+     * Nothing Red accent. In CLASSIC UI style this resolves to the Material 3
+     * primary color so shared components read as a normal Material 3 app.
+     */
+    val accent
+        @Composable get() =
+            if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                accentConstant
+            }
+
+    val accentSubtle
+        @Composable get() =
+            if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                accentSubtleConstant
+            }
+
+    val interactive
+        @Composable get() =
+            if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                accentConstant
+            }
+
+    val interactiveLight
+        @Composable get() =
+            if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                accentConstant
+            }
+
+    val muted
+        @Composable get() =
+            if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                mutedConstant
+            }
 }
 
 /**
@@ -101,16 +194,10 @@ fun NothingModesTheme(
     content: @Composable () -> Unit,
 ) {
     if (uiStyle == ThemeManager.UiStyle.CLASSIC) {
-        // Plain Material 3 — dynamic color where the platform offers it,
-        // stock typography and rounded shapes. No Nothing decoration.
-        val context = LocalContext.current
-        val scheme =
-            when {
-                Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
-                Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-                darkTheme -> darkColorScheme()
-                else -> lightColorScheme()
-            }
+        // Curated classic Material 3 — single indigo accent over warm-neutral
+        // surfaces. No dynamic color: identical look across all devices.
+        // Default Typography() and Shapes() kept as-is.
+        val scheme = if (darkTheme) ClassicDark else ClassicLight
         CompositionLocalProvider(LocalUiStyle provides ThemeManager.UiStyle.CLASSIC) {
             MaterialTheme(
                 colorScheme = scheme,

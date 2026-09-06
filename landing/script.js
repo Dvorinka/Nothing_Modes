@@ -22,6 +22,12 @@
       btn.setAttribute("aria-pressed", String(s === "normal"));
       btn.textContent = s === "normal" ? "PLAIN" : "DOTS";
     }
+    // Swap screenshot sources between Nothing and classic captures.
+    document.querySelectorAll("img[data-normal-src]").forEach((img) => {
+      const nothing = img.getAttribute("data-nothing-src") || img.src;
+      if (!img.hasAttribute("data-nothing-src")) img.setAttribute("data-nothing-src", nothing);
+      img.src = s === "normal" ? img.getAttribute("data-normal-src") : img.getAttribute("data-nothing-src");
+    });
   };
 
   applyTheme(

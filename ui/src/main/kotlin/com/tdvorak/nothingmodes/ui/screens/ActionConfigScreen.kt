@@ -35,6 +35,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -130,7 +131,7 @@ fun ActionConfigScreen(
                             text = "BRIGHTNESS",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.xs))
                         Row(
@@ -142,7 +143,7 @@ fun ActionConfigScreen(
                                 text = "$percent%",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                                 modifier = Modifier.width(56.dp),
                             )
                             Slider(
@@ -495,7 +496,7 @@ fun ActionConfigScreen(
                                 text = "${a.progress}%",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                                 modifier = Modifier.width(56.dp),
                             )
                             Slider(
@@ -561,7 +562,7 @@ fun ActionConfigScreen(
                             text = actionDescription(action),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
 
@@ -570,7 +571,7 @@ fun ActionConfigScreen(
                             text = actionDescription(action),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 }
@@ -608,7 +609,7 @@ private fun BooleanRow(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         NothingToggle(
             checked = checked,

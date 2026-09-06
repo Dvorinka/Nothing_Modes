@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -183,4 +184,19 @@ object NothingTypography {
                     letterSpacing = 0.9.sp,
                 ),
         )
+}
+
+/**
+ * Style-aware font aliases. In CLASSIC mode both return null so callers
+ * fall back to the default sans; in NOTHING they return the real fonts.
+ * Use instead of [Doto]/[SpaceMono] at call sites.
+ */
+object NothingFonts {
+    @Composable
+    fun doto(): FontFamily? =
+        if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else Doto
+
+    @Composable
+    fun mono(): FontFamily? =
+        if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else SpaceMono
 }

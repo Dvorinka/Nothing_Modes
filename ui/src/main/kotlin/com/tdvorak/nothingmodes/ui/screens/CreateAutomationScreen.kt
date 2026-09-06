@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -163,7 +164,7 @@ fun CreateAutomationScreen(
                 text = if (isEditing) "Edit" else "New",
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontFamily = Doto,
+                fontFamily = NothingFonts.doto(),
                 fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(top = NothingSpacing.lg),
             )

@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -149,7 +150,7 @@ fun ExecutionLogScreen(
                             text = "%.0f%%".format(stats.successRate * 100),
                             style = MaterialTheme.typography.displayLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            fontFamily = Doto,
+                            fontFamily = NothingFonts.doto(),
                         )
                         NothingLabel(text = "Success Rate")
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -236,7 +237,7 @@ fun ExecutionLogScreen(
                                                 text = String.format("%02d", index + 1),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontFamily = SpaceMono,
+                                                fontFamily = NothingFonts.mono(),
                                             )
                                         }
                                     },
@@ -245,7 +246,7 @@ fun ExecutionLogScreen(
                                             text = dateFormat.format(Date(entry.timestamp)),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontFamily = SpaceMono,
+                                            fontFamily = NothingFonts.mono(),
                                         )
                                     },
                                 )

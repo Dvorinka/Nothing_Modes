@@ -32,6 +32,7 @@ import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -351,7 +352,7 @@ private fun CatalogListItem(
                 text = if (picked) "ADDED" else "",
                 style = MaterialTheme.typography.labelSmall,
                 color = NothingColors.accent,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         },
     )

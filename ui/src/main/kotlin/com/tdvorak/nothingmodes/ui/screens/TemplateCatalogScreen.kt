@@ -41,6 +41,7 @@ import com.tdvorak.nothingmodes.engine.runtime.ExportBundle
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
@@ -280,7 +281,7 @@ fun TemplateCatalogScreen(
                             text = "LOADING…",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 error != null ->
@@ -358,7 +359,7 @@ fun TemplateCatalogScreen(
                             text = err,
                             style = MaterialTheme.typography.labelSmall,
                             color = NothingColors.accent,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 }
@@ -402,7 +403,7 @@ private fun TemplateRow(
                         text = "by ${template.creator}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
                 template.tags.take(3).forEach { tag ->
@@ -447,7 +448,7 @@ private fun TemplateInstallSheet(
                         text = "by ${install.summary.creator}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
             }
@@ -480,7 +481,7 @@ private fun TemplateInstallSheet(
                     text = err,
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -493,7 +494,7 @@ private fun TemplateInstallSheet(
                     text = "• Requires $warning",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         }
@@ -504,7 +505,7 @@ private fun TemplateInstallSheet(
                 text = "Supported: ${install.satisfied.joinToString(", ")}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
 

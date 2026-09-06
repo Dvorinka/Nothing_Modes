@@ -63,6 +63,7 @@ import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -268,7 +269,7 @@ fun SettingsScreen(
                     text = "SETTINGS",
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = com.tdvorak.nothingmodes.ui.theme.Doto,
+                    fontFamily = NothingFonts.doto(),
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
@@ -440,7 +441,7 @@ fun SettingsScreen(
                                     text = shizukuStatusText,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = shizukuColor,
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                 )
                             }
                         }
@@ -554,7 +555,7 @@ fun SettingsScreen(
                                 text = resultText,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = resultColor,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                                 modifier = Modifier.padding(top = NothingSpacing.xs),
                             )
                         }
@@ -653,14 +654,14 @@ fun SettingsScreen(
                                 text = "Imported: ${result.imported}  Skipped: ${result.skipped}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                             result.errors.forEach { error ->
                                 Text(
                                     text = "[ ERROR: $error ]",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = NothingColors.accent,
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                 )
                             }
                             NothingGhostButton(
@@ -790,7 +791,7 @@ fun SettingsScreen(
                                     text = "OPEN",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = NothingColors.accent,
-                                    fontFamily = SpaceMono,
+                                    fontFamily = NothingFonts.mono(),
                                 )
                             },
                         )
@@ -860,7 +861,7 @@ private fun UpdateSection(
                 text = currentVersion.ifBlank { "unknown" },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
 
@@ -883,7 +884,7 @@ private fun UpdateSection(
                             text = "Up to date",
                             style = MaterialTheme.typography.bodyMedium,
                             color = NothingColors.accent,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                     NothingPillButton(
@@ -908,7 +909,7 @@ private fun UpdateSection(
                         text = "Checking GitHub...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
             }
@@ -928,13 +929,13 @@ private fun UpdateSection(
                                 text = "Update available",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                             Text(
                                 text = info.displayVersion,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                     }
@@ -943,7 +944,7 @@ private fun UpdateSection(
                             text = info.releaseNotes,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -982,13 +983,13 @@ private fun UpdateSection(
                             text = "Downloading ${updateInfo?.displayVersion ?: ""}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                         Text(
                             text = "${(downloadProgress * 100).toInt()}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 }
@@ -1013,7 +1014,7 @@ private fun UpdateSection(
                         text = "Ready to install",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
                 Row(
@@ -1045,7 +1046,7 @@ private fun UpdateSection(
                         text = "Install permission required to update.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
                 Row(
@@ -1123,14 +1124,14 @@ private fun RestrictedSettingsGuide(
                         text = "${i + 1}.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                     Spacer(modifier = Modifier.width(NothingSpacing.sm))
                     Text(
                         text = step,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
             }
@@ -1181,7 +1182,7 @@ private fun PermissionRow(
                     text = if (granted) "GRANTED" else "NOT GRANTED",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Text(
                     text =
@@ -1275,7 +1276,7 @@ private fun DeviceAdminSection(context: android.content.Context) {
                     text = if (isActive) "ACTIVE" else "NOT ACTIVE",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         },

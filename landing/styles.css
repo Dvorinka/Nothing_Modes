@@ -531,45 +531,201 @@ a { color: inherit; text-decoration: none; }
 :root[data-theme="light"] .skip { color: #fff; }
 :root[data-theme="light"] .shot { background: var(--surface-2); }
 
-/* ===== Style: normal (non-Nothing look) ===== */
+/* ===== Style: normal — premium SaaS look (dark + light) =====
+   One restrained accent (warm coral), warm-neutral dark canvas,
+   clean light. Geist Sans throughout, rounded cards, soft shadows.
+   No rainbow, no gradient text, no per-card hues, no colored pills. */
+
+/* --- Palette: normal dark (default) --- */
+:root[data-style="normal"] {
+  --red: #F2542D;                       /* accent: warm coral */
+  --bg: #14110E;                        /* warm near-black, not pure */
+  --surface: #1B1713;
+  --surface-2: #221D17;
+  --border: #2C2620;
+  --border-hi: #3D352C;
+  --text: #F2EDE6;                      /* warm off-white */
+  --text-2: rgba(242,237,230,0.62);
+  --text-3: rgba(242,237,230,0.38);
+  --dot: #2A241D;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.32);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,0.40);
+}
+
+/* --- Palette: normal light --- */
+:root[data-style="normal"][data-theme="light"] {
+  --red: #E04A26;                       /* deeper coral for contrast */
+  --bg: #FBFAF7;                        /* warm off-white */
+  --surface: #FFFFFF;
+  --surface-2: #F5F2EC;
+  --border: #E7E2D9;
+  --border-hi: #D0CABE;
+  --text: #1A1714;
+  --text-2: rgba(26,23,20,0.62);
+  --text-3: rgba(26,23,20,0.42);
+  --dot: #ECE7DE;
+  --shadow-sm: 0 1px 2px rgba(26,23,20,0.06);
+  --shadow-md: 0 8px 24px rgba(26,23,20,0.08);
+  --shadow-lg: 0 18px 48px rgba(26,23,20,0.12);
+}
+
+/* --- Backdrop: drop the dot-grid texture, use plain canvas --- */
+:root[data-style="normal"] .dotgrid { display: none; }
+:root[data-style="normal"] .nav { background: rgba(20,17,14,0.88); backdrop-filter: blur(10px); }
+:root[data-style="normal"][data-theme="light"] .nav { background: rgba(251,250,247,0.88); }
+
+/* --- Typography: Geist Sans everywhere, normal case --- */
 :root[data-style="normal"] .doto {
   font-family: "Geist Sans", system-ui, sans-serif;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
 }
-:root[data-style="normal"] .dotgrid { display: none; }
-:root[data-style="normal"] .mono, :root[data-style="normal"] .mono-label {
+:root[data-style="normal"] .wordmark {
   font-family: "Geist Sans", system-ui, sans-serif;
   font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.01em;
 }
-:root[data-style="normal"] .wordmark { font-family: "Geist Sans", system-ui, sans-serif; }
 :root[data-style="normal"] .nav nav a,
 :root[data-style="normal"] .btn {
   font-family: "Geist Sans", system-ui, sans-serif;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: none;
+  font-weight: 500;
 }
-:root[data-style="normal"] .shot,
-:root[data-style="normal"] .how-step,
+:root[data-style="normal"] .nav nav a { font-size: 13.5px; }
+
+/* Mono labels: muted text + hairline divider, not pills */
+:root[data-style="normal"] .mono,
+:root[data-style="normal"] .mono-label {
+  font-family: "Geist Sans", system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+:root[data-style="normal"] .mono-label .reddot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--red);
+}
+:root[data-style="normal"] .step-tag { color: var(--text-2); font-weight: 600; }
+:root[data-style="normal"] .card-index { color: var(--text-3); font-weight: 500; }
+
+/* --- Headlines: solid ink, no gradient text --- */
+:root[data-style="normal"] .hero h1,
+:root[data-style="normal"] .dl-head { color: var(--text); }
+:root[data-style="normal"] .h2 { font-weight: 600; letter-spacing: -0.02em; }
+:root[data-style="normal"] .h3 { font-weight: 600; }
+
+/* --- Buttons: solid accent primary, subtle outline secondary --- */
+:root[data-style="normal"] .btn {
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+:root[data-style="normal"] .btn-primary {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+:root[data-style="normal"] .btn-primary:hover {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+:root[data-style="normal"] .btn-outline {
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  background: transparent;
+}
+:root[data-style="normal"] .btn-outline:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--text-2);
+}
+
+/* --- Cards: rounded, soft shadow, single accent on hover --- */
+:root[data-style="normal"] .card-grid {
+  border-radius: 16px;
+  gap: 1px;
+  box-shadow: var(--shadow-md);
+}
 :root[data-style="normal"] .card,
-:root[data-style="normal"] .card-grid,
-:root[data-style="normal"] .matrix-wrap,
-:root[data-style="normal"] .board-wrap {
-  border-radius: 18px;
+:root[data-style="normal"] .card-stat {
+  border-radius: 0;                     /* flush inside the grid frame */
+  padding: 30px 28px;
+  transition: background var(--ease), box-shadow var(--ease);
 }
 :root[data-style="normal"] .card:hover,
 :root[data-style="normal"] .card-stat:hover {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  background: var(--surface);
+  box-shadow: inset 2px 0 0 var(--red);
+  transform: none;
+}
+
+/* --- How-it-works steps --- */
+:root[data-style="normal"] .how-step {
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--ease), border-color var(--ease);
+}
+:root[data-style="normal"] .how-step:hover {
   border-color: var(--border-hi);
+  box-shadow: var(--shadow-md);
+  transform: none;
 }
-:root[data-theme="light"][data-style="normal"] .card:hover,
-:root[data-theme="light"][data-style="normal"] .card-stat:hover {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+:root[data-style="normal"] .how-arrow { color: var(--red); font-size: 18px; }
+
+/* --- Screenshots: clean frame, no gradient border --- */
+:root[data-style="normal"] .shot {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--ease), transform var(--ease);
 }
-:root[data-style="normal"] .reddot { border-radius: 50%; }
-:root[data-style="normal"] .btn { border-radius: 12px; }
+:root[data-style="normal"] .shot:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+:root[data-style="normal"] .shot img { border-radius: 8px; }
+:root[data-style="normal"] .shot figcaption { color: var(--text-3); margin-top: 12px; }
+
+/* --- Matrix: dots tint to accent, kept subtle --- */
+:root[data-style="normal"] .matrix-wrap {
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+:root[data-style="normal"] .matrix .cell { background: var(--surface-2); border-radius: 2px; }
+:root[data-style="normal"] .matrix .cell.on,
+:root[data-style="normal"] .matrix .cell.hover { background: var(--text); }
+:root[data-style="normal"] .matrix .cell.red,
+:root[data-style="normal"] .matrix .cell.sig { background: var(--red); }
+:root[data-style="normal"] .matrix .cell.sig.sig-white { background: var(--text); }
+:root[data-style="normal"][data-theme="light"] .matrix .cell { background: var(--surface-2); }
+
+/* --- Compatibility board --- */
+:root[data-style="normal"] .board-wrap {
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+:root[data-style="normal"] .board tbody tr:hover { background: var(--surface); }
+:root[data-style="normal"] .cap-dot { border-radius: 3px; background: var(--surface-2); }
+:root[data-style="normal"] .cap-dot.on { background: var(--red); }
+
+/* --- Strip + footer: accent stays single-hue --- */
+:root[data-style="normal"] .strip-inner span { color: var(--red); }
+:root[data-style="normal"] .foot a:hover { color: var(--red); }
+:root[data-style="normal"] .ver span { color: var(--red); }
+
+/* --- Nav active marker + toggle accent --- */
+:root[data-style="normal"] .nav nav a:not(.gh)::after { background: var(--red); border-radius: 50%; }
+:root[data-style="normal"] .tgl[aria-pressed="true"] { border-color: var(--red); }
 
 /* ===== Nav toggles ===== */
 .nav-toggles { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; }
@@ -586,159 +742,3 @@ a { color: inherit; text-decoration: none; }
 }
 .tgl:hover { color: var(--text); border-color: var(--text-2); }
 .tgl[aria-pressed="true"] { color: var(--text); border-color: var(--red); }
-
-/* ===== Style: normal — a different design, not a desaturation =====
-   Deep navy canvas, indigo accent, multi-hue surfaces, rounded
-   cards, gradients. Nothing's monochrome discipline is gone. */
-:root[data-style="normal"] {
-  --red: #6366F1;                       /* accent: indigo */
-  --bg: #0B0E1A;
-  --surface: #131828;
-  --surface-2: #1A2138;
-  --border: #24304D;
-  --border-hi: #36466B;
-  --text: #EEF2FF;
-  --text-2: rgba(238,242,255,0.68);
-  --text-3: rgba(238,242,255,0.42);
-  --dot: #1E2740;
-  --c-indigo: #6366F1;
-  --c-violet: #A855F7;
-  --c-pink: #EC4899;
-  --c-amber: #F59E0B;
-  --c-teal: #14B8A6;
-  --c-sky: #38BDF8;
-}
-:root[data-style="normal"][data-theme="light"] {
-  --bg: #F6F8FF;
-  --surface: #FFFFFF;
-  --surface-2: #EEF2FF;
-  --border: #DDE4F5;
-  --border-hi: #C3CFEA;
-  --text: #0F172A;
-  --text-2: rgba(15,23,42,0.66);
-  --text-3: rgba(15,23,42,0.42);
-  --dot: #DCE3F7;
-}
-:root[data-style="normal"][data-theme="light"] .nav { background: rgba(246,248,255,0.92); }
-:root[data-style="normal"] .nav { background: rgba(11,14,26,0.92); }
-
-/* Headline: gradient ink instead of dot font */
-:root[data-style="normal"] .hero h1,
-:root[data-style="normal"] .dl-head {
-  background: linear-gradient(92deg, var(--c-sky) 0%, var(--c-indigo) 35%, var(--c-violet) 65%, var(--c-pink) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-:root[data-style="normal"] .hero .sub { color: var(--text-2); }
-
-/* Mono labels become tinted pills */
-:root[data-style="normal"] .mono-label,
-:root[data-style="normal"] .mono {
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
-:root[data-style="normal"] .mono-label {
-  background: rgba(99,102,241,0.14);
-  color: var(--c-indigo);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-:root[data-style="normal"] .reddot {
-  background: linear-gradient(135deg, var(--c-pink), var(--c-amber));
-  width: 8px; height: 8px;
-}
-
-/* Buttons: gradient primary, soft secondary */
-:root[data-style="normal"] .btn-primary {
-  background: linear-gradient(135deg, var(--c-indigo), var(--c-violet));
-  color: #fff;
-  border: none;
-}
-:root[data-style="normal"] .btn-primary:hover {
-  background: linear-gradient(135deg, var(--c-violet), var(--c-pink));
-  color: #fff;
-  border-color: transparent;
-}
-:root[data-style="normal"] .btn-outline { border-color: var(--border-hi); }
-:root[data-style="normal"] .btn-outline:hover {
-  background: rgba(99,102,241,0.15);
-  color: var(--text);
-}
-
-/* Cards: each gets its own hue band */
-:root[data-style="normal"] .card { border-radius: 20px; }
-:root[data-style="normal"] .card:nth-of-type(4n+1) { box-shadow: inset 0 3px 0 var(--c-indigo); }
-:root[data-style="normal"] .card:nth-of-type(4n+2) { box-shadow: inset 0 3px 0 var(--c-violet); }
-:root[data-style="normal"] .card:nth-of-type(4n+3) { box-shadow: inset 0 3px 0 var(--c-teal); }
-:root[data-style="normal"] .card:nth-of-type(4n)   { box-shadow: inset 0 3px 0 var(--c-amber); }
-:root[data-style="normal"] .card:hover,
-:root[data-style="normal"] .card-stat:hover {
-  transform: translateY(-3px);
-  box-shadow: inset 0 3px 0 var(--c-pink), 0 14px 40px rgba(99,102,241,0.25);
-}
-:root[data-style="normal"] .card,
-:root[data-style="normal"] .card-stat,
-:root[data-style="normal"] .how-step { transition: transform var(--ease), box-shadow var(--ease); }
-:root[data-style="normal"] .how-step:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(56,189,248,0.18);
-  border-color: var(--c-sky);
-}
-:root[data-style="normal"] .how-step:nth-of-type(2):hover { border-color: var(--c-violet); box-shadow: 0 12px 32px rgba(168,85,247,0.18); }
-:root[data-style="normal"] .how-step:nth-of-type(3):hover { border-color: var(--c-teal); box-shadow: 0 12px 32px rgba(20,184,166,0.18); }
-:root[data-style="normal"] .how-arrow {
-  background: linear-gradient(135deg, var(--c-sky), var(--c-pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Screenshots: colorful gradient frames, playful tilt */
-:root[data-style="normal"] .shot {
-  border: none;
-  border-radius: 20px;
-  padding: 8px;
-  background: linear-gradient(150deg, var(--c-indigo), var(--c-pink));
-  box-shadow: 0 16px 44px rgba(99,102,241,0.28);
-}
-:root[data-style="normal"] .shot-2 { background: linear-gradient(150deg, var(--c-teal), var(--c-sky)); }
-:root[data-style="normal"] .shot-3 { background: linear-gradient(150deg, var(--c-amber), var(--c-pink)); }
-:root[data-style="normal"] .shot-4 { background: linear-gradient(150deg, var(--c-violet), var(--c-indigo)); }
-:root[data-style="normal"] .shot:hover { transform: translateY(-4px); }
-:root[data-style="normal"] .shot figcaption { color: var(--text-2); }
-
-/* Strip separators get colour */
-:root[data-style="normal"] .strip-inner span:nth-of-type(4n+1) { color: var(--c-indigo); }
-:root[data-style="normal"] .strip-inner span:nth-of-type(4n+2) { color: var(--c-pink); }
-:root[data-style="normal"] .strip-inner span:nth-of-type(4n+3) { color: var(--c-teal); }
-:root[data-style="normal"] .strip-inner span:nth-of-type(4n)   { color: var(--c-amber); }
-
-/* Matrix: dots become coloured lights */
-:root[data-style="normal"] .matrix .cell.on,
-:root[data-style="normal"] .matrix .cell.hover { background: var(--c-indigo); }
-:root[data-style="normal"] .matrix .cell.sig.sig-red { background: var(--c-pink); }
-:root[data-style="normal"] .matrix .cell.sig.sig-white { background: var(--c-amber); }
-:root[data-style="normal"] .matrix-wrap {
-  border-radius: 24px;
-  border-color: var(--border-hi);
-  box-shadow: 0 18px 50px rgba(99,102,241,0.22);
-}
-
-/* Capability board: green for supported, rose for missing */
-:root[data-style="normal"] .cap-dot.on { background: var(--c-teal); }
-:root[data-style="normal"] .cap-dot:not(.on) { background: var(--c-pink); }
-:root[data-style="normal"] .board-wrap { border-radius: 20px; }
-
-/* Wordmark + nav */
-:root[data-style="normal"] .wordmark {
-  background: linear-gradient(90deg, var(--c-sky), var(--c-pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-:root[data-style="normal"] .nav nav a:not(.gh)::after { background: var(--c-pink); border-radius: 50%; }
-:root[data-style="normal"] .tgl[aria-pressed="true"] { border-color: var(--c-indigo); }
-
-/* Footer accent */
-:root[data-style="normal"] .foot a:hover { color: var(--c-sky); }

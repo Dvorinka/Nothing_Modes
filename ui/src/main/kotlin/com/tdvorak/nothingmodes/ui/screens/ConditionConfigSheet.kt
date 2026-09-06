@@ -32,6 +32,7 @@ import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -256,7 +257,7 @@ fun ConditionConfigSheet(
                         text = conditionDescription(current),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                 }
             }
@@ -498,7 +499,7 @@ internal fun RadioOption(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
     }
 }
@@ -521,7 +522,7 @@ private fun BooleanConditionContent(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         NothingToggle(
             checked = checked,
@@ -570,7 +571,7 @@ private fun AlarmRingingSheetContent(
         text = "Match alarm title (optional)",
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontFamily = SpaceMono,
+        fontFamily = NothingFonts.mono(),
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -600,7 +601,7 @@ private fun VolumeLevelSheetContent(
             text = "Stream",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         VolumeStream.entries.forEach { stream ->
@@ -615,7 +616,7 @@ private fun VolumeLevelSheetContent(
             text = "Operator",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         CmpOp.entries.forEach { op ->
@@ -645,7 +646,7 @@ private fun ScreenOffForSheetContent(
             text = "Operator",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         CmpOp.entries.forEach { op ->
@@ -689,7 +690,7 @@ private fun BatteryTempSheetContent(
             text = "Operator",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         CmpOp.entries.forEach { op ->
@@ -719,7 +720,7 @@ private fun ThermalLevelSheetContent(
             text = "Operator",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         CmpOp.entries.forEach { op ->

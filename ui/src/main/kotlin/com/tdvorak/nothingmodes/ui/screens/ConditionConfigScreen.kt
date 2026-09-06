@@ -30,6 +30,7 @@ import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -117,7 +118,7 @@ fun ConditionConfigScreen(
                                 text = "Is charging",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                             NothingToggle(
                                 checked = c.isCharging,
@@ -278,7 +279,7 @@ fun ConditionConfigScreen(
                             text = "Match alarm title (optional)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -470,7 +471,7 @@ fun ConditionConfigScreen(
                             text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -508,7 +509,7 @@ fun ConditionConfigScreen(
                             text = conditionDescription(condition),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                     }
                 }
@@ -548,7 +549,7 @@ private fun BooleanRow(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
         NothingToggle(
             checked = checked,

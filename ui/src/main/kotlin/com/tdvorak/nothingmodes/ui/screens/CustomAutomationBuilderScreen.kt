@@ -63,6 +63,7 @@ import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -552,13 +553,13 @@ fun CustomAutomationBuilderScreen(
                     text = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontFamily = Doto,
+                    fontFamily = NothingFonts.doto(),
                 )
                 Text(
                     text = "WHEN · ONLY IF · THEN",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     letterSpacing = 1.0.sp,
                     modifier = Modifier.padding(top = NothingSpacing.xxs),
                 )
@@ -593,7 +594,7 @@ fun CustomAutomationBuilderScreen(
                         text = "TRIGGER — the event that starts this routine.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
                     )
                     NothingLabel(
@@ -612,14 +613,14 @@ fun CustomAutomationBuilderScreen(
                         text = "CONDITIONS — optional checks that must be true after the trigger.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
                     )
                     Text(
                         text = "ONLY IF (ALL MUST BE TRUE)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         modifier = Modifier.padding(bottom = NothingSpacing.sm),
                     )
                     NothingDivider()
@@ -628,7 +629,7 @@ fun CustomAutomationBuilderScreen(
                             "ALWAYS — RUNS WHENEVER THE TRIGGER FIRES",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                     } else {
@@ -674,7 +675,7 @@ fun CustomAutomationBuilderScreen(
                             "0 ACTIONS",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                     } else {
@@ -682,7 +683,7 @@ fun CustomAutomationBuilderScreen(
                             text = "${state.actions.size} ACTION${if (state.actions.size > 1) "S" else ""}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                         ReorderableColumn(
@@ -823,7 +824,7 @@ fun CustomAutomationBuilderScreen(
                                 text = state.priority.toString().padStart(2, '0'),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = SpaceMono,
+                                fontFamily = NothingFonts.mono(),
                             )
                         }
                         Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -907,7 +908,7 @@ fun CustomAutomationBuilderScreen(
                             text = "Leave without saving?",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = SpaceMono,
+                            fontFamily = NothingFonts.mono(),
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
                         Text(
@@ -982,7 +983,7 @@ private fun AddRowButton(
                 text = "+",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
         Spacer(modifier = Modifier.width(NothingSpacing.md))
@@ -990,7 +991,7 @@ private fun AddRowButton(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = NothingColors.accent,
-            fontFamily = SpaceMono,
+            fontFamily = NothingFonts.mono(),
         )
     }
 }
@@ -1013,7 +1014,7 @@ private fun TriggerEditor(
                     text = "T",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                 )
             }
         },
@@ -1054,7 +1055,7 @@ private fun ReorderableListItemScope.ActionRow(
                     text = "DEL",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
-                    fontFamily = SpaceMono,
+                    fontFamily = NothingFonts.mono(),
                     modifier =
                         Modifier
                             .clickable(onClick = onRemove)
@@ -1098,7 +1099,7 @@ private fun ReorderableListItemScope.ConditionRow(
                 text = "DEL",
                 style = MaterialTheme.typography.labelSmall,
                 color = NothingColors.accent,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
                 modifier =
                     Modifier
                         .clickable(onClick = onRemove)
@@ -1145,13 +1146,13 @@ private fun <T> NothingPickerDialog(
                         text = title.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                     )
                     Text(
                         text = "CLOSE",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = SpaceMono,
+                        fontFamily = NothingFonts.mono(),
                         modifier = Modifier.clickable(onClick = onDismiss),
                     )
                 }
@@ -1173,7 +1174,7 @@ private fun <T> NothingPickerDialog(
                                         text = String.format("%02d", index + 1),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontFamily = SpaceMono,
+                                        fontFamily = NothingFonts.mono(),
                                     )
                                 }
                             },
@@ -1231,13 +1232,13 @@ private fun PrioritySegmentedBar(
                 text = "LOW",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
             Text(
                 text = "HIGH",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = SpaceMono,
+                fontFamily = NothingFonts.mono(),
             )
         }
     }
