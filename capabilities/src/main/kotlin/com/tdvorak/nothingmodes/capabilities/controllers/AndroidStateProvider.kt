@@ -96,7 +96,11 @@ class AndroidStateProvider(
 
         // Thermal status (API 29+): 0 none .. 6 shutdown.
         values["thermal_status"] =
-            runCatching { powerManager.currentThermalStatus }.getOrDefault(0).toString()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                powerManager.currentThermalStatus.toString()
+            } else {
+                "0"
+            }
 
         // Media playback and ringer mode come from AudioManager.
         val audioManager = context.getSystemService(AudioManager::class.java)
