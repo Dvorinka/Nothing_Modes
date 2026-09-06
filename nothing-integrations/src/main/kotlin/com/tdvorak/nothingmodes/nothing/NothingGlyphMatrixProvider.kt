@@ -12,6 +12,7 @@ import com.nothing.ketchum.GlyphMatrixFrameWithMarquee
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphMatrixObject
 import com.nothing.ketchum.GlyphMatrixUtils
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,6 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Wraps the Nothing Glyph Matrix SDK for matrix devices (Phone 3: 25x25, Phone 4a Pro: 13x13).
@@ -36,6 +38,8 @@ class NothingGlyphMatrixProvider(
 ) {
     private var manager: GlyphMatrixManager? = null
     private var connected = false
+    private var initCalled = false
+    private val connectWaiters = mutableListOf<CompletableDeferred<Unit>>()
     private val detector = NothingDeviceDetector(context)
     private var marquee: GlyphMatrixFrameWithMarquee? = null
     private var marqueeHandler: Handler? = null
@@ -47,6 +51,7 @@ class NothingGlyphMatrixProvider(
     private var countdownJob: Job? = null
     private var designJob: Job? = null
     private var musicJob: Job? = null
+    private var batteryJob: Job? = null
 
     private val toysBridge by lazy { GlyphToysBridge(context) }
     private val audioAnalyzer by lazy { AudioAnalyzer(context) }
@@ -62,6 +67,11 @@ class NothingGlyphMatrixProvider(
         onDisconnected: () -> Unit = {},
     ) {
         if (!isAvailable()) return
+        if (initCalled && manager != null) {
+            if (connected) onConnected()
+            return
+        }
+        initCalled = true
         try {
             manager = GlyphMatrixManager.getInstance(context)
             manager?.init(
@@ -80,16 +90,44 @@ class NothingGlyphMatrixProvider(
                             Log.e(TAG, "register failed", e)
                         }
                         onConnected()
+                        connectWaiters.toList().forEach { it.complete(Unit) }
+                        connectWaiters.clear()
                     }
 
                     override fun onServiceDisconnected(componentName: android.content.ComponentName) {
                         connected = false
+                        manager = null
+                        initCalled = false
                         onDisconnected()
                     }
                 },
             )
         } catch (e: Exception) {
             Log.e(TAG, "init failed", e)
+            initCalled = false
+            manager = null
+        }
+    }
+
+    /**
+     * Initialise the service if it isn't connected and wait up to [timeoutMs]
+     * for the callback. Returns whether the matrix is connected afterwards.
+     */
+    suspend fun ensureConnected(timeoutMs: Long = 2000): Boolean {
+        if (connected) return true
+        if (!isAvailable()) return false
+        if (!initCalled || manager == null) {
+            init()
+        }
+        if (connected) return true
+
+        val waiter = CompletableDeferred<Unit>()
+        connectWaiters.add(waiter)
+        return try {
+            withTimeoutOrNull(timeoutMs) { waiter.await() }
+            connected
+        } finally {
+            connectWaiters.remove(waiter)
         }
     }
 
@@ -98,6 +136,7 @@ class NothingGlyphMatrixProvider(
         stopCountdown()
         stopDesign()
         stopMusicVisualizer()
+        stopBattery()
         try {
             manager?.unInit()
         } catch (e: Exception) {
@@ -105,6 +144,7 @@ class NothingGlyphMatrixProvider(
         }
         connected = false
         manager = null
+        initCalled = false
     }
 
     // ── Raw color frame ──
@@ -164,6 +204,7 @@ class NothingGlyphMatrixProvider(
             stopCountdown()
             stopDesign()
             stopMusicVisualizer()
+            stopBattery()
             manager?.turnOff()
             // Push a real black frame — turnOff() alone leaves the last
             // frame on the app layer — then release the layer entirely.
@@ -189,6 +230,7 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
         return try {
             // (0,0) is the grid's top-left corner — outside the round matrix.
             // NDot glyphs are ~5 dots wide with 1-dot spacing, ~7 dots tall.
@@ -227,6 +269,7 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
         return try {
             val obj =
                 GlyphMatrixObject
@@ -257,6 +300,7 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
         return try {
             val builder = GlyphMatrixFrame.Builder()
             if (low != null) builder.addLow(low)
@@ -354,6 +398,11 @@ class NothingGlyphMatrixProvider(
         percent: Int,
         color: Int = Color.WHITE,
     ): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
+        stopActiveJobs()
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
         val clamped = percent.coerceIn(0, 100)
@@ -382,49 +431,83 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
-        return try {
-            // Signature: (size, brightness, percent, reverse, icon) — arg2 is
-            // the 0..100 value; passing brightness there renders a full ring.
-            val colors =
-                GlyphMatrixUtils.generateMatrixProgress(
-                    size,
-                    brightness,
-                    percent.coerceIn(0, 100),
-                    reverse,
-                    icon,
-                )
-            if (label.isNullOrEmpty()) {
-                manager?.setAppMatrixFrame(colors)
-            } else {
-                // Baked 5x7 pixel digits — the SDK's NDot table renders a
-                // closed-loop "9" and only ~5px-tall glyphs. Contrast merge:
-                // dark cutout where the arc is lit, lit where it is off.
-                val mask = IntArray(size * size)
-                if (!GlyphDigitFont.supports(label)) {
-                    manager?.setAppMatrixFrame(colors)
+        val frame = generateProgressArcFrame(percent, brightness, reverse, icon, label)
+        return setFrame(frame)
+    }
+
+    private fun generateProgressArcFrame(
+        percent: Int,
+        brightness: Int = 4095,
+        reverse: Boolean = false,
+        icon: Array<IntArray>? = null,
+        label: String? = null,
+    ): IntArray {
+        val size = matrixSize()
+        val colors =
+            GlyphMatrixUtils.generateMatrixProgress(
+                size,
+                brightness,
+                percent.coerceIn(0, 100),
+                reverse,
+                icon,
+            )
+        if (label.isNullOrEmpty() || !GlyphDigitFont.supports(label)) {
+            return colors
+        }
+
+        val mask = IntArray(size * size)
+        val w = GlyphDigitFont.measure(label)
+        val lx = ((size - w) / 2).coerceAtLeast(0)
+        val ly = ((size - GlyphDigitFont.GLYPH_H) / 2).coerceAtLeast(0)
+        GlyphDigitFont.draw(label, mask, size, lx, ly, 1)
+        val merged =
+            IntArray(colors.size) { i ->
+                if (mask[i] > 0) {
+                    if (colors[i] > 0) 0 else brightness
                 } else {
-                    val w = GlyphDigitFont.measure(label)
-                    val lx = ((size - w) / 2).coerceAtLeast(0)
-                    val ly = ((size - GlyphDigitFont.GLYPH_H) / 2).coerceAtLeast(0)
-                    GlyphDigitFont.draw(label, mask, size, lx, ly, 1)
-                    val merged =
-                        IntArray(colors.size) { i ->
-                            if (mask[i] > 0) {
-                                if (colors[i] > 0) 0 else brightness
-                            } else {
-                                colors[i]
-                            }
-                        }
-                    if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("arc+label", merged, size)
-                    manager?.setAppMatrixFrame(merged)
+                    colors[i]
                 }
             }
-            GlyphResult.Success
-        } catch (e: Exception) {
-            GlyphResult.Failure(e.message ?: "displayProgressArc failed")
+        if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("arc+label", merged, size)
+        return merged
+    }
+
+    /**
+     * Battery level with a charging animation. When [charging] is true the
+     * display alternates between the percentage arc and a lightning bolt.
+     */
+    fun displayBattery(
+        percent: Int,
+        charging: Boolean,
+    ): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
+
+        val size = matrixSize()
+        if (size == 0) return GlyphResult.Unsupported
+        val frame = generateProgressArcFrame(percent, label = percent.coerceIn(0, 100).toString())
+        if (!charging) return setFrame(frame)
+
+        val zapFrame = GlyphIconLibrary.frameFor("zap")
+            ?: IntArray(size * size) { 0 }
+
+        batteryJob =
+            countdownScope.launch {
+                while (isActive) {
+                    if (setFrame(frame) !is GlyphResult.Success) break
+                    delay(700)
+                    if (!isActive) break
+                    if (setFrame(zapFrame) !is GlyphResult.Success) break
+                    delay(400)
+                }
+            }
+        return GlyphResult.Success
     }
 
     /** ASCII-art dump of a frame for visual debugging without eyes on the device. */
@@ -454,6 +537,11 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
+        return renderNumber(number)
+    }
+
+    private fun renderNumber(number: Int): GlyphResult {
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
         val text = number.coerceIn(0, 99).toString()
@@ -479,7 +567,7 @@ class NothingGlyphMatrixProvider(
      * glyph replaces them; static designs remain lit.
      */
     fun displayIcon(name: String): GlyphResult {
-        stopMusicVisualizer()
+        stopActiveJobs()
         CustomGlyphStore(context).design(name)?.let { return displayDesign(it, loop = true) }
         presets.design(name)?.let { return displayDesign(it, loop = true) }
         val frame = GlyphIconLibrary.frameFor(name)
@@ -502,15 +590,13 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
+        stopActiveJobs()
         val size = matrixSize()
         val target =
             if (design.gridSize == size) design else GlyphFrameCodec.rescaleDesign(design, size)
         if (target.frames.size == 1) {
-            stopMusicVisualizer()
             return setFrame(target.frames[0].pixels)
         }
-        stopMusicVisualizer()
-        stopDesign()
         designJob =
             countdownScope.launch {
                 while (isActive) {
@@ -545,8 +631,7 @@ class NothingGlyphMatrixProvider(
             return GlyphResult.Failure("matrix owned by another toy")
         }
 
-        stopMusicVisualizer()
-        stopDesign()
+        stopActiveJobs()
 
         val ok = audioAnalyzer.init()
         if (!ok) {
@@ -585,6 +670,20 @@ class NothingGlyphMatrixProvider(
         audioAnalyzer.release()
     }
 
+    /** Stop the battery charging animation. Safe to call when none is running. */
+    fun stopBattery() {
+        batteryJob?.cancel()
+        batteryJob = null
+    }
+
+    /** Stop any active timed/repeating matrix job before replacing the display. */
+    private fun stopActiveJobs() {
+        stopCountdown()
+        stopDesign()
+        stopMusicVisualizer()
+        stopBattery()
+    }
+
     /**
      * Countdown timer: render the remaining seconds on the matrix, ticking
      * once per second. Runs on a private [CoroutineScope] cancelled by
@@ -601,11 +700,11 @@ class NothingGlyphMatrixProvider(
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
         }
-        stopCountdown()
+        stopActiveJobs()
         val total = seconds.coerceIn(1, 599)
         // Render the initial value immediately so the user sees feedback
         // before the first 1-second tick elapses.
-        val initial = displayNumber(total)
+        val initial = renderNumber(total)
         if (initial !is GlyphResult.Success) return initial
         countdownJob =
             countdownScope.launch {
@@ -614,7 +713,7 @@ class NothingGlyphMatrixProvider(
                     delay(1000)
                     if (!isActive) break
                     remaining = (remaining - 1).coerceAtLeast(0)
-                    val r = displayNumber(remaining)
+                    val r = renderNumber(remaining)
                     if (r !is GlyphResult.Success) break
                     onTick?.invoke(remaining)
                 }

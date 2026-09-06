@@ -5,6 +5,8 @@ import android.util.Log
 import com.nothing.ketchum.Glyph
 import com.nothing.ketchum.GlyphException
 import com.nothing.ketchum.GlyphManager
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Wraps the Nothing Glyph SDK for light stripe devices (Phone 1/2/2a/3a/4a/4b).
@@ -18,16 +20,25 @@ class NothingGlyphProvider(
     private var manager: GlyphManager? = null
     private var connected = false
     private var sessionOpen = false
+    private var initCalled = false
+    private val connectWaiters = mutableListOf<CompletableDeferred<Unit>>()
     private val detector = NothingDeviceDetector(context)
     private var deviceChannels: DeviceChannels? = null
 
     fun isAvailable(): Boolean = detector.detectGlyphHardware().isLightStripe
+
+    fun isConnected(): Boolean = connected
 
     fun init(
         onConnected: () -> Unit = {},
         onDisconnected: () -> Unit = {},
     ) {
         if (!isAvailable()) return
+        if (initCalled && manager != null) {
+            if (connected) onConnected()
+            return
+        }
+        initCalled = true
         try {
             manager = GlyphManager.getInstance(context)
             manager?.init(
@@ -46,22 +57,54 @@ class NothingGlyphProvider(
                             connected = true
                             deviceChannels = model?.let { GlyphChannels.forDevice(it) }
                             onConnected()
+                            connectWaiters.toList().forEach { it.complete(Unit) }
+                            connectWaiters.clear()
                         } catch (e: GlyphException) {
                             Log.e(TAG, "register/session failed", e)
+                            connected = false
+                            sessionOpen = false
                         } catch (e: Exception) {
                             Log.e(TAG, "register failed", e)
+                            connected = false
+                            sessionOpen = false
                         }
                     }
 
                     override fun onServiceDisconnected(componentName: android.content.ComponentName) {
                         connected = false
                         sessionOpen = false
+                        manager = null
+                        initCalled = false
                         onDisconnected()
                     }
                 },
             )
         } catch (e: Exception) {
             Log.e(TAG, "init failed", e)
+            initCalled = false
+            manager = null
+        }
+    }
+
+    /**
+     * Initialise the service if it isn't connected and wait up to [timeoutMs]
+     * for the callback. Returns whether the stripe is connected afterwards.
+     */
+    suspend fun ensureConnected(timeoutMs: Long = 2000): Boolean {
+        if (connected) return true
+        if (!isAvailable()) return false
+        if (!initCalled || manager == null) {
+            init()
+        }
+        if (connected) return true
+
+        val waiter = CompletableDeferred<Unit>()
+        connectWaiters.add(waiter)
+        return try {
+            withTimeoutOrNull(timeoutMs) { waiter.await() }
+            connected
+        } finally {
+            connectWaiters.remove(waiter)
         }
     }
 
@@ -78,6 +121,7 @@ class NothingGlyphProvider(
         connected = false
         sessionOpen = false
         manager = null
+        initCalled = false
     }
 
     fun toggle(channels: List<Int>? = null): GlyphResult {

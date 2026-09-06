@@ -3,6 +3,8 @@ package com.tdvorak.nothingmodes
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.util.Log
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -124,6 +126,10 @@ class DebugActionReceiver : BroadcastReceiver() {
             toyControl(context, intent, intent.getStringExtra("type") == "toy_play")
             return
         }
+        if (intent.getStringExtra("type") == "glyph_battery") {
+            glyphBattery(context, intent)
+            return
+        }
         val executor =
             EntryPointAccessors
                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
@@ -202,17 +208,6 @@ class DebugActionReceiver : BroadcastReceiver() {
                     x = intent.getIntExtra("x", -1),
                     y = intent.getIntExtra("y", -1),
                 )
-            "glyph_battery" -> {
-                val explicit = intent.getIntExtra("percent", -1)
-                val pct =
-                    if (explicit in 0..100) {
-                        explicit
-                    } else {
-                        val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
-                        bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
-                    }
-                Action.GlyphProgress(pct.coerceIn(0, 100))
-            }
             "glyph_scrolling_text" ->
                 Action.GlyphScrollingText(
                     text.ifBlank { "NOTHING MODES" },
@@ -376,6 +371,48 @@ class DebugActionReceiver : BroadcastReceiver() {
                         Log.e(TAG, "toy_preview failed", e)
                     }
                 }
+        }
+
+        /** Direct matrix battery probe: reads sticky BATTERY_CHANGED and animates charging. */
+        private fun glyphBattery(
+            context: Context,
+            intent: Intent,
+        ) {
+            val explicit = intent.getIntExtra("percent", -1)
+            val pct: Int
+            val charging: Boolean
+            if (explicit in 0..100) {
+                pct = explicit
+                charging = intent.getBooleanExtra("charging", false)
+            } else {
+                val sticky = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                val level = sticky?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+                val scale = sticky?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+                val status = sticky?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+                pct = if (level > 0 && scale > 0) (level * 100 / scale).coerceIn(0, 100) else 0
+                charging =
+                    status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                        status == BatteryManager.BATTERY_STATUS_FULL
+            }
+
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                try {
+                    val provider =
+                        EntryPointAccessors
+                            .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
+                            .matrixProvider()
+                    if (!provider.isConnected()) {
+                        if (!provider.ensureConnected(4000)) {
+                            Log.w(TAG, "glyph_battery: matrix not connected")
+                            return@launch
+                        }
+                    }
+                    val r = provider.displayBattery(pct, charging)
+                    Log.i(TAG, "glyph_battery -> pct=$pct charging=$charging result=$r")
+                } catch (e: Exception) {
+                    Log.e(TAG, "glyph_battery failed", e)
+                }
+            }
         }
 
         private fun sendToyMsg(messenger: android.os.Messenger, event: String) {

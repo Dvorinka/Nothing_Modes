@@ -31,6 +31,8 @@ import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 
 /**
@@ -59,11 +61,14 @@ class RealActionExecutor(
         // Glyph pre-flight: when the lights can't be driven (no hardware, or
         // another toy owns them), fail honestly and remind the user once —
         // never pretend a glyph action landed.
-        if (action.isGlyphAction) {
+        if (action.isGlyphAction || action is Action.GlyphTurnOff) {
             val problem = GlyphPreflight.check(this.context)
             if (problem != null) {
                 GlyphPreflight.notifyIfNeeded(this.context, problem)
                 return ActionResult.Failure("glyph: ${GlyphPreflight.message(problem)}")
+            }
+            if (!ensureForAction(action)) {
+                return ActionResult.Failure("glyph service not connected")
             }
         }
         return dispatch(action, context)
@@ -372,11 +377,11 @@ class RealActionExecutor(
         progress: Int,
         reverse: Boolean,
     ): ActionResult {
-        val provider = glyphProvider?.takeIf { it.isAvailable() }
+        val provider = glyphProvider?.takeIf { it.isConnected() }
         if (provider == null) {
             // Matrix-only devices (e.g. Phone 3): use the circular arc —
             // the same renderer Nothing's own progress toys use.
-            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
+            val matrix = glyphMatrixProvider?.takeIf { it.isConnected() }
                 ?: return ActionResult.Unsupported
             return try {
                 glyphResultToActionResult(matrix.displayProgressArc(progress, label = progress.toString()))
@@ -1022,6 +1027,42 @@ class RealActionExecutor(
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "clearNotifications failed")
+        }
+
+    /**
+     * Connect the relevant Glyph provider before a glyph action runs. The DI
+     * singleton may have been un-inited by another component or by the system.
+     */
+    private suspend fun ensureForAction(action: Action): Boolean =
+        when (action) {
+            is Action.SetGlyph,
+            is Action.GlyphAnimate,
+            -> ensureStripe()
+            is Action.GlyphProgress -> ensureStripeOrMatrix()
+            is Action.SetGlyphMatrix,
+            is Action.GlyphText,
+            is Action.GlyphScrollingText,
+            is Action.GlyphPreset,
+            is Action.GlyphIcon,
+            is Action.GlyphNumber,
+            is Action.GlyphCountdown,
+            is Action.GlyphMusic,
+            -> ensureMatrix()
+            is Action.GlyphTurnOff -> ensureStripeOrMatrix()
+            else -> true
+        }
+
+    private suspend fun ensureStripe(): Boolean =
+        glyphProvider?.ensureConnected() ?: false
+
+    private suspend fun ensureMatrix(): Boolean =
+        glyphMatrixProvider?.ensureConnected() ?: false
+
+    private suspend fun ensureStripeOrMatrix(): Boolean =
+        coroutineScope {
+            val s = async { glyphProvider?.ensureConnected() ?: false }
+            val m = async { glyphMatrixProvider?.ensureConnected() ?: false }
+            s.await() || m.await()
         }
 
     companion object {
