@@ -44,7 +44,7 @@
       starCells.push([x, y]);
     };
     for (let y = 2; y <= 6; y++) star(19, y);        // vertical
-    for (let x = 16; x <= 22; x++) star(x, 4);       // horizontal
+    for (let x = 17; x <= 21; x++) star(x, 4);       // horizontal
     [[18, 3], [20, 3], [18, 5], [20, 5]].forEach(([x, y]) => star(x, y));
 
     const frag = document.createDocumentFragment();

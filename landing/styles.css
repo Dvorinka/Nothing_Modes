@@ -286,11 +286,10 @@ a { color: inherit; text-decoration: none; }
 .card {
   background: var(--bg);
   padding: 32px 28px;
-  transition: background var(--ease), border-color var(--ease);
+  transition: background var(--ease), box-shadow var(--ease);
   min-height: 220px;
-  border-left: 2px solid transparent;
 }
-.card:hover { background: var(--surface); border-left-color: var(--red); }
+.card:hover { background: var(--surface); box-shadow: inset 2px 0 0 var(--red); }
 .card-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
@@ -303,11 +302,10 @@ a { color: inherit; text-decoration: none; }
   background: var(--bg);
   padding: 32px 28px;
   min-height: 220px;
-  border-left: 2px solid transparent;
-  transition: background var(--ease), border-color var(--ease);
+  transition: background var(--ease), box-shadow var(--ease);
   display: flex; flex-direction: column; justify-content: center;
 }
-.card-stat:hover { background: var(--surface); border-left-color: var(--red); }
+.card-stat:hover { background: var(--surface); box-shadow: inset 2px 0 0 var(--red); }
 .card-stat .stat-num {
   font-family: "Geist Mono", monospace;
   font-weight: 700;
