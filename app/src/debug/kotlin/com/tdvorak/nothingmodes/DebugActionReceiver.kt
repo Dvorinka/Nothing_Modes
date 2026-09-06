@@ -115,7 +115,10 @@ class DebugActionReceiver : BroadcastReceiver() {
     }
 
     private fun parse(intent: Intent): Action? {
-        val on = intent.getBooleanExtra("on", true)
+        // `am -e on false` delivers a String — accept both bool and string extras.
+        val on =
+            intent.getStringExtra("on")?.toBooleanStrictOrNull()
+                ?: intent.getBooleanExtra("on", true)
         val level = intent.getIntExtra("level", 128)
         val duration = intent.getIntExtra("duration", 300)
         val mode = intent.getStringExtra("mode").orEmpty()

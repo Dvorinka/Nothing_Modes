@@ -247,10 +247,20 @@ class RealActionExecutor(
         on: Boolean,
         channels: List<Int>?,
     ): ActionResult {
-        val provider =
-            glyphProvider
+        val provider = glyphProvider?.takeIf { it.isAvailable() }
+        if (provider == null) {
+            // No light stripe (matrix-only devices) — a full frame stands in
+            // for "all channels on".
+            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
                 ?: return ActionResult.Unsupported
-        if (!provider.isAvailable()) return ActionResult.Unsupported
+            return try {
+                glyphResultToActionResult(
+                    if (on) matrix.displayPercentFill(100) else matrix.turnOff(),
+                )
+            } catch (e: Exception) {
+                ActionResult.Failure(e.message ?: "glyph failed")
+            }
+        }
         return try {
             val result = if (on) provider.toggle(channels) else provider.turnOff()
             glyphResultToActionResult(result)
@@ -301,10 +311,25 @@ class RealActionExecutor(
     // --- Advanced Glyph actions ---
 
     private suspend fun glyphAnimate(action: Action.GlyphAnimate): ActionResult {
-        val provider =
-            glyphProvider
+        val provider = glyphProvider?.takeIf { it.isAvailable() }
+        if (provider == null) {
+            // Matrix-only devices: degrade the zone animation to a full-frame
+            // blink — on/off per cycle at roughly the requested period.
+            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
                 ?: return ActionResult.Unsupported
-        if (!provider.isAvailable()) return ActionResult.Unsupported
+            return try {
+                val half = (action.periodMs / 2L).coerceAtLeast(200L)
+                repeat(action.cycles.coerceIn(1, 10)) {
+                    glyphResultToActionResult(matrix.displayPercentFill(100))
+                    delay(half)
+                    glyphResultToActionResult(matrix.turnOff())
+                    delay(half)
+                }
+                ActionResult.Success
+            } catch (e: Exception) {
+                ActionResult.Failure(e.message ?: "glyph animate failed")
+            }
+        }
         return try {
             val zone = action.zone
             val result =
