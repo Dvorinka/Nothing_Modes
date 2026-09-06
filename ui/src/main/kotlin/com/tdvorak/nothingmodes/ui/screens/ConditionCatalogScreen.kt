@@ -170,6 +170,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.Alarm,
                     condition = Condition.AlarmRinging(),
                 ),
+                ConditionItem(
+                    label = "Screen time",
+                    category = "Device status",
+                    icon = Icons.Outlined.Timer,
+                    condition = Condition.ScreenTime(CmpOp.GT, 120),
+                ),
             )
         }
 

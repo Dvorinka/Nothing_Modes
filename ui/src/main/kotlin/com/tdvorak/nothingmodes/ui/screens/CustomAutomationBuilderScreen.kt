@@ -1300,6 +1300,7 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.LocationEnabled -> "Location ${if (condition.enabled) "enabled" else "disabled"}"
         is Condition.CallStateCondition -> "Call: ${condition.state.name.lowercase()}"
         is Condition.AlarmRinging -> "Alarm ringing${condition.titleMatch?.let { " ($it)" } ?: ""}"
+        is Condition.ScreenTime -> "Screen time ${condition.op.name} ${condition.minutes}m"
         is Condition.And -> "AND (${condition.all.size} conditions)"
         is Condition.Or -> "OR (${condition.any.size} conditions)"
         is Condition.Not -> "NOT"

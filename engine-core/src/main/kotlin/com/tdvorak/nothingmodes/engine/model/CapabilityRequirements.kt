@@ -236,6 +236,7 @@ object CapabilityRequirements {
             is Condition.LocationEnabled -> setOf(CapabilityIds.STATE_LOCATION)
             is Condition.CallStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.AlarmRinging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.ScreenTime -> setOf(CapabilityIds.STATE_FOREGROUND_APP)
             is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Not -> conditionCapabilities(condition.cond)

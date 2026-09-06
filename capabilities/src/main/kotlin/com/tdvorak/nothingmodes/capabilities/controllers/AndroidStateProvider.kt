@@ -21,6 +21,8 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 import com.tdvorak.nothingmodes.engine.runtime.StateProvider
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 /**
@@ -101,6 +103,7 @@ class AndroidStateProvider(
         values["airplane_mode"] = readAirplaneMode().toString()
         values["nfc_enabled"] = readNfcEnabled().toString()
         values["location_enabled"] = readLocationEnabled().toString()
+        values["screen_time_today_ms"] = readScreenTimeToday().toString()
 
         readCallState()?.let { values["call_state"] = it }
 
@@ -204,6 +207,31 @@ class AndroidStateProvider(
                 ?.packageName
         } catch (e: SecurityException) {
             null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun readScreenTimeToday(): Long {
+        return try {
+            val usageStatsManager =
+                context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+                    ?: return 0L
+            val startOfDay =
+                LocalDate
+                    .now()
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+            val now = System.currentTimeMillis()
+            val stats =
+                usageStatsManager.queryUsageStats(
+                    UsageStatsManager.INTERVAL_DAILY,
+                    startOfDay,
+                    now,
+                ) ?: return 0L
+            stats.sumOf { it.totalTimeInForeground }
+        } catch (e: SecurityException) {
+            0L
         }
     }
 }

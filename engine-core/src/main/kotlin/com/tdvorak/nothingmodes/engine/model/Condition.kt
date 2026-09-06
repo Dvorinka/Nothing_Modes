@@ -127,6 +127,14 @@ sealed interface Condition {
         val titleMatch: String? = null,
     ) : Condition
 
+    /** Screen time today. Reads values["screen_time_today_ms"] and compares against minutes. */
+    @Serializable
+    @SerialName("screen_time")
+    data class ScreenTime(
+        val op: CmpOp,
+        val minutes: Int,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

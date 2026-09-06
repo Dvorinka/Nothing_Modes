@@ -288,6 +288,36 @@ fun ConditionConfigScreen(
                         )
                     }
 
+                    is Condition.ScreenTime -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                androidx.compose.foundation.layout.Arrangement
+                                    .spacedBy(NothingSpacing.sm),
+                        ) {
+                            Box(modifier = Modifier.weight(0.35f)) {
+                                NothingEnumSelector(
+                                    label = "Operator",
+                                    value = c.op.name,
+                                    options = CmpOp.entries.map { it.name },
+                                    onSelect = { op ->
+                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.65f)) {
+                                NothingInput(
+                                    value = c.minutes.toString(),
+                                    onValueChange = { text ->
+                                        condition = c.copy(minutes = text.toIntOrNull() ?: c.minutes)
+                                    },
+                                    label = "Minutes",
+                                )
+                            }
+                        }
+                    }
+
                     else -> {
                         Text(
                             text = conditionDescription(condition),

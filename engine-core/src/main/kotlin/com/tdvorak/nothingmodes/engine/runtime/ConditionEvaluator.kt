@@ -52,6 +52,7 @@ class ConditionEvaluator {
             is Condition.LocationEnabled -> evaluateBooleanValue(condition.enabled, "location_enabled", state)
             is Condition.CallStateCondition -> evaluateCallState(condition, state)
             is Condition.AlarmRinging -> evaluateAlarmRinging(condition, state)
+            is Condition.ScreenTime -> evaluateScreenTime(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -133,6 +134,23 @@ class ConditionEvaluator {
             CmpOp.LT -> if (state.batteryLevel < condition.level) Result.MET else Result.NOT_MET
             CmpOp.GTE -> if (state.batteryLevel >= condition.level) Result.MET else Result.NOT_MET
             CmpOp.LTE -> if (state.batteryLevel <= condition.level) Result.MET else Result.NOT_MET
+            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
+        }
+    }
+
+    private fun evaluateScreenTime(
+        condition: Condition.ScreenTime,
+        state: DeviceState,
+    ): Result {
+        val actualMs = state.values["screen_time_today_ms"]?.toLongOrNull() ?: return Result.STATE_UNAVAILABLE
+        val thresholdMs = condition.minutes.toLong() * 60_000
+        return when (condition.op) {
+            CmpOp.EQ -> if (actualMs == thresholdMs) Result.MET else Result.NOT_MET
+            CmpOp.NEQ -> if (actualMs != thresholdMs) Result.MET else Result.NOT_MET
+            CmpOp.GT -> if (actualMs > thresholdMs) Result.MET else Result.NOT_MET
+            CmpOp.LT -> if (actualMs < thresholdMs) Result.MET else Result.NOT_MET
+            CmpOp.GTE -> if (actualMs >= thresholdMs) Result.MET else Result.NOT_MET
+            CmpOp.LTE -> if (actualMs <= thresholdMs) Result.MET else Result.NOT_MET
             CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
         }
     }
