@@ -100,7 +100,7 @@ class RealActionExecutor(
             is Action.GlyphAnimate -> glyphAnimate(action)
             is Action.GlyphProgress -> glyphProgress(action.progress, action.reverse)
             is Action.GlyphText -> glyphText(action)
-            is Action.GlyphScrollingText -> glyphScrollingText(action.text)
+            is Action.GlyphScrollingText -> glyphScrollingText(action)
             is Action.GlyphPreset -> glyphPreset(action.preset)
             is Action.GlyphTurnOff -> glyphTurnOff()
 
@@ -380,13 +380,13 @@ class RealActionExecutor(
         }
     }
 
-    private suspend fun glyphScrollingText(text: String): ActionResult {
+    private suspend fun glyphScrollingText(action: Action.GlyphScrollingText): ActionResult {
         val provider =
             glyphMatrixProvider
                 ?: return ActionResult.Unsupported
         if (!provider.isAvailable()) return ActionResult.Unsupported
         return try {
-            val result = provider.displayScrollingText(text)
+            val result = provider.displayScrollingText(action.text, action.intervalMs, action.stepPx)
             glyphResultToActionResult(result)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "glyph scrolling text failed")

@@ -217,8 +217,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.GLYPH_TEXT)
     data class GlyphText(
         val text: String,
-        val x: Int = 0,
-        val y: Int = 0,
+        val x: Int = -1,
+        val y: Int = -1,
         val scale: Int = 100,
         val brightness: Int = 255,
     ) : Action
@@ -228,6 +228,10 @@ sealed interface Action {
     @SerialName(ActionTypeIds.GLYPH_SCROLLING_TEXT)
     data class GlyphScrollingText(
         val text: String,
+        /** Milliseconds between marquee ticks. */
+        val intervalMs: Int = 100,
+        /** Matrix dots shifted per tick. */
+        val stepPx: Int = 1,
     ) : Action
 
     /** Display a named visual preset (sleep, morning, charging, timer, etc.). */

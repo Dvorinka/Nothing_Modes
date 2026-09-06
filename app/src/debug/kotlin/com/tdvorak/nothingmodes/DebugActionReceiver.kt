@@ -155,8 +155,18 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_glyph_matrix" -> Action.SetGlyphMatrix()
             "glyph_animate" -> Action.GlyphAnimate(zone = null)
             "glyph_progress" -> Action.GlyphProgress(level.coerceIn(0, 100))
-            "glyph_text" -> Action.GlyphText(text.ifBlank { "NM" })
-            "glyph_scrolling_text" -> Action.GlyphScrollingText(text.ifBlank { "NOTHING MODES" })
+            "glyph_text" ->
+                Action.GlyphText(
+                    text.ifBlank { "NM" },
+                    x = intent.getIntExtra("x", -1),
+                    y = intent.getIntExtra("y", -1),
+                )
+            "glyph_scrolling_text" ->
+                Action.GlyphScrollingText(
+                    text.ifBlank { "NOTHING MODES" },
+                    intervalMs = intent.getIntExtra("interval", 100),
+                    stepPx = intent.getIntExtra("step", 1),
+                )
             "glyph_preset" -> Action.GlyphPreset(preset.ifBlank { "charging_start" })
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })

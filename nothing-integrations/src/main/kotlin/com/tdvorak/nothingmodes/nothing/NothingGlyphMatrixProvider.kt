@@ -30,6 +30,10 @@ class NothingGlyphMatrixProvider(
     private var connected = false
     private val detector = NothingDeviceDetector(context)
     private var marquee: GlyphMatrixFrameWithMarquee? = null
+    private var marqueeHandler: Handler? = null
+
+    @Volatile
+    private var marqueeRunning = false
 
     fun isAvailable(): Boolean = detector.detectGlyphHardware().isMatrix
 
@@ -132,7 +136,13 @@ class NothingGlyphMatrixProvider(
     fun turnOff(): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
+            stopMarquee()
             manager?.turnOff()
+            // Push a real black frame — turnOff() alone leaves the last
+            // frame on the app layer — then release the layer entirely.
+            val size = matrixSize()
+            if (size > 0) manager?.setAppMatrixFrame(IntArray(size * size))
+            manager?.closeAppMatrix()
             GlyphResult.Success
         } catch (e: Exception) {
             GlyphResult.Failure(e.message ?: "turnOff failed")
@@ -143,18 +153,23 @@ class NothingGlyphMatrixProvider(
 
     fun displayText(
         text: String,
-        x: Int = 0,
-        y: Int = 0,
+        x: Int = -1,
+        y: Int = -1,
         scale: Int = 100,
         brightness: Int = 255,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
+            // (0,0) is the grid's top-left corner — outside the round matrix.
+            // Center: each glyph ~5 dots wide +1 spacing, ~7 dots tall.
+            val size = matrixSize()
+            val px = if (x >= 0) x else ((size - text.length * 6) / 2).coerceIn(0, size)
+            val py = if (y >= 0) y else (size - 7) / 2
             val obj =
                 GlyphMatrixObject
                     .Builder()
                     .setText(text)
-                    .setPosition(x, y)
+                    .setPosition(px, py)
                     .setScale(scale)
                     .setBrightness(brightness)
                     .build()
@@ -224,33 +239,42 @@ class NothingGlyphMatrixProvider(
      * Display scrolling text on the Glyph Matrix.
      * Uses buildWithMarquee — the text scrolls horizontally.
      * @param text Text to scroll
-     * @param durationMs Total scroll duration (0 = until stopped)
-     * @param stepMs Step interval in milliseconds (lower = faster)
+     * @param intervalMs Delay between marquee ticks (lower = faster)
+     * @param stepPx Matrix dots shifted per tick
      */
     fun displayScrollingText(
         text: String,
-        durationMs: Int = 0,
-        stepMs: Int = 100,
+        intervalMs: Int = 100,
+        stepPx: Int = 1,
     ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
             stopMarquee()
+            // Marquee text is ~7 dots tall; center it vertically on the grid.
+            val y = (matrixSize() - 7) / 2
             val obj =
                 GlyphMatrixObject
                     .Builder()
-                    .setText(text)
+                    .setText(text, GlyphMatrixObject.TYPE_MARQUEE_FORCE)
+                    .setPosition(0, y)
                     .build()
             val builder = GlyphMatrixFrame.Builder().addTop(obj)
             val handler = Handler(Looper.getMainLooper())
+            // Each tick hands us a rendered frame — we must push it ourselves.
+            // The SDK reposts its tick without checking the running flag, so
+            // the listener gates on marqueeRunning to survive the stop race.
             val marqueeFrame =
                 builder.buildWithMarquee(
                     context,
                     handler,
-                    durationMs,
-                    stepMs,
-                    null,
-                )
+                    intervalMs,
+                    stepPx,
+                ) { frame ->
+                    if (marqueeRunning) manager?.setAppMatrixFrame(frame)
+                }
             marquee = marqueeFrame
+            marqueeHandler = handler
+            marqueeRunning = true
             manager?.setAppMatrixFrame(marqueeFrame)
             marqueeFrame.startMarquee()
             GlyphResult.Success
@@ -261,11 +285,20 @@ class NothingGlyphMatrixProvider(
 
     /** Stop any active marquee animation. */
     fun stopMarquee() {
-        try {
-            marquee?.stopMarquee()
-        } catch (_: Exception) {
-        }
+        marqueeRunning = false
+        val frame = marquee
+        val handler = marqueeHandler
         marquee = null
+        marqueeHandler = null
+        if (frame != null) {
+            // Post onto the marquee's own looper so the stop serializes
+            // against an in-flight tick — a running tick reposts the next
+            // one, and removing the pending callback is then effective.
+            try {
+                (handler ?: Handler(Looper.getMainLooper())).post { frame.stopMarquee() }
+            } catch (_: Exception) {
+            }
+        }
     }
 
     // ── Visual presets ──
