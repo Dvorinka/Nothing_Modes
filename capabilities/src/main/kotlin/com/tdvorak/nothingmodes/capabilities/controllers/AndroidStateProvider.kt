@@ -117,6 +117,10 @@ class AndroidStateProvider(
         values["airplane_mode"] = readAirplaneMode().toString()
         values["nfc_enabled"] = readNfcEnabled().toString()
         values["location_enabled"] = readLocationEnabled().toString()
+
+        // Companion devices (CMF Watch, Ear, ...) ride bonded Bluetooth —
+        // expose their names so conditions can match on them.
+        readBluetoothDevices()?.let { values["bt_devices"] = it }
         values["screen_time_today_ms"] = readScreenTimeToday().toString()
         values["auto_sync"] = runCatching { ContentResolver.getMasterSyncAutomatically() }.getOrDefault(false).toString()
         values["data_saver"] = readDataSaverEnabled().toString()
@@ -141,6 +145,14 @@ class AndroidStateProvider(
             }
         }
 
+        // Nothing OS keys verified on OS 4.1 (B4.1): charge limit,
+        // always-on display, glyph charging effects, reverse-charge cap.
+        readSystemInt("shutdown_battery_level")?.let { values["charging_limit"] = it.toString() }
+        readSecureInt("doze_always_on")?.let { values["aod_enabled"] = it.toString() }
+        readGlobalInt("led_effect_charging_enable")?.let { values["glyph_charge_led"] = it.toString() }
+        readGlobalInt("nt_reverse_charging_limiting_level")?.let { values["reverse_charge_limit"] = it.toString() }
+        readSystemInt("glyph_toy_timeout")?.let { values["glyph_toy_timeout_ms"] = it.toString() }
+
         readScreenOffSince()?.let { values["screen_off_since_ms"] = it.toString() }
 
         readCallState()?.let { values["call_state"] = it }
@@ -150,6 +162,15 @@ class AndroidStateProvider(
 
     // State readers for value-based conditions.
     // Missing permission is treated as unavailable (the value is omitted).
+
+    private fun readSystemInt(key: String): Int? =
+        runCatching { Settings.System.getInt(context.contentResolver, key) }.getOrNull()
+
+    private fun readSecureInt(key: String): Int? =
+        runCatching { Settings.Secure.getInt(context.contentResolver, key) }.getOrNull()
+
+    private fun readGlobalInt(key: String): Int? =
+        runCatching { Settings.Global.getInt(context.contentResolver, key) }.getOrNull()
 
     private fun readAirplaneMode(): Boolean =
         try {
@@ -224,6 +245,21 @@ class AndroidStateProvider(
             }
         } catch (e: SecurityException) {
             Pair(false, null)
+        }
+
+    /** Comma-separated names of bonded Bluetooth devices, null when BT off/denied. */
+    @SuppressLint("MissingPermission")
+    private fun readBluetoothDevices(): String? =
+        try {
+            val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
+            adapter?.takeIf { it.isEnabled }
+                ?.bondedDevices
+                ?.mapNotNull { it.name }
+                ?.sorted()
+                ?.joinToString(",")
+                ?.takeIf { it.isNotBlank() }
+        } catch (e: SecurityException) {
+            null
         }
 
     @SuppressLint("MissingPermission")

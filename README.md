@@ -93,9 +93,23 @@ Share any routine from the detail screen as a JSON bundle. Bundles carry `schema
 
 ## Shizuku
 
-Optional. Without it, public-API actions still work; Shizuku enables silent toggles for Wi-Fi, Bluetooth, mobile data, dark mode, extra dim, and system settings.
+Optional. Without it, every action still resolves — silent where the platform allows, a jump to the right settings panel where it doesn't. Shizuku turns the panel fallback into a silent toggle.
 
-Get Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or the Play Store.
+Verified on Nothing Phone 3, Nothing OS 4.1, Android 16:
+
+| Action | Without Shizuku | With Shizuku |
+| --- | --- | --- |
+| Wi-Fi, mobile data, hotspot | connectivity panel | silent toggle |
+| Airplane mode | airplane settings | silent toggle (`cmd connectivity`) |
+| Battery saver, data saver, auto-sync | settings panel | silent toggle |
+| Always-On Display, extra dim | display settings | silent toggle |
+| Location mode, refresh rate | settings panel | silent toggle (secure table) |
+| Arbitrary `WriteSetting` | permission-required | silent toggle |
+| NFC | NFC panel | NFC panel — `svc nfc` is killed on Nothing OS 4.1 even for shell; platform limitation |
+| Screenshot | per-capture consent (MediaProjection) | same |
+| Everything else — Glyph, volume, ringer, DND, brightness, dark mode, rotation, flashlight, notifications, media, clipboard, app/URL launch, lock screen, SMS | runtime permissions only | unchanged |
+
+Get Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or the Play Store, then grant it inside the app's settings sheet.
 
 ## Testing
 

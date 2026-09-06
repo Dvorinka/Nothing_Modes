@@ -19,7 +19,10 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -53,6 +56,33 @@ class DebugActionReceiver : BroadcastReceiver() {
             Log.i(TAG, "nothingFeatures=${p.systemFeatures}")
             return
         }
+        if (intent.getStringExtra("type") == "apps") {
+            // Same query the in-app pickers use — verifies package visibility.
+            val pm = context.packageManager
+            val main =
+                Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+            val apps =
+                pm.queryIntentActivities(main, 0)
+                    .map { it.loadLabel(pm).toString() to it.activityInfo.packageName }
+                    .sortedBy { it.first.lowercase() }
+            Log.i(TAG, "launcher apps visible: ${apps.size}")
+            apps.forEach { Log.i(TAG, "  ${it.first} -> ${it.second}") }
+            return
+        }
+        if (intent.getStringExtra("type") == "shizuku_probe") {
+            // Raw Shizuku state via reflection (rikka api is module-internal).
+            runCatching {
+                val s = Class.forName("rikka.shizuku.Shizuku")
+                fun call(name: String) =
+                    runCatching { s.getMethod(name).invoke(null) }.getOrElse { "ERR:${it.message}" }
+                Log.i(TAG, "shizuku ping=${call("pingBinder")} perm=${call("checkSelfPermission")} " +
+                    "preV11=${call("isPreV11")} ver=${call("getVersion")} " +
+                    "uid=${call("getUid")} se=${call("getSEContext")} " +
+                    "rationale=${call("shouldShowRequestPermissionRationale")}")
+                Log.i(TAG, "gateway status=${com.tdvorak.nothingmodes.shizuku.ShizukuGateway(context).status()}")
+            }.onFailure { Log.e(TAG, "probe failed", it) }
+            return
+        }
         val executor =
             EntryPointAccessors
                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
@@ -61,10 +91,13 @@ class DebugActionReceiver : BroadcastReceiver() {
             Log.w(TAG, "unknown or malformed type: ${intent.getStringExtra("type")}")
             return
         }
+        // Never runBlocking on main here: Shizuku's binder callbacks post to the
+        // main looper — blocking main deadlocks bindUserService until timeout.
         val pending = goAsync()
-        val result =
-            runCatching {
-                runBlocking {
+        val type = intent.getStringExtra("type")
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            val result =
+                runCatching {
                     executor.execute(
                         action,
                         FireContext(
@@ -76,9 +109,9 @@ class DebugActionReceiver : BroadcastReceiver() {
                         ),
                     )
                 }
-            }
-        Log.i(TAG, "type=${intent.getStringExtra("type")} -> ${result.getOrNull() ?: "THREW ${result.exceptionOrNull()}"}")
-        pending.finish()
+            Log.i(TAG, "type=$type -> ${result.getOrNull() ?: "THREW ${result.exceptionOrNull()}"}")
+            pending.finish()
+        }
     }
 
     private fun parse(intent: Intent): Action? {
@@ -120,6 +153,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             "glyph_animate" -> Action.GlyphAnimate(zone = null)
             "glyph_progress" -> Action.GlyphProgress(level.coerceIn(0, 100))
             "glyph_text" -> Action.GlyphText(text.ifBlank { "NM" })
+            "glyph_scrolling_text" -> Action.GlyphScrollingText(text.ifBlank { "NOTHING MODES" })
             "glyph_preset" -> Action.GlyphPreset(preset.ifBlank { "charging_start" })
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })

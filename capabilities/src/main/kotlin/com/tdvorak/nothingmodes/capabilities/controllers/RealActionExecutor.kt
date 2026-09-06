@@ -123,11 +123,12 @@ class RealActionExecutor(
                     hotspotCommand(action.on),
                     "android.settings.TETHER_SETTINGS",
                 )
-            is Action.SetNfc ->
-                shellOrPanel(
-                    nfcCommand(action.on),
-                    Settings.ACTION_NFC_SETTINGS,
-                )
+            is Action.SetNfc -> {
+                // `svc nfc` is killed outright on Nothing OS 4.1 — when the
+                // shell attempt fails for any reason, fall through to the panel.
+                val r = executeShell(nfcCommand(action.on))
+                if (r is ActionResult.Success) r else openPanel(Settings.ACTION_NFC_SETTINGS)
+            }
             is Action.SetRefreshRate -> setRefreshRate(action.hz)
             is Action.SetScreenRotation -> setScreenRotation(action.orientation)
             is Action.MediaControl -> mediaControl(action.command)
@@ -694,24 +695,17 @@ class RealActionExecutor(
     }
 
     private suspend fun setAirplaneMode(on: Boolean): ActionResult {
-        // Write the setting via Shizuku, then broadcast via shell so the radio toggles.
-        // ACTION_AIRPLANE_MODE_CHANGED is a protected broadcast that third-party apps cannot send
-        // on Android 12+, so we use `am broadcast` through the privileged shell.
-        val writeResult = executeShell(airplaneModeCommand(on))
-        if (writeResult is ActionResult.ShizukuRequired) {
-            return openPanel(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
-        }
-        if (writeResult !is ActionResult.Success) return writeResult
-        return executeShell(
+        // `cmd connectivity airplane-mode` toggles the radio and updates the
+        // setting atomically (Android 12+); the AIRPLANE_MODE broadcast is
+        // protected even for shell, so it is not usable.
+        return shellOrPanel(
             listOf(
-                "am",
-                "broadcast",
-                "-a",
-                "android.intent.action.AIRPLANE_MODE",
-                "--ez",
-                "state",
-                on.toString(),
+                "cmd",
+                "connectivity",
+                "airplane-mode",
+                if (on) "enable" else "disable",
             ),
+            Settings.ACTION_AIRPLANE_MODE_SETTINGS,
         )
     }
 
@@ -721,15 +715,6 @@ class RealActionExecutor(
             "put",
             "global",
             "low_power",
-            if (on) "1" else "0",
-        )
-
-    private fun airplaneModeCommand(on: Boolean) =
-        listOf(
-            "settings",
-            "put",
-            "global",
-            "airplane_mode_on",
             if (on) "1" else "0",
         )
 
@@ -758,7 +743,16 @@ class RealActionExecutor(
             if (on) "enable" else "disable",
         )
 
-    private fun setRefreshRate(hz: Int): ActionResult {
+    private suspend fun setRefreshRate(hz: Int): ActionResult {
+        // peak/min_refresh_rate moved to the secure table on newer builds —
+        // privileged shell first, public system-table write as fallback.
+        val peak =
+            executeShell(listOf("settings", "put", "secure", "peak_refresh_rate", hz.toString()))
+        if (peak is ActionResult.Success) {
+            executeShell(listOf("settings", "put", "secure", "min_refresh_rate", hz.toString()))
+            return ActionResult.Success
+        }
+        if (peak is ActionResult.Failure && shellFactory?.resolve() != null) return peak
         return try {
             if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
             Settings.System.putInt(context.contentResolver, "peak_refresh_rate", hz)
@@ -892,7 +886,7 @@ class RealActionExecutor(
         }
     }
 
-    private fun setLocationMode(mode: com.tdvorak.nothingmodes.engine.model.LocationMode): ActionResult {
+    private suspend fun setLocationMode(mode: com.tdvorak.nothingmodes.engine.model.LocationMode): ActionResult {
         val value =
             when (mode) {
                 com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY -> 3
@@ -900,12 +894,16 @@ class RealActionExecutor(
                 com.tdvorak.nothingmodes.engine.model.LocationMode.DEVICE_ONLY -> 1
                 com.tdvorak.nothingmodes.engine.model.LocationMode.OFF -> 0
             }
+        // LOCATION_MODE lives in Settings.Secure — privileged shell first.
+        val shell =
+            executeShell(
+                listOf("settings", "put", "secure", Settings.Secure.LOCATION_MODE, value.toString()),
+            )
+        if (shell !is ActionResult.ShizukuRequired) return shell
         return try {
-            // LOCATION_MODE moved to Settings.Secure in API 28+; requires Shizuku or WRITE_SECURE_SETTINGS
             Settings.Secure.putInt(context.contentResolver, Settings.Secure.LOCATION_MODE, value)
             ActionResult.Success
         } catch (e: SecurityException) {
-            // No secure-settings write access — open Location settings instead.
             openPanel(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "setLocationMode failed")
