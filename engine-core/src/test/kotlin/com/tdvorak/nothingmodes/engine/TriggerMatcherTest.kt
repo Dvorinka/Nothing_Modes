@@ -457,4 +457,18 @@ class TriggerMatcherTest {
         val event = TriggerEvent.BatteryLevelChanged("e1", 50, isCharging = true)
         assertFalse(matcher.matches(trigger, event))
     }
+
+    // --- DeviceUnlocked ---
+
+    @Test
+    fun `DeviceUnlocked trigger matches unlock event`() {
+        assertTrue(matcher.matches(Trigger.DeviceUnlocked, TriggerEvent.DeviceUnlockedEvent("e1")))
+    }
+
+    @Test
+    fun `DeviceUnlocked trigger does not match screen off event`() {
+        assertFalse(
+            matcher.matches(Trigger.DeviceUnlocked, TriggerEvent.ScreenStateChanged("e1", ScreenState.OFF)),
+        )
+    }
 }

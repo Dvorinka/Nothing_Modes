@@ -116,6 +116,14 @@ class PersistentMonitorService : Service() {
                     context: Context,
                     intent: Intent,
                 ) {
+                    if (intent.action == Intent.ACTION_USER_PRESENT) {
+                        val unlockIntent =
+                            Intent(context, AutomationService::class.java).apply {
+                                action = AutomationService.ACTION_UNLOCKED
+                            }
+                        ContextCompat.startForegroundService(context, unlockIntent)
+                        return
+                    }
                     val state =
                         when (intent.action) {
                             Intent.ACTION_SCREEN_ON -> ScreenState.ON
@@ -148,6 +156,7 @@ class PersistentMonitorService : Service() {
             IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_USER_PRESENT)
             }
         registerReceiver(screenReceiver, screenFilter)
 

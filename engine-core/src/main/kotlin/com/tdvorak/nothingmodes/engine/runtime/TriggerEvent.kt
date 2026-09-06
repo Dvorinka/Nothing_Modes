@@ -109,6 +109,10 @@ sealed interface TriggerEvent {
         val connected: Boolean,
         val source: com.tdvorak.nothingmodes.engine.model.ChargerSource?,
     ) : TriggerEvent
+
+    data class DeviceUnlockedEvent(
+        override val eventId: String,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

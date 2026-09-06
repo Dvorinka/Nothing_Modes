@@ -167,6 +167,7 @@ object CapabilityRequirements {
             is Trigger.WifiConnected -> setOf(CapabilityIds.TRIGGER_WIFI_CONNECTED)
             is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
             is Trigger.ChargerConnected -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
+            is Trigger.DeviceUnlocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =

@@ -69,6 +69,7 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
             ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
             ACTION_CHARGER -> handleCharger(intent)
+            ACTION_UNLOCKED -> handleUnlocked()
             ACTION_SCREEN_STATE -> handleScreenState(intent)
             ACTION_NOTIFICATION -> handleNotification(intent)
             ACTION_PHONE_STATE -> handlePhoneState(intent)
@@ -212,6 +213,10 @@ class AutomationService : Service() {
                 source = if (connected) source else null,
             ),
         )
+    }
+
+    private fun handleUnlocked() {
+        dispatchEvent(TriggerEvent.DeviceUnlockedEvent(eventId = "unlock:${System.currentTimeMillis()}"))
     }
 
     private fun handleScreenState(intent: Intent) {
@@ -448,6 +453,7 @@ class AutomationService : Service() {
         const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
         const val ACTION_BATTERY_CHANGED = "com.tdvorak.nothingmodes.BATTERY_CHANGED"
         const val ACTION_CHARGER = "com.tdvorak.nothingmodes.CHARGER"
+        const val ACTION_UNLOCKED = "com.tdvorak.nothingmodes.UNLOCKED"
         const val ACTION_SCREEN_STATE = "com.tdvorak.nothingmodes.SCREEN_STATE"
         const val ACTION_NOTIFICATION = "com.tdvorak.nothingmodes.NOTIFICATION"
         const val ACTION_PHONE_STATE = "com.tdvorak.nothingmodes.PHONE_STATE"

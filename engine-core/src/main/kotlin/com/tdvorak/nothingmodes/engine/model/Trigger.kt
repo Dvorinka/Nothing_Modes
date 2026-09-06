@@ -178,6 +178,11 @@ sealed interface Trigger {
         val connected: Boolean = true,
         val source: ChargerSource? = null,
     ) : Trigger
+
+    /** Device unlocked (ACTION_USER_PRESENT). */
+    @Serializable
+    @SerialName("device_unlocked")
+    data object DeviceUnlocked : Trigger
 }
 
 @Serializable
