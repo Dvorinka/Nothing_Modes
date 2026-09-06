@@ -85,6 +85,23 @@ class DebugActionReceiver : BroadcastReceiver() {
             }.onFailure { Log.e(TAG, "probe failed", it) }
             return
         }
+        if (intent.getStringExtra("type") == "font_probe") {
+            // Can we reach Nothing's letter_ string resources via a foreign
+            // package context? Probe likely owners of the NDot glyph table.
+            for (pkg in listOf("com.nothing.thirdparty", "com.nothing.ntf.glyphtoys",
+                "com.android.systemui", context.packageName)) {
+                val info =
+                    runCatching {
+                        val fc = context.createPackageContext(pkg, 0)
+                        val letters =
+                            com.nothing.ketchum.GlyphMatrixUtils.getLetterConfigs("89", fc, null)
+                        "$pkg -> ${letters?.size ?: 0} letters, dots=" +
+                            (letters?.sumOf { it.dots.size } ?: 0)
+                    }.getOrElse { "$pkg -> ${it.message}" }
+                Log.i(TAG, "font_probe: $info")
+            }
+            return
+        }
         if (intent.getStringExtra("type") == "ui_style") {
             // Flip the visual language without navigating settings:
             // -e style auto|nothing|classic
@@ -186,8 +203,14 @@ class DebugActionReceiver : BroadcastReceiver() {
                     y = intent.getIntExtra("y", -1),
                 )
             "glyph_battery" -> {
-                val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
-                val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                val explicit = intent.getIntExtra("percent", -1)
+                val pct =
+                    if (explicit in 0..100) {
+                        explicit
+                    } else {
+                        val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
+                        bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                    }
                 Action.GlyphProgress(pct.coerceIn(0, 100))
             }
             "glyph_scrolling_text" ->
@@ -197,6 +220,9 @@ class DebugActionReceiver : BroadcastReceiver() {
                     stepPx = intent.getIntExtra("step", 1),
                 )
             "glyph_preset" -> Action.GlyphPreset(preset.ifBlank { "charging_start" })
+            "glyph_icon" -> Action.GlyphIcon(intent.getStringExtra("icon").orEmpty().ifBlank { "check" })
+            "glyph_number" -> Action.GlyphNumber(intent.getIntExtra("number", 0).coerceIn(0, 99))
+            "glyph_countdown" -> Action.GlyphCountdown(duration.coerceIn(1, 599))
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })
             "wait" -> Action.Wait(duration.toLong())

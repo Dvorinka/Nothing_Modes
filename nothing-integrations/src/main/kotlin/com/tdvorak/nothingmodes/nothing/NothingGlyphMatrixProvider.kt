@@ -12,6 +12,14 @@ import com.nothing.ketchum.GlyphMatrixFrameWithMarquee
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphMatrixObject
 import com.nothing.ketchum.GlyphMatrixUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Wraps the Nothing Glyph Matrix SDK for matrix devices (Phone 3: 25x25, Phone 4a Pro: 13x13).
@@ -34,6 +42,10 @@ class NothingGlyphMatrixProvider(
 
     @Volatile
     private var marqueeRunning = false
+
+    private val countdownScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var countdownJob: Job? = null
+    private var designJob: Job? = null
 
     private val toysBridge by lazy { GlyphToysBridge(context) }
 
@@ -81,6 +93,8 @@ class NothingGlyphMatrixProvider(
 
     fun unInit() {
         stopMarquee()
+        stopCountdown()
+        stopDesign()
         try {
             manager?.unInit()
         } catch (e: Exception) {
@@ -144,6 +158,8 @@ class NothingGlyphMatrixProvider(
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
             stopMarquee()
+            stopCountdown()
+            stopDesign()
             manager?.turnOff()
             // Push a real black frame — turnOff() alone leaves the last
             // frame on the app layer — then release the layer entirely.
@@ -378,26 +394,50 @@ class NothingGlyphMatrixProvider(
             if (label.isNullOrEmpty()) {
                 manager?.setAppMatrixFrame(colors)
             } else {
-                // Render the label through the proven text path, then max-merge
-                // with the arc — frame compositing drops mixed object/array
-                // layers on this SDK build.
-                val textObj =
-                    GlyphMatrixObject
-                        .Builder()
-                        .setText(label)
-                        .setPosition(centeredX(size, label), (size - 7) / 2)
-                        .setScale(100)
-                        .setBrightness(255)
-                        .build()
-                val textFrame = GlyphMatrixFrame.Builder().addTop(textObj).build(context)
-                val textColors = textFrame.render()
-                val merged = IntArray(colors.size) { i -> maxOf(colors[i], textColors.getOrElse(i) { 0 }) }
-                manager?.setAppMatrixFrame(merged)
+                // Baked 5x7 pixel digits — the SDK's NDot table renders a
+                // closed-loop "9" and only ~5px-tall glyphs. Contrast merge:
+                // dark cutout where the arc is lit, lit where it is off.
+                val mask = IntArray(size * size)
+                if (!GlyphDigitFont.supports(label)) {
+                    manager?.setAppMatrixFrame(colors)
+                } else {
+                    val w = GlyphDigitFont.measure(label)
+                    val lx = ((size - w) / 2).coerceAtLeast(0)
+                    val ly = ((size - GlyphDigitFont.GLYPH_H) / 2).coerceAtLeast(0)
+                    GlyphDigitFont.draw(label, mask, size, lx, ly, 1)
+                    val merged =
+                        IntArray(colors.size) { i ->
+                            if (mask[i] > 0) {
+                                if (colors[i] > 0) 0 else brightness
+                            } else {
+                                colors[i]
+                            }
+                        }
+                    if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("arc+label", merged, size)
+                    manager?.setAppMatrixFrame(merged)
+                }
             }
             GlyphResult.Success
         } catch (e: Exception) {
             GlyphResult.Failure(e.message ?: "displayProgressArc failed")
         }
+    }
+
+    /** ASCII-art dump of a frame for visual debugging without eyes on the device. */
+    private fun dumpFrame(
+        label: String,
+        colors: IntArray,
+        size: Int,
+    ) {
+        val sb = StringBuilder("$label ${size}x$size:\n")
+        for (y in 0 until size) {
+            for (x in 0 until size) {
+                val v = colors.getOrElse(y * size + x) { 0 }
+                sb.append(if (v > 0) '#' else '.')
+            }
+            sb.append('\n')
+        }
+        Log.d(TAG, sb.toString())
     }
 
     private fun centeredX(size: Int, text: String): Int {
@@ -406,10 +446,117 @@ class NothingGlyphMatrixProvider(
     }
 
     fun displayNumber(number: Int): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
         val size = matrixSize()
         if (size == 0) return GlyphResult.Unsupported
-        val clamped = number.coerceIn(0, 99)
-        return displayText(clamped.toString(), x = size / 4, y = size / 4, scale = 100)
+        val text = number.coerceIn(0, 99).toString()
+        return try {
+            val frame = IntArray(size * size)
+            val x = ((size - GlyphDigitFont.measure(text)) / 2).coerceAtLeast(0)
+            val y = ((size - GlyphDigitFont.GLYPH_H) / 2).coerceAtLeast(0)
+            GlyphDigitFont.draw(text, frame, size, x, y, 4095)
+            manager?.setAppMatrixFrame(frame)
+            GlyphResult.Success
+        } catch (e: Exception) {
+            GlyphResult.Failure(e.message ?: "displayNumber failed")
+        }
+    }
+
+    /**
+     * Display an icon by name. Resolution order: saved custom design
+     * ([CustomGlyphStore]) → emoji icon table ([GlyphIconLibrary]) → raw
+     * emoji passthrough. Animated customs play all frames once at their
+     * own durations.
+     */
+    fun displayIcon(name: String): GlyphResult {
+        CustomGlyphStore(context).design(name)?.let { return displayDesign(it) }
+        val frame = GlyphIconLibrary.frameFor(name)
+            ?: return GlyphResult.Failure("Unknown icon: $name")
+        if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("icon:$name", frame, matrixSize())
+        return setFrame(frame)
+    }
+
+    /**
+     * Display a decoded open-format design. Static designs push one frame;
+     * animations play each frame at its `d` duration (default 100ms), once.
+     * Returns early if the design targets a different matrix resolution.
+     */
+    fun displayDesign(design: GlyphFrameCodec.Design): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
+        val size = matrixSize()
+        if (design.gridSize != size) {
+            return GlyphResult.Failure(
+                "design is for ${design.gridSize}x${design.gridSize}, this matrix is ${size}x$size",
+            )
+        }
+        if (design.frames.size == 1) {
+            return setFrame(design.frames[0].pixels)
+        }
+        stopDesign()
+        designJob =
+            countdownScope.launch {
+                for (frame in design.frames) {
+                    if (!isActive) break
+                    if (setFrame(frame.pixels) !is GlyphResult.Success) break
+                    delay((frame.durationMs ?: 100).toLong().coerceIn(20, 60_000))
+                }
+            }
+        return GlyphResult.Success
+    }
+
+    /** Stop any active design animation. Safe to call when none is running. */
+    fun stopDesign() {
+        designJob?.cancel()
+        designJob = null
+    }
+
+    /**
+     * Countdown timer: render the remaining seconds on the matrix, ticking
+     * once per second. Runs on a private [CoroutineScope] cancelled by
+     * [stopCountdown] (also called from [turnOff] and [unInit]).
+     *
+     * @param seconds Total seconds, coerced to 1..599.
+     * @param onTick Optional callback fired each second with the remaining value.
+     */
+    fun displayCountdown(
+        seconds: Int,
+        onTick: ((remaining: Int) -> Unit)? = null,
+    ): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
+        stopCountdown()
+        val total = seconds.coerceIn(1, 599)
+        // Render the initial value immediately so the user sees feedback
+        // before the first 1-second tick elapses.
+        val initial = displayNumber(total)
+        if (initial !is GlyphResult.Success) return initial
+        countdownJob =
+            countdownScope.launch {
+                var remaining = total
+                while (isActive && remaining > 0) {
+                    delay(1000)
+                    if (!isActive) break
+                    remaining = (remaining - 1).coerceAtLeast(0)
+                    val r = displayNumber(remaining)
+                    if (r !is GlyphResult.Success) break
+                    onTick?.invoke(remaining)
+                }
+            }
+        return GlyphResult.Success
+    }
+
+    /** Stop any active countdown loop. Safe to call when none is running. */
+    fun stopCountdown() {
+        countdownJob?.cancel()
+        countdownJob = null
     }
 
     fun drawableToBitmap(

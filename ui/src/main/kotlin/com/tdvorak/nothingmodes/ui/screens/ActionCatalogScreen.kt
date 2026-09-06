@@ -306,6 +306,24 @@ fun ActionCatalogScreen(navController: NavController) {
                     action = Action.GlyphScrollingText(""),
                 ),
                 ActionItem(
+                    label = "Glyph icon",
+                    category = "Glyph",
+                    icon = Icons.Outlined.Star,
+                    action = Action.GlyphIcon("check"),
+                ),
+                ActionItem(
+                    label = "Glyph number",
+                    category = "Glyph",
+                    icon = Icons.Outlined.Tag,
+                    action = Action.GlyphNumber(0),
+                ),
+                ActionItem(
+                    label = "Glyph countdown",
+                    category = "Glyph",
+                    icon = Icons.Outlined.Timer,
+                    action = Action.GlyphCountdown(30),
+                ),
+                ActionItem(
                     label = "Glyph progress",
                     category = "Glyph",
                     icon = Icons.Outlined.Timer,

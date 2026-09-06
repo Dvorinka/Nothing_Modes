@@ -85,6 +85,7 @@ class TriggerMatcher {
                     (trigger.source == null || event.source == trigger.source)
 
             is Trigger.DeviceUnlocked -> event is TriggerEvent.DeviceUnlockedEvent
+            is Trigger.DeviceLocked -> event is TriggerEvent.DeviceLockedEvent
         }
 
     /** Checks if a time trigger should fire on the given day. */

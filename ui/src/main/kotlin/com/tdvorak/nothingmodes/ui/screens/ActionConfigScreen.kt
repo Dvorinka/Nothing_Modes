@@ -305,6 +305,33 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.GlyphIcon -> {
+                        NothingEnumSelector(
+                            label = "Icon",
+                            value = a.name,
+                            options = glyphIconOptions(),
+                            onSelect = { action = a.copy(name = it) },
+                        )
+                    }
+
+                    is Action.GlyphNumber -> {
+                        NothingInput(
+                            value = a.number.toString(),
+                            onValueChange = { action = a.copy(number = it.toIntOrNull() ?: a.number) },
+                            label = "Number (0-99)",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    is Action.GlyphCountdown -> {
+                        NothingInput(
+                            value = a.seconds.toString(),
+                            onValueChange = { action = a.copy(seconds = it.toIntOrNull() ?: a.seconds) },
+                            label = "Seconds (1-599)",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
                     is Action.CopyText -> {
                         NothingInput(
                             value = a.text,

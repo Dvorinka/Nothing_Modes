@@ -20,10 +20,12 @@ import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
+import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
+import com.tdvorak.nothingmodes.nothing.GlyphPreflight
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
@@ -50,6 +52,23 @@ class RealActionExecutor(
     private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
 ) : ActionExecutor {
     override suspend fun execute(
+        action: Action,
+        context: FireContext,
+    ): ActionResult {
+        // Glyph pre-flight: when the lights can't be driven (no hardware, or
+        // another toy owns them), fail honestly and remind the user once —
+        // never pretend a glyph action landed.
+        if (action.isGlyphAction) {
+            val problem = GlyphPreflight.check(this.context)
+            if (problem != null) {
+                GlyphPreflight.notifyIfNeeded(this.context, problem)
+                return ActionResult.Failure("glyph: ${GlyphPreflight.message(problem)}")
+            }
+        }
+        return dispatch(action, context)
+    }
+
+    private suspend fun dispatch(
         action: Action,
         context: FireContext,
     ): ActionResult =
@@ -102,6 +121,9 @@ class RealActionExecutor(
             is Action.GlyphText -> glyphText(action)
             is Action.GlyphScrollingText -> glyphScrollingText(action)
             is Action.GlyphPreset -> glyphPreset(action.preset)
+            is Action.GlyphIcon -> glyphIcon(action.name)
+            is Action.GlyphNumber -> glyphNumber(action.number)
+            is Action.GlyphCountdown -> glyphCountdown(action.seconds)
             is Action.GlyphTurnOff -> glyphTurnOff()
 
             // System settings toggles (Phase 4)
@@ -397,6 +419,42 @@ class RealActionExecutor(
     private suspend fun glyphPreset(preset: String): ActionResult {
         val visual = presetFor(preset) ?: return ActionResult.Failure("Unknown preset: $preset")
         return renderGlyphVisual(visual)
+    }
+
+    private suspend fun glyphIcon(name: String): ActionResult {
+        val provider =
+            glyphMatrixProvider
+                ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            glyphResultToActionResult(provider.displayIcon(name))
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph icon failed")
+        }
+    }
+
+    private suspend fun glyphNumber(number: Int): ActionResult {
+        val provider =
+            glyphMatrixProvider
+                ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            glyphResultToActionResult(provider.displayNumber(number))
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph number failed")
+        }
+    }
+
+    private suspend fun glyphCountdown(seconds: Int): ActionResult {
+        val provider =
+            glyphMatrixProvider
+                ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+        return try {
+            glyphResultToActionResult(provider.displayCountdown(seconds))
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph countdown failed")
+        }
     }
 
     private suspend fun glyphTurnOff(): ActionResult {

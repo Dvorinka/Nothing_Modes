@@ -236,8 +236,13 @@ fun ActionConfigContent(
             NothingInput(
                 value = a.timeoutMs.toString(),
                 onValueChange = { onActionChange(a.copy(timeoutMs = it.toIntOrNull() ?: a.timeoutMs)) },
-                label = "Timeout (ms)",
+                label = "Timeout (ms) — 2147483647 = never",
                 modifier = Modifier.fillMaxWidth(),
+            )
+            BooleanRow(
+                label = "Restore previous",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
             )
         }
 
@@ -353,6 +358,33 @@ fun ActionConfigContent(
                 value = a.text,
                 onValueChange = { onActionChange(a.copy(text = it)) },
                 label = "Scrolling text",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.GlyphIcon -> {
+            NothingEnumSelector(
+                label = "Icon",
+                value = a.name,
+                options = glyphIconOptions(),
+                onSelect = { onActionChange(a.copy(name = it)) },
+            )
+        }
+
+        is Action.GlyphNumber -> {
+            NothingInput(
+                value = a.number.toString(),
+                onValueChange = { onActionChange(a.copy(number = it.toIntOrNull() ?: a.number)) },
+                label = "Number (0-99)",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.GlyphCountdown -> {
+            NothingInput(
+                value = a.seconds.toString(),
+                onValueChange = { onActionChange(a.copy(seconds = it.toIntOrNull() ?: a.seconds)) },
+                label = "Seconds (1-599)",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -680,6 +712,19 @@ internal val GLYPH_PRESET_NAMES =
         "off",
     )
 
+/** Named glyph icons backed by [com.tdvorak.nothingmodes.nothing.GlyphIconLibrary]. */
+internal val GLYPH_ICON_NAMES: List<String> =
+    com.tdvorak.nothingmodes.nothing.GlyphIconLibrary.names
+
+/** Emoji icons plus the user's saved Glyph Studio designs. */
+@androidx.compose.runtime.Composable
+internal fun glyphIconOptions(): List<String> {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return androidx.compose.runtime.remember {
+        GLYPH_ICON_NAMES + com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names()
+    }
+}
+
 private fun actionTitle(action: Action): String =
     when (action) {
         is Action.SetWifi -> "Wi-Fi"
@@ -703,6 +748,9 @@ private fun actionTitle(action: Action): String =
         is Action.GlyphPreset -> "Glyph preset"
         is Action.GlyphText -> "Glyph text"
         is Action.GlyphScrollingText -> "Glyph scrolling text"
+        is Action.GlyphIcon -> "Glyph icon"
+        is Action.GlyphNumber -> "Glyph number"
+        is Action.GlyphCountdown -> "Glyph countdown"
         is Action.CopyText -> "Copy text"
         is Action.OpenUrl -> "Open URL"
         is Action.LaunchApp -> "Launch app"

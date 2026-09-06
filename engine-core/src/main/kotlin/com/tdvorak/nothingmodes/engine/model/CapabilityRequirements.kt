@@ -58,6 +58,9 @@ object CapabilityIds {
     const val ACTION_GLYPH_SCROLLING_TEXT = "action_glyph_scrolling_text"
     const val ACTION_GLYPH_PRESET = "action_glyph_preset"
     const val ACTION_GLYPH_TURNOFF = "action_glyph_turnoff"
+    const val ACTION_GLYPH_ICON = "action_glyph_icon"
+    const val ACTION_GLYPH_NUMBER = "action_glyph_number"
+    const val ACTION_GLYPH_COUNTDOWN = "action_glyph_countdown"
     const val ACTION_COPY_TEXT = "action_copy_text"
     const val ACTION_WAIT = "action_wait"
     const val ACTION_WRITE_SETTING = "action_write_setting"
@@ -112,6 +115,9 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_GLYPH_MATRIX,
             CapabilityIds.ACTION_GLYPH_TEXT,
             CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
+            CapabilityIds.ACTION_GLYPH_ICON,
+            CapabilityIds.ACTION_GLYPH_NUMBER,
+            CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             -> "Nothing Glyph Matrix"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
@@ -168,6 +174,7 @@ object CapabilityRequirements {
             is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
             is Trigger.ChargerConnected -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
             is Trigger.DeviceUnlocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
+            is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =
@@ -196,6 +203,9 @@ object CapabilityRequirements {
             is Action.GlyphText -> setOf(CapabilityIds.ACTION_GLYPH_TEXT)
             is Action.GlyphScrollingText -> setOf(CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT)
             is Action.GlyphPreset -> setOf(CapabilityIds.ACTION_GLYPH_PRESET)
+            is Action.GlyphIcon -> setOf(CapabilityIds.ACTION_GLYPH_ICON)
+            is Action.GlyphNumber -> setOf(CapabilityIds.ACTION_GLYPH_NUMBER)
+            is Action.GlyphCountdown -> setOf(CapabilityIds.ACTION_GLYPH_COUNTDOWN)
             is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
             is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
             is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)

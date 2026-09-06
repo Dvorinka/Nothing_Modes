@@ -90,6 +90,7 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
         TriggerType("Charger", "Device", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
         TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
+        TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -360,6 +361,7 @@ private fun TriggerConfigContent(
         is Trigger.Manual,
         is Trigger.Boot,
         is Trigger.DeviceUnlocked,
+        is Trigger.DeviceLocked,
         -> {
             Text(
                 text = triggerDescription(trigger),

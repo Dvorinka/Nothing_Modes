@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.automation.lifecycle
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -228,6 +229,28 @@ class AutomationService : Service() {
                 state = state,
             ),
         )
+        if (state == ScreenState.OFF) pollDeviceLocked()
+    }
+
+    /**
+     * The keyguard engages a beat after the screen goes dark — poll briefly
+     * and fire DeviceLockedEvent only when a lock actually engages.
+     */
+    private fun pollDeviceLocked() {
+        val km = getSystemService(KeyguardManager::class.java) ?: return
+        scope.launch {
+            repeat(10) {
+                if (km.isDeviceLocked) {
+                    dispatchEvent(
+                        TriggerEvent.DeviceLockedEvent(
+                            eventId = "lock:${System.currentTimeMillis()}",
+                        ),
+                    )
+                    return@launch
+                }
+                kotlinx.coroutines.delay(300)
+            }
+        }
     }
 
     private fun handleNotification(intent: Intent) {

@@ -183,6 +183,15 @@ sealed interface Trigger {
     @Serializable
     @SerialName("device_unlocked")
     data object DeviceUnlocked : Trigger
+
+    /**
+     * Device locked: fires when the screen turns off while a secure keyguard
+     * is (or becomes) engaged. Distinct from screen-off — the screen can be
+     * off without the device being locked.
+     */
+    @Serializable
+    @SerialName("device_locked")
+    data object DeviceLocked : Trigger
 }
 
 @Serializable

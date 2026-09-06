@@ -40,6 +40,9 @@ object ActionTypeIds {
     const val GLYPH_SCROLLING_TEXT = "glyph_scrolling_text"
     const val GLYPH_PRESET = "glyph_preset"
     const val GLYPH_TURNOFF = "glyph_turnoff"
+    const val GLYPH_ICON = "glyph_icon"
+    const val GLYPH_NUMBER = "glyph_number"
+    const val GLYPH_COUNTDOWN = "glyph_countdown"
     const val SET_MOBILE_DATA = "set_mobile_data"
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
@@ -241,6 +244,27 @@ sealed interface Action {
         val preset: String,
     ) : Action
 
+    /** Display a baked 25x25 icon on the Glyph Matrix by name. */
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_ICON)
+    data class GlyphIcon(
+        val name: String,
+    ) : Action
+
+    /** Display a 0-99 number centered on the Glyph Matrix. */
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_NUMBER)
+    data class GlyphNumber(
+        val number: Int,
+    ) : Action
+
+    /** Countdown timer: renders the remaining seconds on the matrix, ticking once per second. */
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_COUNTDOWN)
+    data class GlyphCountdown(
+        val seconds: Int,
+    ) : Action
+
     /** Turn off all glyphs. */
     @Serializable
     @SerialName(ActionTypeIds.GLYPH_TURNOFF)
@@ -399,6 +423,9 @@ val Action.isGlyphAction: Boolean
             is Action.GlyphText,
             is Action.GlyphScrollingText,
             is Action.GlyphPreset,
+            is Action.GlyphIcon,
+            is Action.GlyphNumber,
+            is Action.GlyphCountdown,
             -> true
             is Action.GlyphTurnOff -> false
             else -> false

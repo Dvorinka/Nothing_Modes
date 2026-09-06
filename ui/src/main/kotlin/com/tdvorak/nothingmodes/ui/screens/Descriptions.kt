@@ -85,6 +85,7 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.CalendarEvent -> "Calendar ${trigger.direction.name.lowercase()}${trigger.titleMatch?.let { ": $it" } ?: ""}"
             is Trigger.ChargerConnected -> "${if (trigger.connected) "Charger connected" else "Charger unplugged"}${trigger.source?.let { " (${it.name.lowercase()})" } ?: ""}"
             is Trigger.DeviceUnlocked -> "Device unlocked"
+            is Trigger.DeviceLocked -> "Device locked"
         }
     ).uppercase()
 
@@ -115,6 +116,9 @@ fun actionDescription(action: Action): String =
             is Action.GlyphText -> "Glyph Text: ${action.text.take(30)}"
             is Action.GlyphScrollingText -> "Glyph Scroll: ${action.text.take(30)}"
             is Action.GlyphPreset -> "Glyph Preset: ${action.preset}"
+            is Action.GlyphIcon -> "Glyph Icon: ${action.name}"
+            is Action.GlyphNumber -> "Glyph Number: ${action.number}"
+            is Action.GlyphCountdown -> "Glyph Countdown: ${action.seconds}s"
             is Action.GlyphTurnOff -> "Glyph Off"
             is Action.CopyText -> "Copy: ${action.text.take(30)}"
             is Action.Wait -> "Wait: ${action.durationMs}ms"
@@ -146,7 +150,8 @@ fun actionRequirementHint(action: Action): String? =
     when (action) {
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
-        is Action.GlyphPreset,
+        is Action.GlyphPreset, is Action.GlyphIcon, is Action.GlyphNumber,
+        is Action.GlyphCountdown,
         ->
             "Needs a Nothing phone. Output stays lit until a \"Glyph off\" action runs or the mode ends."
 

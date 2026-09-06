@@ -113,6 +113,10 @@ sealed interface TriggerEvent {
     data class DeviceUnlockedEvent(
         override val eventId: String,
     ) : TriggerEvent
+
+    data class DeviceLockedEvent(
+        override val eventId: String,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

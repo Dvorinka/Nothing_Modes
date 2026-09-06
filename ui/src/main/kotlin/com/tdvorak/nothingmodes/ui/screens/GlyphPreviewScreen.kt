@@ -74,6 +74,7 @@ class GlyphPreviewViewModel
 @Composable
 fun GlyphPreviewScreen(
     onBack: () -> Unit,
+    onOpenEditor: () -> Unit = {},
     viewModel: GlyphPreviewViewModel = hiltViewModel(),
 ) {
     val presets =
@@ -224,6 +225,14 @@ fun GlyphPreviewScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    NothingDivider(modifier = Modifier.padding(vertical = NothingSpacing.sm))
+                    GlyphLinkButton(
+                        "Glyph Studio",
+                        Modifier.fillMaxWidth(),
+                    ) {
+                        onOpenEditor()
+                        true
                     }
                 }
             }

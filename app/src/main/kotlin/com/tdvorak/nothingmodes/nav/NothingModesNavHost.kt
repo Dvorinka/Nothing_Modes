@@ -17,6 +17,7 @@ import com.tdvorak.nothingmodes.ui.screens.ConditionCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.ConditionConfigScreen
 import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
+import com.tdvorak.nothingmodes.ui.screens.GlyphEditorScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
@@ -38,6 +39,7 @@ object Routes {
     const val ACTION_CONFIG = "action_config?action={action_json}"
     const val EXECUTION_LOG = "log"
     const val GLYPH_PREVIEW = "glyph_preview"
+    const val GLYPH_EDITOR = "glyph_editor"
     const val SETTINGS = "settings"
     const val TEMPLATES = "templates"
 
@@ -239,7 +241,13 @@ fun NothingModesNavHost() {
         }
 
         composable(Routes.GLYPH_PREVIEW) {
-            GlyphPreviewScreen(onBack = { navController.popBackStack() })
+            GlyphPreviewScreen(
+                onBack = { navController.popBackStack() },
+                onOpenEditor = { navController.navigate(Routes.GLYPH_EDITOR) },
+            )
+        }
+        composable(Routes.GLYPH_EDITOR) {
+            GlyphEditorScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.SETTINGS) {

@@ -1,6 +1,9 @@
 package com.tdvorak.nothingmodes
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.tdvorak.nothingmodes.nav.NothingModesNavHost
+import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
@@ -26,6 +30,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        importDesignIntent(intent)
         enableEdgeToEdge()
         setContent {
             NothingModesThemeDynamic {
@@ -73,6 +78,39 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        importDesignIntent(intent)
+    }
+
+    /**
+     * Import a glyph design shared to / opened with this app. Accepts the
+     * Glyph Museum / GlyphMatrixEditor open JSON format (application/json)
+     * from ACTION_VIEW (data uri) or ACTION_SEND (EXTRA_STREAM uri).
+     */
+    private fun importDesignIntent(intent: Intent?) {
+        val uri: Uri? =
+            when (intent?.action) {
+                Intent.ACTION_VIEW -> intent.data
+                Intent.ACTION_SEND ->
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                else -> null
+            }
+        uri ?: return
+        runCatching {
+            contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()?.let { json ->
+            val store = CustomGlyphStore(this)
+            val name = store.import(json, uri.lastPathSegment?.substringBeforeLast('.'))
+            Toast.makeText(
+                this,
+                if (name != null) "Glyph design imported as $name" else "Not a glyph design file",
+                Toast.LENGTH_LONG,
+            ).show()
         }
     }
 }
