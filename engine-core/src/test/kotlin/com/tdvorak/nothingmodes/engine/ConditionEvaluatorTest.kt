@@ -851,6 +851,36 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `ThermalLevel - MET when throttling is severe`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.ThermalLevel(CmpOp.GTE, 3),
+                DeviceState(values = mapOf("thermal_status" to "4")),
+            ),
+        )
+    }
+
+    @Test
+    fun `ThermalLevel - NOT_MET when cool`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.ThermalLevel(CmpOp.GTE, 3),
+                DeviceState(values = mapOf("thermal_status" to "1")),
+            ),
+        )
+    }
+
+    @Test
+    fun `ThermalLevel - STATE_UNAVAILABLE when missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.ThermalLevel(CmpOp.GT, 0), DeviceState()),
+        )
+    }
+
+    @Test
     fun `nested And-Or-Not evaluates correctly`() {
         val cond =
             Condition.And(

@@ -195,6 +195,17 @@ sealed interface Condition {
         val celsius: Double,
     ) : Condition
 
+    /**
+     * Device thermal status. Reads values["thermal_status"] as the
+     * PowerManager.THERMAL_STATUS_* ordinal (0=none .. 6=shutdown).
+     */
+    @Serializable
+    @SerialName("thermal_level")
+    data class ThermalLevel(
+        val op: CmpOp,
+        val level: Int,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

@@ -94,6 +94,10 @@ class AndroidStateProvider(
         // Power save mode is exposed directly by PowerManager.
         values["power_saving"] = powerManager.isPowerSaveMode.toString()
 
+        // Thermal status (API 29+): 0 none .. 6 shutdown.
+        values["thermal_status"] =
+            runCatching { powerManager.currentThermalStatus }.getOrDefault(0).toString()
+
         // Media playback and ringer mode come from AudioManager.
         val audioManager = context.getSystemService(AudioManager::class.java)
         if (audioManager != null) {

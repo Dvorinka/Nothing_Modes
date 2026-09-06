@@ -390,6 +390,10 @@ class RealActionExecutor(
             "incoming_call", "call" -> GlyphPresets.incomingCall
             "sms", "sms_received" -> GlyphPresets.smsReceived
             "timer", "timer_fired" -> GlyphPresets.timerFired
+            "timer_done" -> GlyphPresets.timerDone
+            "notification_low", "notif_low" -> GlyphPresets.notificationLow
+            "notification_high", "notif_high" -> GlyphPresets.notificationHigh
+            "notification_critical", "notif_critical" -> GlyphPresets.notificationCritical
             "off" -> GlyphPresets.off
             else -> null
         }

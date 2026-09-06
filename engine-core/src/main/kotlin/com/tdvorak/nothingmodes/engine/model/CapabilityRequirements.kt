@@ -246,6 +246,7 @@ object CapabilityRequirements {
             is Condition.ScreenOffFor -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.ChargingSource -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.BatteryTemp -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.ThermalLevel -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Not -> conditionCapabilities(condition.cond)

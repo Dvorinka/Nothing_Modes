@@ -61,6 +61,7 @@ class ConditionEvaluator {
             is Condition.ScreenOffFor -> evaluateScreenOffFor(condition, state)
             is Condition.ChargingSource -> evaluateChargingSource(condition, state)
             is Condition.BatteryTemp -> evaluateBatteryTemp(condition, state)
+            is Condition.ThermalLevel -> evaluateThermalLevel(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -212,6 +213,14 @@ class ConditionEvaluator {
     ): Result {
         val temp = state.values["battery_temp_c"]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
         return compareNumeric(condition.op, temp, condition.celsius)
+    }
+
+    private fun evaluateThermalLevel(
+        condition: Condition.ThermalLevel,
+        state: DeviceState,
+    ): Result {
+        val level = state.values["thermal_status"]?.toLongOrNull() ?: return Result.STATE_UNAVAILABLE
+        return compareNumeric(condition.op, level, condition.level.toLong())
     }
 
     private fun evaluateCharging(

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": 0,
+  "appVersion": "templates",
+  "requiredCapabilities": ["trigger_battery_level", "action_glyph_preset"],
+  "automations": [
+    {
+      "id": "tmpl-wireless-glyph",
+      "name": "Wireless Glyph",
+      "type": "ROUTINE",
+      "createdBy": "IMPORT",
+      "status": "ARMED",
+      "trigger": { "type": "charger_connected", "connected": true, "source": "WIRELESS" },
+      "actions": [
+        { "type": "glyph_preset", "preset": "charging_start" }
+      ],
+      "enabled": false,
+      "quickAction": false,
+      "priority": 0,
+      "cooldownMs": 30000,
+      "schemaVersion": 1,
+      "icon": "bolt",
+      "iconBackground": "#141414"
+    }
+  ]
+}
