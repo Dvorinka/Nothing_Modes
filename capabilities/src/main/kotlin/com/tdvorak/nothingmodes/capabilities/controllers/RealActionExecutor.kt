@@ -322,10 +322,17 @@ class RealActionExecutor(
         progress: Int,
         reverse: Boolean,
     ): ActionResult {
-        val provider =
-            glyphProvider
+        val provider = glyphProvider?.takeIf { it.isAvailable() }
+        if (provider == null) {
+            // Matrix-only devices (e.g. Phone 3): degrade to a percent fill.
+            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
                 ?: return ActionResult.Unsupported
-        if (!provider.isAvailable()) return ActionResult.Unsupported
+            return try {
+                glyphResultToActionResult(matrix.displayPercentFill(progress))
+            } catch (e: Exception) {
+                ActionResult.Failure(e.message ?: "glyph progress failed")
+            }
+        }
         return try {
             val result = provider.displayProgress(progress, reverse)
             glyphResultToActionResult(result)
@@ -401,8 +408,21 @@ class RealActionExecutor(
     private suspend fun renderGlyphVisual(visual: GlyphPresets.GlyphVisual): ActionResult {
         return when (visual) {
             is GlyphPresets.GlyphVisual.Stripe -> {
-                val provider = glyphProvider ?: return ActionResult.Unsupported
-                if (!provider.isAvailable()) return ActionResult.Unsupported
+                val provider = glyphProvider?.takeIf { it.isAvailable() }
+                if (provider == null) {
+                    // No light stripe on this device (matrix-only, e.g. Phone 3):
+                    // degrade — progress presets become a percent fill, pulse
+                    // presets become a full-frame flash.
+                    val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
+                        ?: return ActionResult.Unsupported
+                    return try {
+                        glyphResultToActionResult(
+                            matrix.displayPercentFill(visual.progress ?: 100),
+                        )
+                    } catch (e: Exception) {
+                        ActionResult.Failure(e.message ?: "glyph matrix fallback failed")
+                    }
+                }
                 val progress = visual.progress
                 val zone = visual.zone
                 val channels = visual.channels
