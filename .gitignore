@@ -64,7 +64,8 @@ secrets/
 # Release keystore (do not commit)
 keystore/
 .proxmox-refs
-.desloppify/
+.desloppify/*
+!.desloppify/config.json
 scorecard.png
 
 # Local TODO scratch file
