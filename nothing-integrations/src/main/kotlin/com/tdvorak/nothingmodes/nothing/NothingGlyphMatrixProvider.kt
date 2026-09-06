@@ -532,10 +532,10 @@ class NothingGlyphMatrixProvider(
     }
 
     /**
-     * Start a live music-reactive equalizer on the matrix.
+     * Start a live music-reactive waveform on the matrix.
      *
      * Requires [android.Manifest.permission.RECORD_AUDIO] for real capture;
-     * falls back to a gentle simulated equalizer when denied or unsupported.
+     * falls back to a gentle simulated waveform when denied or unsupported.
      * The visualizer runs until another glyph action, [turnOff], or
      * [stopMusicVisualizer] cancels it.
      */
@@ -551,8 +551,8 @@ class NothingGlyphMatrixProvider(
         val ok = audioAnalyzer.init()
         if (!ok) {
             // Even without permission we still try to show a simulated
-            // equalizer while music is playing.
-            Log.w(TAG, "Audio visualizer not available — using simulation")
+            // waveform while music is playing.
+            Log.w(TAG, "Audio visualizer not available — waveform will simulate")
         }
 
         musicJob =
@@ -566,14 +566,13 @@ class NothingGlyphMatrixProvider(
                     }
 
                     val size = matrixSize()
-                    val bands = audioAnalyzer.getBands(size)
+                    val samples = audioAnalyzer.getWaveform(size)
                     val frame = MusicGlyphRenderer.render(
-                        bands = bands,
+                        samples = samples,
                         size = size,
-                        simulated = audioAnalyzer.isSimulated,
                     )
                     if (setFrame(frame) !is GlyphResult.Success) break
-                    delay(40)
+                    delay(30)
                 }
             }
         return GlyphResult.Success

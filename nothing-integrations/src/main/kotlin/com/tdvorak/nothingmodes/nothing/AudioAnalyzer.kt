@@ -8,10 +8,11 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 
 /**
- * Minimal real-time audio capture for the Glyph Matrix equalizer.
+ * Minimal real-time audio capture for the Glyph Matrix music visualizer.
  *
  * Uses [Visualizer] on session 0 (global output mix) when [RECORD_AUDIO] is
- * granted. Falls back to a simulated waveform driven by [AudioManager.isMusicActive].
+ * granted. Captures both FFT (for equalizer) and raw waveform (for wave line).
+ * Falls back to a simulated waveform driven by [AudioManager.isMusicActive].
  */
 class AudioAnalyzer(context: Context) {
 
@@ -21,6 +22,7 @@ class AudioAnalyzer(context: Context) {
     private var visualizer: Visualizer? = null
     private var captureSize = 0
     private var fftBuffer = ByteArray(0)
+    private var waveBuffer = ByteArray(0)
     private var enabled = false
 
     /** Whether the caller is seeing simulated data, not live FFT. */
@@ -75,6 +77,7 @@ class AudioAnalyzer(context: Context) {
             captureSize = vis.captureSize
             visualizer = vis
             fftBuffer = ByteArray(captureSize / 2 + 1)
+            waveBuffer = ByteArray(captureSize)
             enabled = true
             isSimulated = false
             Log.i(TAG, "Visualizer initialised with captureSize=$captureSize")
@@ -90,7 +93,17 @@ class AudioAnalyzer(context: Context) {
      * Returns an equalizer-style energy band for each of [bandCount] columns.
      * Values are in 0..1. When no music is playing all values are 0.
      */
-    fun getBands(bandCount: Int): FloatArray {
+    fun getBands(bandCount: Int): FloatArray =
+        if (isMusicActive) getSpectrum(bandCount) else FloatArray(bandCount) { 0f }
+
+    /**
+     * Returns a single raw waveform sample for each column, centred on 0.
+     * Values are in -1..1. When no music is playing all values are 0.
+     */
+    fun getWaveform(size: Int): FloatArray =
+        if (isMusicActive) getWaveformSamples(size) else FloatArray(size) { 0f }
+
+    private fun getSpectrum(bandCount: Int): FloatArray {
         val out = FloatArray(bandCount) { 0f }
         if (!isMusicActive) {
             isSimulated = visualizer == null
@@ -117,6 +130,55 @@ class AudioAnalyzer(context: Context) {
         }
 
         return out
+    }
+
+    private fun getWaveformSamples(size: Int): FloatArray {
+        val out = FloatArray(size) { 0f }
+
+        if (!enabled || visualizer == null) {
+            isSimulated = true
+        }
+
+        val vis = visualizer
+        if (!isSimulated && vis != null) {
+            try {
+                vis.getWaveForm(waveBuffer)
+                resampleWaveform(waveBuffer, out)
+            } catch (e: Exception) {
+                Log.w(TAG, "getWaveForm failed: ${e.message}")
+                isSimulated = true
+            }
+        }
+
+        if (isSimulated) {
+            simulateWaveform(out)
+        }
+
+        return out
+    }
+
+    private fun resampleWaveform(wave: ByteArray, out: FloatArray) {
+        val size = out.size
+        if (size <= 0) return
+
+        // Pick one representative sample per column from the middle of each chunk.
+        val step = wave.size / size
+        for (i in 0 until size) {
+            val center = (i * step + step / 2).coerceIn(0, wave.size - 1)
+            val signed = (wave[center].toInt() and 0xFF) - 128
+            out[i] = (signed / 128f).coerceIn(-1f, 1f)
+        }
+    }
+
+    private fun simulateWaveform(out: FloatArray) {
+        val now = SystemClock.elapsedRealtime() / 1000.0
+        val t = now * 6.0
+        for (i in out.indices) {
+            val x = i / out.size.toDouble() * Math.PI * 2
+            val value = kotlin.math.sin(t + x) * 0.4 + kotlin.math.sin(t * 1.3 + x * 2) * 0.2
+            out[i] = if (isMusicActive) value.toFloat().coerceIn(-1f, 1f) else 0f
+        }
+        simPhase += 0.1
     }
 
     /**

@@ -1,53 +1,59 @@
 package com.tdvorak.nothingmodes.nothing
 
+import kotlin.math.abs
+
 /**
- * Renders live audio bands to a Glyph Matrix equalizer frame.
+ * Renders a live audio waveform to a Glyph Matrix frame.
  *
  * The output is a row-major [IntArray] of size [size] x [size] where each
- * element is 0..4095 brightness. Values below 0 are treated as ARGB by the
- * matrix provider, so this renderer already emits 0..255 and lets
- * [NothingGlyphMatrixProvider.setFrame] scale them.
+ * element is 0..255 brightness (scaled to 0..4095 by the matrix provider).
+ *
+ * The waveform is drawn as a line centred on the middle row. Positive samples
+ * move toward the top, negative samples toward the bottom. When the audio
+ * value is zero the pixel lands on the middle row, so the wave appears to
+ * animate from the middle line. If no audio is active the provider sends a
+ * blank frame, leaving the middle line empty.
  */
 object MusicGlyphRenderer {
 
     /**
-     * @param bands energy per column, length should match [size].
+     * @param samples signed waveform samples, length must match [size].
      * @param size 13 or 25, matching the target Glyph Matrix.
      * @param brightness master brightness scalar 0..255.
-     * @param simulated when true, the equalizer is generated, not live.
      * @return a full square IntArray ready for [NothingGlyphMatrixProvider.setFrame].
      */
     fun render(
-        bands: FloatArray,
+        samples: FloatArray,
         size: Int,
         brightness: Int = 255,
-        simulated: Boolean = false,
     ): IntArray {
-        require(size == bands.size || size == 25 || size == 13) {
-            "bands size ${bands.size} must match matrix size $size"
+        require(size == samples.size) {
+            "samples size ${samples.size} must match matrix size $size"
         }
 
         val output = IntArray(size * size) { 0 }
         val maxBright = brightness.coerceIn(0, 255)
+        val centerY = size / 2
+        val halfHeight = size / 2
+
+        var prevY = centerY
 
         for (col in 0 until size) {
-            val band = if (col < bands.size) bands[col] else 0f
-            val height = (band * size).toInt().coerceIn(0, size)
+            val sample = samples[col].coerceIn(-1f, 1f)
+            // Positive -> up (smaller row index), negative -> down (larger row index).
+            val y = (centerY - (sample * halfHeight)).toInt().coerceIn(0, size - 1)
 
-            // Fill the column from the bottom up.
-            for (row in 0 until height) {
-                val visualRow = size - 1 - row
-                val idx = visualRow * size + col
-
-                // Dim the top of the bar for a smoother look.
-                val dim = if (row == height - 1 && height > 1) 0.7f else 1.0f
-                // Simulated mode is slightly softer so users can tell it's a
-                // fallback when permission is missing.
-                val simDim = if (simulated) 0.75f else 1.0f
-
-                val value = (maxBright * dim * simDim * band.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
-                if (value > 0) output[idx] = value
+            // Draw the point and a short vertical segment to the previous point
+            // so the wave does not look like disconnected dots.
+            val y0 = minOf(prevY, y)
+            val y1 = maxOf(prevY, y)
+            for (row in y0..y1) {
+                val dist = abs(row - centerY).toFloat() / halfHeight.coerceAtLeast(1)
+                val bright = (maxBright * (1f - dist * 0.4f)).toInt().coerceIn(0, 255)
+                output[row * size + col] = bright
             }
+
+            prevY = y
         }
 
         return output
