@@ -98,6 +98,25 @@ private val iconOptions =
 
 fun iconForName(name: String): ImageVector = iconOptions.find { it.name == name }?.icon ?: Icons.Outlined.Star
 
+private val emojiToIconName =
+    mapOf(
+        "🌙" to "dark_mode", "💡" to "lightbulb", "⚡" to "battery", "🎧" to "music",
+        "🏠" to "home", "🏡" to "home", "✈️" to "airplane", "🛫" to "airplane",
+        "📍" to "location", "🗺️" to "location", "⏰" to "alarm", "🕐" to "clock",
+        "⏱️" to "timer", "⏲️" to "timer", "🔕" to "notification", "🔔" to "notification",
+        "💼" to "work", "🎮" to "game", "🎯" to "game", "🏋️" to "fitness",
+        "💪" to "fitness", "🍔" to "food", "🍽️" to "food", "🛒" to "shopping",
+        "☀️" to "sun", "🌅" to "sun", "🔆" to "brightness", "📶" to "wifi",
+        "🔊" to "volume", "🎵" to "music", "📱" to "phone", "☎️" to "phone",
+        "💬" to "message", "📧" to "email", "⚙️" to "settings", "🔧" to "settings",
+        "⭐" to "star", "🌐" to "language", "👤" to "person", "✅" to "check",
+        "🔒" to "lock", "📳" to "vibration", "🎤" to "mic", "☁️" to "cloud",
+        "💨" to "air", "🔦" to "flashlight", "📢" to "campaign", "⏻" to "power",
+        "🔋" to "battery", "🌡️" to "air",
+    )
+
+fun iconForEmoji(emoji: String): ImageVector = iconForName(emojiToIconName[emoji.trim()] ?: "")
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun IconColorPickerSheet(

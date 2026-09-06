@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -386,9 +387,10 @@ private fun TemplateRow(
             onClick = onClick,
             leading = {
                 NothingIconCircle {
-                    Text(
-                        text = template.emoji.ifBlank { "•" },
-                        style = MaterialTheme.typography.titleMedium,
+                    Icon(
+                        imageVector = iconForEmoji(template.emoji),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             },
@@ -432,9 +434,10 @@ private fun TemplateInstallSheet(
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
         ) {
             NothingIconCircle {
-                Text(
-                    text = install.summary.emoji.ifBlank { "•" },
-                    style = MaterialTheme.typography.titleMedium,
+                Icon(
+                    imageVector = iconForEmoji(install.summary.emoji),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Column {
