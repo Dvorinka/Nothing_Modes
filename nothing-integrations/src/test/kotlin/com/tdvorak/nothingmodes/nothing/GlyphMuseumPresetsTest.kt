@@ -14,6 +14,7 @@ class GlyphMuseumPresetsTest {
         val files = dir.listFiles { _, name -> name.endsWith(".json") }?.sortedBy { it.name } ?: emptyList()
 
         org.junit.Assert.assertTrue("No bundled presets found", files.isNotEmpty())
+        org.junit.Assert.assertEquals(28, files.size)
 
         for (file in files) {
             val json = file.readText()

@@ -76,6 +76,9 @@ object GlyphIconLibrary {
     /** Canonical icon names — used by the catalog/config UI and debug parse. */
     val names: List<String> = nameToEmoji.keys.toList()
 
+    /** The emoji rendered for [name], or null if the name is not a known icon. */
+    fun emojiFor(name: String): String? = nameToEmoji[name.lowercase()]
+
     /**
      * @return the 25x25 frame for [name], or null when the name is neither a
      * known icon nor a usable emoji.

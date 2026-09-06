@@ -306,12 +306,19 @@ fun ActionConfigScreen(
                     }
 
                     is Action.GlyphIcon -> {
-                        NothingEnumSelector(
-                            label = "Icon",
+                        var showIconPicker by remember { mutableStateOf(false) }
+                        GlyphIconField(
                             value = a.name,
-                            options = glyphIconOptions(),
-                            onSelect = { action = a.copy(name = it) },
+                            onClick = { showIconPicker = true },
+                            modifier = Modifier.fillMaxWidth(),
                         )
+                        if (showIconPicker) {
+                            GlyphIconPickerDialog(
+                                initial = a.name,
+                                onSelect = { action = a.copy(name = it); showIconPicker = false },
+                                onDismiss = { showIconPicker = false },
+                            )
+                        }
                     }
 
                     is Action.GlyphNumber -> {

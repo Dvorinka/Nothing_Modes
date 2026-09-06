@@ -471,12 +471,12 @@ class NothingGlyphMatrixProvider(
      * Display an icon by name. Resolution order: saved custom design
      * ([CustomGlyphStore]) → bundled Glyph Museum presets
      * ([GlyphMuseumPresets]) → emoji icon table ([GlyphIconLibrary]) → raw
-     * emoji passthrough. Animated customs play all frames once at their
-     * own durations.
+     * emoji passthrough. Animated designs loop until [stopDesign] or another
+     * glyph replaces them; static designs remain lit.
      */
     fun displayIcon(name: String): GlyphResult {
-        CustomGlyphStore(context).design(name)?.let { return displayDesign(it) }
-        presets.design(name)?.let { return displayDesign(it) }
+        CustomGlyphStore(context).design(name)?.let { return displayDesign(it, loop = true) }
+        presets.design(name)?.let { return displayDesign(it, loop = true) }
         val frame = GlyphIconLibrary.frameFor(name)
             ?: return GlyphResult.Failure("Unknown icon: $name")
         if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("icon:$name", frame, matrixSize())
@@ -485,12 +485,14 @@ class NothingGlyphMatrixProvider(
 
     /**
      * Display a decoded open-format design. Static designs push one frame;
-     * animations play each frame at its `d` duration (default 100ms), once.
-     * When the design targets a different matrix size, it is bilinearly
-     * resampled to the current device's matrix so a Phone 4a Pro design can
-     * render on a Phone 3 and vice versa.
+     * animations play each frame at its `d` duration (default 100ms).
+     * When [loop] is true the animation repeats until cancelled; otherwise
+     * it plays once and stops.
      */
-    fun displayDesign(design: GlyphFrameCodec.Design): GlyphResult {
+    fun displayDesign(
+        design: GlyphFrameCodec.Design,
+        loop: Boolean = false,
+    ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
@@ -504,10 +506,13 @@ class NothingGlyphMatrixProvider(
         stopDesign()
         designJob =
             countdownScope.launch {
-                for (frame in target.frames) {
-                    if (!isActive) break
-                    if (setFrame(frame.pixels) !is GlyphResult.Success) break
-                    delay((frame.durationMs ?: 100).toLong().coerceIn(20, 60_000))
+                while (isActive) {
+                    for (frame in target.frames) {
+                        if (!isActive) break
+                        if (setFrame(frame.pixels) !is GlyphResult.Success) break
+                        delay((frame.durationMs ?: 100).toLong().coerceIn(20, 60_000))
+                    }
+                    if (!loop) break
                 }
             }
         return GlyphResult.Success

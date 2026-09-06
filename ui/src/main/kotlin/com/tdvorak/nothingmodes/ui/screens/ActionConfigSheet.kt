@@ -362,12 +362,19 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphIcon -> {
-            NothingEnumSelector(
-                label = "Icon",
+            var showIconPicker by remember { mutableStateOf(false) }
+            GlyphIconField(
                 value = a.name,
-                options = glyphIconOptions(),
-                onSelect = { onActionChange(a.copy(name = it)) },
+                onClick = { showIconPicker = true },
+                modifier = Modifier.fillMaxWidth(),
             )
+            if (showIconPicker) {
+                GlyphIconPickerDialog(
+                    initial = a.name,
+                    onSelect = { onActionChange(a.copy(name = it)); showIconPicker = false },
+                    onDismiss = { showIconPicker = false },
+                )
+            }
         }
 
         is Action.GlyphNumber -> {
@@ -711,20 +718,7 @@ internal val GLYPH_PRESET_NAMES =
         "off",
     )
 
-/** Named glyph icons backed by [com.tdvorak.nothingmodes.nothing.GlyphIconLibrary]. */
-internal val GLYPH_ICON_NAMES: List<String> =
-    com.tdvorak.nothingmodes.nothing.GlyphIconLibrary.names
 
-/** Emoji icons, bundled Glyph Museum presets, and saved Glyph Studio designs. */
-@androidx.compose.runtime.Composable
-internal fun glyphIconOptions(): List<String> {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    return androidx.compose.runtime.remember {
-        GLYPH_ICON_NAMES +
-            com.tdvorak.nothingmodes.nothing.GlyphMuseumPresets(context).names() +
-            com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names()
-    }
-}
 
 private fun actionTitle(action: Action): String =
     when (action) {
