@@ -365,6 +365,8 @@ a { color: inherit; text-decoration: none; }
 }
 .matrix .cell.on { background: var(--text); }
 .matrix .cell.red { background: var(--red); }
+.matrix .cell.sig { background: var(--red); }
+.matrix .cell.sig.sig-white { background: var(--text); }
 .matrix .cell.hover { background: var(--text); }
 .matrix-meta { color: var(--text-3); }
 

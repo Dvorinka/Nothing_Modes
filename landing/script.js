@@ -36,9 +36,16 @@
     // Short straight segment on the right, inside the arc.
     for (let y = 10; y <= 14; y++) grid[y][19] = 1;
 
-    // Red plus signature inside the top-right gap — the accent element.
-    for (let y = 2; y <= 6; y++) grid[y][19] = 2;
-    for (let x = 17; x <= 21; x++) grid[4][x] = 2;
+    // Star signature inside the top-right gap — vertical bar, wider
+    // horizontal bar, and the four inner diagonal cells filled (value 3).
+    const starCells = [];
+    const star = (x, y) => {
+      grid[y][x] = 3;
+      starCells.push([x, y]);
+    };
+    for (let y = 2; y <= 6; y++) star(19, y);        // vertical
+    for (let x = 16; x <= 22; x++) star(x, 4);       // horizontal
+    [[18, 3], [20, 3], [18, 5], [20, 5]].forEach(([x, y]) => star(x, y));
 
     const frag = document.createDocumentFragment();
     const cells = [];
@@ -47,7 +54,7 @@
         const c = document.createElement("div");
         c.className = "cell";
         if (grid[y][x] === 1) c.classList.add("on");
-        if (grid[y][x] === 2) c.classList.add("red");
+        if (grid[y][x] === 3) c.classList.add("sig");
         frag.appendChild(c);
         cells.push(c);
       }
@@ -76,6 +83,17 @@
       matrix.addEventListener("mouseleave", () => {
         cells.forEach((c) => c.classList.remove("hover"));
       });
+
+      // Star blinks red <-> white on a hard timer.
+      const sigEls = starCells.map(([x, y]) => cells[y * N + x]);
+      let starRed = true;
+      setInterval(() => {
+        starRed = !starRed;
+        sigEls.forEach((c) => {
+          c.classList.toggle("sig-red", starRed);
+          c.classList.toggle("sig-white", !starRed);
+        });
+      }, 650);
     }
   }
 })();
