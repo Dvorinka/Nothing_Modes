@@ -89,11 +89,34 @@ class NothingGlyphMatrixProvider(
         val expected = matrixSize() * matrixSize()
         if (colors.size != expected) return GlyphResult.Failure("Expected $expected colors, got ${colors.size}")
         return try {
-            manager?.setAppMatrixFrame(colors)
+            // The service expects per-dot brightness 0..4095, NOT ARGB.
+            // ARGB (e.g. 0xFFFFFFFF) or a 0..255 value renders near-black —
+            // the threshold path snaps anything < 1024 to off.
+            manager?.setAppMatrixFrame(IntArray(colors.size) { i -> toDotBrightness(colors[i]) })
             GlyphResult.Success
         } catch (e: Exception) {
             GlyphResult.Failure(e.message ?: "setFrame failed")
         }
+    }
+
+    /**
+     * Normalize any caller value to the matrix's 0..4095 brightness scale.
+     * 0..255 -> treated as 8-bit brightness and scaled up; anything with an
+     * alpha byte (ARGB) -> luminance first, then scaled.
+     */
+    private fun toDotBrightness(value: Int): Int {
+        val eightBit =
+            when {
+                value in 0..255 -> value
+                value < 0 -> { // ARGB int
+                    val r = (value shr 16) and 0xFF
+                    val g = (value shr 8) and 0xFF
+                    val b = value and 0xFF
+                    (r * 299 + g * 587 + b * 114) / 1000
+                }
+                else -> return value.coerceIn(0, 4095) // already wide-range
+            }
+        return (eightBit * 4095 / 255).coerceIn(0, 4095)
     }
 
     fun closeFrame(): GlyphResult {
