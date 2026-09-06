@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
@@ -104,7 +105,7 @@ fun GlyphPreviewScreen(
     var activeAodToy by remember { mutableStateOf(toysBridge.activeAodToy()) }
 
     // Refresh when the user returns from the system Glyph Toys screens.
-    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer =
             androidx.lifecycle.LifecycleEventObserver { _, event ->
