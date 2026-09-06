@@ -419,11 +419,7 @@ a { color: inherit; text-decoration: none; }
   background: #161616;
   vertical-align: middle;
 }
-.cap-dot.on {
-  background: var(--text);
-  border: 2px solid var(--red);
-  box-sizing: border-box;
-}
+.cap-dot.on { background: var(--red); }
 .board .any-row .dev { color: var(--text-2); }
 .board .any-cell {
   color: var(--text-3);

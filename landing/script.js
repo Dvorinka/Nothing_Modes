@@ -71,7 +71,7 @@
         for (let y = 0; y < N; y++) {
           for (let x = 0; x < N; x++) {
             const c = cells[y * N + x];
-            if (!c.classList.contains("on") && !c.classList.contains("red")) {
+            if (!c.classList.contains("on") && !c.classList.contains("sig")) {
               const dx = x - cxp, dy = y - cyp;
               const d = Math.sqrt(dx * dx + dy * dy);
               if (d < 2.2) c.classList.add("hover");

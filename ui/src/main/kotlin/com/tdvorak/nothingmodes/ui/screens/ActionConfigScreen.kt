@@ -280,10 +280,11 @@ fun ActionConfigScreen(
                     }
 
                     is Action.GlyphPreset -> {
-                        NothingInput(
+                        NothingEnumSelector(
+                            label = "Preset",
                             value = a.preset,
-                            onValueChange = { action = a.copy(preset = it) },
-                            label = "Preset name",
+                            options = GLYPH_PRESET_NAMES,
+                            onSelect = { action = a.copy(preset = it) },
                         )
                     }
 

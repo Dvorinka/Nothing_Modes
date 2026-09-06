@@ -656,8 +656,8 @@ fun ActionConfigContent(
     }
 }
 
-/** Named glyph presets understood by the executor's presetFor(). */
-private val GLYPH_PRESET_NAMES =
+/** Named glyph presets understood by the executor's presetFor() — canonical names only. */
+internal val GLYPH_PRESET_NAMES =
     listOf(
         "sleep",
         "morning",
@@ -667,11 +667,15 @@ private val GLYPH_PRESET_NAMES =
         "fired",
         "error",
         "success",
-        "charging",
+        "charging_start",
         "charging_complete",
         "call",
         "sms",
         "timer",
+        "timer_done",
+        "notification_low",
+        "notification_high",
+        "notification_critical",
         "off",
     )
 
