@@ -161,9 +161,10 @@ class NothingGlyphMatrixProvider(
         if (!connected) return GlyphResult.ServiceUnavailable
         return try {
             // (0,0) is the grid's top-left corner — outside the round matrix.
-            // Center: each glyph ~5 dots wide +1 spacing, ~7 dots tall.
+            // NDot glyphs are ~5 dots wide with 1-dot spacing, ~7 dots tall.
             val size = matrixSize()
-            val px = if (x >= 0) x else ((size - text.length * 6) / 2).coerceIn(0, size)
+            val textWidth = text.length * 5 + (text.length - 1).coerceAtLeast(0)
+            val px = if (x >= 0) x else ((size - textWidth) / 2).coerceIn(0, size)
             val py = if (y >= 0) y else (size - 7) / 2
             val obj =
                 GlyphMatrixObject

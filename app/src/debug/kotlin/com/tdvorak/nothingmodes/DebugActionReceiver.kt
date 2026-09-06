@@ -83,6 +83,12 @@ class DebugActionReceiver : BroadcastReceiver() {
             }.onFailure { Log.e(TAG, "probe failed", it) }
             return
         }
+        if (intent.getStringExtra("type") == "toy_play" || intent.getStringExtra("type") == "toy_stop") {
+            // Foreign-toy probe: bind another app's toy service via
+            // com.nothing.glyph.TOY and drive its GlyphToy lifecycle.
+            toyControl(context, intent, intent.getStringExtra("type") == "toy_play")
+            return
+        }
         val executor =
             EntryPointAccessors
                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
@@ -201,5 +207,66 @@ class DebugActionReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "NmDebug"
         const val ACTION = "com.tdvorak.nothingmodes.debug.TEST_ACTION"
+
+        private var toyConnection: android.content.ServiceConnection? = null
+        private var toyMessenger: android.os.Messenger? = null
+
+        /** Bind a foreign Glyph Toy service and send prepare/start (or end+unbind). */
+        private fun toyControl(context: Context, intent: Intent, play: Boolean) {
+            val appContext = context.applicationContext
+            if (!play) {
+                val conn = toyConnection ?: run { Log.i(TAG, "toy_stop: nothing bound"); return }
+                toyMessenger?.let { sendToyMsg(it, "end") }
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    runCatching { appContext.unbindService(conn) }
+                    toyConnection = null
+                    toyMessenger = null
+                    Log.i(TAG, "toy_stop -> sent end, unbound")
+                }, 300)
+                return
+            }
+            val pkg = intent.getStringExtra("pkg").orEmpty()
+            val svc = intent.getStringExtra("svc").orEmpty()
+            if (pkg.isBlank() || svc.isBlank()) {
+                Log.w(TAG, "toy_play needs -e pkg <package> -e svc <serviceClass>")
+                return
+            }
+            val cls = if (svc.startsWith(".")) pkg + svc else svc
+            val bindIntent =
+                Intent("com.nothing.glyph.TOY").apply {
+                    component = android.content.ComponentName(pkg, cls)
+                }
+            val conn =
+                object : android.content.ServiceConnection {
+                    override fun onServiceConnected(name: android.content.ComponentName?, binder: android.os.IBinder?) {
+                        val messenger = android.os.Messenger(binder)
+                        toyMessenger = messenger
+                        sendToyMsg(messenger, "prepare")
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            sendToyMsg(messenger, "start")
+                            Log.i(TAG, "toy_play -> $pkg/$cls sent prepare+start")
+                        }, 600)
+                    }
+
+                    override fun onServiceDisconnected(name: android.content.ComponentName?) {
+                        Log.w(TAG, "toy service disconnected: $name")
+                    }
+                }
+            val bound =
+                runCatching { appContext.bindService(bindIntent, conn, Context.BIND_AUTO_CREATE) }
+                    .getOrElse { Log.e(TAG, "bind threw: ${it.message}"); false }
+            Log.i(TAG, "toy_play bind($pkg/$cls) -> $bound")
+            if (bound) toyConnection = conn
+        }
+
+        private fun sendToyMsg(messenger: android.os.Messenger, event: String) {
+            runCatching {
+                val msg =
+                    android.os.Message.obtain(null, 1).apply {
+                        data = android.os.Bundle().apply { putString("data", event) }
+                    }
+                messenger.send(msg)
+            }.onFailure { Log.e(TAG, "toy msg '$event' failed: ${it.message}") }
+        }
     }
 }
