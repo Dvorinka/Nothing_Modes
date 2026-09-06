@@ -223,6 +223,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             "glyph_icon" -> Action.GlyphIcon(intent.getStringExtra("icon").orEmpty().ifBlank { "check" })
             "glyph_number" -> Action.GlyphNumber(intent.getIntExtra("number", 0).coerceIn(0, 99))
             "glyph_countdown" -> Action.GlyphCountdown(duration.coerceIn(1, 599))
+            "glyph_music" -> Action.GlyphMusic
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })
             "wait" -> Action.Wait(duration.toLong())

@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import androidx.core.content.ContextCompat
 import android.provider.Settings
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -124,6 +125,7 @@ class RealActionExecutor(
             is Action.GlyphIcon -> glyphIcon(action.name)
             is Action.GlyphNumber -> glyphNumber(action.number)
             is Action.GlyphCountdown -> glyphCountdown(action.seconds)
+            is Action.GlyphMusic -> glyphMusic()
             is Action.GlyphTurnOff -> glyphTurnOff()
 
             // System settings toggles (Phase 4)
@@ -454,6 +456,25 @@ class RealActionExecutor(
             glyphResultToActionResult(provider.displayCountdown(seconds))
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "glyph countdown failed")
+        }
+    }
+
+    private suspend fun glyphMusic(): ActionResult {
+        val provider =
+            glyphMatrixProvider
+                ?: return ActionResult.Unsupported
+        if (!provider.isAvailable()) return ActionResult.Unsupported
+
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            return ActionResult.Failure("RECORD_AUDIO permission required for live music visualizer")
+        }
+
+        return try {
+            glyphResultToActionResult(provider.startMusicVisualizer())
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "glyph music visualizer failed")
         }
     }
 

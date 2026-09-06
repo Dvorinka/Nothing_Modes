@@ -339,6 +339,14 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.GlyphMusic -> {
+                        Text(
+                            text = "Live music-reactive equalizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     is Action.CopyText -> {
                         NothingInput(
                             value = a.text,

@@ -43,6 +43,7 @@ object ActionTypeIds {
     const val GLYPH_ICON = "glyph_icon"
     const val GLYPH_NUMBER = "glyph_number"
     const val GLYPH_COUNTDOWN = "glyph_countdown"
+    const val GLYPH_MUSIC = "glyph_music"
     const val SET_MOBILE_DATA = "set_mobile_data"
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
@@ -265,6 +266,11 @@ sealed interface Action {
         val seconds: Int,
     ) : Action
 
+    /** Live music-reactive equalizer. Runs until another glyph action or [GlyphTurnOff] cancels it. */
+    @Serializable
+    @SerialName(ActionTypeIds.GLYPH_MUSIC)
+    data object GlyphMusic : Action
+
     /** Turn off all glyphs. */
     @Serializable
     @SerialName(ActionTypeIds.GLYPH_TURNOFF)
@@ -426,6 +432,7 @@ val Action.isGlyphAction: Boolean
             is Action.GlyphIcon,
             is Action.GlyphNumber,
             is Action.GlyphCountdown,
+            is Action.GlyphMusic,
             -> true
             is Action.GlyphTurnOff -> false
             else -> false

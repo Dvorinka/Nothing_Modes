@@ -395,6 +395,14 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.GlyphMusic -> {
+            Text(
+                text = "Live music-reactive equalizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         is Action.CopyText -> {
             NothingInput(
                 value = a.text,
@@ -746,6 +754,7 @@ private fun actionTitle(action: Action): String =
         is Action.GlyphIcon -> "Glyph icon"
         is Action.GlyphNumber -> "Glyph number"
         is Action.GlyphCountdown -> "Glyph countdown"
+        is Action.GlyphMusic -> "Glyph music"
         is Action.CopyText -> "Copy text"
         is Action.OpenUrl -> "Open URL"
         is Action.LaunchApp -> "Launch app"

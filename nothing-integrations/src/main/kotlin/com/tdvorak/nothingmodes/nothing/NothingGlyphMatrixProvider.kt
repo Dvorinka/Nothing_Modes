@@ -46,8 +46,10 @@ class NothingGlyphMatrixProvider(
     private val countdownScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var countdownJob: Job? = null
     private var designJob: Job? = null
+    private var musicJob: Job? = null
 
     private val toysBridge by lazy { GlyphToysBridge(context) }
+    private val audioAnalyzer by lazy { AudioAnalyzer(context) }
 
     fun isAvailable(): Boolean = detector.detectGlyphHardware().isMatrix
 
@@ -95,6 +97,7 @@ class NothingGlyphMatrixProvider(
         stopMarquee()
         stopCountdown()
         stopDesign()
+        stopMusicVisualizer()
         try {
             manager?.unInit()
         } catch (e: Exception) {
@@ -160,6 +163,7 @@ class NothingGlyphMatrixProvider(
             stopMarquee()
             stopCountdown()
             stopDesign()
+            stopMusicVisualizer()
             manager?.turnOff()
             // Push a real black frame — turnOff() alone leaves the last
             // frame on the app layer — then release the layer entirely.
@@ -475,6 +479,7 @@ class NothingGlyphMatrixProvider(
      * glyph replaces them; static designs remain lit.
      */
     fun displayIcon(name: String): GlyphResult {
+        stopMusicVisualizer()
         CustomGlyphStore(context).design(name)?.let { return displayDesign(it, loop = true) }
         presets.design(name)?.let { return displayDesign(it, loop = true) }
         val frame = GlyphIconLibrary.frameFor(name)
@@ -501,8 +506,10 @@ class NothingGlyphMatrixProvider(
         val target =
             if (design.gridSize == size) design else GlyphFrameCodec.rescaleDesign(design, size)
         if (target.frames.size == 1) {
+            stopMusicVisualizer()
             return setFrame(target.frames[0].pixels)
         }
+        stopMusicVisualizer()
         stopDesign()
         designJob =
             countdownScope.launch {
@@ -522,6 +529,61 @@ class NothingGlyphMatrixProvider(
     fun stopDesign() {
         designJob?.cancel()
         designJob = null
+    }
+
+    /**
+     * Start a live music-reactive equalizer on the matrix.
+     *
+     * Requires [android.Manifest.permission.RECORD_AUDIO] for real capture;
+     * falls back to a gentle simulated equalizer when denied or unsupported.
+     * The visualizer runs until another glyph action, [turnOff], or
+     * [stopMusicVisualizer] cancels it.
+     */
+    fun startMusicVisualizer(): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        if (!toysBridge.ownsMatrix()) {
+            return GlyphResult.Failure("matrix owned by another toy")
+        }
+
+        stopMusicVisualizer()
+        stopDesign()
+
+        val ok = audioAnalyzer.init()
+        if (!ok) {
+            // Even without permission we still try to show a simulated
+            // equalizer while music is playing.
+            Log.w(TAG, "Audio visualizer not available — using simulation")
+        }
+
+        musicJob =
+            countdownScope.launch {
+                while (isActive) {
+                    if (!audioAnalyzer.isMusicActive) {
+                        // Draw nothing while music is paused.
+                        setFrame(IntArray(matrixSize() * matrixSize()))
+                        delay(200)
+                        continue
+                    }
+
+                    val size = matrixSize()
+                    val bands = audioAnalyzer.getBands(size)
+                    val frame = MusicGlyphRenderer.render(
+                        bands = bands,
+                        size = size,
+                        simulated = audioAnalyzer.isSimulated,
+                    )
+                    if (setFrame(frame) !is GlyphResult.Success) break
+                    delay(40)
+                }
+            }
+        return GlyphResult.Success
+    }
+
+    /** Stop the live music visualizer and release its audio resources. */
+    fun stopMusicVisualizer() {
+        musicJob?.cancel()
+        musicJob = null
+        audioAnalyzer.release()
     }
 
     /**

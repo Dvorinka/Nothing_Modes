@@ -336,6 +336,12 @@ fun ActionCatalogScreen(navController: NavController) {
                     action = Action.GlyphAnimate(),
                 ),
                 ActionItem(
+                    label = "Glyph music",
+                    category = "Glyph",
+                    icon = Icons.Outlined.MusicNote,
+                    action = Action.GlyphMusic,
+                ),
+                ActionItem(
                     label = "Glyph turn off",
                     category = "Glyph",
                     icon = Icons.Outlined.PowerSettingsNew,

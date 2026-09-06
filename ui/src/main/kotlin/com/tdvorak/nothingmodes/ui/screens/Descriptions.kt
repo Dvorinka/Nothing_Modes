@@ -119,6 +119,7 @@ fun actionDescription(action: Action): String =
             is Action.GlyphIcon -> "Glyph Icon: ${action.name}"
             is Action.GlyphNumber -> "Glyph Number: ${action.number}"
             is Action.GlyphCountdown -> "Glyph Countdown: ${action.seconds}s"
+            is Action.GlyphMusic -> "Glyph Music"
             is Action.GlyphTurnOff -> "Glyph Off"
             is Action.CopyText -> "Copy: ${action.text.take(30)}"
             is Action.Wait -> "Wait: ${action.durationMs}ms"
@@ -151,7 +152,7 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
         is Action.GlyphPreset, is Action.GlyphIcon, is Action.GlyphNumber,
-        is Action.GlyphCountdown,
+        is Action.GlyphCountdown, is Action.GlyphMusic,
         ->
             "Needs a Nothing phone. Output stays lit until a \"Glyph off\" action runs or the mode ends."
 

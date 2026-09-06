@@ -61,6 +61,7 @@ object CapabilityIds {
     const val ACTION_GLYPH_ICON = "action_glyph_icon"
     const val ACTION_GLYPH_NUMBER = "action_glyph_number"
     const val ACTION_GLYPH_COUNTDOWN = "action_glyph_countdown"
+    const val ACTION_GLYPH_MUSIC = "action_glyph_music"
     const val ACTION_COPY_TEXT = "action_copy_text"
     const val ACTION_WAIT = "action_wait"
     const val ACTION_WRITE_SETTING = "action_write_setting"
@@ -118,6 +119,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_GLYPH_ICON,
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
+            CapabilityIds.ACTION_GLYPH_MUSIC,
             -> "Nothing Glyph Matrix"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
@@ -206,6 +208,7 @@ object CapabilityRequirements {
             is Action.GlyphIcon -> setOf(CapabilityIds.ACTION_GLYPH_ICON)
             is Action.GlyphNumber -> setOf(CapabilityIds.ACTION_GLYPH_NUMBER)
             is Action.GlyphCountdown -> setOf(CapabilityIds.ACTION_GLYPH_COUNTDOWN)
+            is Action.GlyphMusic -> setOf(CapabilityIds.ACTION_GLYPH_MUSIC)
             is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
             is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
             is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
