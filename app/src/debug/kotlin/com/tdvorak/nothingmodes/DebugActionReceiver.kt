@@ -8,6 +8,7 @@ import android.os.BatteryManager
 import android.util.Log
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.NightMode
@@ -218,7 +219,10 @@ class DebugActionReceiver : BroadcastReceiver() {
             "glyph_icon" -> Action.GlyphIcon(intent.getStringExtra("icon").orEmpty().ifBlank { "check" })
             "glyph_number" -> Action.GlyphNumber(intent.getIntExtra("number", 0).coerceIn(0, 99))
             "glyph_countdown" -> Action.GlyphCountdown(duration.coerceIn(1, 599))
-            "glyph_music" -> Action.GlyphMusic
+            "glyph_music" -> Action.GlyphMusic(
+                style = intent.getStringExtra("style").orEmpty()
+                    .ifBlank { MusicVisualizerStyles.WAVEFORM },
+            )
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })
             "wait" -> Action.Wait(duration.toLong())

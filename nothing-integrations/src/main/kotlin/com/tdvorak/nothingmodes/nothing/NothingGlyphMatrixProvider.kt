@@ -618,14 +618,17 @@ class NothingGlyphMatrixProvider(
     }
 
     /**
-     * Start a live music-reactive waveform on the matrix.
+     * Start a live music-reactive visualizer on the matrix.
      *
-     * Requires [android.Manifest.permission.RECORD_AUDIO] for real capture;
-     * falls back to a gentle simulated waveform when denied or unsupported.
-     * The visualizer runs until another glyph action, [turnOff], or
-     * [stopMusicVisualizer] cancels it.
+     * [style] selects the renderer ("waveform", "bars", "mirror", "pulse",
+     * "vinyl"). Requires [android.Manifest.permission.RECORD_AUDIO] for real
+     * capture; falls back to a gentle simulated waveform when denied or
+     * unsupported. The visualizer runs until another glyph action, [turnOff],
+     * or [stopMusicVisualizer] cancels it.
      */
-    fun startMusicVisualizer(): GlyphResult {
+    fun startMusicVisualizer(
+        style: String = "waveform",
+    ): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
@@ -640,6 +643,7 @@ class NothingGlyphMatrixProvider(
             Log.w(TAG, "Audio visualizer not available — waveform will simulate")
         }
 
+        var tick = 0
         musicJob =
             countdownScope.launch {
                 while (isActive) {
@@ -651,10 +655,14 @@ class NothingGlyphMatrixProvider(
                     }
 
                     val size = matrixSize()
-                    val samples = audioAnalyzer.getWaveform(size)
+                    val wave = audioAnalyzer.getWaveform(size)
+                    val bands = audioAnalyzer.getBands(size)
                     val frame = MusicGlyphRenderer.render(
-                        samples = samples,
+                        style = style,
+                        wave = wave,
+                        bands = bands,
                         size = size,
+                        tick = tick++,
                     )
                     if (setFrame(frame) !is GlyphResult.Success) break
                     delay(30)

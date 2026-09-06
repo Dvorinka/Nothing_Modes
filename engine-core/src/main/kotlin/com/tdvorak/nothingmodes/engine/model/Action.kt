@@ -266,10 +266,12 @@ sealed interface Action {
         val seconds: Int,
     ) : Action
 
-    /** Live music-reactive equalizer. Runs until another glyph action or [GlyphTurnOff] cancels it. */
+    /** Live music-reactive visualizer. Runs until another glyph action or [GlyphTurnOff] cancels it. */
     @Serializable
     @SerialName(ActionTypeIds.GLYPH_MUSIC)
-    data object GlyphMusic : Action
+    data class GlyphMusic(
+        val style: String = MusicVisualizerStyles.default(),
+    ) : Action
 
     /** Turn off all glyphs. */
     @Serializable

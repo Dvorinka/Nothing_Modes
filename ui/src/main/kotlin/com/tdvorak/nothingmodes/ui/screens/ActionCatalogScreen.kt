@@ -339,7 +339,7 @@ fun ActionCatalogScreen(navController: NavController) {
                     label = "Glyph music",
                     category = "Glyph",
                     icon = Icons.Outlined.MusicNote,
-                    action = Action.GlyphMusic,
+                    action = Action.GlyphMusic(),
                 ),
                 ActionItem(
                     label = "Glyph turn off",

@@ -32,6 +32,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
@@ -397,9 +398,14 @@ fun ActionConfigContent(
 
         is Action.GlyphMusic -> {
             Text(
-                text = "Live music-reactive equalizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
+                text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            MusicStyleSelector(
+                style = a.style,
+                onChange = { onActionChange(a.copy(style = MusicVisualizerStyles.normalize(it))) },
             )
         }
 
@@ -819,6 +825,21 @@ internal fun RingerModeSelector(
             text = m.replaceFirstChar { it.uppercase() },
             selected = mode == m,
             onClick = { onChange(m) },
+        )
+    }
+}
+
+@Composable
+internal fun MusicStyleSelector(
+    style: String,
+    onChange: (String) -> Unit,
+) {
+    val styles = MusicVisualizerStyles.ALL
+    styles.forEach { s ->
+        RadioOption(
+            text = s.replaceFirstChar { it.uppercase() },
+            selected = style == s,
+            onClick = { onChange(s) },
         )
     }
 }

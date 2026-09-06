@@ -130,7 +130,7 @@ class RealActionExecutor(
             is Action.GlyphIcon -> glyphIcon(action.name)
             is Action.GlyphNumber -> glyphNumber(action.number)
             is Action.GlyphCountdown -> glyphCountdown(action.seconds)
-            is Action.GlyphMusic -> glyphMusic()
+            is Action.GlyphMusic -> glyphMusic(action.style)
             is Action.GlyphTurnOff -> glyphTurnOff()
 
             // System settings toggles (Phase 4)
@@ -464,7 +464,7 @@ class RealActionExecutor(
         }
     }
 
-    private suspend fun glyphMusic(): ActionResult {
+    private suspend fun glyphMusic(style: String): ActionResult {
         val provider =
             glyphMatrixProvider
                 ?: return ActionResult.Unsupported
@@ -477,7 +477,7 @@ class RealActionExecutor(
         }
 
         return try {
-            glyphResultToActionResult(provider.startMusicVisualizer())
+            glyphResultToActionResult(provider.startMusicVisualizer(style))
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "glyph music visualizer failed")
         }

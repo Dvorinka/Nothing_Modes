@@ -119,7 +119,7 @@ fun actionDescription(action: Action): String =
             is Action.GlyphIcon -> "Glyph Icon: ${action.name}"
             is Action.GlyphNumber -> "Glyph Number: ${action.number}"
             is Action.GlyphCountdown -> "Glyph Countdown: ${action.seconds}s"
-            is Action.GlyphMusic -> "Glyph Music"
+            is Action.GlyphMusic -> "Glyph Music: ${action.style}"
             is Action.GlyphTurnOff -> "Glyph Off"
             is Action.CopyText -> "Copy: ${action.text.take(30)}"
             is Action.Wait -> "Wait: ${action.durationMs}ms"
