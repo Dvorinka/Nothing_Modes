@@ -104,35 +104,57 @@
     <h2 class="h2">Built for control, not for show.</h2>
   </header>
   <div class="card-grid">
-    <article class="card">
-      <p class="mono-label"><span class="reddot" aria-hidden="true"></span>MODES</p>
+    <article class="card span-2">
+      <div class="card-head">
+        <p class="mono-label"><span class="reddot" aria-hidden="true"></span>MODES</p>
+        <p class="mono-label card-index">N° 01</p>
+      </div>
       <h3 class="h3">Persistent state, automatic restore</h3>
       <p class="card-body">Sleep, Work, Gaming. A mode holds a set of toggles and reverts every one of them when it ends. No leftover state, no surprises.</p>
     </article>
     <article class="card">
-      <p class="mono-label">GLYPH</p>
+      <div class="card-head">
+        <p class="mono-label">GLYPH</p>
+        <p class="mono-label card-index">N° 02</p>
+      </div>
       <h3 class="h3">Nothing Glyph integration</h3>
       <p class="card-body">Drive light stripe zones A–E, the Glyph Matrix, and Glyph Toys from any routine. Patterns, countdowns, breathing effects.</p>
     </article>
     <article class="card">
-      <p class="mono-label">SHIZUKU</p>
+      <div class="card-head">
+        <p class="mono-label">SHIZUKU</p>
+        <p class="mono-label card-index">N° 03</p>
+      </div>
       <h3 class="h3">Optional system-level toggles</h3>
       <p class="card-body">Airplane mode, hotspot, NFC and more via Shizuku. Without it, the app degrades gracefully — every other path still works.</p>
     </article>
     <article class="card">
-      <p class="mono-label">CAPABILITY</p>
+      <div class="card-head">
+        <p class="mono-label">CAPABILITY</p>
+        <p class="mono-label card-index">N° 04</p>
+      </div>
       <h3 class="h3">Asks the device, never guesses</h3>
       <p class="card-body">Capability detection probes what the hardware and OS actually support. Routines expose only what works on this phone, today.</p>
     </article>
     <article class="card">
-      <p class="mono-label">PORTABILITY</p>
+      <div class="card-head">
+        <p class="mono-label">PORTABILITY</p>
+        <p class="mono-label card-index">N° 05</p>
+      </div>
       <h3 class="h3">Import, export, share</h3>
       <p class="card-body">Automations are JSON. Export a routine, send it to a friend, drop it back in. A template catalog ships in-app for common flows.</p>
     </article>
     <article class="card">
-      <p class="mono-label">ENGINE</p>
+      <div class="card-head">
+        <p class="mono-label">ENGINE</p>
+        <p class="mono-label card-index">N° 06</p>
+      </div>
       <h3 class="h3">Priority and cooldown</h3>
       <p class="card-body">Deterministic conflict resolution. Higher-priority routines win. Cooldowns prevent flapping. Behaviour is repeatable, not racy.</p>
+    </article>
+    <article class="card-stat span-2">
+      <p class="stat-num">37+</p>
+      <p class="stat-label">Action types</p>
     </article>
   </div>
 </section>
@@ -153,7 +175,7 @@
       </dl>
       <p class="glyph-fine">Hover the matrix. Each dot is a real addressable pixel.</p>
     </div>
-    <div class="matrix-wrap" aria-label="Interactive Glyph Matrix, 25 by 25 dots">
+    <div class="matrix-wrap" aria-label="Interactive Glyph Matrix, stylised glyph ring, 25 by 25 dots">
       <div class="matrix" id="matrix" role="img"></div>
       <p class="mono-label matrix-meta">25 × 25 · PHONE 3</p>
     </div>
@@ -166,29 +188,163 @@
     <p class="mono-label"><span class="reddot" aria-hidden="true"></span>COMPATIBILITY</p>
     <h2 class="h2">What works where.</h2>
   </header>
-  <div class="table-wrap">
-    <table class="compat-table">
-      <thead>
-        <tr>
-          <th scope="col" class="mono-label">DEVICE</th>
-          <th scope="col" class="mono-label">STRIPE</th>
-          <th scope="col" class="mono-label">MATRIX</th>
-          <th scope="col" class="mono-label">TOY</th>
-        </tr>
-      </thead>
-      <tbody class="mono">
-        <tr><td>Nothing Phone 1</td><td>✓</td><td>—</td><td>—</td></tr>
-        <tr><td>Nothing Phone 2</td><td>✓</td><td>—</td><td>—</td></tr>
-        <tr><td>Nothing Phone 2a</td><td>✓</td><td>—</td><td>—</td></tr>
-        <tr><td>Nothing Phone 3a</td><td>✓</td><td>—</td><td>—</td></tr>
-        <tr><td>Nothing Phone 3</td><td>✓</td><td>✓</td><td>✓</td></tr>
-        <tr><td>Nothing Phone 4a</td><td>✓</td><td>—</td><td>—</td></tr>
-        <tr><td>Nothing Phone 4a Pro</td><td>✓</td><td>✓</td><td>✓</td></tr>
-        <tr><td>Nothing Phone 4b</td><td>✓</td><td>✓</td><td>✓</td></tr>
-      </tbody>
-    </table>
-    <p class="compat-note mono">ANY OTHER ANDROID · FULL AUTOMATION · NO GLYPH</p>
+  <div class="compat-grid">
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 1</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 2</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 2A</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 3A</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 3</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 4A</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 4A PRO</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">NOTHING PHONE 4B</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i class="red"></i><i class="on"></i><i class="on"></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+    </article>
+    <article class="compat-card">
+      <h3 class="h3">ANY OTHER ANDROID</h3>
+      <div class="cap-row">
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">STRIPE</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">MATRIX</span>
+        </span>
+        <span class="cap">
+          <span class="cap-dots"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">TOY</span>
+        </span>
+      </div>
+      <p class="compat-body">Full automation. No Glyph.</p>
+    </article>
   </div>
+  <p class="compat-note mono">CAPABILITY DETECTION PROBES THE DEVICE AT RUNTIME · SUPPORT MAY VARY BY OS BUILD</p>
 </section>
 
 <!-- DOWNLOAD -->
@@ -210,11 +366,13 @@
 
 <footer class="foot" role="contentinfo">
   <div class="foot-inner">
-    <p class="mono">NOTHING MODES — OPEN SOURCE · GPL-3.0</p>
+    <p class="mono">NOTHING MODES — OPEN SOURCE · GPL-3.0 · BY <a href="https://www.tdvorak.dev/" target="_blank" rel="noopener">TDVORAK</a></p>
     <p class="mono foot-links">
       <a href="https://github.com/Dvorinka/Nothing_Modes" target="_blank" rel="noopener">GITHUB</a>
       <span aria-hidden="true">·</span>
       <a href="https://github.com/Dvorinka/Nothing_Modes/releases/latest" target="_blank" rel="noopener">RELEASES</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://www.tdvorak.dev/" target="_blank" rel="noopener">TDVORAK.DEV</a>
     </p>
     <p class="mono foot-disclaim">Not affiliated with Nothing Technology Limited. "Nothing" and "Glyph" are trademarks of their respective owners.</p>
   </div>
