@@ -196,12 +196,12 @@ fun NothingModesTheme(
     if (uiStyle == ThemeManager.UiStyle.CLASSIC) {
         // Curated classic Material 3 — single indigo accent over warm-neutral
         // surfaces. No dynamic color: identical look across all devices.
-        // Default Typography() and Shapes() kept as-is.
+        // Geist Sans typography matches the landing page's normal style.
         val scheme = if (darkTheme) ClassicDark else ClassicLight
         CompositionLocalProvider(LocalUiStyle provides ThemeManager.UiStyle.CLASSIC) {
             MaterialTheme(
                 colorScheme = scheme,
-                typography = Typography(),
+                typography = ClassicTypography.typography,
                 shapes = Shapes(),
                 content = content,
             )

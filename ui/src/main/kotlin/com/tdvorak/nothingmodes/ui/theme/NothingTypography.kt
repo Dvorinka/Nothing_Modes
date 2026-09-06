@@ -200,3 +200,28 @@ object NothingFonts {
     fun mono(): FontFamily? =
         if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else SpaceMono
 }
+
+/**
+ * CLASSIC typography — Geist Sans across all slots, Geist Mono for small
+ * data labels. Used only when LocalUiStyle is CLASSIC.
+ */
+object ClassicTypography {
+    val typography =
+        Typography(
+            displayLarge = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Bold, fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp),
+            displayMedium = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Bold, fontSize = 45.sp, lineHeight = 52.sp),
+            displaySmall = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Bold, fontSize = 36.sp, lineHeight = 44.sp),
+            headlineLarge = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.SemiBold, fontSize = 32.sp, lineHeight = 40.sp),
+            headlineMedium = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp),
+            headlineSmall = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp),
+            titleLarge = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp),
+            titleMedium = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Medium, fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp),
+            titleSmall = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
+            bodyLarge = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.5.sp),
+            bodyMedium = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp),
+            bodySmall = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp),
+            labelLarge = TextStyle(fontFamily = GeistSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
+            labelMedium = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
+            labelSmall = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
+        )
+}

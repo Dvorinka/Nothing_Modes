@@ -532,22 +532,22 @@ a { color: inherit; text-decoration: none; }
 :root[data-theme="light"] .shot { background: var(--surface-2); }
 
 /* ===== Style: normal — premium SaaS look (dark + light) =====
-   One restrained accent (warm coral), warm-neutral dark canvas,
-   clean light. Geist Sans throughout, rounded cards, soft shadows.
+   One restrained accent (indigo, matching the app's classic
+   theme), neutral canvases matching the app's classic palette,
    No rainbow, no gradient text, no per-card hues, no colored pills. */
 
 /* --- Palette: normal dark (default) --- */
 :root[data-style="normal"] {
-  --red: #F2542D;                       /* accent: warm coral */
-  --bg: #14110E;                        /* warm near-black, not pure */
-  --surface: #1B1713;
-  --surface-2: #221D17;
-  --border: #2C2620;
-  --border-hi: #3D352C;
-  --text: #F2EDE6;                      /* warm off-white */
-  --text-2: rgba(242,237,230,0.62);
-  --text-3: rgba(242,237,230,0.38);
-  --dot: #2A241D;
+  --red: #8E97E8;                       /* accent: app classic indigo */
+  --bg: #121316;                        /* app classic dark canvas */
+  --surface: #1A1C21;
+  --surface-2: #22252B;
+  --border: #2D3038;
+  --border-hi: #3C414E;
+  --text: #E6E6E4;
+  --text-2: rgba(230,230,228,0.66);
+  --text-3: rgba(230,230,228,0.40);
+  --dot: #24272E;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.32);
   --shadow-lg: 0 18px 48px rgba(0,0,0,0.40);
@@ -555,16 +555,16 @@ a { color: inherit; text-decoration: none; }
 
 /* --- Palette: normal light --- */
 :root[data-style="normal"][data-theme="light"] {
-  --red: #E04A26;                       /* deeper coral for contrast */
-  --bg: #FBFAF7;                        /* warm off-white */
+  --red: #3F4DBF;                       /* app classic indigo, light variant */
+  --bg: #FAFAF8;                        /* app classic light canvas */
   --surface: #FFFFFF;
-  --surface-2: #F5F2EC;
-  --border: #E7E2D9;
-  --border-hi: #D0CABE;
-  --text: #1A1714;
-  --text-2: rgba(26,23,20,0.62);
-  --text-3: rgba(26,23,20,0.42);
-  --dot: #ECE7DE;
+  --surface-2: #F0F0EE;
+  --border: #D8D8D4;
+  --border-hi: #C4C4BE;
+  --text: #1A1C21;
+  --text-2: rgba(26,28,33,0.64);
+  --text-3: rgba(26,28,33,0.42);
+  --dot: #E8E8E4;
   --shadow-sm: 0 1px 2px rgba(26,23,20,0.06);
   --shadow-md: 0 8px 24px rgba(26,23,20,0.08);
   --shadow-lg: 0 18px 48px rgba(26,23,20,0.12);
@@ -572,8 +572,8 @@ a { color: inherit; text-decoration: none; }
 
 /* --- Backdrop: drop the dot-grid texture, use plain canvas --- */
 :root[data-style="normal"] .dotgrid { display: none; }
-:root[data-style="normal"] .nav { background: rgba(20,17,14,0.88); backdrop-filter: blur(10px); }
-:root[data-style="normal"][data-theme="light"] .nav { background: rgba(251,250,247,0.88); }
+:root[data-style="normal"] .nav { background: rgba(18,19,22,0.88); backdrop-filter: blur(10px); }
+:root[data-style="normal"][data-theme="light"] .nav { background: rgba(250,250,248,0.88); }
 
 /* --- Typography: Geist Sans everywhere, normal case --- */
 :root[data-style="normal"] .doto {
