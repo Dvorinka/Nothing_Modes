@@ -1,13 +1,21 @@
 package com.tdvorak.nothingmodes.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Nothing Design System color palette.
@@ -79,31 +87,69 @@ object NothingColors {
     val muted = Color(0xFF555555)
 }
 
+/**
+ * The active visual language — resolved [ThemeManager.UiStyle].
+ * Components may read this to degrade Nothing-specific decoration
+ * (dot-matrix glyphs, hairline frames) to plain Material equivalents.
+ */
+val LocalUiStyle = compositionLocalOf { ThemeManager.UiStyle.NOTHING }
+
 @Composable
 fun NothingModesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    uiStyle: ThemeManager.UiStyle = ThemeManager.UiStyle.NOTHING,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) NothingDark else NothingLight,
-        typography = NothingTypography.typography,
-        shapes = NothingShapes.shapes,
-        content = content,
-    )
+    if (uiStyle == ThemeManager.UiStyle.CLASSIC) {
+        // Plain Material 3 — dynamic color where the platform offers it,
+        // stock typography and rounded shapes. No Nothing decoration.
+        val context = LocalContext.current
+        val scheme =
+            when {
+                Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
+                Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
+                darkTheme -> darkColorScheme()
+                else -> lightColorScheme()
+            }
+        CompositionLocalProvider(LocalUiStyle provides ThemeManager.UiStyle.CLASSIC) {
+            MaterialTheme(
+                colorScheme = scheme,
+                typography = Typography(),
+                shapes = Shapes(),
+                content = content,
+            )
+        }
+        return
+    }
+    CompositionLocalProvider(LocalUiStyle provides ThemeManager.UiStyle.NOTHING) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) NothingDark else NothingLight,
+            typography = NothingTypography.typography,
+            shapes = NothingShapes.shapes,
+            content = content,
+        )
+    }
 }
 
 /**
- * Theme wrapper that reads the persisted theme mode from [ThemeManager].
+ * Theme wrapper that reads the persisted theme mode and UI style
+ * from [ThemeManager]. AUTO style resolves to Nothing on Nothing
+ * devices, classic Material everywhere else.
  */
 @Composable
 fun NothingModesThemeDynamic(content: @Composable () -> Unit) {
     val themeManager = ThemeManager.instance
     val mode by themeManager.mode.collectAsState()
+    val uiStyle by themeManager.uiStyle.collectAsState()
     val isDark =
         when (mode) {
             ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
             ThemeManager.ThemeMode.DARK -> true
             ThemeManager.ThemeMode.LIGHT -> false
         }
-    NothingModesTheme(darkTheme = isDark, content = content)
+    NothingModesTheme(
+        darkTheme = isDark,
+        uiStyle = themeManager.resolvedUiStyle(),
+        content = content,
+    )
 }

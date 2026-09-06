@@ -1213,6 +1213,7 @@ private fun PermissionRow(
 private fun ThemeSection() {
     val themeManager = ThemeManager.instance
     val mode by themeManager.mode.collectAsState()
+    val uiStyle by themeManager.uiStyle.collectAsState()
     val modes = ThemeManager.ThemeMode.entries.toList()
     val labels = modes.map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
     val selectedIndex = modes.indexOf(mode)
@@ -1221,6 +1222,28 @@ private fun ThemeSection() {
         segments = labels,
         selectedIndex = selectedIndex,
         onSelected = { index -> themeManager.setMode(modes[index]) },
+        modifier = Modifier.padding(vertical = NothingSpacing.sm),
+    )
+
+    val styles = ThemeManager.UiStyle.entries.toList()
+    val styleLabels =
+        styles.map {
+            when (it) {
+                ThemeManager.UiStyle.AUTO -> "Auto"
+                ThemeManager.UiStyle.NOTHING -> "Nothing"
+                ThemeManager.UiStyle.CLASSIC -> "Classic"
+            }
+        }
+    Text(
+        text = "Interface style",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = NothingSpacing.sm),
+    )
+    NothingSegmentedControl(
+        segments = styleLabels,
+        selectedIndex = styles.indexOf(uiStyle),
+        onSelected = { index -> themeManager.setUiStyle(styles[index]) },
         modifier = Modifier.padding(vertical = NothingSpacing.sm),
     )
 }

@@ -506,3 +506,83 @@ a { color: inherit; text-decoration: none; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ===== Theme: light ===== */
+:root[data-theme="light"] {
+  --bg: #F4F4F2;
+  --surface: #FFFFFF;
+  --surface-2: #FAFAFA;
+  --border: #E2E2DE;
+  --border-hi: #C9C9C4;
+  --text: #1A1A1A;
+  --text-2: rgba(26,26,26,0.62);
+  --text-3: rgba(26,26,26,0.38);
+  --red: #D71921;
+  --dot: #DADAD6;
+}
+:root[data-theme="light"] .nav { background: rgba(244,244,242,0.92); }
+:root[data-theme="light"] .btn-primary { color: #fff; }
+:root[data-theme="light"] .btn-primary:hover { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+:root[data-theme="light"] .btn-outline:hover { background: #1A1A1A; color: #fff; }
+:root[data-theme="light"] .matrix .cell { background: #E4E4E0; }
+:root[data-theme="light"] .matrix .cell.on,
+:root[data-theme="light"] .matrix .cell.hover { background: var(--text); }
+:root[data-theme="light"] .matrix .cell.sig.sig-white { background: var(--text); }
+:root[data-theme="light"] .skip { color: #fff; }
+:root[data-theme="light"] .shot { background: var(--surface-2); }
+
+/* ===== Style: normal (non-Nothing look) ===== */
+:root[data-style="normal"] .doto {
+  font-family: "Geist Sans", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+:root[data-style="normal"] .dotgrid { display: none; }
+:root[data-style="normal"] .mono, :root[data-style="normal"] .mono-label {
+  font-family: "Geist Sans", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+:root[data-style="normal"] .wordmark { font-family: "Geist Sans", system-ui, sans-serif; }
+:root[data-style="normal"] .nav nav a,
+:root[data-style="normal"] .btn {
+  font-family: "Geist Sans", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+:root[data-style="normal"] .shot,
+:root[data-style="normal"] .how-step,
+:root[data-style="normal"] .card,
+:root[data-style="normal"] .card-grid,
+:root[data-style="normal"] .matrix-wrap,
+:root[data-style="normal"] .board-wrap {
+  border-radius: 18px;
+}
+:root[data-style="normal"] .card:hover,
+:root[data-style="normal"] .card-stat:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  border-color: var(--border-hi);
+}
+:root[data-theme="light"][data-style="normal"] .card:hover,
+:root[data-theme="light"][data-style="normal"] .card-stat:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+:root[data-style="normal"] .reddot { border-radius: 50%; }
+:root[data-style="normal"] .btn { border-radius: 12px; }
+
+/* ===== Nav toggles ===== */
+.nav-toggles { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; }
+.tgl {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px; letter-spacing: 0.1em;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+.tgl:hover { color: var(--text); border-color: var(--text-2); }
+.tgl[aria-pressed="true"] { color: var(--text); border-color: var(--red); }

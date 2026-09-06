@@ -40,6 +40,8 @@ class DebugActionReceiver : BroadcastReceiver() {
     @InstallIn(SingletonComponent::class)
     interface DebugActionEntryPoint {
         fun executor(): ActionExecutor
+
+        fun matrixProvider(): com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
     }
 
     override fun onReceive(
@@ -83,6 +85,10 @@ class DebugActionReceiver : BroadcastReceiver() {
             }.onFailure { Log.e(TAG, "probe failed", it) }
             return
         }
+        if (intent.getStringExtra("type") == "toy_preview") {
+            toyPreview(context, intent)
+            return
+        }
         if (intent.getStringExtra("type") == "toy_play" || intent.getStringExtra("type") == "toy_stop") {
             // Foreign-toy probe: bind another app's toy service via
             // com.nothing.glyph.TOY and drive its GlyphToy lifecycle.
@@ -93,7 +99,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             EntryPointAccessors
                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
                 .executor()
-        val action = parse(intent) ?: run {
+        val action = parse(context, intent) ?: run {
             Log.w(TAG, "unknown or malformed type: ${intent.getStringExtra("type")}")
             return
         }
@@ -120,7 +126,7 @@ class DebugActionReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun parse(intent: Intent): Action? {
+    private fun parse(context: Context, intent: Intent): Action? {
         // `am -e on false` delivers a String — accept both bool and string extras.
         val on =
             intent.getStringExtra("on")?.toBooleanStrictOrNull()
@@ -167,6 +173,11 @@ class DebugActionReceiver : BroadcastReceiver() {
                     x = intent.getIntExtra("x", -1),
                     y = intent.getIntExtra("y", -1),
                 )
+            "glyph_battery" -> {
+                val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
+                val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                Action.GlyphProgress(pct.coerceIn(0, 100))
+            }
             "glyph_scrolling_text" ->
                 Action.GlyphScrollingText(
                     text.ifBlank { "NOTHING MODES" },
@@ -257,6 +268,73 @@ class DebugActionReceiver : BroadcastReceiver() {
                     .getOrElse { Log.e(TAG, "bind threw: ${it.message}"); false }
             Log.i(TAG, "toy_play bind($pkg/$cls) -> $bound")
             if (bound) toyConnection = conn
+        }
+
+        /**
+         * Pull a foreign toy's registered preview_res_id from the toy provider,
+         * decode it via that app's own resources, and paint it on our matrix.
+         */
+        private fun toyPreview(context: Context, intent: Intent) {
+            val pkg = intent.getStringExtra("pkg").orEmpty()
+            if (pkg.isBlank()) {
+                Log.w(TAG, "toy_preview needs -e pkg <package>")
+                return
+            }
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+                .launch {
+                    try {
+                        // Find the toy row(s) for the package.
+                        val cursor =
+                            context.contentResolver.query(
+                                android.net.Uri.parse("content://com.nothing.glyphtoyprovider/glyph_toy"),
+                                arrayOf("package_name", "service_name", "preview_res_id"),
+                                null,
+                                null,
+                                null,
+                            )
+                        var previewId = 0
+                        cursor?.use {
+                            while (it.moveToNext()) {
+                                if (it.getString(0) == pkg) {
+                                    previewId = it.getInt(2)
+                                    Log.i(TAG, "toy_preview: ${it.getString(1)} preview=$previewId")
+                                    break
+                                }
+                            }
+                        }
+                        if (previewId == 0) {
+                            Log.w(TAG, "toy_preview: no preview_res_id for $pkg")
+                            return@launch
+                        }
+                        val res = context.packageManager.getResourcesForApplication(pkg)
+                        val drawable =
+                            runCatching { androidx.core.content.res.ResourcesCompat.getDrawable(res, previewId, null) }
+                                .getOrNull()
+                        if (drawable == null) {
+                            Log.w(TAG, "toy_preview: drawable $previewId not decodable in $pkg")
+                            return@launch
+                        }
+                        val bmp = com.nothing.ketchum.GlyphMatrixUtils.drawableToBitmap(drawable)
+                        val provider =
+                            EntryPointAccessors
+                                .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
+                                .matrixProvider()
+                        var waited = 0
+                        while (!provider.isConnected() && waited < 4000) {
+                            kotlinx.coroutines.delay(200)
+                            waited += 200
+                        }
+                        if (!provider.isConnected()) {
+                            Log.w(TAG, "toy_preview: matrix service not connected")
+                            return@launch
+                        }
+                        val size = provider.matrixSize()
+                        val r = provider.displayImage(bmp, x = 0, y = 0, scale = 100, brightness = 255)
+                        Log.i(TAG, "toy_preview -> displayImage($size) = $r")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "toy_preview failed", e)
+                    }
+                }
         }
 
         private fun sendToyMsg(messenger: android.os.Messenger, event: String) {

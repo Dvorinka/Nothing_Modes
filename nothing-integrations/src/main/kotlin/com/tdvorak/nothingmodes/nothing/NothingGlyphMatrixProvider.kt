@@ -37,6 +37,8 @@ class NothingGlyphMatrixProvider(
 
     fun isAvailable(): Boolean = detector.detectGlyphHardware().isMatrix
 
+    fun isConnected(): Boolean = connected
+
     fun matrixSize(): Int = detector.detectGlyphHardware().matrixSize
 
     fun init(
@@ -326,6 +328,61 @@ class NothingGlyphMatrixProvider(
                 if (fromBottom < fillRows) color else 0
             }
         return setFrame(colors)
+    }
+
+    /**
+     * Circular progress arc — the same renderer Nothing's battery/loading
+     * toys use. `icon` is an optional small sprite (int[][]) stamped center.
+     */
+    fun displayProgressArc(
+        percent: Int,
+        brightness: Int = 4095,
+        reverse: Boolean = false,
+        icon: Array<IntArray>? = null,
+        label: String? = null,
+    ): GlyphResult {
+        if (!connected) return GlyphResult.ServiceUnavailable
+        val size = matrixSize()
+        if (size == 0) return GlyphResult.Unsupported
+        return try {
+            // Signature: (size, brightness, percent, reverse, icon) — arg2 is
+            // the 0..100 value; passing brightness there renders a full ring.
+            val colors =
+                GlyphMatrixUtils.generateMatrixProgress(
+                    size,
+                    brightness,
+                    percent.coerceIn(0, 100),
+                    reverse,
+                    icon,
+                )
+            if (label.isNullOrEmpty()) {
+                manager?.setAppMatrixFrame(colors)
+            } else {
+                // Render the label through the proven text path, then max-merge
+                // with the arc — frame compositing drops mixed object/array
+                // layers on this SDK build.
+                val textObj =
+                    GlyphMatrixObject
+                        .Builder()
+                        .setText(label)
+                        .setPosition(centeredX(size, label), (size - 7) / 2)
+                        .setScale(100)
+                        .setBrightness(255)
+                        .build()
+                val textFrame = GlyphMatrixFrame.Builder().addTop(textObj).build(context)
+                val textColors = textFrame.render()
+                val merged = IntArray(colors.size) { i -> maxOf(colors[i], textColors.getOrElse(i) { 0 }) }
+                manager?.setAppMatrixFrame(merged)
+            }
+            GlyphResult.Success
+        } catch (e: Exception) {
+            GlyphResult.Failure(e.message ?: "displayProgressArc failed")
+        }
+    }
+
+    private fun centeredX(size: Int, text: String): Int {
+        val w = text.length * 5 + (text.length - 1).coerceAtLeast(0)
+        return ((size - w) / 2).coerceIn(0, size)
     }
 
     fun displayNumber(number: Int): GlyphResult {

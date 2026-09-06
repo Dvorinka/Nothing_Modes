@@ -5,6 +5,46 @@
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // ---- Theme (dark/light) and style (nothing/normal) toggles ----
+  const root = document.documentElement;
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+
+  const applyTheme = (t) => {
+    root.setAttribute("data-theme", t);
+    if (metaTheme) metaTheme.setAttribute("content", t === "light" ? "#F4F4F2" : "#000000");
+    const btn = document.getElementById("theme-toggle");
+    if (btn) btn.setAttribute("aria-pressed", String(t === "light"));
+  };
+  const applyStyle = (s) => {
+    root.setAttribute("data-style", s);
+    const btn = document.getElementById("style-toggle");
+    if (btn) {
+      btn.setAttribute("aria-pressed", String(s === "normal"));
+      btn.textContent = s === "normal" ? "PLAIN" : "DOTS";
+    }
+  };
+
+  applyTheme(
+    localStorage.getItem("nm-theme") ||
+      (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+  );
+  applyStyle(localStorage.getItem("nm-style") || "nothing");
+
+  const themeBtn = document.getElementById("theme-toggle");
+  if (themeBtn)
+    themeBtn.addEventListener("click", () => {
+      const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+      localStorage.setItem("nm-theme", next);
+      applyTheme(next);
+    });
+  const styleBtn = document.getElementById("style-toggle");
+  if (styleBtn)
+    styleBtn.addEventListener("click", () => {
+      const next = root.getAttribute("data-style") === "normal" ? "nothing" : "normal";
+      localStorage.setItem("nm-style", next);
+      applyStyle(next);
+    });
+
   // ---- Glyph Matrix: 25x25 dot grid rendering a stylised glyph ring ----
   // Evokes the Nothing Phone (2) glyph: a large "C" arc with a top-right gap,
   // a detached diagonal dash, and a central "!" exclamation motif.

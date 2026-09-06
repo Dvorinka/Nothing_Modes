@@ -350,11 +350,12 @@ class RealActionExecutor(
     ): ActionResult {
         val provider = glyphProvider?.takeIf { it.isAvailable() }
         if (provider == null) {
-            // Matrix-only devices (e.g. Phone 3): degrade to a percent fill.
+            // Matrix-only devices (e.g. Phone 3): use the circular arc —
+            // the same renderer Nothing's own progress toys use.
             val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
                 ?: return ActionResult.Unsupported
             return try {
-                glyphResultToActionResult(matrix.displayPercentFill(progress))
+                glyphResultToActionResult(matrix.displayProgressArc(progress, label = progress.toString()))
             } catch (e: Exception) {
                 ActionResult.Failure(e.message ?: "glyph progress failed")
             }
