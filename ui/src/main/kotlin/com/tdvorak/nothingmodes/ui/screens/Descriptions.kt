@@ -83,6 +83,8 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.BluetoothDevice -> "BT device ${trigger.state}${trigger.deviceName?.let { ": $it" } ?: ""}"
             is Trigger.WifiConnected -> "WiFi connected${trigger.ssid?.let { ": $it" } ?: ""}"
             is Trigger.CalendarEvent -> "Calendar ${trigger.direction.name.lowercase()}${trigger.titleMatch?.let { ": $it" } ?: ""}"
+            is Trigger.ChargerConnected -> "${if (trigger.connected) "Charger connected" else "Charger unplugged"}${trigger.source?.let { " (${it.name.lowercase()})" } ?: ""}"
+            is Trigger.DeviceUnlocked -> "Device unlocked"
         }
     ).uppercase()
 

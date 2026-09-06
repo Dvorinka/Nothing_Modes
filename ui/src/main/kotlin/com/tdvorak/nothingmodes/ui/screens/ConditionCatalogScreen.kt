@@ -25,10 +25,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.CallState
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -175,6 +177,61 @@ fun ConditionCatalogScreen(navController: NavController) {
                     category = "Device status",
                     icon = Icons.Outlined.Timer,
                     condition = Condition.ScreenTime(CmpOp.GT, 120),
+                ),
+                // ── Device status (charger / audio / system toggles) ──
+                ConditionItem(
+                    label = "Headphones connected",
+                    category = "Device status",
+                    icon = Icons.Outlined.Headphones,
+                    condition = Condition.HeadphonesConnected(true),
+                ),
+                ConditionItem(
+                    label = "Data saver",
+                    category = "Device status",
+                    icon = Icons.Outlined.DataSaverOn,
+                    condition = Condition.DataSaverOn(true),
+                ),
+                ConditionItem(
+                    label = "Auto-sync",
+                    category = "Device status",
+                    icon = Icons.Outlined.Sync,
+                    condition = Condition.AutoSyncOn(true),
+                ),
+                ConditionItem(
+                    label = "Auto-rotate",
+                    category = "Device status",
+                    icon = Icons.Outlined.ScreenRotation,
+                    condition = Condition.AutoRotateOn(true),
+                ),
+                ConditionItem(
+                    label = "Volume level",
+                    category = "Device status",
+                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                    condition = Condition.VolumeLevel(VolumeStream.MEDIA, CmpOp.GT, 5),
+                ),
+                ConditionItem(
+                    label = "Charging source",
+                    category = "Device status",
+                    icon = Icons.Outlined.ElectricBolt,
+                    condition = Condition.ChargingSource(ChargerSource.WIRELESS),
+                ),
+                ConditionItem(
+                    label = "Battery temperature",
+                    category = "Device status",
+                    icon = Icons.Outlined.Thermostat,
+                    condition = Condition.BatteryTemp(CmpOp.GTE, 40.0),
+                ),
+                ConditionItem(
+                    label = "Screen off for",
+                    category = "Time",
+                    icon = Icons.Outlined.Bedtime,
+                    condition = Condition.ScreenOffFor(CmpOp.GTE, 30),
+                ),
+                ConditionItem(
+                    label = "Thermal status",
+                    category = "Device status",
+                    icon = Icons.Outlined.DeviceThermostat,
+                    condition = Condition.ThermalLevel(CmpOp.GTE, 3),
                 ),
             )
         }

@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.CallState
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -191,6 +193,64 @@ fun ConditionConfigSheet(
                         onChange = { current = it },
                     )
 
+                is Condition.HeadphonesConnected ->
+                    BooleanConditionContent(
+                        label = "Connected",
+                        checked = c.connected,
+                        onChange = { current = c.copy(connected = it) },
+                    )
+
+                is Condition.DataSaverOn ->
+                    BooleanConditionContent(
+                        label = "Data saver on",
+                        checked = c.on,
+                        onChange = { current = c.copy(on = it) },
+                    )
+
+                is Condition.AutoSyncOn ->
+                    BooleanConditionContent(
+                        label = "Auto-sync on",
+                        checked = c.on,
+                        onChange = { current = c.copy(on = it) },
+                    )
+
+                is Condition.AutoRotateOn ->
+                    BooleanConditionContent(
+                        label = "Auto-rotate on",
+                        checked = c.on,
+                        onChange = { current = c.copy(on = it) },
+                    )
+
+                is Condition.VolumeLevel ->
+                    VolumeLevelSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
+                is Condition.ScreenOffFor ->
+                    ScreenOffForSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
+                is Condition.ChargingSource ->
+                    ChargingSourceSheetContent(
+                        source = c.source,
+                        onChange = { current = c.copy(source = it) },
+                    )
+
+                is Condition.BatteryTemp ->
+                    BatteryTempSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
+                is Condition.ThermalLevel ->
+                    ThermalLevelSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
                 else -> {
                     Text(
                         text = conditionDescription(current),
@@ -237,6 +297,15 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.PowerSaving -> "Power saving"
         is Condition.MediaPlaying -> "Media playing"
         is Condition.RingerMode -> "Ringer mode"
+        is Condition.HeadphonesConnected -> "Headphones"
+        is Condition.DataSaverOn -> "Data saver"
+        is Condition.AutoSyncOn -> "Auto-sync"
+        is Condition.AutoRotateOn -> "Auto-rotate"
+        is Condition.VolumeLevel -> "Volume level"
+        is Condition.ScreenOffFor -> "Screen off for"
+        is Condition.ChargingSource -> "Charging source"
+        is Condition.BatteryTemp -> "Battery temperature"
+        is Condition.ThermalLevel -> "Thermal status"
         else -> "Condition"
     }
 
@@ -512,4 +581,153 @@ private fun AlarmRingingSheetContent(
         placeholder = "Leave blank for any alarm",
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+@Composable
+private fun VolumeLevelSheetContent(
+    condition: Condition.VolumeLevel,
+    onChange: (Condition.VolumeLevel) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.level.toString(),
+            onValueChange = { onChange(condition.copy(level = it.toIntOrNull() ?: condition.level)) },
+            label = "Level",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Stream",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        VolumeStream.entries.forEach { stream ->
+            RadioOption(
+                text = stream.name.lowercase().replaceFirstChar { it.uppercase() },
+                selected = condition.stream == stream,
+                onClick = { onChange(condition.copy(stream = stream)) },
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Operator",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CmpOp.entries.forEach { op ->
+            RadioOption(
+                text = op.name,
+                selected = condition.op == op,
+                onClick = { onChange(condition.copy(op = op)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScreenOffForSheetContent(
+    condition: Condition.ScreenOffFor,
+    onChange: (Condition.ScreenOffFor) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.minutes.toString(),
+            onValueChange = { onChange(condition.copy(minutes = it.toIntOrNull() ?: condition.minutes)) },
+            label = "Minutes",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Operator",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CmpOp.entries.forEach { op ->
+            RadioOption(
+                text = op.name,
+                selected = condition.op == op,
+                onClick = { onChange(condition.copy(op = op)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChargingSourceSheetContent(
+    source: ChargerSource,
+    onChange: (ChargerSource) -> Unit,
+) {
+    ChargerSource.entries.forEach { s ->
+        RadioOption(
+            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+            selected = source == s,
+            onClick = { onChange(s) },
+        )
+    }
+}
+
+@Composable
+private fun BatteryTempSheetContent(
+    condition: Condition.BatteryTemp,
+    onChange: (Condition.BatteryTemp) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.celsius.toString(),
+            onValueChange = { onChange(condition.copy(celsius = it.toDoubleOrNull() ?: condition.celsius)) },
+            label = "Celsius",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Operator",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CmpOp.entries.forEach { op ->
+            RadioOption(
+                text = op.name,
+                selected = condition.op == op,
+                onClick = { onChange(condition.copy(op = op)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThermalLevelSheetContent(
+    condition: Condition.ThermalLevel,
+    onChange: (Condition.ThermalLevel) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.level.toString(),
+            onValueChange = { onChange(condition.copy(level = it.toIntOrNull() ?: condition.level)) },
+            label = "Level (0 none .. 6 shutdown)",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Operator",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = SpaceMono,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CmpOp.entries.forEach { op ->
+            RadioOption(
+                text = op.name,
+                selected = condition.op == op,
+                onClick = { onChange(condition.copy(op = op)) },
+            )
+        }
+    }
 }

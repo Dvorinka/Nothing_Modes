@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,10 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.CallState
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -313,6 +316,188 @@ fun ConditionConfigScreen(
                                         condition = c.copy(minutes = text.toIntOrNull() ?: c.minutes)
                                     },
                                     label = "Minutes",
+                                )
+                            }
+                        }
+                    }
+
+                    is Condition.HeadphonesConnected -> {
+                        BooleanRow(
+                            label = "Connected",
+                            checked = c.connected,
+                            onChange = { condition = c.copy(connected = it) },
+                        )
+                    }
+
+                    is Condition.DataSaverOn -> {
+                        BooleanRow(
+                            label = "Data saver on",
+                            checked = c.on,
+                            onChange = { condition = c.copy(on = it) },
+                        )
+                    }
+
+                    is Condition.AutoSyncOn -> {
+                        BooleanRow(
+                            label = "Auto-sync on",
+                            checked = c.on,
+                            onChange = { condition = c.copy(on = it) },
+                        )
+                    }
+
+                    is Condition.AutoRotateOn -> {
+                        BooleanRow(
+                            label = "Auto-rotate on",
+                            checked = c.on,
+                            onChange = { condition = c.copy(on = it) },
+                        )
+                    }
+
+                    is Condition.VolumeLevel -> {
+                        Column {
+                            NothingEnumSelector(
+                                label = "Stream",
+                                value = c.stream.name,
+                                options = VolumeStream.entries.map { it.name },
+                                onSelect = { stream ->
+                                    condition = c.copy(stream = VolumeStream.valueOf(stream))
+                                },
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    androidx.compose.foundation.layout.Arrangement
+                                        .spacedBy(NothingSpacing.sm),
+                            ) {
+                                Box(modifier = Modifier.weight(0.35f)) {
+                                    NothingEnumSelector(
+                                        label = "Operator",
+                                        value = c.op.name,
+                                        options = CmpOp.entries.map { it.name },
+                                        onSelect = { op ->
+                                            condition = c.copy(op = CmpOp.valueOf(op))
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                                Box(modifier = Modifier.weight(0.65f)) {
+                                    NothingInput(
+                                        value = c.level.toString(),
+                                        onValueChange = { text ->
+                                            condition = c.copy(level = text.toIntOrNull() ?: c.level)
+                                        },
+                                        label = "Level",
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    is Condition.ScreenOffFor -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                androidx.compose.foundation.layout.Arrangement
+                                    .spacedBy(NothingSpacing.sm),
+                        ) {
+                            Box(modifier = Modifier.weight(0.35f)) {
+                                NothingEnumSelector(
+                                    label = "Operator",
+                                    value = c.op.name,
+                                    options = CmpOp.entries.map { it.name },
+                                    onSelect = { op ->
+                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.65f)) {
+                                NothingInput(
+                                    value = c.minutes.toString(),
+                                    onValueChange = { text ->
+                                        condition = c.copy(minutes = text.toIntOrNull() ?: c.minutes)
+                                    },
+                                    label = "Minutes",
+                                )
+                            }
+                        }
+                    }
+
+                    is Condition.ChargingSource -> {
+                        NothingEnumSelector(
+                            label = "Source",
+                            value = c.source.name,
+                            options = ChargerSource.entries.map { it.name },
+                            onSelect = { src ->
+                                condition = c.copy(source = ChargerSource.valueOf(src))
+                            },
+                        )
+                    }
+
+                    is Condition.BatteryTemp -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                androidx.compose.foundation.layout.Arrangement
+                                    .spacedBy(NothingSpacing.sm),
+                        ) {
+                            Box(modifier = Modifier.weight(0.35f)) {
+                                NothingEnumSelector(
+                                    label = "Operator",
+                                    value = c.op.name,
+                                    options = CmpOp.entries.map { it.name },
+                                    onSelect = { op ->
+                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.65f)) {
+                                NothingInput(
+                                    value = c.celsius.toString(),
+                                    onValueChange = { text ->
+                                        condition = c.copy(celsius = text.toDoubleOrNull() ?: c.celsius)
+                                    },
+                                    label = "Celsius",
+                                )
+                            }
+                        }
+                    }
+
+                    is Condition.ThermalLevel -> {
+                        Text(
+                            text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = SpaceMono,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                androidx.compose.foundation.layout.Arrangement
+                                    .spacedBy(NothingSpacing.sm),
+                        ) {
+                            Box(modifier = Modifier.weight(0.35f)) {
+                                NothingEnumSelector(
+                                    label = "Operator",
+                                    value = c.op.name,
+                                    options = CmpOp.entries.map { it.name },
+                                    onSelect = { op ->
+                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.65f)) {
+                                NothingInput(
+                                    value = c.level.toString(),
+                                    onValueChange = { text ->
+                                        condition = c.copy(level = text.toIntOrNull() ?: c.level)
+                                    },
+                                    label = "Level",
                                 )
                             }
                         }

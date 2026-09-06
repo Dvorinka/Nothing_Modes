@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -86,6 +87,8 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
         TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
         TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
+        TriggerType("Charger", "Device", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
+        TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -355,6 +358,7 @@ private fun TriggerConfigContent(
         is Trigger.Immediate,
         is Trigger.Manual,
         is Trigger.Boot,
+        is Trigger.DeviceUnlocked,
         -> {
             Text(
                 text = triggerDescription(trigger),
@@ -372,6 +376,12 @@ private fun TriggerConfigContent(
 
         is Trigger.BatteryLevel ->
             BatteryLevelContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
+
+        is Trigger.ChargerConnected ->
+            ChargerConnectedContent(
                 trigger = t,
                 onUpdate = onUpdate,
             )
@@ -503,6 +513,33 @@ private fun BatteryLevelContent(
             options = BatteryDirection.entries.map { it.name },
             onSelect = { dir ->
                 onUpdate(trigger.copy(direction = BatteryDirection.valueOf(dir)))
+            },
+        )
+    }
+}
+
+@Composable
+private fun ChargerConnectedContent(
+    trigger: Trigger.ChargerConnected,
+    onUpdate: (Trigger.ChargerConnected) -> Unit,
+) {
+    Column {
+        BooleanRow(
+            label = if (trigger.connected) "On connect" else "On disconnect",
+            checked = trigger.connected,
+            onChange = { onUpdate(trigger.copy(connected = it)) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingEnumSelector(
+            label = "Source (optional)",
+            value = trigger.source?.name ?: "ANY",
+            options = listOf("ANY") + ChargerSource.entries.map { it.name },
+            onSelect = { src ->
+                onUpdate(
+                    trigger.copy(
+                        source = if (src == "ANY") null else ChargerSource.valueOf(src),
+                    ),
+                )
             },
         )
     }
