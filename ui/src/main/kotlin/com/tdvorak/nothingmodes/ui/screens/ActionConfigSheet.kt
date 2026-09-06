@@ -715,12 +715,14 @@ internal val GLYPH_PRESET_NAMES =
 internal val GLYPH_ICON_NAMES: List<String> =
     com.tdvorak.nothingmodes.nothing.GlyphIconLibrary.names
 
-/** Emoji icons plus the user's saved Glyph Studio designs. */
+/** Emoji icons, bundled Glyph Museum presets, and saved Glyph Studio designs. */
 @androidx.compose.runtime.Composable
 internal fun glyphIconOptions(): List<String> {
     val context = androidx.compose.ui.platform.LocalContext.current
     return androidx.compose.runtime.remember {
-        GLYPH_ICON_NAMES + com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names()
+        GLYPH_ICON_NAMES +
+            com.tdvorak.nothingmodes.nothing.GlyphMuseumPresets(context).names() +
+            com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names()
     }
 }
 

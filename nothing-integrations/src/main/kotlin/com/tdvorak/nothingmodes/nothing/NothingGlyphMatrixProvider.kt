@@ -465,14 +465,18 @@ class NothingGlyphMatrixProvider(
         }
     }
 
+    private val presets by lazy { GlyphMuseumPresets(context) }
+
     /**
      * Display an icon by name. Resolution order: saved custom design
-     * ([CustomGlyphStore]) → emoji icon table ([GlyphIconLibrary]) → raw
+     * ([CustomGlyphStore]) → bundled Glyph Museum presets
+     * ([GlyphMuseumPresets]) → emoji icon table ([GlyphIconLibrary]) → raw
      * emoji passthrough. Animated customs play all frames once at their
      * own durations.
      */
     fun displayIcon(name: String): GlyphResult {
         CustomGlyphStore(context).design(name)?.let { return displayDesign(it) }
+        presets.design(name)?.let { return displayDesign(it) }
         val frame = GlyphIconLibrary.frameFor(name)
             ?: return GlyphResult.Failure("Unknown icon: $name")
         if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("icon:$name", frame, matrixSize())
