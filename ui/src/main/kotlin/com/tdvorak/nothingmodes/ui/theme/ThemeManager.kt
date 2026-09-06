@@ -35,15 +35,10 @@ class ThemeManager private constructor(
         _uiStyle.value = style
     }
 
-    /** Effective style after AUTO resolution against the device manufacturer. */
+    /** Effective style after AUTO resolution. Nothing is the primary identity. */
     fun resolvedUiStyle(): UiStyle =
         when (_uiStyle.value) {
-            UiStyle.AUTO ->
-                if (android.os.Build.MANUFACTURER.equals("nothing", ignoreCase = true)) {
-                    UiStyle.NOTHING
-                } else {
-                    UiStyle.CLASSIC
-                }
+            UiStyle.AUTO -> UiStyle.NOTHING
             else -> _uiStyle.value
         }
 

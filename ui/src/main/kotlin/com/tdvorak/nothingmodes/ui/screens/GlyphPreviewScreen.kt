@@ -1,5 +1,8 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -227,12 +230,24 @@ fun GlyphPreviewScreen(
                         )
                     }
                     NothingDivider(modifier = Modifier.padding(vertical = NothingSpacing.sm))
-                    GlyphLinkButton(
-                        "Glyph Studio",
-                        Modifier.fillMaxWidth(),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                     ) {
-                        onOpenEditor()
-                        true
+                        GlyphLinkButton(
+                            "Glyph Studio",
+                            Modifier.weight(1f),
+                        ) {
+                            onOpenEditor()
+                            true
+                        }
+                        GlyphLinkButton(
+                            "Glyph Museum",
+                            Modifier.weight(1f),
+                        ) {
+                            openGlyphMuseum(context)
+                            true
+                        }
                     }
                 }
             }
@@ -507,6 +522,22 @@ private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
     }
 }
 
+private const val GLYPH_MUSEUM_PKG = "com.pauwma.glyphmuseum"
+
+private fun openGlyphMuseum(context: Context) {
+    val launch = context.packageManager.getLaunchIntentForPackage(GLYPH_MUSEUM_PKG)
+    if (launch != null) {
+        context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } else {
+        val store =
+            Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://play.google.com/store/apps/details?id=$GLYPH_MUSEUM_PKG")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        runCatching { context.startActivity(store) }
+    }
+}
+
 private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String =
     when (visual) {
         is GlyphPresets.GlyphVisual.Stripe ->
@@ -543,8 +574,8 @@ private fun GlyphLinkButton(
             modifier
                 .clip(NothingShapes.input)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { onClick() }
-                .padding(vertical = NothingSpacing.sm),
+                .padding(vertical = NothingSpacing.sm)
+                .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Text(

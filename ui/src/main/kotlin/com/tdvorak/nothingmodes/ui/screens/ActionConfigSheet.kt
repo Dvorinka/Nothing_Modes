@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -408,7 +407,7 @@ fun ActionConfigContent(
         }
 
         is Action.LaunchApp -> {
-            AppPickerField(
+            AppPicker(
                 currentPackage = a.pkg,
                 onPkgChange = { onActionChange(a.copy(pkg = it)) },
             )
@@ -825,154 +824,3 @@ internal fun parseColorHex(text: String): Int? =
         if (hex.length != 6) return@runCatching null
         Integer.parseInt(hex, 16) or 0xFF000000.toInt()
     }.getOrNull()
-
-// ─── Installed App Picker Field ──────────────────────────────────────────────
-
-@Composable
-private fun AppPickerField(
-    currentPackage: String,
-    onPkgChange: (String) -> Unit,
-) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    var searchQuery by remember { mutableStateOf("") }
-    var showList by remember { mutableStateOf(false) }
-
-    val installedApps =
-        remember {
-            runCatching {
-                val pm = context.packageManager
-                val mainIntent =
-                    android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
-                        addCategory(android.content.Intent.CATEGORY_LAUNCHER)
-                    }
-                pm
-                    .queryIntentActivities(mainIntent, 0)
-                    .map { ri ->
-                        ri.loadLabel(pm).toString() to ri.activityInfo.packageName
-                    }.sortedBy { it.first.lowercase() }
-            }.getOrDefault(emptyList())
-        }
-
-    val filteredApps =
-        remember(searchQuery, installedApps) {
-            if (searchQuery.isBlank()) {
-                installedApps
-            } else {
-                installedApps.filter {
-                    it.first.contains(searchQuery, ignoreCase = true) ||
-                        it.second.contains(searchQuery, ignoreCase = true)
-                }
-            }
-        }
-
-    val selectedLabel = installedApps.find { it.second == currentPackage }?.first ?: currentPackage
-
-    Column {
-        Text(
-            text = "Selected app",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = NothingFonts.mono(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.xs))
-        androidx.compose.material3.Surface(
-            color = MaterialTheme.colorScheme.background,
-            shape = NothingShapes.input,
-            border =
-                androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline,
-                ),
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { showList = !showList },
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(NothingSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = selectedLabel.ifBlank { "Tap to select an app" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.mono(),
-                )
-                Text(
-                    text = if (showList) "[CLOSE]" else "[OPEN]",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
-            }
-        }
-
-        if (showList) {
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = "Search",
-                placeholder = "Search apps...",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            androidx.compose.foundation.lazy.LazyColumn(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 300.dp),
-                verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
-            ) {
-                items(filteredApps, key = { it.second }) { (label, pkg) ->
-                    androidx.compose.material3.Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = NothingShapes.input,
-                        border =
-                            androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline,
-                            ),
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onPkgChange(pkg)
-                                    showList = false
-                                    searchQuery = ""
-                                },
-                    ) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(NothingSpacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (pkg == currentPackage) {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .width(2.dp)
-                                            .height(20.dp)
-                                            .background(NothingColors.accent),
-                                )
-                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                            }
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = NothingFonts.mono(),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}

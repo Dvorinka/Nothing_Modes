@@ -349,10 +349,9 @@ fun ActionConfigScreen(
                     }
 
                     is Action.LaunchApp -> {
-                        NothingInput(
-                            value = a.pkg,
-                            onValueChange = { action = a.copy(pkg = it) },
-                            label = "Package name",
+                        AppPicker(
+                            currentPackage = a.pkg,
+                            onPkgChange = { action = a.copy(pkg = it) },
                         )
                     }
 
