@@ -43,6 +43,9 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // Side-by-side debug package: never collides with an installed
+            // release build, so device testing can't touch user data.
+            applicationIdSuffix = ".debug"
         }
         release {
             isMinifyEnabled = true

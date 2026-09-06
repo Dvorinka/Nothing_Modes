@@ -75,11 +75,64 @@ class GlyphToysBridge(
         }
 
     /**
-     * Toys known to the system provider (`content://…/glyph_toy`).
-     * Column names are undocumented, so this reads defensively and returns
-     * whatever rows it can; callers should treat the list as best-effort.
+     * A toy row from the system provider. Column names verified against
+     * Nothing OS 4.1 (`B4.1` build) — still read defensively by index lookup.
      */
-    fun listSystemToys(): List<String> = queryProvider(TOY_PROVIDER_URI)
+    data class SystemToy(
+        val packageName: String,
+        val serviceName: String,
+        val isActive: Boolean,
+        val isAod: Boolean,
+        val isAodActive: Boolean,
+        val hasLongpress: Boolean,
+        val order: Int,
+    ) {
+        /** Short display name: `GlyphMatrixBatteryService` -> `Battery`. */
+        val shortName: String
+            get() =
+                serviceName
+                    .substringAfterLast('.')
+                    .removePrefix("GlyphMatrix")
+                    .removeSuffix("Service")
+                    .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+                    .ifBlank { serviceName }
+    }
+
+    /**
+     * Toys known to the system provider (`content://…/glyph_toy`), parsed
+     * into structured rows. Returns empty when the provider is absent.
+     */
+    fun listSystemToys(): List<SystemToy> =
+        try {
+            val out = mutableListOf<SystemToy>()
+            context.contentResolver
+                .query(Uri.parse(TOY_PROVIDER_URI), null, null, null, null)
+                ?.use { c ->
+                    fun str(name: String) =
+                        c.getColumnIndex(name)
+                            .takeIf { it >= 0 }
+                            ?.let { runCatching { c.getString(it) }.getOrNull() }
+
+                    fun flag(name: String) = str(name)?.toIntOrNull() == 1
+
+                    while (c.moveToNext()) {
+                        out +=
+                            SystemToy(
+                                packageName = str("package_name").orEmpty(),
+                                serviceName = str("service_name").orEmpty(),
+                                isActive = flag("is_active"),
+                                isAod = flag("is_aod"),
+                                isAodActive = flag("is_aod_active"),
+                                hasLongpress = flag("has_longpress"),
+                                order = str("toy_order")?.toIntOrNull() ?: 0,
+                            )
+                    }
+                }
+            out.sortedBy { it.order }
+        } catch (e: Exception) {
+            Log.d(TAG, "provider query failed", e)
+            emptyList()
+        }
 
     /** The toy currently selected for always-on display, if any. */
     fun activeAodToy(): String? = queryProvider(AOD_TOY_URI).firstOrNull()
@@ -116,18 +169,18 @@ class GlyphToysBridge(
         return runCatching { context.startActivity(launch) }.isSuccess
     }
 
+    /** Single-column text rows from a glyph provider URI, best-effort. */
     private fun queryProvider(uri: String): List<String> =
         try {
             val out = mutableListOf<String>()
             context.contentResolver.query(Uri.parse(uri), null, null, null, null)?.use { cursor ->
                 while (cursor.moveToNext()) {
-                    // Concatenate all string columns; the schema is undocumented.
-                    val row =
-                        (0 until cursor.columnCount)
-                            .mapNotNull { runCatching { cursor.getString(it) }.getOrNull() }
-                            .filter { it.isNotBlank() }
-                            .joinToString(" ")
-                    if (row.isNotBlank()) out.add(row)
+                    (0 until cursor.columnCount)
+                        .mapNotNull { runCatching { cursor.getString(it) }.getOrNull() }
+                        .filter { it.isNotBlank() }
+                        .joinToString(" ")
+                        .takeIf { it.isNotBlank() }
+                        ?.let(out::add)
                 }
             }
             out
@@ -148,24 +201,18 @@ class GlyphToysBridge(
         private const val AOD_TOY_URI = "content://com.nothing.glyphtoyprovider/active_aod_toy_name"
         private const val DEEP_LINK = "glyphtoy://com.nothing.thirdparty/toys"
 
-        // Activity names from the analysed system build; several may move
-        // between packages, so try a few shapes.
+        // Verified on Nothing OS 4.1 (B4.1): these are the only toy
+        // activities in com.nothing.thirdparty. The download activity is
+        // the deep-link target for the toys manager.
         private val MANAGER_COMPONENTS =
             listOf(
-                "$SYSTEM_PACKAGE.matrix.toys.manager.ToysManagerActivity",
-                "$SYSTEM_PACKAGE.matrix.toys.ToysManagerActivity",
-                "$SYSTEM_PACKAGE.matrix.toys.manager.ToysTransparentActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.download.ToysTransparentActivity",
+                "$SYSTEM_PACKAGE.matrix.toys.preview.ToysPreviewActivity",
             )
-        private val AOD_PICKER_COMPONENTS =
-            listOf(
-                "$SYSTEM_PACKAGE.matrix.toys.manager.AodToySelectActivity",
-                "$SYSTEM_PACKAGE.matrix.toys.AodToySelectActivity",
-            )
-        private val TIMEOUT_COMPONENTS =
-            listOf(
-                "$SYSTEM_PACKAGE.matrix.toys.manager.ToyTimeoutSettingsActivity",
-                "$SYSTEM_PACKAGE.matrix.toys.settings.ToyTimeoutSettingsActivity",
-                "$SYSTEM_PACKAGE.matrix.toys.ToyTimeoutSettingsActivity",
-            )
+
+        // No dedicated AOD-picker or timeout activities exist on 4.1 —
+        // both fall through to the glyphtoy:// deep link below.
+        private val AOD_PICKER_COMPONENTS = emptyList<String>()
+        private val TIMEOUT_COMPONENTS = emptyList<String>()
     }
 }

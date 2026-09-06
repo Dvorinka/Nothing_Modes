@@ -271,15 +271,46 @@ fun GlyphPreviewScreen(
                 item {
                     NothingSectionHeader(text = "System toy table")
                     NothingCard {
-                        systemToys.forEachIndexed { index, row ->
+                        systemToys.forEachIndexed { index, toy ->
                             if (index > 0) NothingDivider()
-                            Text(
-                                text = row,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = SpaceMono,
-                                modifier = Modifier.padding(vertical = NothingSpacing.xs),
-                            )
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = NothingSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = toy.shortName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontFamily = SpaceMono,
+                                    )
+                                    Text(
+                                        text = toy.packageName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = SpaceMono,
+                                    )
+                                }
+                                val status =
+                                    buildString {
+                                        if (toy.isActive) append("ON")
+                                        if (toy.isAodActive) {
+                                            if (isNotEmpty()) append(" · ")
+                                            append("AOD")
+                                        }
+                                    }
+                                if (status.isNotEmpty()) {
+                                    Text(
+                                        text = status,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = NothingColors.accent,
+                                        fontFamily = SpaceMono,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
