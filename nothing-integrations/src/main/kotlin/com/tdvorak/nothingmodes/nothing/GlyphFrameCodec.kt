@@ -57,6 +57,144 @@ object GlyphFrameCodec {
     /** Number of physical LEDs (489 for 25x25, 137 for 13x13). */
     fun ledCount(size: Int): Int = rowWidths(size).sum()
 
+    /** Supported matrix grid sizes, largest first. */
+    fun gridSizes(): List<Int> = listOf(25, 13)
+
+    /**
+     * Rescale a [from]×[from] square frame to a [to]×[to] frame.
+     * Uses bilinear sampling on the physical LED circle so a design drawn for
+     * one Nothing phone can render on another matrix size.
+     */
+    fun rescaleFrame(frame: IntArray, from: Int, to: Int): IntArray {
+        if (from == to) return frame.copyOf()
+        val out = IntArray(to * to)
+        val dstWidths = rowWidths(to)
+        for (row in 0 until to) {
+            val start = (to - dstWidths[row]) / 2
+            for (c in 0 until dstWidths[row]) {
+                val srcX = (start + c + 0.5f) * from / to - 0.5f
+                val srcY = (row + 0.5f) * from / to - 0.5f
+                out[row * to + start + c] = sampleBilinear(frame, from, srcX, srcY)
+            }
+        }
+        return out
+    }
+
+    private fun sampleBilinear(frame: IntArray, size: Int, x: Float, y: Float): Int {
+        val x0 = x.toInt().coerceIn(0, size - 1)
+        val y0 = y.toInt().coerceIn(0, size - 1)
+        val x1 = (x0 + 1).coerceAtMost(size - 1)
+        val y1 = (y0 + 1).coerceAtMost(size - 1)
+        val fx = x - x0
+        val fy = y - y0
+        val v00 = frame[y0 * size + x0]
+        val v10 = frame[y0 * size + x1]
+        val v01 = frame[y1 * size + x0]
+        val v11 = frame[y1 * size + x1]
+        val top = v00 * (1 - fx) + v10 * fx
+        val bottom = v01 * (1 - fx) + v11 * fx
+        return (top * (1 - fy) + bottom * fy).toInt().coerceIn(0, 4095)
+    }
+
+    /** Vertical flip — map each physical dot to its mirror row. */
+    fun flipVertical(frame: IntArray, size: Int): IntArray {
+        val out = IntArray(size * size)
+        val widths = rowWidths(size)
+        for (row in 0 until size) {
+            val start = (size - widths[row]) / 2
+            for (c in 0 until widths[row]) {
+                val src = row * size + start + c
+                val dstRow = size - 1 - row
+                val dstStart = (size - widths[dstRow]) / 2
+                val dst = dstRow * size + dstStart + c
+                out[dst] = frame[src]
+            }
+        }
+        return out
+    }
+
+    /** Horizontal mirror — map each physical dot to its mirror column. */
+    fun flipHorizontal(frame: IntArray, size: Int): IntArray {
+        val out = IntArray(size * size)
+        val widths = rowWidths(size)
+        for (row in 0 until size) {
+            val start = (size - widths[row]) / 2
+            for (c in 0 until widths[row]) {
+                val src = row * size + start + c
+                val dst = row * size + start + (widths[row] - 1 - c)
+                out[dst] = frame[src]
+            }
+        }
+        return out
+    }
+
+    /** 90-degree clockwise rotation. The circular matrix is symmetric, so
+     * every physical dot maps to another physical dot. */
+    fun rotate90(frame: IntArray, size: Int): IntArray {
+        val out = IntArray(size * size)
+        for (row in 0 until size) {
+            for (col in 0 until size) {
+                val dstCol = size - 1 - row
+                val dstRow = col
+                out[dstRow * size + dstCol] = frame[row * size + col]
+            }
+        }
+        return out
+    }
+
+    /** Invert brightness values inside the physical circle. */
+    fun invert(frame: IntArray, size: Int): IntArray {
+        val out = frame.copyOf()
+        val widths = rowWidths(size)
+        for (row in 0 until size) {
+            val start = (size - widths[row]) / 2
+            for (c in 0 until widths[row]) {
+                val idx = row * size + start + c
+                out[idx] = 4095 - frame[idx]
+            }
+        }
+        return out
+    }
+
+    /** Fill the physical circle with [brightness] (0..4095). */
+    fun fill(frame: IntArray, size: Int, brightness: Int): IntArray {
+        val out = frame.copyOf()
+        val widths = rowWidths(size)
+        val v = brightness.coerceIn(0, 4095)
+        for (row in 0 until size) {
+            val start = (size - widths[row]) / 2
+            for (c in 0 until widths[row]) {
+                out[row * size + start + c] = v
+            }
+        }
+        return out
+    }
+
+    /** Count of physical LEDs with value > 0. */
+    fun activeCount(frame: IntArray, size: Int): Int {
+        val widths = rowWidths(size)
+        var count = 0
+        for (row in 0 until size) {
+            val start = (size - widths[row]) / 2
+            for (c in 0 until widths[row]) {
+                if (frame[row * size + start + c] > 0) count++
+            }
+        }
+        return count
+    }
+
+    /** Rescale an entire design to [newSize], keeping durations and meta. */
+    fun rescaleDesign(design: Design, newSize: Int): Design =
+        if (design.gridSize == newSize) {
+            design
+        } else {
+            design.copy(
+                version = if (newSize == 13) 4 else 1,
+                gridSize = newSize,
+                frames = design.frames.map { Frame(rescaleFrame(it.pixels, design.gridSize, newSize), it.durationMs) },
+            )
+        }
+
     /**
      * Decode the open JSON format into a [Design]. Throws
      * [IllegalArgumentException] on anything that is not a usable design.

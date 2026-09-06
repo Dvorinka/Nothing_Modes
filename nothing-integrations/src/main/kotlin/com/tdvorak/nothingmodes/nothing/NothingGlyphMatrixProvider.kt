@@ -482,7 +482,9 @@ class NothingGlyphMatrixProvider(
     /**
      * Display a decoded open-format design. Static designs push one frame;
      * animations play each frame at its `d` duration (default 100ms), once.
-     * Returns early if the design targets a different matrix resolution.
+     * When the design targets a different matrix size, it is bilinearly
+     * resampled to the current device's matrix so a Phone 4a Pro design can
+     * render on a Phone 3 and vice versa.
      */
     fun displayDesign(design: GlyphFrameCodec.Design): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
@@ -490,18 +492,15 @@ class NothingGlyphMatrixProvider(
             return GlyphResult.Failure("matrix owned by another toy")
         }
         val size = matrixSize()
-        if (design.gridSize != size) {
-            return GlyphResult.Failure(
-                "design is for ${design.gridSize}x${design.gridSize}, this matrix is ${size}x$size",
-            )
-        }
-        if (design.frames.size == 1) {
-            return setFrame(design.frames[0].pixels)
+        val target =
+            if (design.gridSize == size) design else GlyphFrameCodec.rescaleDesign(design, size)
+        if (target.frames.size == 1) {
+            return setFrame(target.frames[0].pixels)
         }
         stopDesign()
         designJob =
             countdownScope.launch {
-                for (frame in design.frames) {
+                for (frame in target.frames) {
                     if (!isActive) break
                     if (setFrame(frame.pixels) !is GlyphResult.Success) break
                     delay((frame.durationMs ?: 100).toLong().coerceIn(20, 60_000))
