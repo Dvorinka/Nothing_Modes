@@ -16,20 +16,22 @@
 
     const cx = 12, cy = 12;
 
-    // Main ring: cells whose distance from centre sits in the band [8.2, 9.8],
-    // with a gap carved in the top-right arc (angles 285deg..345deg, where
-    // 0deg = +x axis and y points down).
+    // Outer "C" arc — a two-cell-thick ring (band 8.0..10.4) with a gap
+    // carved in the top-right (angles 285deg..345deg; 0deg = +x, y down).
+    // Inner ring around the centre evokes the camera-module glyph, and a
+    // detached dash plus a short straight segment complete the layout.
     const ringCells = [];
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const dx = x - cx, dy = y - cy;
         const d = Math.sqrt(dx * dx + dy * dy);
-        if (d >= 8.2 && d <= 9.8) {
+        if (d >= 8.0 && d <= 10.4) {
           const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
           if (a > 285 && a < 345) continue; // top-right gap
           grid[y][x] = 1;
           if (a >= 150 && a <= 250) ringCells.push([x, y]); // lower-left arc
         }
+        if (d >= 2.4 && d <= 3.8) grid[y][x] = 1; // inner camera ring
       }
     }
 
@@ -38,11 +40,8 @@
     grid[3][18] = 1;
     grid[2][19] = 1;
 
-    // Centre "!" motif: a single lit dot with a 3-dot vertical bar below it.
-    grid[12][12] = 1;
-    grid[14][12] = 1;
-    grid[15][12] = 1;
-    grid[16][12] = 1;
+    // Short straight segment on the right, inside the arc.
+    for (let y = 10; y <= 14; y++) grid[y][19] = 1;
 
     const frag = document.createDocumentFragment();
     const cells = [];
