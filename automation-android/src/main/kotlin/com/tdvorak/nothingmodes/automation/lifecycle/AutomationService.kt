@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
@@ -67,6 +68,7 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
             ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
+            ACTION_CHARGER -> handleCharger(intent)
             ACTION_SCREEN_STATE -> handleScreenState(intent)
             ACTION_NOTIFICATION -> handleNotification(intent)
             ACTION_PHONE_STATE -> handlePhoneState(intent)
@@ -188,6 +190,26 @@ class AutomationService : Service() {
                 eventId = "battery:${System.currentTimeMillis()}",
                 level = level,
                 isCharging = isCharging,
+            ),
+        )
+    }
+
+    private fun handleCharger(intent: Intent) {
+        val connected = intent.getBooleanExtra(PersistentMonitorService.EXTRA_CHARGER_CONNECTED, false)
+        val sourceName = intent.getStringExtra(PersistentMonitorService.EXTRA_CHARGER_SOURCE)
+        val source =
+            when (sourceName) {
+                "ac" -> ChargerSource.AC
+                "usb" -> ChargerSource.USB
+                "wireless" -> ChargerSource.WIRELESS
+                "dock" -> ChargerSource.DOCK
+                else -> null
+            }
+        dispatchEvent(
+            TriggerEvent.ChargerConnectedChanged(
+                eventId = "charger:${System.currentTimeMillis()}",
+                connected = connected,
+                source = if (connected) source else null,
             ),
         )
     }
@@ -425,6 +447,7 @@ class AutomationService : Service() {
         const val ACTION_REGISTERED = "com.tdvorak.nothingmodes.REGISTERED"
         const val ACTION_BOOT = "com.tdvorak.nothingmodes.BOOT"
         const val ACTION_BATTERY_CHANGED = "com.tdvorak.nothingmodes.BATTERY_CHANGED"
+        const val ACTION_CHARGER = "com.tdvorak.nothingmodes.CHARGER"
         const val ACTION_SCREEN_STATE = "com.tdvorak.nothingmodes.SCREEN_STATE"
         const val ACTION_NOTIFICATION = "com.tdvorak.nothingmodes.NOTIFICATION"
         const val ACTION_PHONE_STATE = "com.tdvorak.nothingmodes.PHONE_STATE"

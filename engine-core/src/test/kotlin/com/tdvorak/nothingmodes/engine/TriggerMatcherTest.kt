@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.engine
 
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
+import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
@@ -410,6 +411,50 @@ class TriggerMatcherTest {
     fun `Geofence trigger does not match different transition`() {
         val trigger = Trigger.Geofence(lat = 50.0, lng = 14.0, radiusM = 100.0, transition = Transition.ENTER)
         val event = TriggerEvent.GeofenceTriggered("e1", 50.0, 14.0, Transition.EXIT)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- ChargerConnected ---
+
+    @Test
+    fun `ChargerConnected trigger matches any source on connect`() {
+        val trigger = Trigger.ChargerConnected(connected = true)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = ChargerSource.USB)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `ChargerConnected trigger matches wireless source filter`() {
+        val trigger = Trigger.ChargerConnected(connected = true, source = ChargerSource.WIRELESS)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = ChargerSource.WIRELESS)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `ChargerConnected trigger does not match different source`() {
+        val trigger = Trigger.ChargerConnected(connected = true, source = ChargerSource.WIRELESS)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = ChargerSource.AC)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `ChargerConnected trigger does not match disconnect when connect expected`() {
+        val trigger = Trigger.ChargerConnected(connected = true)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = false, source = null)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `ChargerConnected disconnect trigger matches disconnect event`() {
+        val trigger = Trigger.ChargerConnected(connected = false)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = false, source = null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `ChargerConnected trigger does not match BatteryLevelChanged event`() {
+        val trigger = Trigger.ChargerConnected(connected = true)
+        val event = TriggerEvent.BatteryLevelChanged("e1", 50, isCharging = true)
         assertFalse(matcher.matches(trigger, event))
     }
 }

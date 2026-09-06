@@ -3,13 +3,16 @@ package com.tdvorak.nothingmodes.capabilities.controllers
 import android.annotation.SuppressLint
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.LocationManager
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.nfc.NfcManager
 import android.os.BatteryManager
@@ -61,7 +64,7 @@ class AndroidStateProvider(
         val (btConnected, btName) = readBluetoothState()
         val foregroundApp = readForegroundApp()
         val activeModeIds = modeActivationProvider?.activeModeIds()?.toSet() ?: emptySet()
-        val values = readValues(powerManager)
+        val values = readValues(powerManager, batteryIntent)
 
         return DeviceState(
             batteryLevel = batteryLevel,
@@ -78,7 +81,10 @@ class AndroidStateProvider(
         )
     }
 
-    private fun readValues(powerManager: PowerManager): Map<String, String> {
+    private fun readValues(
+        powerManager: PowerManager,
+        batteryIntent: Intent?,
+    ): Map<String, String> {
         val values = mutableMapOf<String, String>()
 
         // Dark mode is derived from the current UI mode configuration.
@@ -98,12 +104,40 @@ class AndroidStateProvider(
                     AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
                     else -> "normal"
                 }
+            values["headphones_connected"] = readHeadphonesConnected(audioManager).toString()
+            values["volume_media"] = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toString()
+            values["volume_ring"] = audioManager.getStreamVolume(AudioManager.STREAM_RING).toString()
+            values["volume_alarm"] = audioManager.getStreamVolume(AudioManager.STREAM_ALARM).toString()
         }
 
         values["airplane_mode"] = readAirplaneMode().toString()
         values["nfc_enabled"] = readNfcEnabled().toString()
         values["location_enabled"] = readLocationEnabled().toString()
         values["screen_time_today_ms"] = readScreenTimeToday().toString()
+        values["auto_sync"] = runCatching { ContentResolver.getMasterSyncAutomatically() }.getOrDefault(false).toString()
+        values["data_saver"] = readDataSaverEnabled().toString()
+        values["auto_rotate"] =
+            runCatching {
+                Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0) == 1
+            }.getOrDefault(false).toString()
+
+        batteryIntent?.let { intent ->
+            val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
+            values["charging_source"] =
+                when (plugged) {
+                    BatteryManager.BATTERY_PLUGGED_AC -> "ac"
+                    BatteryManager.BATTERY_PLUGGED_USB -> "usb"
+                    BatteryManager.BATTERY_PLUGGED_WIRELESS -> "wireless"
+                    BatteryManager.BATTERY_PLUGGED_DOCK -> "dock"
+                    else -> "none"
+                }
+            val rawTemp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
+            if (rawTemp != Int.MIN_VALUE) {
+                values["battery_temp_c"] = (rawTemp / 10.0).toString()
+            }
+        }
+
+        readScreenOffSince()?.let { values["screen_off_since_ms"] = it.toString() }
 
         readCallState()?.let { values["call_state"] = it }
 
@@ -210,6 +244,35 @@ class AndroidStateProvider(
         }
     }
 
+    private fun readHeadphonesConnected(audioManager: AudioManager): Boolean {
+        val types =
+            buildSet {
+                add(AudioDeviceInfo.TYPE_WIRED_HEADSET)
+                add(AudioDeviceInfo.TYPE_WIRED_HEADPHONES)
+                add(AudioDeviceInfo.TYPE_USB_HEADSET)
+                add(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+                add(AudioDeviceInfo.TYPE_BLUETOOTH_SCO)
+                add(AudioDeviceInfo.TYPE_HEARING_AID)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    add(AudioDeviceInfo.TYPE_BLE_HEADSET)
+                }
+            }
+        return audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type in types }
+    }
+
+    private fun readDataSaverEnabled(): Boolean {
+        val cm = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        return cm.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+    }
+
+    // Screen-off timestamp is written by PersistentMonitorService; capabilities
+    // cannot depend on automation-android, so both sides share this prefs file.
+    private fun readScreenOffSince(): Long? {
+        val prefs = context.getSharedPreferences(SCREEN_STATE_PREFS, Context.MODE_PRIVATE)
+        val ts = prefs.getLong(KEY_SCREEN_OFF_SINCE, -1L)
+        return ts.takeIf { it > 0 }
+    }
+
     @SuppressLint("MissingPermission")
     private fun readScreenTimeToday(): Long {
         return try {
@@ -233,5 +296,10 @@ class AndroidStateProvider(
         } catch (e: SecurityException) {
             0L
         }
+    }
+
+    companion object {
+        const val SCREEN_STATE_PREFS = "nothing_modes_state"
+        const val KEY_SCREEN_OFF_SINCE = "screen_off_since_ms"
     }
 }

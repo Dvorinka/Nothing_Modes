@@ -20,6 +20,10 @@ enum class ScreenState { ON, OFF }
 
 enum class BatteryDirection { CHARGING_STARTED, CHARGING_STOPPED }
 
+/** Physical power source reported by the battery intent's `plugged` extra. */
+@Serializable
+enum class ChargerSource { AC, USB, WIRELESS, DOCK }
+
 /** Day filter for recurring triggers. */
 @Serializable
 enum class DayOfWeek(
@@ -165,6 +169,14 @@ sealed interface Trigger {
         val calendarId: String? = null,
         val titleMatch: String? = null,
         val direction: CalendarDirection = CalendarDirection.START,
+    ) : Trigger
+
+    /** Charger plugged in or unplugged. source = optional filter (e.g. WIRELESS). */
+    @Serializable
+    @SerialName("charger_connected")
+    data class ChargerConnected(
+        val connected: Boolean = true,
+        val source: ChargerSource? = null,
     ) : Trigger
 }
 

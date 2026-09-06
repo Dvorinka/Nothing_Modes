@@ -166,6 +166,7 @@ object CapabilityRequirements {
             is Trigger.BluetoothDevice -> setOf(CapabilityIds.TRIGGER_BT_DEVICE)
             is Trigger.WifiConnected -> setOf(CapabilityIds.TRIGGER_WIFI_CONNECTED)
             is Trigger.CalendarEvent -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
+            is Trigger.ChargerConnected -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =
@@ -237,6 +238,14 @@ object CapabilityRequirements {
             is Condition.CallStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.AlarmRinging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.ScreenTime -> setOf(CapabilityIds.STATE_FOREGROUND_APP)
+            is Condition.HeadphonesConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.DataSaverOn -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.AutoSyncOn -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.AutoRotateOn -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.VolumeLevel -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.ScreenOffFor -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.ChargingSource -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.BatteryTemp -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Not -> conditionCapabilities(condition.cond)

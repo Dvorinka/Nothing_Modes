@@ -670,6 +670,186 @@ class ConditionEvaluatorTest {
         )
     }
 
+    // --- Value-based device conditions ---
+
+    @Test
+    fun `HeadphonesConnected - MET when connected`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.HeadphonesConnected(true),
+                DeviceState(values = mapOf("headphones_connected" to "true")),
+            ),
+        )
+    }
+
+    @Test
+    fun `HeadphonesConnected - NOT_MET when disconnected`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.HeadphonesConnected(true),
+                DeviceState(values = mapOf("headphones_connected" to "false")),
+            ),
+        )
+    }
+
+    @Test
+    fun `DataSaverOn - MET when enabled`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.DataSaverOn(true),
+                DeviceState(values = mapOf("data_saver" to "true")),
+            ),
+        )
+    }
+
+    @Test
+    fun `AutoSyncOn - NOT_MET when off`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.AutoSyncOn(true),
+                DeviceState(values = mapOf("auto_sync" to "false")),
+            ),
+        )
+    }
+
+    @Test
+    fun `AutoRotateOn - STATE_UNAVAILABLE when value missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.AutoRotateOn(true), DeviceState()),
+        )
+    }
+
+    @Test
+    fun `VolumeLevel - MET when media volume above threshold`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.VolumeLevel(com.tdvorak.nothingmodes.engine.model.VolumeStream.MEDIA, CmpOp.GT, 5),
+                DeviceState(values = mapOf("volume_media" to "10")),
+            ),
+        )
+    }
+
+    @Test
+    fun `VolumeLevel - NOT_MET when ring volume below threshold`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.VolumeLevel(com.tdvorak.nothingmodes.engine.model.VolumeStream.RING, CmpOp.GTE, 5),
+                DeviceState(values = mapOf("volume_ring" to "3")),
+            ),
+        )
+    }
+
+    @Test
+    fun `VolumeLevel - STATE_UNAVAILABLE for unknown stream key`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(
+                Condition.VolumeLevel(com.tdvorak.nothingmodes.engine.model.VolumeStream.NOTIFICATION, CmpOp.GT, 0),
+                DeviceState(),
+            ),
+        )
+    }
+
+    @Test
+    fun `ScreenOffFor - MET when screen off longer than threshold`() {
+        val now = 1_000_000L
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.ScreenOffFor(CmpOp.GTE, 10),
+                DeviceState(
+                    screenState = ScreenState.OFF,
+                    values = mapOf("screen_off_since_ms" to (now - 15 * 60_000L).toString()),
+                    now = now,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `ScreenOffFor - NOT_MET when screen is on and threshold positive`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.ScreenOffFor(CmpOp.GT, 10),
+                DeviceState(screenState = ScreenState.ON),
+            ),
+        )
+    }
+
+    @Test
+    fun `ScreenOffFor - MET when screen is on and threshold is zero`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.ScreenOffFor(CmpOp.LT, 10),
+                DeviceState(screenState = ScreenState.ON),
+            ),
+        )
+    }
+
+    @Test
+    fun `ScreenOffFor - STATE_UNAVAILABLE when screen off without timestamp`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(
+                Condition.ScreenOffFor(CmpOp.GTE, 5),
+                DeviceState(screenState = ScreenState.OFF),
+            ),
+        )
+    }
+
+    @Test
+    fun `ChargingSource - MET on wireless`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.ChargingSource(com.tdvorak.nothingmodes.engine.model.ChargerSource.WIRELESS),
+                DeviceState(values = mapOf("charging_source" to "wireless")),
+            ),
+        )
+    }
+
+    @Test
+    fun `ChargingSource - NOT_MET on different source`() {
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(
+                Condition.ChargingSource(com.tdvorak.nothingmodes.engine.model.ChargerSource.WIRELESS),
+                DeviceState(values = mapOf("charging_source" to "ac")),
+            ),
+        )
+    }
+
+    @Test
+    fun `BatteryTemp - MET when above threshold`() {
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(
+                Condition.BatteryTemp(CmpOp.GTE, 35.0),
+                DeviceState(values = mapOf("battery_temp_c" to "36.5")),
+            ),
+        )
+    }
+
+    @Test
+    fun `BatteryTemp - STATE_UNAVAILABLE when malformed`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(
+                Condition.BatteryTemp(CmpOp.GTE, 35.0),
+                DeviceState(values = mapOf("battery_temp_c" to "hot")),
+            ),
+        )
+    }
+
     @Test
     fun `nested And-Or-Not evaluates correctly`() {
         val cond =

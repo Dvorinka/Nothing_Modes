@@ -135,6 +135,66 @@ sealed interface Condition {
         val minutes: Int,
     ) : Condition
 
+    /** An audio output device (headset, USB, BT) is connected. Reads values["headphones_connected"]. */
+    @Serializable
+    @SerialName("headphones_connected")
+    data class HeadphonesConnected(
+        val connected: Boolean,
+    ) : Condition
+
+    /** Data Saver is restricting background data. Reads values["data_saver"]. */
+    @Serializable
+    @SerialName("data_saver_on")
+    data class DataSaverOn(
+        val on: Boolean,
+    ) : Condition
+
+    /** Master auto-sync is enabled. Reads values["auto_sync"]. */
+    @Serializable
+    @SerialName("auto_sync_on")
+    data class AutoSyncOn(
+        val on: Boolean,
+    ) : Condition
+
+    /** Auto-rotate is enabled. Reads values["auto_rotate"]. */
+    @Serializable
+    @SerialName("auto_rotate_on")
+    data class AutoRotateOn(
+        val on: Boolean,
+    ) : Condition
+
+    /** Stream volume level. Reads values["volume_<stream>"] (0..max). */
+    @Serializable
+    @SerialName("volume_level")
+    data class VolumeLevel(
+        val stream: VolumeStream,
+        val op: CmpOp,
+        val level: Int,
+    ) : Condition
+
+    /** Screen has been off for the given duration. Reads values["screen_off_since_ms"]. */
+    @Serializable
+    @SerialName("screen_off_for")
+    data class ScreenOffFor(
+        val op: CmpOp,
+        val minutes: Int,
+    ) : Condition
+
+    /** Battery is charging from the given source. Reads values["charging_source"]. */
+    @Serializable
+    @SerialName("charging_source")
+    data class ChargingSource(
+        val source: ChargerSource,
+    ) : Condition
+
+    /** Battery temperature in Celsius. Reads values["battery_temp_c"]. */
+    @Serializable
+    @SerialName("battery_temp")
+    data class BatteryTemp(
+        val op: CmpOp,
+        val celsius: Double,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

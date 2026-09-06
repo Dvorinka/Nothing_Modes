@@ -103,6 +103,12 @@ sealed interface TriggerEvent {
         val title: String?,
         val calendarId: String?,
     ) : TriggerEvent
+
+    data class ChargerConnectedChanged(
+        override val eventId: String,
+        val connected: Boolean,
+        val source: com.tdvorak.nothingmodes.engine.model.ChargerSource?,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

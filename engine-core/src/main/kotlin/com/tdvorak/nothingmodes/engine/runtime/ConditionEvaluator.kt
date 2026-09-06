@@ -53,6 +53,14 @@ class ConditionEvaluator {
             is Condition.CallStateCondition -> evaluateCallState(condition, state)
             is Condition.AlarmRinging -> evaluateAlarmRinging(condition, state)
             is Condition.ScreenTime -> evaluateScreenTime(condition, state)
+            is Condition.HeadphonesConnected -> evaluateBooleanValue(condition.connected, "headphones_connected", state)
+            is Condition.DataSaverOn -> evaluateBooleanValue(condition.on, "data_saver", state)
+            is Condition.AutoSyncOn -> evaluateBooleanValue(condition.on, "auto_sync", state)
+            is Condition.AutoRotateOn -> evaluateBooleanValue(condition.on, "auto_rotate", state)
+            is Condition.VolumeLevel -> evaluateVolumeLevel(condition, state)
+            is Condition.ScreenOffFor -> evaluateScreenOffFor(condition, state)
+            is Condition.ChargingSource -> evaluateChargingSource(condition, state)
+            is Condition.BatteryTemp -> evaluateBatteryTemp(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -122,20 +130,42 @@ class ConditionEvaluator {
         return if (mapped in condition.days) Result.MET else Result.NOT_MET
     }
 
+    private fun compareNumeric(
+        op: CmpOp,
+        actual: Long,
+        threshold: Long,
+    ): Result =
+        when (op) {
+            CmpOp.EQ -> if (actual == threshold) Result.MET else Result.NOT_MET
+            CmpOp.NEQ -> if (actual != threshold) Result.MET else Result.NOT_MET
+            CmpOp.GT -> if (actual > threshold) Result.MET else Result.NOT_MET
+            CmpOp.LT -> if (actual < threshold) Result.MET else Result.NOT_MET
+            CmpOp.GTE -> if (actual >= threshold) Result.MET else Result.NOT_MET
+            CmpOp.LTE -> if (actual <= threshold) Result.MET else Result.NOT_MET
+            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
+        }
+
+    private fun compareNumeric(
+        op: CmpOp,
+        actual: Double,
+        threshold: Double,
+    ): Result =
+        when (op) {
+            CmpOp.EQ -> if (actual == threshold) Result.MET else Result.NOT_MET
+            CmpOp.NEQ -> if (actual != threshold) Result.MET else Result.NOT_MET
+            CmpOp.GT -> if (actual > threshold) Result.MET else Result.NOT_MET
+            CmpOp.LT -> if (actual < threshold) Result.MET else Result.NOT_MET
+            CmpOp.GTE -> if (actual >= threshold) Result.MET else Result.NOT_MET
+            CmpOp.LTE -> if (actual <= threshold) Result.MET else Result.NOT_MET
+            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
+        }
+
     private fun evaluateBatteryLevel(
         condition: Condition.BatteryLevel,
         state: DeviceState,
     ): Result {
         if (state.batteryLevel < 0) return Result.STATE_UNAVAILABLE
-        return when (condition.op) {
-            CmpOp.EQ -> if (state.batteryLevel == condition.level) Result.MET else Result.NOT_MET
-            CmpOp.NEQ -> if (state.batteryLevel != condition.level) Result.MET else Result.NOT_MET
-            CmpOp.GT -> if (state.batteryLevel > condition.level) Result.MET else Result.NOT_MET
-            CmpOp.LT -> if (state.batteryLevel < condition.level) Result.MET else Result.NOT_MET
-            CmpOp.GTE -> if (state.batteryLevel >= condition.level) Result.MET else Result.NOT_MET
-            CmpOp.LTE -> if (state.batteryLevel <= condition.level) Result.MET else Result.NOT_MET
-            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
-        }
+        return compareNumeric(condition.op, state.batteryLevel.toLong(), condition.level.toLong())
     }
 
     private fun evaluateScreenTime(
@@ -143,16 +173,45 @@ class ConditionEvaluator {
         state: DeviceState,
     ): Result {
         val actualMs = state.values["screen_time_today_ms"]?.toLongOrNull() ?: return Result.STATE_UNAVAILABLE
-        val thresholdMs = condition.minutes.toLong() * 60_000
-        return when (condition.op) {
-            CmpOp.EQ -> if (actualMs == thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.NEQ -> if (actualMs != thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.GT -> if (actualMs > thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.LT -> if (actualMs < thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.GTE -> if (actualMs >= thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.LTE -> if (actualMs <= thresholdMs) Result.MET else Result.NOT_MET
-            CmpOp.CONTAINS -> Result.STATE_UNAVAILABLE
-        }
+        return compareNumeric(condition.op, actualMs, condition.minutes.toLong() * 60_000)
+    }
+
+    private fun evaluateVolumeLevel(
+        condition: Condition.VolumeLevel,
+        state: DeviceState,
+    ): Result {
+        val key = "volume_${condition.stream.name.lowercase()}"
+        val level = state.values[key]?.toLongOrNull() ?: return Result.STATE_UNAVAILABLE
+        return compareNumeric(condition.op, level, condition.level.toLong())
+    }
+
+    private fun evaluateScreenOffFor(
+        condition: Condition.ScreenOffFor,
+        state: DeviceState,
+    ): Result {
+        val offSince =
+            when {
+                state.screenState == ScreenState.ON -> return compareNumeric(condition.op, 0L, condition.minutes.toLong() * 60_000)
+                else -> state.values["screen_off_since_ms"]?.toLongOrNull() ?: return Result.STATE_UNAVAILABLE
+            }
+        val elapsed = (state.now - offSince).coerceAtLeast(0)
+        return compareNumeric(condition.op, elapsed, condition.minutes.toLong() * 60_000)
+    }
+
+    private fun evaluateChargingSource(
+        condition: Condition.ChargingSource,
+        state: DeviceState,
+    ): Result {
+        val raw = state.values["charging_source"] ?: return Result.STATE_UNAVAILABLE
+        return if (raw.trim().lowercase() == condition.source.name.lowercase()) Result.MET else Result.NOT_MET
+    }
+
+    private fun evaluateBatteryTemp(
+        condition: Condition.BatteryTemp,
+        state: DeviceState,
+    ): Result {
+        val temp = state.values["battery_temp_c"]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
+        return compareNumeric(condition.op, temp, condition.celsius)
     }
 
     private fun evaluateCharging(

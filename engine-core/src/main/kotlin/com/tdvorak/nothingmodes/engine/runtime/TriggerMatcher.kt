@@ -78,6 +78,11 @@ class TriggerMatcher {
                 event is TriggerEvent.CalendarEventChanged &&
                     event.direction == trigger.direction &&
                     (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true)
+
+            is Trigger.ChargerConnected ->
+                event is TriggerEvent.ChargerConnectedChanged &&
+                    event.connected == trigger.connected &&
+                    (trigger.source == null || event.source == trigger.source)
         }
 
     /** Checks if a time trigger should fire on the given day. */

@@ -30,6 +30,11 @@ class PersistentMonitorService : Service() {
     private var usageStatsMonitor: UsageStatsMonitor? = null
     private var calendarObserver: CalendarObserver? = null
 
+    // Last observed BatteryManager.EXTRA_PLUGGED value; -1 = not yet seen.
+    // Used to emit charger connect/disconnect transitions from the sticky
+    // ACTION_BATTERY_CHANGED stream without double-firing.
+    private var lastPlugged: Int = -1
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -79,9 +84,13 @@ class PersistentMonitorService : Service() {
                                     1 -> "ac"
                                     2 -> "usb"
                                     4 -> "wireless"
+                                    8 -> "dock"
                                     else -> "unknown"
                                 }
                             val temperature = intent.getIntExtra("temperature", -1) / 10.0f
+                            val plugged = intent.getIntExtra("plugged", 0)
+
+                            dispatchChargerTransition(context, plugged, source)
 
                             if (percent >= 0) {
                                 val serviceIntent =
@@ -112,6 +121,20 @@ class PersistentMonitorService : Service() {
                             Intent.ACTION_SCREEN_ON -> ScreenState.ON
                             Intent.ACTION_SCREEN_OFF -> ScreenState.OFF
                             else -> return
+                        }
+                    // Record the screen-off instant so "screen off for N min"
+                    // conditions can evaluate without keeping the service awake.
+                    // Prefs file name mirrors AndroidStateProvider.SCREEN_STATE_PREFS.
+                    context
+                        .getSharedPreferences("nothing_modes_state", Context.MODE_PRIVATE)
+                        .edit()
+                        .apply {
+                            if (state == ScreenState.OFF) {
+                                putLong("screen_off_since_ms", System.currentTimeMillis())
+                            } else {
+                                remove("screen_off_since_ms")
+                            }
+                            apply()
                         }
                     val serviceIntent =
                         Intent(context, AutomationService::class.java).apply {
@@ -155,6 +178,27 @@ class PersistentMonitorService : Service() {
 
         // App-foreground polling via UsageStats (no-ops without Usage Access).
         usageStatsMonitor = UsageStatsMonitor(this).also { it.start() }
+    }
+
+    private fun dispatchChargerTransition(
+        context: Context,
+        plugged: Int,
+        source: String,
+    ) {
+        val previous = lastPlugged
+        lastPlugged = plugged
+        if (previous == -1) return
+        val wasConnected = previous != 0
+        val isConnected = plugged != 0
+        // Fire on connect/disconnect edges and on source changes while plugged.
+        if (wasConnected == isConnected && previous == plugged) return
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_CHARGER
+                putExtra(EXTRA_CHARGER_CONNECTED, isConnected)
+                putExtra(EXTRA_CHARGER_SOURCE, source)
+            }
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun unregisterReceivers() {
@@ -213,6 +257,8 @@ class PersistentMonitorService : Service() {
         private const val NOTIFICATION_ID = 1002
         const val EXTRA_BATTERY_SOURCE = "battery_source"
         const val EXTRA_BATTERY_TEMP = "battery_temp"
+        const val EXTRA_CHARGER_CONNECTED = "charger_connected"
+        const val EXTRA_CHARGER_SOURCE = "charger_source"
         const val EXTRA_CAL_DIRECTION = "cal_direction"
         const val EXTRA_CAL_TITLE = "cal_title"
         const val EXTRA_CAL_ID = "cal_id"
