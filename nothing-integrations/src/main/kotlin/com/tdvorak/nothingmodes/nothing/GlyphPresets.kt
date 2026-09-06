@@ -81,6 +81,32 @@ object GlyphPresets {
     /** Timer fired: escalating pulse. */
     val timerFired = GlyphVisual.Stripe(periodMs = 500, cycles = 10, intervalMs = 50)
 
+    // ── Timer / countdown visuals ──
+
+    /** Timer running: progress fill on stripe. */
+    fun timerProgress(percent: Int) = GlyphVisual.Stripe(progress = percent.coerceIn(0, 100))
+
+    /** Timer running: progress fill on matrix. */
+    fun timerProgressMatrix(percent: Int) = GlyphVisual.Matrix(percentFill = percent.coerceIn(0, 100))
+
+    /** Countdown minutes display on matrix. */
+    fun countdown(minutes: Int) = GlyphVisual.Matrix(number = minutes)
+
+    /** Timer done: long pulse. */
+    val timerDone = GlyphVisual.Stripe(periodMs = 1000, cycles = 5, intervalMs = 100)
+
+    // ── Notification priority visuals ──
+
+    /** Low priority notification: single soft pulse. */
+    val notificationLow = GlyphVisual.Stripe(periodMs = 800, cycles = 1, intervalMs = 200)
+
+    /** High priority notification: rapid triple pulse. */
+    val notificationHigh = GlyphVisual.Stripe(periodMs = 150, cycles = 3, intervalMs = 100)
+
+    /** Critical notification: fast red blink (matrix) / rapid pulse (stripe). */
+    val notificationCritical = GlyphVisual.Stripe(periodMs = 100, cycles = 10, intervalMs = 50)
+    val notificationCriticalMatrix = GlyphVisual.Matrix(color = Color.RED)
+
     // ── Matrix-specific visuals ──
 
     /** Battery level display on matrix. */
