@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -413,6 +414,7 @@ fun NothingPrimaryButton(
         shape = NothingShapes.pill,
         modifier =
             modifier
+                .defaultMinSize(minWidth = 80.dp)
                 .height(48.dp)
                 .clickable(enabled = enabled, onClick = onClick),
     ) {

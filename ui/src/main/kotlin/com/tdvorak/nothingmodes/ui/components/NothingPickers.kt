@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -100,7 +104,7 @@ fun NothingTimeField(
                 Modifier
                     .clip(NothingShapes.input)
                     .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                    .padding(horizontal = NothingSpacing.lg, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -204,99 +208,107 @@ private fun WheelColumn(
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state = rememberLazyListState()
+    // jarvis: 5-cycle repeated list gives an effectively infinite wheel.
+    // If the user can still reach the physical ends, increase cycle count.
+    val cycles = 5
+    val middleCycle = cycles / 2
+    val totalItems = count * cycles
     val scope = rememberCoroutineScope()
 
-    // Padding items so the first real value can be centered.
-    val padding = WHEEL_CENTER_OFFSET
+    val initialIndex = remember(initial, count) {
+        (middleCycle * count + initial.coerceIn(0, count - 1))
+    }
+    val state = rememberLazyListState()
 
-    LaunchedEffect(initial, count) {
-        val target = initial.coerceIn(0, count - 1)
-        state.scrollToItem(target, scrollOffset = 0)
+    val contentPadding = WHEEL_ITEM_HEIGHT * WHEEL_CENTER_OFFSET
+
+    // Center the selected value in the viewport after the first layout.
+    LaunchedEffect(initialIndex) {
+        state.scrollToItem(initialIndex, scrollOffset = 0)
     }
 
-    // Snap to nearest on scroll stop. ponytail: ceiling fling snap, upgrade path = custom SnapFlingBehavior.
-    LaunchedEffect(state) {
-        snapshotFlow { state.isScrollInProgress }
-            .filter { !it }
-            .distinctUntilChanged()
-            .collect {
-                val layout = state.layoutInfo
-                val viewportCenter = (WHEEL_ITEM_HEIGHT.value * WHEEL_VISIBLE_COUNT) / 2f
-                val nearest =
-                    layout?.visibleItemsInfo?.minByOrNull { item ->
-                        val itemCenter = item.offset + item.size / 2f
-                        kotlin.math.abs(itemCenter - viewportCenter)
-                    } ?: return@collect
-                val resolved = (nearest.index - padding).coerceIn(0, count - 1)
-                if (resolved + padding != nearest.index) {
-                    state.scrollToItem(resolved + padding)
-                }
-                onSelected(resolved)
-            }
-    }
-
-    val currentCenter by remember(state) {
+    val itemIndexInCenter by remember(state) {
         derivedStateOf {
-            val layout = state.layoutInfo ?: return@derivedStateOf -1
-            val viewportCenter = (WHEEL_ITEM_HEIGHT.value * WHEEL_VISIBLE_COUNT) / 2f
-            val nearest =
+            val layout = state.layoutInfo
+            if (layout.visibleItemsInfo.isEmpty()) {
+                -1
+            } else {
+                val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2f
                 layout.visibleItemsInfo.minByOrNull { item ->
-                    val itemCenter = item.offset + item.size / 2f
-                    kotlin.math.abs(itemCenter - viewportCenter)
-                }
-            (nearest?.index ?: -1) - padding
+                    kotlin.math.abs(item.offset + item.size / 2f - viewportCenter)
+                }?.index ?: -1
+            }
         }
     }
 
-    Box(
+    val selectedValue by remember(state, count) {
+        derivedStateOf { itemIndexInCenter.takeIf { it >= 0 }?.mod(count) ?: -1 }
+    }
+
+    LaunchedEffect(selectedValue) {
+        if (selectedValue >= 0) {
+            onSelected(selectedValue)
+        }
+    }
+
+    // Wrap the visible window to the middle cycles without a visual jump,
+    // because the repeated list has identical content at every multiple of count.
+    LaunchedEffect(state, count) {
+        snapshotFlow { state.isScrollInProgress }
+            .filter { !it }
+            .collect {
+                val f = state.firstVisibleItemIndex
+                val offset = state.firstVisibleItemScrollOffset
+                when {
+                    f < count -> state.scrollToItem(f + count, offset)
+                    f >= count * (cycles - 1) -> state.scrollToItem(f - count, offset)
+                }
+            }
+    }
+
+    val snapFling = rememberSnapFlingBehavior(
+        SnapLayoutInfoProvider(state, SnapPosition.Center),
+    )
+
+    LazyColumn(
+        state = state,
         modifier =
             modifier
                 .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
                 .clip(NothingShapes.input)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center,
+        contentPadding = PaddingValues(vertical = contentPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        flingBehavior = snapFling,
     ) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            items(padding) { WheelSpacer() }
-            items(count) { index ->
-                val isSelected = index == currentCenter
-                Box(
-                    modifier =
-                        Modifier
-                            .height(WHEEL_ITEM_HEIGHT)
-                            .fillMaxWidth()
-                            .clickable {
-                                scope.launch { state.scrollToItem(index + padding) }
-                                onSelected(index)
-                            },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "%02d".format(index),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color =
-                            if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    )
-                }
+        items(totalItems, key = { it }) { index ->
+            val value = index % count
+            val isSelected = index == itemIndexInCenter
+            Box(
+                modifier =
+                    Modifier
+                        .height(WHEEL_ITEM_HEIGHT)
+                        .fillMaxWidth()
+                        .clickable {
+                            val target = middleCycle * count + value
+                            scope.launch { state.animateScrollToItem(target) }
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "%02d".format(value),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                )
             }
-            items(padding) { WheelSpacer() }
         }
     }
-}
-
-@Composable
-private fun WheelSpacer() {
-    Box(modifier = Modifier.height(WHEEL_ITEM_HEIGHT).fillMaxWidth())
 }
 
 // ── Date Field ────────────────────────────────────────────────────────────────
@@ -322,7 +334,7 @@ fun NothingDateField(
                 Modifier
                     .clip(NothingShapes.input)
                     .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                    .padding(horizontal = NothingSpacing.lg, vertical = NothingSpacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -587,7 +599,6 @@ fun NothingTimeZoneField(
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
-    var advanced by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         FieldRow(
@@ -609,33 +620,6 @@ fun NothingTimeZoneField(
                     fontFamily = NothingFonts.mono(),
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(NothingSpacing.xs))
-        Box(
-            modifier =
-                Modifier
-                    .clip(NothingShapes.technical)
-                    .clickable { advanced = !advanced }
-                    .padding(vertical = NothingSpacing.xxs),
-        ) {
-            Text(
-                text = if (advanced) "ADVANCED  –" else "ADVANCED  +",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
-        }
-
-        if (advanced) {
-            Spacer(modifier = Modifier.height(NothingSpacing.xs))
-            NothingInput(
-                value = value,
-                onValueChange = onValueChange,
-                label = "Raw zone id",
-                placeholder = "e.g. Europe/Prague",
-                keyboardOptions = KeyboardOptions.Default,
-            )
         }
     }
 
