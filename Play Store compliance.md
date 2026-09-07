@@ -116,7 +116,7 @@ Bump `versionCode` and `versionName` for every upload. `versionCode` must be a s
 
 ## 4. Console forms
 
-- **Data safety:** declare that the app does not collect user data, and explain the anonymous network requests (update check, template fetch).
+- **Data safety:** declare that the app does not collect user data by default, and explain the anonymous network requests (update check, template fetch). Optional crash/error reporting is opt-in (Settings → Privacy, off by default) and goes to the developer's own endpoint — declare it under "Crash logs / Diagnostics" as collected optionally, not shared with third parties.
 - **Content rating:** complete the questionnaire. Likely `Everyone` or `Teen` because of SMS/location features.
 - **App content:** answer health, COVID-19, gambling, etc. (all no).
 - **Target audience:** not designed for children.

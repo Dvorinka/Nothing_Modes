@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.model.CreatorProfile
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
@@ -81,6 +82,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedControl
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
@@ -718,6 +720,23 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
+                    }
+
+                    // ── Privacy ───────────────────────────────────────────────
+                    NothingSectionHeader(text = "Privacy")
+                    NothingCard {
+                        val crashEnabled by CrashReporting.enabled.collectAsState()
+                        NothingListRow(
+                            title = "Crash & error reports",
+                            subtitle =
+                                "Off by default. Sends anonymous crash reports to the developer's own server — no third-party SDKs.",
+                            trailing = {
+                                NothingToggle(
+                                    checked = crashEnabled,
+                                    onCheckedChange = { CrashReporting.setEnabled(it) },
+                                )
+                            },
+                        )
                     }
 
                     // ── Misc ──────────────────────────────────────────────────

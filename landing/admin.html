@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Nothing Modes — Crash Reports</title>
+<style>
+  :root { --bg:#0a0a0a; --panel:#141414; --line:#262626; --fg:#e8e8e8; --dim:#8a8a8a; --accent:#d9ff3f; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:14px/1.5 ui-monospace,'Geist Mono',Menlo,monospace; padding:2rem; }
+  h1 { font-size:1.1rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.5rem; }
+  h1 span { color:var(--dim); font-weight:400; }
+  #auth { max-width:22rem; margin:20vh auto 0; }
+  #auth input { width:100%; background:var(--panel); border:1px solid var(--line); color:var(--fg);
+    padding:.7rem .9rem; border-radius:.5rem; font:inherit; margin-bottom:.8rem; }
+  #auth button, .btn { background:var(--accent); color:#000; border:0; padding:.6rem 1.2rem;
+    border-radius:.5rem; font:inherit; font-weight:600; cursor:pointer; }
+  #status { color:var(--dim); margin-bottom:1rem; min-height:1.2em; }
+  .group { background:var(--panel); border:1px solid var(--line); border-radius:.6rem;
+    padding:1rem 1.2rem; margin-bottom:.8rem; cursor:pointer; }
+  .group:hover { border-color:#3a3a3a; }
+  .sig { color:var(--fg); font-weight:600; word-break:break-all; }
+  .meta { color:var(--dim); font-size:.8rem; margin-top:.3rem; display:flex; gap:1.2rem; flex-wrap:wrap; }
+  .count { color:var(--accent); }
+  .reports { display:none; margin-top:.8rem; border-top:1px solid var(--line); padding-top:.8rem; }
+  .group.open .reports { display:block; }
+  .rep { margin-bottom:1rem; }
+  .rep .stamp { color:var(--dim); font-size:.78rem; margin-bottom:.3rem; }
+  pre { background:#0f0f0f; border:1px solid var(--line); border-radius:.4rem; padding:.8rem;
+    overflow-x:auto; font-size:.75rem; white-space:pre-wrap; word-break:break-all; }
+  .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+  .top .btn { background:none; border:1px solid var(--line); color:var(--dim); font-weight:400; }
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <h1>Nothing Modes <span>/ crash reports</span></h1>
+  <input id="token" type="password" placeholder="admin token" autocomplete="off">
+  <button onclick="saveToken()">Sign in</button>
+  <p id="autherr" style="color:#ff6b6b;margin-top:.8rem"></p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top">
+    <h1>Nothing Modes <span>/ crash reports</span></h1>
+    <button class="btn" onclick="logout()">Sign out</button>
+  </div>
+  <div id="status">Loading…</div>
+  <div id="list"></div>
+</div>
+
+<script>
+const tokenEl = document.getElementById('token');
+tokenEl.value = localStorage.getItem('crash_admin_token') || '';
+if (tokenEl.value) load();
+
+function saveToken() {
+  localStorage.setItem('crash_admin_token', tokenEl.value.trim());
+  load();
+}
+function logout() {
+  localStorage.removeItem('crash_admin_token');
+  location.reload();
+}
+tokenEl.addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
+
+async function load() {
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const status = document.getElementById('status');
+  const res = await fetch('/api/crashes', {
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
+  });
+  if (res.status === 401) {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth').style.display = 'block';
+    document.getElementById('autherr').textContent = 'Invalid token.';
+    return;
+  }
+  const { reports } = await res.json();
+
+  // Group by signature: exception class + message.
+  const groups = new Map();
+  for (const r of reports) {
+    const sig = (r.exception_class || 'Unknown') + '|' + (r.message || '');
+    (groups.get(sig) || groups.set(sig, []).get(sig)).push(r);
+  }
+
+  status.textContent = `${reports.length} reports · ${groups.size} unique`;
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  for (const [sig, rs] of [...groups.entries()].sort(
+    (a, b) => new Date(b[1][0].created_at) - new Date(a[1][0].created_at))) {
+    const [cls, msg] = sig.split('|');
+    const latest = rs[0];
+    const el = document.createElement('div');
+    el.className = 'group';
+    el.onclick = () => el.classList.toggle('open');
+    el.innerHTML = `
+      <div class="sig">${esc(cls)}</div>
+      <div class="meta">
+        <span class="count">×${rs.length}</span>
+        <span>${esc(msg || '(no message)')}</span>
+        <span>latest ${new Date(latest.created_at).toLocaleString()}</span>
+        <span>v${esc(latest.app_version)} / ${esc(latest.flavor)}</span>
+      </div>
+      <div class="reports">${rs.map(r => `
+        <div class="rep">
+          <div class="stamp">${new Date(r.created_at).toLocaleString()} —
+            ${esc(r.device)} · Android ${esc(r.android_release)} (SDK ${r.sdk_int})
+            · v${esc(r.app_version)} (${r.version_code}) ${esc(r.flavor)}
+            ${r.context ? '· ' + esc(r.context) : ''}</div>
+          <pre>${esc(r.stacktrace)}</pre>
+        </div>`).join('')}
+      </div>`;
+    list.appendChild(el);
+  }
+  if (!reports.length) status.textContent = 'No reports yet.';
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

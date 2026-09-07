@@ -1,0 +1,7 @@
+{
+  "name": "nothing-modes",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2"
+  }
+}

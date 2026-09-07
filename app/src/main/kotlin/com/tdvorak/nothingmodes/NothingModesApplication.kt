@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
+import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
@@ -25,6 +26,7 @@ class NothingModesApplication : Application() {
         FeatureFlags.distribution = BuildConfig.DISTRIBUTION
         FeatureFlags.enableInAppUpdates = BuildConfig.ENABLE_IN_APP_UPDATES
         FeatureFlags.enableLockScreen = BuildConfig.ENABLE_LOCK_SCREEN
+        CrashReporting.init(this)
         // Seed automations removed — user starts with a clean slate.
         // Start persistent monitor on fresh install (not just on boot)
         runCatching {
