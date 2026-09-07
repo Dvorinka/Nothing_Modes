@@ -2,7 +2,26 @@
 
 > Compiled 2026-09-07 from user requirements + on-device analysis.
 > Device under test: **Nothing Phone (3) — A024 "Metroid", Android 16 (SDK 36)**.
-> Nothing here is implemented yet. This is the work queue.
+> This is the work queue; see "Completed" below for what has already shipped.
+
+---
+
+## Completed (shipped)
+
+### Website / community library
+- [x] Replace emoji icons with real Material Symbols on the library and submit pages.
+- [x] Link website icon set with the Android in-app icon selector via `landing/icons.json` + sync script.
+- [x] Improve Glyph preview visuals: square grid cells, faint inactive matrix, larger 320×320 modal, `requestAnimationFrame` playback.
+- [x] Add icon + background colour picker to the submit form, with live preview.
+- [x] Deploy landing site to Vercel and type-check the API layer.
+- [x] Add admin delete for submissions and crash reports (`/api/delete` + admin UI).
+- [x] Show delete buttons on `/library` when the admin token is present.
+- [x] Rich template/mode detail modal on click: large icon, trigger, conditions, actions, capabilities, description, download.
+- [x] Add `/api/preview` so modal views do not inflate the download counter.
+
+### Android
+- [x] Add `bolt` icon to the in-app icon catalog so the seed template resolves correctly.
+- [x] Build and install the debug APK on the Nothing Phone 3; confirm launch.
 
 ---
 
@@ -186,45 +205,49 @@ Current: **12 separate glyph action types** (set_glyph, glyph_matrix, preset, te
 
 ## 5. Community sharing — templates + glyphs (website + app + admin)
 
-**Status: built and committed (`119c60e`) — backend, admin tab, public library page, app wiring. Not yet deployed or e2e-tested.**
+**Status: deployed and wired end-to-end (`ade9c6f` and earlier).**
 
 Built:
 - `POST /api/share` — validate, static-analyze, redact PII (numbers/SSIDs/coords/calendar ids), rate-limit 10/day, dedupe by content hash, email admin via Resend.
 - `GET /api/library` + `GET /api/item` — public approved index + download; never exposes email/ip/moderation internals.
+- `GET /api/preview` — public item payload for the modal, without bumping downloads.
 - `GET /api/submissions` + `POST /api/moderate` — admin queue, also the AI-agent contract (`landing/api/AGENT.md`); author emailed on decision.
+- `POST /api/delete` — admin delete for submissions and crash reports.
 - `landing/api/lib/analyze.ts` — static analyzer: action allowlist (`write_setting` banned), https-only URLs, no real SMS numbers, bounds on waits/animation/text, verdicts ok/flag/reject.
-- `landing/library.html` — public catalog; `/admin` gained a Submissions tab (findings + payload viewer + approve/reject).
+- `landing/library.html` — public catalog with real Material icons, Glyph animation preview, rich template detail modal, and admin delete when signed in.
+- `landing/admin.html` — submissions tab with approve/reject/delete; crash reports with per-report delete.
+- `landing/submit.html` — submission form with icon + background picker.
 - `data/community/CommunityApi.kt` — app client; template catalog browses + publishes, glyph editor browses/imports + publishes.
 
 Still open in this feature:
-- [ ] Deploy `landing/` to Vercel; live e2e pass (submit → email → approve → visible on site + in app).
+- [ ] Live e2e smoke: submit → email → approve → visible on site + in app.
 - [ ] Env check: `DATABASE_URL`, `RESEND_API_KEY`, `CRASH_NOTIFY_EMAIL` exist; `ADMIN_TOKEN` optional (falls back to `CRASH_ADMIN_TOKEN`).
 - [ ] Content-hash verification on import (JSONB reorders keys — needs canonical serialization first).
-
-Original plan follows. Current state: templates are **static JSON in `templates/` served from GitHub raw**. The website (`landing/`) has only crash-report APIs (`api/crash.ts`, `api/crashes.ts` + `admin.html`). Nothing publishable exists yet.
 
 **Creator profile**: **handle** is the public attribution. Email is asked optionally and kept private (used only for the decision notice). Optional GitHub link shown publicly. Handle lives in Settings → Creator Profile and is pre-filled when publishing.
 
 ### Backend (Vercel + Neon, same pattern as crash.ts)
-- [ ] `POST /api/share` — submit a template or glyph pack: `{type: "template"|"glyph", payload, handle, title, description}` → `shared_items` table with `status: pending|approved|rejected`.
-- [ ] `GET /api/library` — public endpoint: approved items only, sanitized (no emails, no raw payloads beyond what's needed to render).
-- [ ] `GET /api/admin/pending` + `POST /api/admin/moderate` — bearer-token (`CRASH_ADMIN_TOKEN` pattern → rename to `ADMIN_TOKEN`) admin API for review queue.
-- [ ] Email notify on new submission (Resend, same as crash notify).
+- [x] `POST /api/share` — submit a template or glyph pack: `{type: "template"|"glyph", payload, handle, title, description}` → `shared_items` table with `status: pending|approved|rejected`.
+- [x] `GET /api/library` — public endpoint: approved items only, sanitized (no emails, no raw payloads beyond what's needed to render).
+- [x] `GET /api/submissions` + `POST /api/moderate` — bearer-token admin queue (was `/api/admin/pending` + `/api/admin/moderate` in the sketch).
+- [x] `POST /api/delete` — admin delete for submissions / crash reports.
+- [x] `GET /api/preview` — public item payload without bumping downloads.
+- [x] Email notify on new submission (Resend, same as crash notify).
 - [ ] Auto-generated description fallback: derive "what it does" from the automation JSON when the author leaves it blank.
 
 ### Security review pipeline (user's requirement — non-negotiable)
-- [ ] **Static analysis on ingest** (server-side, in `share.ts`): reject payloads containing `send_sms` to non-e.164 numbers, `open_url` to non-https, `write_setting` to non-allowlisted keys, `launch_app` to known-bad packages, unbounded `wait`, scripts/`content://`/`file://` URIs. Maintain an allowlist of action types for shared content; anything else → auto-reject.
-- [ ] **Admin review queue** in `admin.html` (extend): view rendered summary + raw JSON, approve/reject.
-- [ ] **AI-agent endpoint**: document the admin API (OpenAPI-ish description + token auth) so an agent can pull pending items, run its own analysis, and POST a moderation decision + rationale. Human (you) remains final approver — agent verdict stored as advisory field.
+- [x] **Static analysis on ingest** (server-side, in `share.ts` / `analyze.ts`): reject payloads containing `send_sms` to non-e.164 numbers, `open_url` to non-https, `write_setting` to non-allowlisted keys, `launch_app` to known-bad packages, unbounded `wait`, scripts/`content://`/`file://` URIs. Maintain an allowlist of action types for shared content; anything else → auto-reject.
+- [x] **Admin review queue** in `admin.html` (extend): view rendered summary + raw JSON, approve/reject/delete.
+- [x] **AI-agent endpoint**: documented in `landing/api/AGENT.md`; agents can pull pending and POST decisions.
 - [ ] Signing/integrity: server stores a content hash; app verifies downloaded payload hash before import.
-- [ ] Rate-limit submissions per handle/IP; payload size cap (e.g. 64 KB).
-- [ ] Privacy: never publish device identifiers; strip `number`, `ssid`, `pkg`, geofence coords from shared templates (or mark as "user fills in on import" placeholders). This is important — a shared "SMS from mom" template must not leak the author's contacts.
+- [x] Rate-limit submissions per handle/IP; payload size cap (e.g. 64 KB).
+- [x] Privacy: never publish device identifiers; strip `number`, `ssid`, `pkg`, geofence coords from shared templates (or mark as "user fills in on import" placeholders). This is important — a shared "SMS from mom" template must not leak the author's contacts.
 
 ### App side
-- [ ] "Browse Templates" → tabbed: **Local / Community (remote)**. Search across both.
-- [ ] Publish flow: routine overflow → "Share" → attach handle → POST `/api/share` → "Pending review" state.
-- [ ] Same for glyphs: "Share design" from Glyph Studio → same pipeline.
-- [ ] Import from community: fetch `GET /api/library` → preview → import via existing `ImportExportService`.
+- [x] "Browse Templates" → tabbed: **Local / Community (remote)**. Search across both.
+- [x] Publish flow: routine overflow → "Share" → attach handle → POST `/api/share` → "Pending review" state.
+- [x] Same for glyphs: "Share design" from Glyph Studio → same pipeline.
+- [x] Import from community: fetch `GET /api/library` → preview → import via existing `ImportExportService`.
 - [ ] Website `index.html`: add a **Library** section/page rendering the public endpoint; credit handle prominently; download = raw JSON (copy/import via deep link `nothingmodes://import?...` later).
 
 ### Out of scope per user: GitHub / Play / Android-app integrations unchanged.
