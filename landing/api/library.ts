@@ -26,6 +26,11 @@ export default async function handler(req: Request): Promise<Response> {
   const caps = url.searchParams.get('caps') ?? '';
   const capList = caps.split(',').map((c) => c.trim()).filter(Boolean);
 
+  const capFilter =
+    capList.length > 0
+      ? sql`AND capabilities @> ${capList}`
+      : sql``;
+
   const rows = await sql`
     SELECT id, created_at, type, title, description, handle, github,
            content_hash, summary, capabilities, downloads
@@ -35,7 +40,7 @@ export default async function handler(req: Request): Promise<Response> {
       AND (${q} = '' OR title ILIKE ${'%' + q + '%'}
                       OR description ILIKE ${'%' + q + '%'}
                       OR handle ILIKE ${'%' + q + '%'})
-      AND (${capList.length} = 0 OR capabilities @> ${JSON.stringify(capList)})
+      ${capFilter}
     ORDER BY ${
       sort === 'download' ? sql`downloads DESC, created_at DESC` :
       sort === 'alpha' ? sql`title ASC` :

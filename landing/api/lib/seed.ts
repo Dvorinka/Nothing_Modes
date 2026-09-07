@@ -1,3 +1,4 @@
+import { type NeonQueryFunction } from '@neondatabase/serverless';
 import { ensureSharedTable, getSql, sha256Hex } from './db';
 import { analyzeGlyph, analyzeTemplate } from './analyze';
 
@@ -8,7 +9,7 @@ export interface SeedItem {
   payload: unknown;
 }
 
-export async function seedDemos(sql: NonNullable<ReturnType<typeof getSql>>, items: SeedItem[]) {
+export async function seedDemos(sql: NeonQueryFunction<false, false>, items: SeedItem[]) {
   for (const item of items) {
     const analysis =
       item.type === 'template' ? analyzeTemplate(item.payload) : analyzeGlyph(item.payload);

@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { ensureSharedTable, getSql, isAdmin } from './lib/db';
 import { seedDemos } from './lib/seed';
 
@@ -20,7 +19,10 @@ export default async function handler(req: Request): Promise<Response> {
   await ensureSharedTable(sql);
 
   try {
-    const raw = await readFile(new URL('../seed.json', import.meta.url), 'utf8');
+    const base = req.url.startsWith('http') ? req.url : 'https://nothing-modes.vercel.app';
+    const res = await fetch(new URL('/seed.json', base));
+    if (!res.ok) throw new Error(`seed fetch ${res.status}`);
+    const raw = await res.text();
     const { items } = JSON.parse(raw) as { items: { type: 'template' | 'glyph'; title: string; description: string; payload: unknown }[] };
     await seedDemos(sql, items);
     const [{ count }] = await sql`SELECT count(*)::int AS count FROM shared_items`;

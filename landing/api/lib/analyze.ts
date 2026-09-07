@@ -411,7 +411,7 @@ export function analyzeGlyph(payload: unknown): AnalysisResult {
         return;
       }
       const p = f.p as unknown[];
-      if (p.length === 0 || p.length > LIMITS.glyphMatrixMax || !p.every((x) => Number.isInteger(x) && x >= 0 && x <= 255)) {
+      if (p.length === 0 || p.length > LIMITS.glyphMatrixMax || !p.every((x) => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 255)) {
         findings.push({ severity: 'block', code: 'bounds', detail: `frame[${i}]: "p" must be 1–625 ints 0–255` });
       }
       const d = f.d === undefined ? null : Number(f.d);

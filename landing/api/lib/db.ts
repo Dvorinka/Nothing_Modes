@@ -1,8 +1,8 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
 let ensured = false;
 
-export function getSql() {
+export function getSql(): NeonQueryFunction<false, false> | null {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   return neon(url);
@@ -12,7 +12,7 @@ export function getSql() {
  * Creates the shared_items table on first use of a cold edge instance.
  * IF NOT EXISTS keeps this safe to run on every cold start.
  */
-export async function ensureSharedTable(sql: ReturnType<typeof neon>) {
+export async function ensureSharedTable(sql: NeonQueryFunction<false, false>) {
   if (ensured) return;
   await sql`
     CREATE TABLE IF NOT EXISTS shared_items (
@@ -55,7 +55,9 @@ export async function sha256Hex(input: string): Promise<string> {
 
 /** Bearer auth — accepts ADMIN_TOKEN, falls back to CRASH_ADMIN_TOKEN. */
 export function isAdmin(req: Request): boolean {
-  const auth = req.headers.get('authorization') ?? '';
+  const h = req.headers as any;
+  const auth =
+    typeof h.get === 'function' ? h.get('authorization') ?? '' : h['authorization'] ?? '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!token) return false;
   const allowed = [process.env.ADMIN_TOKEN, process.env.CRASH_ADMIN_TOKEN].filter(Boolean);
