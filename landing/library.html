@@ -91,6 +91,17 @@
   .modal .controls { display:flex; justify-content:center; gap:.6rem; margin-bottom:1rem; }
   .close { background:none; border:1px solid var(--line); color:var(--dim); padding:.4rem .8rem; border-radius:.4rem; cursor:pointer; font:inherit; }
   .close:hover { color:var(--fg); }
+  .modal-template-head { display:flex; align-items:center; gap:1rem; margin-bottom:1.2rem; }
+  .modal-icon-wrap { width:72px; height:72px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.1); color:#fff; }
+  .modal-icon-wrap .material-symbols-outlined { font-size:36px; }
+  .modal-detail { background:var(--panel2); border:1px solid var(--line); border-radius:.5rem; padding:1rem; }
+  .modal-detail .section { margin-bottom:.8rem; }
+  .modal-detail .section:last-child { margin-bottom:0; }
+  .modal-detail .section-title { font-family:"Geist Mono",monospace; font-size:.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:.35rem; }
+  .modal-detail .section-body { color:var(--fg); font-size:.9rem; line-height:1.45; }
+  .modal-detail .item { display:flex; gap:.5rem; align-items:flex-start; margin:.35rem 0; }
+  .modal-detail .item::before { content:""; display:inline-block; width:.35rem; height:.35rem; background:var(--red); border-radius:50%; margin-top:.45rem; flex-shrink:0; }
+  .modal-detail .empty-list { color:var(--dim); font-size:.85rem; }
 </style>
 </head>
 <body>
@@ -128,7 +139,7 @@
 </main>
 
 <div id="modal" class="modal" role="dialog" aria-modal="true">
-  <div class="modal-card">
+  <div class="modal-card" id="modalCard">
     <div class="modal-head">
       <div>
         <h2 id="modalTitle">Preview</h2>
@@ -136,8 +147,21 @@
       </div>
       <button class="close" onclick="closeModal()">✕</button>
     </div>
+
     <canvas id="modalCanvas" width="320" height="320"></canvas>
-    <div class="controls">
+
+    <div id="modalTemplateBody" style="display:none">
+      <div class="modal-template-head">
+        <div class="modal-icon-wrap" id="modalIconWrap"></div>
+        <div>
+          <div class="lbl" id="modalTemplateType"></div>
+          <div id="modalTemplateAuthor" class="by"></div>
+        </div>
+      </div>
+      <div id="modalTemplateDetail" class="modal-detail"></div>
+    </div>
+
+    <div class="controls" id="modalControls">
       <button class="chip" id="playBtn" onclick="togglePlay()">PAUSE</button>
       <button class="dl" id="modalDl" data-id="" onclick="download(this.dataset.id, this.dataset.name)">DOWNLOAD</button>
     </div>
@@ -364,8 +388,7 @@ async function download(id, name) {
   URL.revokeObjectURL(a.href);
 }
 
-function openModal(it) {
-  if (it.type !== 'glyph' || !it.preview?.firstFrame) return;
+async function openModal(it) {
   modalItem = it;
   document.getElementById('modalTitle').textContent = esc(it.title);
   document.getElementById('modalMeta').innerHTML = `by @${esc(it.handle)} · ${esc(it.summary || '')}`;
@@ -373,15 +396,31 @@ function openModal(it) {
   document.getElementById('modalDl').dataset.id = it.id;
   document.getElementById('modalDl').dataset.name = it.title;
   document.getElementById('modal').classList.add('open');
-  playing = true;
-  document.getElementById('playBtn').textContent = 'PAUSE';
-  playModal();
+
+  if (it.type === 'glyph') {
+    document.getElementById('modalCanvas').style.display = '';
+    document.getElementById('modalTemplateBody').style.display = 'none';
+    document.getElementById('playBtn').style.display = '';
+    playing = true;
+    document.getElementById('playBtn').textContent = 'PAUSE';
+    playModal();
+  } else {
+    document.getElementById('modalCanvas').style.display = 'none';
+    document.getElementById('modalTemplateBody').style.display = '';
+    document.getElementById('playBtn').style.display = 'none';
+    if (!it._payload) {
+      const res = await fetch('/api/preview?id=' + encodeURIComponent(it.id));
+      const data = await res.json().catch(() => ({}));
+      it._payload = data.item?.payload;
+    }
+    renderTemplateModal(it, it._payload);
+  }
 }
 
 async function playModal() {
   if (!modalItem) return;
   if (!modalItem._payload) {
-    const res = await fetch('/api/item?id=' + encodeURIComponent(modalItem.id));
+    const res = await fetch('/api/preview?id=' + encodeURIComponent(modalItem.id));
     const { item } = await res.json();
     modalItem._payload = item.payload;
   }
@@ -410,6 +449,81 @@ async function playModal() {
     modalTimer = requestAnimationFrame(step);
   }
   step(0);
+}
+
+function formatTrigger(t) {
+  if (!t || typeof t !== 'object') return '—';
+  const type = t.type || 'unknown';
+  if (type === 'time' && t.at) return `Daily at ${esc(t.at)}${t.tz ? ' (' + esc(t.tz) + ')' : ''}`;
+  if (type === 'time_window' && t.startLocal && t.endLocal) return `Between ${esc(t.startLocal)} and ${esc(t.endLocal)}${t.tz ? ' (' + esc(t.tz) + ')' : ''}`;
+  return `${esc(type)}${t.at ? ' at ' + esc(t.at) : ''}`;
+}
+
+function formatAction(a) {
+  if (!a || typeof a !== 'object') return '—';
+  const type = (a.type || 'action').replace(/_/g, ' ');
+  const extra = Object.entries(a)
+    .filter(([k]) => k !== 'type')
+    .map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(String(v))}`)
+    .join(', ');
+  return esc(type) + (extra ? ` — ${extra}` : '');
+}
+
+function formatCondition(c) {
+  if (!c || typeof c !== 'object') return '—';
+  const type = (c.type || 'condition').replace(/_/g, ' ');
+  const extra = Object.entries(c)
+    .filter(([k]) => k !== 'type')
+    .map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(String(v))}`)
+    .join(', ');
+  return esc(type) + (extra ? ` — ${extra}` : '');
+}
+
+function renderTemplateModal(it, payload) {
+  const wrap = document.getElementById('modalIconWrap');
+  const symbol = iconMap.get(it.preview?.icon) || iconMap.get(iconFallback) || 'star';
+  const bg = it.preview?.iconBackground === 'transparent' ? 'var(--panel2)' : esc(it.preview?.iconBackground || 'var(--panel2)');
+  wrap.style.background = bg;
+  wrap.innerHTML = `<span class="material-symbols-outlined">${esc(symbol)}</span>`;
+
+  document.getElementById('modalTemplateType').textContent = (it.type === 'template' ? 'MODE / ROUTINE' : it.type).toUpperCase();
+  document.getElementById('modalTemplateAuthor').textContent = `by @${esc(it.handle)}`;
+
+  const automations = Array.isArray(payload?.automations) ? payload.automations : [];
+  const caps = Array.isArray(it.capabilities) ? it.capabilities : [];
+  const body = document.getElementById('modalTemplateDetail');
+  body.innerHTML = '';
+
+  if (automations.length > 0) {
+    for (const a of automations) {
+      const trigger = a.trigger || {};
+      const conditions = Array.isArray(a.conditions) ? a.conditions : [];
+      const actions = Array.isArray(a.actions) ? a.actions : [];
+      const title = automations.length > 1 ? `<div class="section-title">${esc(a.name || 'Automation')}</div>` : '';
+      const when = formatTrigger(trigger);
+      const conds = conditions.length ? conditions.map(formatCondition).map(c => `<div class="item">${c}</div>`).join('') : '<div class="empty-list">none</div>';
+      const then = actions.length ? actions.map(formatAction).map(c => `<div class="item">${c}</div>`).join('') : '<div class="empty-list">no actions</div>';
+      const div = document.createElement('div');
+      div.className = 'section';
+      div.innerHTML = `${title}
+        <div class="section-title">When</div>
+        <div class="section-body">${when}</div>
+        <div class="section-title">Only if</div>
+        <div class="section-body">${conds}</div>
+        <div class="section-title">Then</div>
+        <div class="section-body">${then}</div>`;
+      body.appendChild(div);
+    }
+  } else {
+    body.innerHTML = '<div class="section"><div class="section-body empty-list">No automation details in payload.</div></div>';
+  }
+
+  if (caps.length) {
+    const div = document.createElement('div');
+    div.className = 'section';
+    div.innerHTML = `<div class="section-title">Requires</div><div class="section-body">${caps.map(c => `<span class="tag">${esc(c)}</span>`).join(' ')}</div>`;
+    body.appendChild(div);
+  }
 }
 
 function togglePlay() {
