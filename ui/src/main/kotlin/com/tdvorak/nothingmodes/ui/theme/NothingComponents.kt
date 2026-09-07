@@ -637,77 +637,82 @@ fun NothingTopBar(
                 .height(88.dp)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = NothingSpacing.lg),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Back button — circular, thin chevron
-        if (onBack != null) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "<",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.mono(),
-                )
-            }
-            Spacer(modifier = Modifier.width(NothingSpacing.md))
-        }
-
-        // Optional leading red dot
-        if (showLeadingDot) {
-            NothingRedDot(size = 8f)
-            Spacer(modifier = Modifier.width(NothingSpacing.sm))
-        }
-
-        // Title — Space Mono ALL CAPS
-        Text(
-            text = if (classic) title else title.uppercase(),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontFamily = NothingFonts.mono(),
-            letterSpacing = 1.5.sp,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        // Push actions to the right without forcing the title to fill
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Actions — icon chips, label only as a fallback
-        actions.forEach { action ->
-            Box(
-                modifier =
-                    Modifier
-                        .padding(start = NothingSpacing.xs)
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .clickable(onClick = action.onClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (action.icon != null) {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = action.label,
-                        tint = if (action.accent) NothingColors.accent else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                } else {
+        // Left side: back, dot, title
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Back button — circular, thin chevron
+            if (onBack != null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = if (classic) action.label.take(4) else action.label.uppercase().take(4),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "<",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = NothingFonts.mono(),
                     )
+                }
+                Spacer(modifier = Modifier.width(NothingSpacing.md))
+            }
+
+            // Optional leading red dot
+            if (showLeadingDot) {
+                NothingRedDot(size = 8f)
+                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+            }
+
+            // Title — Space Mono ALL CAPS
+            Text(
+                text = if (classic) title else title.uppercase(),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+                letterSpacing = 1.5.sp,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        // Right side: icon chips, label only as a fallback
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            actions.forEach { action ->
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(start = NothingSpacing.xs)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .clickable(onClick = action.onClick),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (action.icon != null) {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = action.label,
+                            tint = if (action.accent) NothingColors.accent else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(
+                            text = if (classic) action.label.take(4) else action.label.uppercase().take(4),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
                 }
             }
         }

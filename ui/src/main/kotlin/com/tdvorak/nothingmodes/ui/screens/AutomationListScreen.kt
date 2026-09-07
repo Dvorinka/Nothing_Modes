@@ -134,9 +134,11 @@ class AutomationListViewModel
 
         fun load() {
             viewModelScope.launch {
-                _loading.value = true
-                _items.value = store.all().sortedBy { it.priority }
-                _loading.value = false
+                try {
+                    _items.value = store.all().sortedBy { it.priority }
+                } finally {
+                    _loading.value = false
+                }
             }
         }
 
@@ -362,7 +364,7 @@ fun AutomationListScreen(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            if (loading && items.isEmpty()) {
+            if (loading) {
                 // Blank while the first load is in flight — prevents the
                 // "Automations" hero flashing before the empty state appears.
                 Box(modifier = Modifier.fillMaxSize())

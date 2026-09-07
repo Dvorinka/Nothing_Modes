@@ -54,6 +54,10 @@ object CrashReporting {
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(KEY_ENABLED, false)
         installHandler()
+        // Reports queued by the crashing process only reach the server if we
+        // flush here — without this they wait on disk until the user toggles
+        // the setting or a non-fatal error is logged.
+        if (_enabled.value) flushQueue()
     }
 
     fun setEnabled(enabled: Boolean) {
