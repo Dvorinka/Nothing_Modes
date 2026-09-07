@@ -140,7 +140,7 @@ function renderHtml(report: CrashReport, subject: string): string {
   <div style="max-width:640px;margin:0 auto;padding:24px">
     <div style="background:#0a0a0a;border-radius:8px 8px 0 0;padding:20px 24px">
       <span style="color:#fff;font-size:14px;letter-spacing:.25em">N O T H I N G &nbsp; M O D E S</span>
-      <span style="float:right;color:#d9ff3f;font-size:11px;letter-spacing:.1em">${esc(report.kind ?? 'crash').toUpperCase()}</span>
+      <span style="float:right;color:#D71921;font-size:11px;letter-spacing:.1em;font-weight:700">${esc(report.kind ?? 'crash').toUpperCase()}</span>
     </div>
     <div style="background:#fff;border:1px solid #e5e5e5;border-top:0;padding:8px 12px">
       <table style="width:100%;border-collapse:collapse">

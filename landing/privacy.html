@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — Nothing Modes</title>
 <style>
-  :root { --bg:#0a0a0a; --panel:#141414; --line:#262626; --fg:#e8e8e8; --dim:#9a9a9a; --accent:#d9ff3f; }
+  @font-face { font-family:"Doto"; src:url("fonts/doto.ttf") format("truetype"); font-display:swap; }
+  :root { --bg:#000; --panel:#161616; --line:#262626; --fg:#fafaf8; --dim:#9a9a9a; --accent:#D71921; }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--fg); font:15px/1.7 system-ui,-apple-system,'Geist Sans',sans-serif; }
+  body { background:var(--bg); color:var(--fg); font:15px/1.7 "Geist Sans",system-ui,-apple-system,sans-serif; }
   main { max-width:44rem; margin:0 auto; padding:3rem 1.25rem 4rem; }
-  h1 { font-size:1.4rem; letter-spacing:.05em; margin-bottom:.4rem; }
-  h2 { font-size:1rem; letter-spacing:.08em; text-transform:uppercase; margin:2.2rem 0 .8rem; color:var(--accent); }
+  h1 { font-family:"Doto",ui-monospace,monospace; font-size:1.8rem; letter-spacing:.12em; margin-bottom:.4rem; font-weight:700; }
+  h2 { font-size:.85rem; letter-spacing:.18em; text-transform:uppercase; margin:2.2rem 0 .8rem; color:var(--fg); border-left:3px solid var(--accent); padding-left:.7rem; }
   p { margin:.7rem 0; color:#c8c8c8; }
-  ul { margin:.6rem 0 .6rem 1.2rem; color:#c8c8c8; }
+  ul { margin:.6rem 0 .6rem 1.2rem; color:#c8c8c8; list-style:none; }
   li { margin:.35rem 0; }
+  li::before { content:"·"; color:var(--accent); font-weight:700; display:inline-block; width:.9rem; margin-left:-.9rem; }
   table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:.85rem; }
   th { text-align:left; color:var(--dim); font-weight:600; font-size:.75rem; text-transform:uppercase;
        letter-spacing:.06em; border-bottom:1px solid var(--line); padding:.5rem .6rem; }
