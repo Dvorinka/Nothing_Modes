@@ -590,20 +590,14 @@ private fun VolumeLevelSheetContent(
     onChange: (Condition.VolumeLevel) -> Unit,
 ) {
     Column {
-        NothingInput(
-            value = condition.level.toString(),
-            onValueChange = { onChange(condition.copy(level = it.toIntOrNull() ?: condition.level)) },
-            label = "Level",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
         Text(
-            text = "Stream",
+            text = "Volume is tracked per channel — pick which one to check.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
         VolumeStream.entries.forEach { stream ->
             RadioOption(
                 text = stream.name.enumLabel(),
@@ -611,6 +605,12 @@ private fun VolumeLevelSheetContent(
                 onClick = { onChange(condition.copy(stream = stream)) },
             )
         }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        VolumePercentSlider(
+            stream = condition.stream,
+            level = condition.level,
+            onLevel = { onChange(condition.copy(level = it)) },
+        )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         Text(
             text = "Operator",

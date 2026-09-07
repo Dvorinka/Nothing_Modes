@@ -813,34 +813,65 @@ internal fun MusicStyleSelector(
     }
 }
 
+/** Real device maximum for a stream — Media/Ring/Alarm/Notification differ. */
+internal fun streamMaxLevel(
+    context: android.content.Context,
+    stream: VolumeStream,
+): Int {
+    val audio = context.getSystemService(android.media.AudioManager::class.java)
+    return runCatching {
+        audio?.getStreamMaxVolume(
+            when (stream) {
+                VolumeStream.MEDIA -> android.media.AudioManager.STREAM_MUSIC
+                VolumeStream.RING -> android.media.AudioManager.STREAM_RING
+                VolumeStream.ALARM -> android.media.AudioManager.STREAM_ALARM
+                VolumeStream.NOTIFICATION -> android.media.AudioManager.STREAM_NOTIFICATION
+            },
+        )
+    }.getOrNull() ?: 15
+}
+
+/** Volume level as a percentage slider — shared by actions and conditions. */
+@Composable
+internal fun VolumePercentSlider(
+    stream: VolumeStream,
+    level: Int,
+    onLevel: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val maxLevel = remember(stream) { streamMaxLevel(context, stream) }
+    val percent = if (maxLevel > 0) (level * 100 / maxLevel).coerceIn(0, 100) else 0
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+    ) {
+        Text(
+            text = "$percent%",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.width(56.dp),
+        )
+        androidx.compose.material3.Slider(
+            value = percent.toFloat(),
+            onValueChange = { v ->
+                onLevel((v / 100f * maxLevel).toInt().coerceIn(0, maxLevel))
+            },
+            valueRange = 0f..100f,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
 /** Volume as a percentage slider against the real stream maximum. */
 @Composable
 internal fun VolumeRow(
     action: Action.SetVolume,
     onChange: (Action.SetVolume) -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val audio = remember { context.getSystemService(android.media.AudioManager::class.java) }
-    val maxLevel =
-        remember(action.stream) {
-            runCatching {
-                audio?.getStreamMaxVolume(
-                    when (action.stream) {
-                        VolumeStream.MEDIA -> android.media.AudioManager.STREAM_MUSIC
-                        VolumeStream.RING -> android.media.AudioManager.STREAM_RING
-                        VolumeStream.ALARM -> android.media.AudioManager.STREAM_ALARM
-                        VolumeStream.NOTIFICATION -> android.media.AudioManager.STREAM_NOTIFICATION
-                    },
-                )
-            }.getOrNull() ?: 15
-        }
-    val percent =
-        if (maxLevel > 0) {
-            (action.level * 100 / maxLevel).coerceIn(0, 100)
-        } else {
-            0
-        }
-
     Column {
         NothingEnumSelector(
             label = "Volume for",
@@ -850,28 +881,11 @@ internal fun VolumeRow(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-        ) {
-            Text(
-                text = "$percent%",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.mono(),
-                modifier = Modifier.width(56.dp),
-            )
-            androidx.compose.material3.Slider(
-                value = percent.toFloat(),
-                onValueChange = { v ->
-                    val level = (v / 100f * maxLevel).toInt().coerceIn(0, maxLevel)
-                    onChange(action.copy(level = level))
-                },
-                valueRange = 0f..100f,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        VolumePercentSlider(
+            stream = action.stream,
+            level = action.level,
+            onLevel = { onChange(action.copy(level = it)) },
+        )
     }
 }
 

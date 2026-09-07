@@ -356,6 +356,13 @@ fun ConditionConfigScreen(
 
                     is Condition.VolumeLevel -> {
                         Column {
+                            Text(
+                                text = "Volume is tracked per channel — pick which one to check.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.xs))
                             NothingEnumSelector(
                                 label = "Stream",
                                 value = c.stream.name.enumLabel(),
@@ -365,33 +372,21 @@ fun ConditionConfigScreen(
                                 },
                             )
                             Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            Row(
+                            VolumePercentSlider(
+                                stream = c.stream,
+                                level = c.level,
+                                onLevel = { level -> condition = c.copy(level = level) },
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            NothingEnumSelector(
+                                label = "Operator",
+                                value = c.op.name.enumLabel(),
+                                options = enumLabelList<CmpOp>(),
+                                onSelect = { op ->
+                                    condition = c.copy(op = enumByLabel<CmpOp>(op))
+                                },
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement =
-                                    androidx.compose.foundation.layout.Arrangement
-                                        .spacedBy(NothingSpacing.sm),
-                            ) {
-                                Box(modifier = Modifier.weight(0.35f)) {
-                                    NothingEnumSelector(
-                                        label = "Operator",
-                                        value = c.op.name.enumLabel(),
-                                        options = enumLabelList<CmpOp>(),
-                                        onSelect = { op ->
-                                            condition = c.copy(op = enumByLabel<CmpOp>(op))
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                                Box(modifier = Modifier.weight(0.65f)) {
-                                    NothingInput(
-                                        value = c.level.toString(),
-                                        onValueChange = { text ->
-                                            condition = c.copy(level = text.toIntOrNull() ?: c.level)
-                                        },
-                                        label = "Level",
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
 
