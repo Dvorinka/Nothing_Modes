@@ -564,9 +564,12 @@ fun SettingsScreen(
                     }
 
                     // ── Device Admin ──────────────────────────────────────────
-                    NothingSectionHeader(text = "Device Admin")
-                    NothingCard {
-                        DeviceAdminSection(context)
+                    // Play flavor strips the admin receiver — hide the dead section.
+                    if (FeatureFlags.enableLockScreen) {
+                        NothingSectionHeader(text = "Device Admin")
+                        NothingCard {
+                            DeviceAdminSection(context)
+                        }
                     }
 
                     // ── Capabilities ──────────────────────────────────────────
