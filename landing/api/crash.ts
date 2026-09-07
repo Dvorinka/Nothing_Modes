@@ -71,18 +71,19 @@ export default async function handler(req: Request): Promise<Response> {
     )
   `;
 
+  let email = 'deduped';
   if (seen.length === 0) {
     // Email is best-effort; a mail failure must not reject the report.
-    await notify(report).catch(() => {});
+    email = await notify(report).catch((e) => `error:${String(e).slice(0, 100)}`);
   }
 
-  return new Response('ok', { status: 200 });
+  return Response.json({ ok: true, email }, { status: 200 });
 }
 
-async function notify(report: CrashReport): Promise<void> {
+async function notify(report: CrashReport): Promise<string> {
   const key = process.env.RESEND_API_KEY;
   const to = process.env.CRASH_NOTIFY_EMAIL;
-  if (!key || !to) return;
+  if (!key || !to) return 'skipped:no-key-or-email';
 
   const subject =
     `[Nothing Modes ${report.kind ?? 'crash'}] ${report.exception_class ?? 'Error'}` +
@@ -99,7 +100,7 @@ async function notify(report: CrashReport): Promise<void> {
     String(report.stacktrace ?? '').slice(0, 8000),
   ].join('\n');
 
-  await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
@@ -112,4 +113,9 @@ async function notify(report: CrashReport): Promise<void> {
       text,
     }),
   });
+  if (!res.ok) {
+    const err = await res.text();
+    return `failed:${res.status}:${err.slice(0, 150)}`;
+  }
+  return 'sent';
 }
