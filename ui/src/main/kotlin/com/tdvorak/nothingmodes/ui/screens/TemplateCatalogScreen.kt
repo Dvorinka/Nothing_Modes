@@ -431,6 +431,9 @@ fun TemplateCatalogScreen(
     val sharing by viewModel.sharing.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
     var search by remember { mutableStateOf("") }
+    var librarySort by remember { mutableStateOf("newest") }
+    var selectedCaps by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val allCaps = remember(library) { library.flatMap { it.capabilities }.distinct().sorted() }
 
     val visibleRemote =
         templates.filter {
@@ -446,12 +449,21 @@ fun TemplateCatalogScreen(
                 it.description.contains(search, true)
         }
     val visibleLibrary =
-        library.filter {
-            search.isBlank() ||
-                it.title.contains(search, true) ||
-                it.description.contains(search, true) ||
-                it.handle.contains(search, true)
-        }
+        library
+            .filter {
+                search.isBlank() ||
+                    it.title.contains(search, true) ||
+                    it.description.contains(search, true) ||
+                    it.handle.contains(search, true)
+            }
+            .filter { selectedCaps.isEmpty() || it.capabilities.any { c -> selectedCaps.contains(c) } }
+            .let { list ->
+                when (librarySort) {
+                    "download" -> list.sortedByDescending { it.downloads }
+                    "alpha" -> list.sortedBy { it.title.lowercase() }
+                    else -> list
+                }
+            }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -573,9 +585,50 @@ fun TemplateCatalogScreen(
                             }
                         }
 
-                        if (visibleLibrary.isNotEmpty()) {
+                        if (library.isNotEmpty()) {
                             item {
                                 NothingLabel(text = "Community library — reviewed")
+                            }
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        listOf(
+                                            "newest" to "Newest",
+                                            "download" to "Most downloaded",
+                                            "alpha" to "A-Z",
+                                        ).forEach { (key, label) ->
+                                            NothingTag(
+                                                text = label,
+                                                active = librarySort == key,
+                                                onClick = { librarySort = key },
+                                            )
+                                        }
+                                    }
+                                    if (allCaps.isNotEmpty()) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            allCaps.forEach { cap ->
+                                                NothingTag(
+                                                    text = cap.replace("_", " "),
+                                                    active = selectedCaps.contains(cap),
+                                                    onClick = {
+                                                        selectedCaps =
+                                                            if (selectedCaps.contains(cap)) {
+                                                                selectedCaps - cap
+                                                            } else {
+                                                                selectedCaps + cap
+                                                            }
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             items(visibleLibrary, key = { "lib:${it.id}" }) { item ->
                                 LibraryRow(

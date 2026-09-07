@@ -85,6 +85,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -269,6 +270,25 @@ fun GlyphEditorScreen(
     var pendingImport by remember { mutableStateOf<ImportType?>(null) }
     var shareDesign by remember { mutableStateOf<String?>(null) }
     val library by viewModel.library.collectAsState()
+    var glyphSearch by remember { mutableStateOf("") }
+    var glyphSort by remember { mutableStateOf("newest") }
+    var glyphCaps by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val allGlyphCaps = remember(library) { library.flatMap { it.capabilities }.distinct().sorted() }
+    val visibleLibrary =
+        library
+            .filter {
+                glyphSearch.isBlank() ||
+                    it.title.contains(glyphSearch, true) ||
+                    it.handle.contains(glyphSearch, true)
+            }
+            .filter { glyphCaps.isEmpty() || it.capabilities.any { c -> glyphCaps.contains(c) } }
+            .let { list ->
+                when (glyphSort) {
+                    "download" -> list.sortedByDescending { it.downloads }
+                    "alpha" -> list.sortedBy { it.title.lowercase() }
+                    else -> list
+                }
+            }
     val sharing by viewModel.sharing.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
     val scope = rememberCoroutineScope()
@@ -963,30 +983,81 @@ fun GlyphEditorScreen(
                 }
             }
 
-            if (library.isNotEmpty()) {
+            if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
                 item {
                     NothingCard {
-                        NothingSectionHeader(text = "Community designs — reviewed", modifier = Modifier)
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            library.forEachIndexed { index, item ->
-                                if (index > 0) NothingDivider()
-                                NothingListRow(
-                                    title = item.title,
-                                    subtitle =
-                                        "by @${item.handle}" +
-                                            if (item.summary.isNotBlank()) " · ${item.summary}" else "",
-                                    onClick = {
-                                        scope.launch {
-                                            val stored = viewModel.importLibraryItem(item)
-                                            Toast.makeText(
-                                                context,
-                                                if (stored != null) "Imported as $stored" else "Import failed",
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                            refreshNames()
-                                        }
-                                    },
+                        NothingSectionHeader(text = "Community designs - reviewed", modifier = Modifier)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        ) {
+                            com.tdvorak.nothingmodes.ui.theme.NothingInput(
+                                value = glyphSearch,
+                                onValueChange = { glyphSearch = it },
+                                label = "Search",
+                                placeholder = "Find a design",
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                listOf(
+                                    "newest" to "Newest",
+                                    "download" to "Most downloaded",
+                                    "alpha" to "A-Z",
+                                ).forEach { (key, label) ->
+                                    NothingTag(
+                                        text = label,
+                                        active = glyphSort == key,
+                                        onClick = { glyphSort = key },
+                                    )
+                                }
+                            }
+                            if (allGlyphCaps.isNotEmpty()) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    allGlyphCaps.forEach { cap ->
+                                        NothingTag(
+                                            text = cap.replace("_", " "),
+                                            active = glyphCaps.contains(cap),
+                                            onClick = {
+                                                glyphCaps =
+                                                    if (glyphCaps.contains(cap)) glyphCaps - cap else glyphCaps + cap
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                            if (visibleLibrary.isEmpty()) {
+                                Text(
+                                    text = "No matching designs.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = NothingFonts.mono(),
                                 )
+                            } else {
+                                visibleLibrary.forEachIndexed { index, item ->
+                                    if (index > 0) NothingDivider()
+                                    NothingListRow(
+                                        title = item.title,
+                                        subtitle =
+                                            "by @${item.handle}" +
+                                                if (item.summary.isNotBlank()) " · ${item.summary}" else "",
+                                        onClick = {
+                                            scope.launch {
+                                                val stored = viewModel.importLibraryItem(item)
+                                                Toast.makeText(
+                                                    context,
+                                                    if (stored != null) "Imported as $stored" else "Import failed",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                                refreshNames()
+                                            }
+                                        },
+                                    )
+                                }
                             }
                         }
                     }

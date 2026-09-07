@@ -58,6 +58,8 @@ object CommunityApi {
     suspend fun list(
         type: String? = null,
         query: String = "",
+        sort: String = "newest",
+        caps: List<String> = emptyList(),
     ): List<LibraryItem> =
         withContext(Dispatchers.IO) {
             val params = buildString {
@@ -65,6 +67,14 @@ object CommunityApi {
                 if (query.isNotBlank()) {
                     if (isNotEmpty()) append('&')
                     append("q=").append(URLEncoder.encode(query, "UTF-8"))
+                }
+                if (sort != "newest") {
+                    if (isNotEmpty()) append('&')
+                    append("sort=").append(URLEncoder.encode(sort, "UTF-8"))
+                }
+                if (caps.isNotEmpty()) {
+                    if (isNotEmpty()) append('&')
+                    append("caps=").append(URLEncoder.encode(caps.joinToString(","), "UTF-8"))
                 }
             }
             val body = get("$BASE/api/library" + if (params.isNotEmpty()) "?$params" else "")

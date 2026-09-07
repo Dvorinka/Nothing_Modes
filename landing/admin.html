@@ -114,6 +114,7 @@
   <div class="tabs">
     <button class="chip on" data-view="crashes">Crash reports</button>
     <button class="chip" data-view="subs">Submissions <span id="subBadge" class="subbadge"></span></button>
+    <button class="btn ghost" id="seedBtn" onclick="seedDemos()" style="margin-left:auto">Seed demos</button>
   </div>
 
   <div id="crashesView">
@@ -350,6 +351,18 @@ function renderSubs() {
       </div>`;
     list.appendChild(el);
   }
+}
+
+async function seedDemos() {
+  const btn = document.getElementById('seedBtn');
+  btn.textContent = 'Seeding…';
+  const res = await fetch('/api/seed', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') },
+  });
+  const data = await res.json().catch(() => ({}));
+  btn.textContent = data.ok ? `Seeded (${data.items})` : 'Seed failed';
+  setTimeout(() => btn.textContent = 'Seed demos', 2000);
 }
 
 async function moderate(id, decision) {

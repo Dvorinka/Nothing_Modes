@@ -32,13 +32,15 @@
   .sub { color:var(--dim); margin:.8rem 0 2rem; max-width:36rem; }
 
   .toolbar { display:flex; gap:.6rem; margin-bottom:1.6rem; flex-wrap:wrap; }
-  .toolbar input { flex:1; min-width:200px; background:var(--panel); border:1px solid var(--line);
+  .toolbar input, .toolbar select { flex:1; min-width:160px; background:var(--panel); border:1px solid var(--line);
     color:var(--fg); padding:.6rem .9rem; border-radius:.5rem; font:inherit; }
-  .toolbar input:focus { outline:none; border-color:#444; }
+  .toolbar input:focus, .toolbar select:focus { outline:none; border-color:#444; }
+  .toolbar select { appearance:none; background-image:linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%); background-position:calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size:6px 6px, 6px 6px; background-repeat:no-repeat; padding-right:2rem; }
   .chip { background:var(--panel); border:1px solid var(--line); color:var(--dim); padding:.55rem 1rem;
     border-radius:.5rem; font:inherit; cursor:pointer; font-size:.82rem; text-decoration:none; }
   .chip.on { border-color:var(--red); color:var(--fg); }
   .chip:hover { color:var(--fg); }
+  .caps { display:flex; gap:.5rem; flex-wrap:wrap; margin:.8rem 0 1.2rem; }
 
   .item { background:var(--panel); border:1px solid var(--line); border-radius:.7rem;
     padding:1.1rem 1.25rem; margin-bottom:.8rem; }
@@ -80,18 +82,30 @@
     <button class="chip on" data-type="">All</button>
     <button class="chip" data-type="template">Modes</button>
     <button class="chip" data-type="glyph">Glyphs</button>
+    <select id="sort">
+      <option value="newest">Newest first</option>
+      <option value="download">Most downloaded</option>
+      <option value="alpha">A-Z</option>
+    </select>
   </div>
+  <div id="caps" class="caps"></div>
   <div id="status">Loading…</div>
   <div id="list"></div>
 </main>
 
 <script>
 const qEl = document.getElementById('q');
+const sortEl = document.getElementById('sort');
+const capsEl = document.getElementById('caps');
 let type = '';
+let sort = 'newest';
+let selectedCaps = new Set();
+let allItems = [];
 let items = [];
 let debounce;
 
 qEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(load, 250); });
+sortEl.addEventListener('change', () => { sort = sortEl.value; load(); });
 document.querySelectorAll('[data-type]').forEach(b =>
   b.addEventListener('click', () => {
     document.querySelectorAll('[data-type]').forEach(x => x.classList.toggle('on', x === b));
@@ -103,11 +117,32 @@ async function load() {
   const p = new URLSearchParams();
   if (type) p.set('type', type);
   if (qEl.value.trim()) p.set('q', qEl.value.trim());
+  p.set('sort', sort);
+  if (selectedCaps.size) p.set('caps', [...selectedCaps].join(','));
   const res = await fetch('/api/library?' + p);
   const data = await res.json();
-  items = data.items || [];
+  allItems = data.items || [];
+  items = allItems;
   document.getElementById('status').textContent = '';
+  renderCaps();
   render();
+}
+
+function renderCaps() {
+  const allCaps = new Set();
+  allItems.forEach(it => (it.capabilities || []).forEach(c => allCaps.add(c)));
+  capsEl.innerHTML = '';
+  if (allCaps.size === 0) return;
+  allCaps.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (selectedCaps.has(c) ? ' on' : '');
+    b.textContent = c.replace(/_/g, ' ');
+    b.addEventListener('click', () => {
+      selectedCaps.has(c) ? selectedCaps.delete(c) : selectedCaps.add(c);
+      load();
+    });
+    capsEl.appendChild(b);
+  });
 }
 
 function esc(s) {
