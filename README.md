@@ -7,6 +7,10 @@ Open-source Android automation for Nothing phones — and every other Android de
 Built like a premium system app: OLED-black surfaces, monoline iconography, dot-matrix hero type, and a single red accent. The engine is pure Kotlin; the UI is Jetpack Compose. Shizuku and Nothing Glyph are supported, not required.
 
 <p align="center">
+  <img src="fastlane/metadata/android/en-US/images/featureGraphic.png" alt="Nothing Modes" />
+</p>
+
+<p align="center">
   <img src="art/screenshots/home.png" width="24%" alt="Automation list" />
   <img src="art/screenshots/detail.png" width="24%" alt="Mode detail" />
   <img src="art/screenshots/builder.png" width="24%" alt="Routine builder" />
