@@ -160,26 +160,55 @@ class GlyphToysBridge(
     /** Open the toy idle-timeout settings. */
     fun openTimeoutSettings(): Boolean = openSystemActivity(TIMEOUT_COMPONENTS)
 
+    /**
+     * Tries known component names, then the deep link, then a package launch.
+     * Every candidate is checked with resolveActivity first — firing an intent
+     * nothing handles is how the "couldn't connect" browser page happened.
+     */
     private fun openSystemActivity(candidates: List<String>): Boolean {
+        val pm = context.packageManager
         for (cls in candidates) {
             val intent =
                 Intent().apply {
                     component = ComponentName(SYSTEM_PACKAGE, cls)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
+            if (intent.resolveActivity(pm) == null) continue
             if (runCatching { context.startActivity(intent) }.isSuccess) return true
         }
         // Fall back to the documented deep link, then a plain package launch.
         val deepLink =
             Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (runCatching { context.startActivity(deepLink) }.isSuccess) return true
+        if (deepLink.resolveActivity(pm) != null &&
+            runCatching { context.startActivity(deepLink) }.isSuccess
+        ) {
+            return true
+        }
         val launch =
-            context.packageManager
-                .getLaunchIntentForPackage(SYSTEM_PACKAGE)
+            pm.getLaunchIntentForPackage(SYSTEM_PACKAGE)
                 ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
         return runCatching { context.startActivity(launch) }.isSuccess
     }
+
+    /** Whether any of the given components resolve on this device. */
+    private fun canResolve(candidates: List<String>): Boolean {
+        val pm = context.packageManager
+        return candidates.any { cls ->
+            val intent =
+                Intent().apply { component = ComponentName(SYSTEM_PACKAGE, cls) }
+            intent.resolveActivity(pm) != null
+        }
+    }
+
+    /** True when the toys manager screen exists on this device. */
+    fun canOpenToysManager(): Boolean = canResolve(MANAGER_COMPONENTS) || isGlyphSystemInstalled()
+
+    /** AOD picker / timeout have no dedicated activity on Nothing OS 4.1 —
+     * they only work when the glyphtoy:// deep link resolves. */
+    fun canOpenAodPicker(): Boolean =
+        Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK))
+            .resolveActivity(context.packageManager) != null
 
     /** Single-column text rows from a glyph provider URI, best-effort. */
     private fun queryProvider(uri: String): List<String> =

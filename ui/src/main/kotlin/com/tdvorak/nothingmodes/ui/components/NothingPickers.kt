@@ -38,12 +38,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,8 +56,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import androidx.compose.foundation.gestures.animateScrollBy
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -141,7 +138,6 @@ fun NothingTimeField(
 
 private val WHEEL_ITEM_HEIGHT = 48.dp
 private const val WHEEL_VISIBLE_COUNT = 5
-private val WHEEL_CENTER_OFFSET = WHEEL_VISIBLE_COUNT / 2
 
 @Composable
 fun NothingTimePickerDialog(
@@ -208,104 +204,90 @@ private fun WheelColumn(
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // jarvis: 5-cycle repeated list gives an effectively infinite wheel.
-    // If the user can still reach the physical ends, increase cycle count.
-    val cycles = 5
-    val middleCycle = cycles / 2
-    val totalItems = count * cycles
+    // jarvis: near-infinite list (Int.MAX_VALUE rows). The selected value is the
+    // item nearest the viewport center — read straight from layoutInfo, so no
+    // index/offset math can drift. Tapping a number animates it to the center.
     val scope = rememberCoroutineScope()
 
-    val initialIndex = remember(initial, count) {
-        (middleCycle * count + initial.coerceIn(0, count - 1))
-    }
-    val state = rememberLazyListState()
+    val middle = Int.MAX_VALUE / 2
+    val startIndex = middle - (middle % count) + initial.coerceIn(0, count - 1)
 
-    val contentPadding = WHEEL_ITEM_HEIGHT * WHEEL_CENTER_OFFSET
+    // Start half a viewport early so the selected value lands in the center —
+    // initialFirstVisibleItemIndex aligns to the very top of the viewport.
+    val state =
+        rememberLazyListState(
+            initialFirstVisibleItemIndex = startIndex - WHEEL_VISIBLE_COUNT / 2,
+            initialFirstVisibleItemScrollOffset = 0,
+        )
 
-    // Center the selected value in the viewport after the first layout.
-    LaunchedEffect(initialIndex) {
-        state.scrollToItem(initialIndex, scrollOffset = 0)
-    }
-
-    val itemIndexInCenter by remember(state) {
+    val selectedIndex by remember(state) {
         derivedStateOf {
-            val layout = state.layoutInfo
-            if (layout.visibleItemsInfo.isEmpty()) {
+            val info = state.layoutInfo
+            if (info.visibleItemsInfo.isEmpty()) {
                 -1
             } else {
-                val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2f
-                layout.visibleItemsInfo.minByOrNull { item ->
-                    kotlin.math.abs(item.offset + item.size / 2f - viewportCenter)
-                }?.index ?: -1
+                val center = (info.viewportStartOffset + info.viewportEndOffset) / 2
+                info.visibleItemsInfo
+                    .minByOrNull { kotlin.math.abs(it.offset + it.size / 2 - center) }
+                    ?.index ?: -1
             }
         }
     }
 
-    val selectedValue by remember(state, count) {
-        derivedStateOf { itemIndexInCenter.takeIf { it >= 0 }?.mod(count) ?: -1 }
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex >= 0) onSelected(selectedIndex % count)
     }
 
-    LaunchedEffect(selectedValue) {
-        if (selectedValue >= 0) {
-            onSelected(selectedValue)
-        }
-    }
+    val snapFling =
+        rememberSnapFlingBehavior(
+            SnapLayoutInfoProvider(state, SnapPosition.Center),
+        )
 
-    // Wrap the visible window to the middle cycles without a visual jump,
-    // because the repeated list has identical content at every multiple of count.
-    LaunchedEffect(state, count) {
-        snapshotFlow { state.isScrollInProgress }
-            .filter { !it }
-            .collect {
-                val f = state.firstVisibleItemIndex
-                val offset = state.firstVisibleItemScrollOffset
-                when {
-                    f < count -> state.scrollToItem(f + count, offset)
-                    f >= count * (cycles - 1) -> state.scrollToItem(f - count, offset)
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = state,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
+                    .clip(NothingShapes.input)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            flingBehavior = snapFling,
+        ) {
+            items(Int.MAX_VALUE, key = { it }) { index ->
+                val value = index % count
+                val isSelected = index == selectedIndex
+
+                Box(
+                    modifier =
+                        Modifier
+                            .height(WHEEL_ITEM_HEIGHT)
+                            .fillMaxWidth()
+                            .clickable {
+                                val info = state.layoutInfo
+                                val item =
+                                    info.visibleItemsInfo.firstOrNull { it.index == index }
+                                        ?: return@clickable
+                                val center =
+                                    (info.viewportStartOffset + info.viewportEndOffset) / 2
+                                val delta = (item.offset + item.size / 2 - center).toFloat()
+                                scope.launch { state.animateScrollBy(delta) }
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "%02d".format(value),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    )
                 }
-            }
-    }
-
-    val snapFling = rememberSnapFlingBehavior(
-        SnapLayoutInfoProvider(state, SnapPosition.Center),
-    )
-
-    LazyColumn(
-        state = state,
-        modifier =
-            modifier
-                .height(WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_COUNT)
-                .clip(NothingShapes.input)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentPadding = PaddingValues(vertical = contentPadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        flingBehavior = snapFling,
-    ) {
-        items(totalItems, key = { it }) { index ->
-            val value = index % count
-            val isSelected = index == itemIndexInCenter
-            Box(
-                modifier =
-                    Modifier
-                        .height(WHEEL_ITEM_HEIGHT)
-                        .fillMaxWidth()
-                        .clickable {
-                            val target = middleCycle * count + value
-                            scope.launch { state.animateScrollToItem(target) }
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "%02d".format(value),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color =
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                )
             }
         }
     }

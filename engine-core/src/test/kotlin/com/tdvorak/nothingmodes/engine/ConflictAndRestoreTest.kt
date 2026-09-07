@@ -263,6 +263,10 @@ class ConflictAndRestoreTest {
             assertTrue(restoreActions.any { it.key == "screen_brightness" && it.value == "128" })
             assertTrue(restoreActions.any { it.key == "reduce_bright_colors_activated" && it.value == "0" })
             assertEquals(0, snapshots.size)
+            // Regression: the mode's own actions must not re-run at window end —
+            // they would immediately overwrite the restored values.
+            assertTrue(executedActions.none { it is Action.SetBrightness })
+            assertTrue(executedActions.none { it is Action.SetExtraDim })
         }
 
     @Test

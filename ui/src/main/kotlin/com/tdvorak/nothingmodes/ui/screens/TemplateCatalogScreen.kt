@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -92,6 +96,11 @@ class TemplateCatalogViewModel
         private val _templates = MutableStateFlow<List<TemplateSummary>>(emptyList())
         val templates: StateFlow<List<TemplateSummary>> = _templates.asStateFlow()
 
+        private val _userTemplates =
+            MutableStateFlow<List<com.tdvorak.nothingmodes.engine.model.UserTemplate>>(emptyList())
+        val userTemplates: StateFlow<List<com.tdvorak.nothingmodes.engine.model.UserTemplate>> =
+            _userTemplates.asStateFlow()
+
         private val _loading = MutableStateFlow(true)
         val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
@@ -124,6 +133,7 @@ class TemplateCatalogViewModel
             viewModelScope.launch {
                 _loading.value = true
                 _error.value = null
+                _userTemplates.value = loadUserTemplates()
                 try {
                     val indexJson = fetchText("$TEMPLATE_BASE_URL/index.json")
                     val index = EngineJson.json.decodeFromString(TemplateIndex.serializer(), indexJson)
@@ -133,6 +143,49 @@ class TemplateCatalogViewModel
                 }
                 _loading.value = false
             }
+        }
+
+        /** Local templates saved from the detail screen ("Template" action). */
+        private fun templateDir() =
+            java.io.File(context.filesDir, "user_templates").apply { mkdirs() }
+
+        private suspend fun loadUserTemplates() =
+            withContext(Dispatchers.IO) {
+                templateDir()
+                    .listFiles { f -> f.extension == "json" }
+                    ?.mapNotNull { f ->
+                        runCatching {
+                            EngineJson.json.decodeFromString(
+                                com.tdvorak.nothingmodes.engine.model.UserTemplate.serializer(),
+                                f.readText(),
+                            )
+                        }.getOrNull()
+                    }
+                    ?.sortedBy { it.name }
+                    ?: emptyList()
+            }
+
+        fun deleteUserTemplate(id: String) {
+            java.io.File(templateDir(), "$id.json").delete()
+            _userTemplates.value = _userTemplates.value.filterNot { it.id == id }
+        }
+
+        /** Stage a locally saved template — same review sheet as remote ones. */
+        fun selectUserTemplate(template: com.tdvorak.nothingmodes.engine.model.UserTemplate) {
+            _pending.value =
+                PendingTemplateInstall(
+                    summary =
+                        TemplateSummary(
+                            id = "user:${template.id}",
+                            name = template.name,
+                            description = template.description,
+                            file = "",
+                        ),
+                    automations = template.automations,
+                    warnings = emptyList(),
+                    satisfied = emptyList(),
+                    errors = emptyList(),
+                )
         }
 
         /** Fetch a template bundle and stage it for review before install. */
@@ -250,11 +303,27 @@ fun TemplateCatalogScreen(
     viewModel: TemplateCatalogViewModel = hiltViewModel(),
 ) {
     val templates by viewModel.templates.collectAsState()
+    val userTemplates by viewModel.userTemplates.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
     val pending by viewModel.pending.collectAsState()
     val installing by viewModel.installing.collectAsState()
     val installed by viewModel.installed.collectAsState()
+    var search by remember { mutableStateOf("") }
+
+    val visibleRemote =
+        templates.filter {
+            search.isBlank() ||
+                it.name.contains(search, true) ||
+                it.description.contains(search, true) ||
+                it.tags.any { tag -> tag.contains(search, true) }
+        }
+    val visibleUser =
+        userTemplates.filter {
+            search.isBlank() ||
+                it.name.contains(search, true) ||
+                it.description.contains(search, true)
+        }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -296,10 +365,10 @@ fun TemplateCatalogScreen(
                             )
                         },
                     )
-                templates.isEmpty() ->
+                templates.isEmpty() && userTemplates.isEmpty() ->
                     NothingEmptyState(
                         title = "No templates yet",
-                        description = "Community templates will appear here",
+                        description = "Save a routine as a template from its detail page, or check back for community templates",
                     )
                 else ->
                     LazyColumn(
@@ -311,11 +380,56 @@ fun TemplateCatalogScreen(
                             ),
                         verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                     ) {
-                        items(templates, key = { it.id }) { template ->
-                            TemplateRow(
-                                template = template,
-                                onClick = { viewModel.select(template) },
+                        item {
+                            com.tdvorak.nothingmodes.ui.theme.NothingInput(
+                                value = search,
+                                onValueChange = { search = it },
+                                label = "Search",
+                                placeholder = "Find a template",
                             )
+                        }
+
+                        if (visibleUser.isNotEmpty()) {
+                            item {
+                                NothingLabel(text = "My templates")
+                            }
+                            items(visibleUser, key = { "u:${it.id}" }) { template ->
+                                NothingCard(modifier = Modifier.fillMaxWidth()) {
+                                    NothingListRow(
+                                        title = template.name,
+                                        subtitle =
+                                            template.description.ifBlank {
+                                                "${template.automations.size} routine(s)"
+                                            },
+                                        onClick = { viewModel.selectUserTemplate(template) },
+                                        trailing = {
+                                            Text(
+                                                text = "DELETE",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = NothingColors.accent,
+                                                fontFamily = NothingFonts.mono(),
+                                                modifier =
+                                                    Modifier
+                                                        .clickable {
+                                                            viewModel.deleteUserTemplate(template.id)
+                                                        }.padding(NothingSpacing.sm),
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                        }
+
+                        if (visibleRemote.isNotEmpty()) {
+                            item {
+                                NothingLabel(text = "Community templates")
+                            }
+                            items(visibleRemote, key = { it.id }) { template ->
+                                TemplateRow(
+                                    template = template,
+                                    onClick = { viewModel.select(template) },
+                                )
+                            }
                         }
                     }
             }

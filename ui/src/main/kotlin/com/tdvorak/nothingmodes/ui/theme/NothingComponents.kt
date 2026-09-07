@@ -423,7 +423,10 @@ fun NothingPrimaryButton(
             style = MaterialTheme.typography.labelLarge,
             color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            modifier = Modifier.wrapContentSize(Alignment.Center),
+            modifier =
+                Modifier
+                    .wrapContentSize(Alignment.Center)
+                    .padding(horizontal = 24.dp),
         )
     }
 }
@@ -465,7 +468,10 @@ fun NothingSecondaryButton(
             style = MaterialTheme.typography.labelLarge,
             color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
-            modifier = Modifier.wrapContentSize(Alignment.Center),
+            modifier =
+                Modifier
+                    .wrapContentSize(Alignment.Center)
+                    .padding(horizontal = 24.dp),
         )
     }
 }
@@ -510,7 +516,10 @@ fun NothingDestructiveButton(
             style = MaterialTheme.typography.labelLarge,
             color = NothingColors.accent,
             textAlign = TextAlign.Center,
-            modifier = Modifier.wrapContentSize(Alignment.Center),
+            modifier =
+                Modifier
+                    .wrapContentSize(Alignment.Center)
+                    .padding(horizontal = 24.dp),
         )
     }
 }

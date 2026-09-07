@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -183,6 +184,34 @@ class AutomationDetailViewModel
             }
         }
 
+        /** Save this automation into the local "My templates" collection. */
+        fun saveAsTemplate() {
+            val current = _automation.value ?: return
+            viewModelScope.launch {
+                runCatching {
+                    val dir = File(context.filesDir, "user_templates").apply { mkdirs() }
+                    val template =
+                        com.tdvorak.nothingmodes.engine.model.UserTemplate(
+                            id = current.id.value,
+                            name = current.name,
+                            automations = listOf(current),
+                        )
+                    File(dir, "${template.id}.json")
+                        .writeText(
+                            com.tdvorak.nothingmodes.engine.model.EngineJson.json
+                                .encodeToString(
+                                    com.tdvorak.nothingmodes.engine.model.UserTemplate.serializer(),
+                                    template,
+                                ),
+                        )
+                }.onSuccess {
+                    Toast.makeText(context, "Saved to My templates", Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(context, "Save failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         fun delete(onDeleted: () -> Unit) {
             val current = _automation.value ?: return
             viewModelScope.launch {
@@ -230,6 +259,7 @@ fun AutomationDetailScreen(
                         TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
                         TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
+                        TopBarAction("Template", icon = Icons.Filled.Bookmark, onClick = { viewModel.saveAsTemplate() }),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
                         TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
                     ),

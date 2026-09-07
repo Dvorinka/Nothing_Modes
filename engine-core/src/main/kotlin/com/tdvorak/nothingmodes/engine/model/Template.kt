@@ -27,3 +27,16 @@ data class TemplateSummary(
     /** Relative path to the ExportBundle JSON, e.g. "night-owl.json". */
     val file: String,
 )
+
+/**
+ * A template the user saved locally. Stored as JSON files under
+ * `filesDir/user_templates/`; installs through the same ImportExportService
+ * path as community templates.
+ */
+@Serializable
+data class UserTemplate(
+    val id: String,
+    val name: String,
+    val description: String = "",
+    val automations: List<Automation> = emptyList(),
+)

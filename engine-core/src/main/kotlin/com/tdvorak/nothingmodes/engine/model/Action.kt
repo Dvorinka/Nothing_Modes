@@ -90,6 +90,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DND)
     data class SetDnd(
         val mode: DndMode,
+        /** Revert to the pre-run value when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -122,6 +124,8 @@ sealed interface Action {
     data class SetVolume(
         val stream: VolumeStream,
         val level: Int,
+        /** Revert to the pre-run level when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -134,6 +138,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DARK_MODE)
     data class SetDarkMode(
         val mode: NightMode,
+        /** Revert to the pre-run mode when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -162,6 +168,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AUTO_BRIGHTNESS)
     data class SetAutoBrightness(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Extra Dim (reduce_bright_colors). restore = restore previous state. */
@@ -306,6 +314,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AUTO_ROTATE)
     data class SetAutoRotate(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle battery saver. Uses Settings.Global.LOW_POWER_MODE (requires Shizuku or WRITE_SECURE_SETTINGS). */
@@ -313,6 +323,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_BATTERY_SAVER)
     data class SetBatterySaver(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle airplane mode. Requires Shizuku (settings put global airplane_mode_on). */
@@ -320,6 +332,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AIRPLANE_MODE)
     data class SetAirplaneMode(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle data saver. Uses Settings.Global.DATA_SAVER (requires Shizuku). */
@@ -327,6 +341,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DATA_SAVER)
     data class SetDataSaver(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle hotspot. Requires Shizuku. */
@@ -348,6 +364,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_REFRESH_RATE)
     data class SetRefreshRate(
         val hz: Int,
+        /** Revert to the pre-run rate when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Lock screen rotation to a specific orientation. */
@@ -355,6 +373,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_SCREEN_ROTATION)
     data class SetScreenRotation(
         val orientation: ScreenOrientation,
+        /** Revert to the pre-run rotation when a windowed routine ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Media playback control. */
@@ -440,13 +460,63 @@ val Action.isGlyphAction: Boolean
             else -> false
         }
 
-/** Actions that support state restoration (snapshot previous value before applying). */
+/** Whether this action type can revert at all (has a restorable setting). */
+val Action.canRestore: Boolean
+    get() =
+        when (this) {
+            is Action.SetBrightness,
+            is Action.SetAutoBrightness,
+            is Action.SetExtraDim,
+            is Action.SetScreenTimeout,
+            is Action.SetDnd,
+            is Action.SetVolume,
+            is Action.SetDarkMode,
+            is Action.SetAutoRotate,
+            is Action.SetBatterySaver,
+            is Action.SetAirplaneMode,
+            is Action.SetDataSaver,
+            is Action.SetRefreshRate,
+            is Action.SetScreenRotation,
+            -> true
+            else -> false
+        }
+
+/** Copy with the revert flag set; returns this unchanged when not restorable. */
+fun Action.withRestore(restore: Boolean): Action =
+    when (this) {
+        is Action.SetBrightness -> copy(restore = restore)
+        is Action.SetAutoBrightness -> copy(restore = restore)
+        is Action.SetExtraDim -> copy(restore = restore)
+        is Action.SetScreenTimeout -> copy(restore = restore)
+        is Action.SetDnd -> copy(restore = restore)
+        is Action.SetVolume -> copy(restore = restore)
+        is Action.SetDarkMode -> copy(restore = restore)
+        is Action.SetAutoRotate -> copy(restore = restore)
+        is Action.SetBatterySaver -> copy(restore = restore)
+        is Action.SetAirplaneMode -> copy(restore = restore)
+        is Action.SetDataSaver -> copy(restore = restore)
+        is Action.SetRefreshRate -> copy(restore = restore)
+        is Action.SetScreenRotation -> copy(restore = restore)
+        else -> this
+    }
+
+/** Actions opted into state restoration (snapshot previous value before applying). */
 val Action.supportsRestore: Boolean
     get() =
         when (this) {
             is Action.SetBrightness -> restore
+            is Action.SetAutoBrightness -> restore
             is Action.SetExtraDim -> restore
             is Action.SetScreenTimeout -> restore
+            is Action.SetDnd -> restore
+            is Action.SetVolume -> restore
+            is Action.SetDarkMode -> restore
+            is Action.SetAutoRotate -> restore
+            is Action.SetBatterySaver -> restore
+            is Action.SetAirplaneMode -> restore
+            is Action.SetDataSaver -> restore
+            is Action.SetRefreshRate -> restore
+            is Action.SetScreenRotation -> restore
             is Action.SetGlyph -> restore
             is Action.SetGlyphMatrix -> restore
             else -> false

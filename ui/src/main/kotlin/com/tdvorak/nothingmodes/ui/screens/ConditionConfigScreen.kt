@@ -89,10 +89,10 @@ fun ConditionConfigScreen(
                             Box(modifier = Modifier.weight(0.35f)) {
                                 NothingEnumSelector(
                                     label = "Operator",
-                                    value = c.op.name,
-                                    options = CmpOp.entries.map { it.name },
+                                    value = c.op.name.enumLabel(),
+                                    options = enumLabelList<CmpOp>(),
                                     onSelect = { op ->
-                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                        condition = c.copy(op = enumByLabel<CmpOp>(op))
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -130,10 +130,10 @@ fun ConditionConfigScreen(
                     is Condition.ScreenStateCondition -> {
                         NothingEnumSelector(
                             label = "Screen state",
-                            value = c.state.name,
-                            options = ScreenState.entries.map { it.name },
+                            value = c.state.name.enumLabel(),
+                            options = enumLabelList<ScreenState>(),
                             onSelect = { state ->
-                                condition = c.copy(state = ScreenState.valueOf(state))
+                                condition = c.copy(state = enumByLabel<ScreenState>(state))
                             },
                         )
                     }
@@ -267,7 +267,7 @@ fun ConditionConfigScreen(
                     is Condition.CallStateCondition -> {
                         CallState.entries.forEach { s ->
                             RadioOption(
-                                text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+                                text = s.name.enumLabel(),
                                 selected = c.state == s,
                                 onClick = { condition = c.copy(state = s) },
                             )
@@ -302,10 +302,10 @@ fun ConditionConfigScreen(
                             Box(modifier = Modifier.weight(0.35f)) {
                                 NothingEnumSelector(
                                     label = "Operator",
-                                    value = c.op.name,
-                                    options = CmpOp.entries.map { it.name },
+                                    value = c.op.name.enumLabel(),
+                                    options = enumLabelList<CmpOp>(),
                                     onSelect = { op ->
-                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                        condition = c.copy(op = enumByLabel<CmpOp>(op))
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -358,10 +358,10 @@ fun ConditionConfigScreen(
                         Column {
                             NothingEnumSelector(
                                 label = "Stream",
-                                value = c.stream.name,
-                                options = VolumeStream.entries.map { it.name },
+                                value = c.stream.name.enumLabel(),
+                                options = enumLabelList<VolumeStream>(),
                                 onSelect = { stream ->
-                                    condition = c.copy(stream = VolumeStream.valueOf(stream))
+                                    condition = c.copy(stream = enumByLabel<VolumeStream>(stream))
                                 },
                             )
                             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -374,10 +374,10 @@ fun ConditionConfigScreen(
                                 Box(modifier = Modifier.weight(0.35f)) {
                                     NothingEnumSelector(
                                         label = "Operator",
-                                        value = c.op.name,
-                                        options = CmpOp.entries.map { it.name },
+                                        value = c.op.name.enumLabel(),
+                                        options = enumLabelList<CmpOp>(),
                                         onSelect = { op ->
-                                            condition = c.copy(op = CmpOp.valueOf(op))
+                                            condition = c.copy(op = enumByLabel<CmpOp>(op))
                                         },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
@@ -405,10 +405,10 @@ fun ConditionConfigScreen(
                             Box(modifier = Modifier.weight(0.35f)) {
                                 NothingEnumSelector(
                                     label = "Operator",
-                                    value = c.op.name,
-                                    options = CmpOp.entries.map { it.name },
+                                    value = c.op.name.enumLabel(),
+                                    options = enumLabelList<CmpOp>(),
                                     onSelect = { op ->
-                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                        condition = c.copy(op = enumByLabel<CmpOp>(op))
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -428,10 +428,10 @@ fun ConditionConfigScreen(
                     is Condition.ChargingSource -> {
                         NothingEnumSelector(
                             label = "Source",
-                            value = c.source.name,
-                            options = ChargerSource.entries.map { it.name },
+                            value = c.source.name.enumLabel(),
+                            options = enumLabelList<ChargerSource>(),
                             onSelect = { src ->
-                                condition = c.copy(source = ChargerSource.valueOf(src))
+                                condition = c.copy(source = enumByLabel<ChargerSource>(src))
                             },
                         )
                     }
@@ -446,10 +446,10 @@ fun ConditionConfigScreen(
                             Box(modifier = Modifier.weight(0.35f)) {
                                 NothingEnumSelector(
                                     label = "Operator",
-                                    value = c.op.name,
-                                    options = CmpOp.entries.map { it.name },
+                                    value = c.op.name.enumLabel(),
+                                    options = enumLabelList<CmpOp>(),
                                     onSelect = { op ->
-                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                        condition = c.copy(op = enumByLabel<CmpOp>(op))
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -484,10 +484,10 @@ fun ConditionConfigScreen(
                             Box(modifier = Modifier.weight(0.35f)) {
                                 NothingEnumSelector(
                                     label = "Operator",
-                                    value = c.op.name,
-                                    options = CmpOp.entries.map { it.name },
+                                    value = c.op.name.enumLabel(),
+                                    options = enumLabelList<CmpOp>(),
                                     onSelect = { op ->
-                                        condition = c.copy(op = CmpOp.valueOf(op))
+                                        condition = c.copy(op = enumByLabel<CmpOp>(op))
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                 )

@@ -239,7 +239,14 @@ fun ConditionCatalogScreen(navController: NavController) {
 
     val filtered =
         remember(search, items) {
-            if (search.isBlank()) items else items.filter { it.label.contains(search, ignoreCase = true) }
+            if (search.isBlank()) {
+                items
+            } else {
+                items.filter {
+                    it.label.contains(search, ignoreCase = true) ||
+                        it.category.contains(search, ignoreCase = true)
+                }
+            }
         }
 
     val grouped = filtered.groupBy { it.category.uppercase() }

@@ -166,9 +166,9 @@ fun ActionConfigContent(
         is Action.SetDarkMode -> {
             NothingEnumSelector(
                 label = "Dark mode",
-                value = a.mode.name,
-                options = NightMode.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(mode = NightMode.valueOf(it))) },
+                value = a.mode.name.enumLabel(),
+                options = enumLabelList<NightMode>(),
+                onSelect = { onActionChange(a.copy(mode = enumByLabel<NightMode>(it))) },
             )
         }
 
@@ -203,12 +203,6 @@ fun ActionConfigContent(
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            BooleanRow(
-                label = "Restore previous",
-                checked = a.restore,
-                onChange = { onActionChange(a.copy(restore = it)) },
-            )
         }
 
         is Action.SetAutoBrightness -> {
@@ -225,11 +219,6 @@ fun ActionConfigContent(
                 checked = a.on,
                 onChange = { onActionChange(a.copy(on = it)) },
             )
-            BooleanRow(
-                label = "Restore previous",
-                checked = a.restore,
-                onChange = { onActionChange(a.copy(restore = it)) },
-            )
         }
 
         is Action.SetScreenTimeout -> {
@@ -238,11 +227,6 @@ fun ActionConfigContent(
                 onValueChange = { onActionChange(a.copy(timeoutMs = it.toIntOrNull() ?: a.timeoutMs)) },
                 label = "Timeout (ms) — 2147483647 = never",
                 modifier = Modifier.fillMaxWidth(),
-            )
-            BooleanRow(
-                label = "Restore previous",
-                checked = a.restore,
-                onChange = { onActionChange(a.copy(restore = it)) },
             )
         }
 
@@ -257,31 +241,21 @@ fun ActionConfigContent(
         is Action.SetDnd -> {
             NothingEnumSelector(
                 label = "DND mode",
-                value = a.mode.name,
-                options = DndMode.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(mode = DndMode.valueOf(it))) },
+                value = a.mode.displayName(),
+                options = DndMode.entries.map { it.displayName() },
+                onSelect = { sel ->
+                    onActionChange(
+                        a.copy(mode = DndMode.entries.first { it.displayName() == sel }),
+                    )
+                },
             )
         }
 
         is Action.SetVolume -> {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-            ) {
-                NothingEnumSelector(
-                    label = "Stream",
-                    value = a.stream.name,
-                    options = VolumeStream.entries.map { it.name },
-                    onSelect = { onActionChange(a.copy(stream = VolumeStream.valueOf(it))) },
-                    modifier = Modifier.weight(1f),
-                )
-                NothingInput(
-                    value = a.level.toString(),
-                    onValueChange = { onActionChange(a.copy(level = it.toIntOrNull() ?: a.level)) },
-                    label = "Level",
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            VolumeRow(
+                action = a,
+                onChange = onActionChange,
+            )
         }
 
         is Action.Vibrate -> {
@@ -312,18 +286,18 @@ fun ActionConfigContent(
         is Action.SetLocationMode -> {
             NothingEnumSelector(
                 label = "Location mode",
-                value = a.mode.name,
-                options = LocationMode.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(mode = LocationMode.valueOf(it))) },
+                value = a.mode.name.enumLabel(),
+                options = enumLabelList<LocationMode>(),
+                onSelect = { onActionChange(a.copy(mode = enumByLabel<LocationMode>(it))) },
             )
         }
 
         is Action.OpenSettingsScreen -> {
             NothingEnumSelector(
                 label = "Settings screen",
-                value = a.screen.name,
-                options = SettingsScreen.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(screen = SettingsScreen.valueOf(it))) },
+                value = a.screen.name.enumLabel(),
+                options = enumLabelList<SettingsScreen>(),
+                onSelect = { onActionChange(a.copy(screen = enumByLabel<SettingsScreen>(it))) },
             )
         }
 
@@ -502,18 +476,18 @@ fun ActionConfigContent(
         is Action.SetScreenRotation -> {
             NothingEnumSelector(
                 label = "Orientation",
-                value = a.orientation.name,
-                options = ScreenOrientation.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(orientation = ScreenOrientation.valueOf(it))) },
+                value = a.orientation.name.enumLabel(),
+                options = enumLabelList<ScreenOrientation>(),
+                onSelect = { onActionChange(a.copy(orientation = enumByLabel<ScreenOrientation>(it))) },
             )
         }
 
         is Action.MediaControl -> {
             NothingEnumSelector(
                 label = "Media command",
-                value = a.command.name,
-                options = MediaCommand.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(command = MediaCommand.valueOf(it))) },
+                value = a.command.name.enumLabel(),
+                options = enumLabelList<MediaCommand>(),
+                onSelect = { onActionChange(a.copy(command = enumByLabel<MediaCommand>(it))) },
             )
         }
 
@@ -537,9 +511,9 @@ fun ActionConfigContent(
         is Action.WriteSetting -> {
             NothingEnumSelector(
                 label = "Namespace",
-                value = a.namespace.name,
-                options = SettingNamespace.entries.map { it.name },
-                onSelect = { onActionChange(a.copy(namespace = SettingNamespace.valueOf(it))) },
+                value = a.namespace.name.enumLabel(),
+                options = enumLabelList<SettingNamespace>(),
+                onSelect = { onActionChange(a.copy(namespace = enumByLabel<SettingNamespace>(it))) },
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
@@ -570,7 +544,7 @@ fun ActionConfigContent(
                     val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
-                label = "Channels (blank = all)",
+                label = "LED zones (comma separated, blank = all)",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -618,11 +592,6 @@ fun ActionConfigContent(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            BooleanRow(
-                label = "Restore previous",
-                checked = a.restore,
-                onChange = { onActionChange(a.copy(restore = it)) },
-            )
         }
 
         is Action.GlyphProgress -> {
@@ -680,7 +649,7 @@ fun ActionConfigContent(
                     val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
-                label = "Advanced — raw channels (overrides zone)",
+                label = "Advanced — raw LED zone numbers (overrides the zone above)",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -841,6 +810,68 @@ internal fun MusicStyleSelector(
             selected = style == s,
             onClick = { onChange(s) },
         )
+    }
+}
+
+/** Volume as a percentage slider against the real stream maximum. */
+@Composable
+internal fun VolumeRow(
+    action: Action.SetVolume,
+    onChange: (Action.SetVolume) -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val audio = remember { context.getSystemService(android.media.AudioManager::class.java) }
+    val maxLevel =
+        remember(action.stream) {
+            runCatching {
+                audio?.getStreamMaxVolume(
+                    when (action.stream) {
+                        VolumeStream.MEDIA -> android.media.AudioManager.STREAM_MUSIC
+                        VolumeStream.RING -> android.media.AudioManager.STREAM_RING
+                        VolumeStream.ALARM -> android.media.AudioManager.STREAM_ALARM
+                        VolumeStream.NOTIFICATION -> android.media.AudioManager.STREAM_NOTIFICATION
+                    },
+                )
+            }.getOrNull() ?: 15
+        }
+    val percent =
+        if (maxLevel > 0) {
+            (action.level * 100 / maxLevel).coerceIn(0, 100)
+        } else {
+            0
+        }
+
+    Column {
+        NothingEnumSelector(
+            label = "Volume for",
+            value = action.stream.name.enumLabel(),
+            options = enumLabelList<VolumeStream>(),
+            onSelect = { onChange(action.copy(stream = enumByLabel<VolumeStream>(it))) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            Text(
+                text = "$percent%",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+                modifier = Modifier.width(56.dp),
+            )
+            androidx.compose.material3.Slider(
+                value = percent.toFloat(),
+                onValueChange = { v ->
+                    val level = (v / 100f * maxLevel).toInt().coerceIn(0, maxLevel)
+                    onChange(action.copy(level = level))
+                },
+                valueRange = 0f..100f,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

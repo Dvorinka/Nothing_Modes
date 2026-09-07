@@ -340,6 +340,11 @@ fun AutomationListScreen(
                     } else {
                         listOf(
                             TopBarAction("TEMPLATES", icon = Icons.Outlined.GridView, onClick = onTemplatesClick),
+                            TopBarAction(
+                                "IMPORT",
+                                icon = Icons.Outlined.FileUpload,
+                                onClick = { importLauncher.launch(arrayOf("application/json")) },
+                            ),
                             TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onClick = onLogClick),
                             TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
                         )
@@ -357,7 +362,11 @@ fun AutomationListScreen(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            if (items.isEmpty() && !loading) {
+            if (loading && items.isEmpty()) {
+                // Blank while the first load is in flight — prevents the
+                // "Automations" hero flashing before the empty state appears.
+                Box(modifier = Modifier.fillMaxSize())
+            } else if (items.isEmpty()) {
                 Column(
                     modifier =
                         Modifier

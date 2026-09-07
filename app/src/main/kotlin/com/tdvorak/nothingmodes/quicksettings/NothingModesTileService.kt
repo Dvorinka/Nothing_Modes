@@ -35,7 +35,7 @@ class NothingModesTileService : TileService() {
             val automations =
                 runCatching {
                     store().all().filter {
-                        it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
+                        it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
                     }
                 }.getOrDefault(emptyList())
 
@@ -77,7 +77,7 @@ class NothingModesTileService : TileService() {
             val automations =
                 runCatching {
                     store().all().filter {
-                        it.quickAction && it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
+                        it.enabled && it.status == AutomationStatus.ARMED && it.trigger is Trigger.Manual
                     }
                 }.getOrDefault(emptyList())
 

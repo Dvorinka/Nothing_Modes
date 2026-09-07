@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,8 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Trigger
@@ -243,26 +240,40 @@ fun CustomTimePicker(
         )
     } else if (schedule.recurrence == Recurrence.MONTHLY || schedule.recurrence == Recurrence.YEARLY) {
         Spacer(modifier = Modifier.height(NothingSpacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-        ) {
-            NumberField(
-                value = schedule.dayOfMonth,
-                onValueChange = { update { copy(dayOfMonth = it.coerceIn(1, 31)) } },
-                label = "Day",
-                range = 1..31,
-                modifier = Modifier.weight(1f),
+        if (schedule.recurrence == Recurrence.YEARLY) {
+            NothingEnumSelector(
+                label = "Month",
+                value = monthName(schedule.month),
+                options = (1..12).map(::monthName),
+                onSelect = { sel ->
+                    update { copy(month = (1..12).first { monthName(it) == sel }) }
+                },
+                modifier = Modifier.fillMaxWidth(),
             )
-            if (schedule.recurrence == Recurrence.YEARLY) {
-                NumberField(
-                    value = schedule.month,
-                    onValueChange = { update { copy(month = it.coerceIn(1, 12)) } },
-                    label = "Month",
-                    range = 1..12,
-                    modifier = Modifier.weight(1f),
-                )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
+        NothingLabel(text = "Day of month")
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        // 7-column grid, like a calendar — easier than a raw number field.
+        val days = (1..31).toList()
+        days.chunked(7).forEach { week ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                week.forEach { day ->
+                    DayChip(
+                        label = day.toString(),
+                        selected = day == schedule.dayOfMonth,
+                        onClick = { update { copy(dayOfMonth = day) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(7 - week.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 
@@ -282,29 +293,11 @@ fun CustomTimePicker(
     )
 }
 
-@Composable
-private fun NumberField(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    label: String,
-    range: IntRange,
-    modifier: Modifier = Modifier,
-) {
-    NothingInput(
-        value = value.toString().padStart(2, '0'),
-        onValueChange = { text ->
-            val intVal = text.toIntOrNull() ?: 0
-            onValueChange(intVal.coerceIn(range))
-        },
-        label = label,
-        keyboardOptions =
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next,
-            ),
-        modifier = modifier,
+private fun monthName(month: Int): String =
+    java.time.Month.of(month.coerceIn(1, 12)).getDisplayName(
+        java.time.format.TextStyle.SHORT,
+        Locale.getDefault(),
     )
-}
 
 @Composable
 private fun DayChip(

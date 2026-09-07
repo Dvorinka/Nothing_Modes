@@ -61,6 +61,10 @@ import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.canRestore
+import com.tdvorak.nothingmodes.engine.model.isGlyphAction
+import com.tdvorak.nothingmodes.engine.model.supportsRestore
+import com.tdvorak.nothingmodes.engine.model.withRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -292,7 +296,8 @@ class CustomBuilderViewModel
                     Automation(
                         id = id,
                         name = s.name.ifBlank { "Untitled" },
-                        type = s.type,
+                        // jarvis: modes and routines merged — windowed trigger implies mode semantics.
+                        type = if (s.trigger is Trigger.TimeWindow) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = existing?.createdBy ?: CreatedBy.USER,
                         status = existing?.status ?: AutomationStatus.ARMED,
                         trigger = s.trigger,
@@ -339,7 +344,7 @@ class CustomBuilderViewModel
                     Automation(
                         id = id,
                         name = "${s.name.ifBlank { "Untitled" }} (copy)",
-                        type = s.type,
+                        type = if (s.trigger is Trigger.TimeWindow) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = CreatedBy.USER,
                         status = AutomationStatus.ARMED,
                         trigger = s.trigger,
@@ -580,10 +585,8 @@ fun CustomAutomationBuilderScreen(
             item {
                 AutomationPreviewTile(
                     state = state,
-                    modifier =
-                        Modifier
-                            .padding(vertical = NothingSpacing.md)
-                            .clickable { showIconPicker = true },
+                    onClick = { showIconPicker = true },
+                    modifier = Modifier.padding(vertical = NothingSpacing.md),
                 )
             }
 
@@ -714,6 +717,70 @@ fun CustomAutomationBuilderScreen(
                 }
             }
 
+            // WHEN IT ENDS — windowed routines revert by default; per-action opt-out.
+            if (state.trigger is Trigger.TimeWindow) {
+                item {
+                    val endLocal = (state.trigger as Trigger.TimeWindow).endLocal
+                    NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
+                        NothingLabel(
+                            text = "When it ends ($endLocal)",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                        Text(
+                            text = "Ticked items return to how they were before the routine started. Unticked items keep their new value.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                        val restorable =
+                            state.actions
+                                .mapIndexedNotNull { i, a -> if (a.canRestore) i to a else null }
+                        if (restorable.isEmpty()) {
+                            Text(
+                                text = "No revertible changes — the routine just stops.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                                modifier = Modifier.padding(vertical = NothingSpacing.sm),
+                            )
+                        } else {
+                            NothingDivider()
+                            restorable.forEach { (index, action) ->
+                                NothingListRow(
+                                    title = actionDescription(action),
+                                    subtitle = "Revert to previous value",
+                                    onClick = {
+                                        viewModel.updateAction(
+                                            index,
+                                            action.withRestore(!action.supportsRestore),
+                                        )
+                                    },
+                                    trailing = {
+                                        NothingToggle(
+                                            checked = action.supportsRestore,
+                                            onCheckedChange = {
+                                                viewModel.updateAction(index, action.withRestore(it))
+                                            },
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        if (state.actions.any { it.isGlyphAction }) {
+                            Text(
+                                text = "Glyph lights always turn off when the window ends.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                                modifier = Modifier.padding(top = NothingSpacing.sm),
+                            )
+                        }
+                    }
+                }
+            }
+
             // Advanced — folded away; most routines never need it.
             item {
                 var showAdvanced by rememberSaveable { mutableStateOf(false) }
@@ -751,19 +818,6 @@ fun CustomAutomationBuilderScreen(
                                 NothingToggle(
                                     checked = state.enabled,
                                     onCheckedChange = viewModel::updateEnabled,
-                                )
-                            },
-                        )
-                        NothingDivider()
-
-                        NothingListRow(
-                            title = "Quick action",
-                            subtitle = "Show in widget / Quick Settings",
-                            onClick = { viewModel.updateQuickAction(!state.quickAction) },
-                            trailing = {
-                                NothingToggle(
-                                    checked = state.quickAction,
-                                    onCheckedChange = viewModel::updateQuickAction,
                                 )
                             },
                         )
@@ -1247,13 +1301,14 @@ private fun PrioritySegmentedBar(
 @Composable
 private fun AutomationPreviewTile(
     state: BuilderState,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NothingCard(modifier = modifier) {
         NothingListRow(
             title = state.name.ifBlank { "Untitled" },
-            subtitle = "${state.actions.size} actions · ${state.conditions.size} conditions",
-            onClick = { /* icon/color picking is wired via the outer sheet */ },
+            subtitle = "${state.actions.size} actions · ${state.conditions.size} conditions — tap to set icon",
+            onClick = onClick,
             leading = {
                 NothingIconCircle(size = 48f) {
                     if (state.icon.isNotBlank()) {

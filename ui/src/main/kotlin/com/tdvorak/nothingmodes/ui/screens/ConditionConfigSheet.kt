@@ -553,7 +553,7 @@ private fun CallStateSheetContent(
 ) {
     CallState.entries.forEach { s ->
         RadioOption(
-            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+            text = s.name.enumLabel(),
             selected = state == s,
             onClick = { onChange(s) },
         )
@@ -606,7 +606,7 @@ private fun VolumeLevelSheetContent(
         )
         VolumeStream.entries.forEach { stream ->
             RadioOption(
-                text = stream.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = stream.name.enumLabel(),
                 selected = condition.stream == stream,
                 onClick = { onChange(condition.copy(stream = stream)) },
             )
@@ -621,7 +621,7 @@ private fun VolumeLevelSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name,
+                text = op.name.enumLabel(),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -651,7 +651,7 @@ private fun ScreenOffForSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name,
+                text = op.name.enumLabel(),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -666,7 +666,7 @@ private fun ChargingSourceSheetContent(
 ) {
     ChargerSource.entries.forEach { s ->
         RadioOption(
-            text = s.name.lowercase().replaceFirstChar { it.uppercase() },
+            text = s.name.enumLabel(),
             selected = source == s,
             onClick = { onChange(s) },
         )
@@ -695,7 +695,7 @@ private fun BatteryTempSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name,
+                text = op.name.enumLabel(),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -725,7 +725,7 @@ private fun ThermalLevelSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name,
+                text = op.name.enumLabel(),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )

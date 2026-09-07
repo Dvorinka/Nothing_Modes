@@ -1,6 +1,9 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +65,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
@@ -83,7 +89,6 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Time", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
         TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
         TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
-        TriggerType("Immediate", "Manual", Icons.Outlined.PowerSettingsNew, Trigger.Immediate),
         TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
         TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
         TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
@@ -413,10 +418,9 @@ private fun TriggerConfigContent(
             )
 
         is Trigger.WifiConnected ->
-            NothingInput(
-                value = t.ssid ?: "",
-                onValueChange = { onUpdate(t.copy(ssid = it.ifBlank { null })) },
-                label = "SSID (blank = any)",
+            WifiConnectedContent(
+                trigger = t,
+                onUpdate = onUpdate,
             )
 
         is Trigger.BluetoothDevice ->
@@ -490,7 +494,7 @@ private fun ScreenStateContent(
 ) {
     ScreenState.entries.forEach { option ->
         RadioOption(
-            text = option.name.lowercase().replaceFirstChar { it.uppercase() },
+            text = option.name.enumLabel(),
             selected = state == option,
             onClick = { onUpdate(option) },
         )
@@ -511,10 +515,10 @@ private fun BatteryLevelContent(
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
             label = "Direction",
-            value = (trigger.direction ?: BatteryDirection.CHARGING_STARTED).name,
-            options = BatteryDirection.entries.map { it.name },
+            value = (trigger.direction ?: BatteryDirection.CHARGING_STARTED).name.enumLabel(),
+            options = enumLabelList<BatteryDirection>(),
             onSelect = { dir ->
-                onUpdate(trigger.copy(direction = BatteryDirection.valueOf(dir)))
+                onUpdate(trigger.copy(direction = enumByLabel<BatteryDirection>(dir)))
             },
         )
     }
@@ -534,12 +538,12 @@ private fun ChargerConnectedContent(
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
             label = "Source (optional)",
-            value = trigger.source?.name ?: "ANY",
-            options = listOf("ANY") + ChargerSource.entries.map { it.name },
+            value = trigger.source?.name?.enumLabel() ?: "ANY",
+            options = listOf("ANY") + enumLabelList<ChargerSource>(),
             onSelect = { src ->
                 onUpdate(
                     trigger.copy(
-                        source = if (src == "ANY") null else ChargerSource.valueOf(src),
+                        source = if (src == "ANY") null else enumByLabel<ChargerSource>(src),
                     ),
                 )
             },
@@ -593,7 +597,7 @@ private fun PhoneStateContent(
     Column {
         PhoneEvent.entries.forEach { event ->
             RadioOption(
-                text = event.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = event.name.enumLabel(),
                 selected = trigger.event == event,
                 onClick = { onUpdate(trigger.copy(event = event)) },
             )
@@ -621,16 +625,16 @@ private fun ConnectivityContent(
     Column {
         NothingEnumSelector(
             label = "Medium",
-            value = trigger.medium.name,
-            options = ConnMedium.entries.map { it.name },
-            onSelect = { onUpdate(trigger.copy(medium = ConnMedium.valueOf(it))) },
+            value = trigger.medium.name.enumLabel(),
+            options = enumLabelList<ConnMedium>(),
+            onSelect = { onUpdate(trigger.copy(medium = enumByLabel(it))) },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
             label = "State",
-            value = trigger.state.name,
-            options = ConnState.entries.map { it.name },
-            onSelect = { onUpdate(trigger.copy(state = ConnState.valueOf(it))) },
+            value = trigger.state.name.enumLabel(),
+            options = enumLabelList<ConnState>(),
+            onSelect = { onUpdate(trigger.copy(state = enumByLabel(it))) },
         )
         if (trigger.medium == ConnMedium.WIFI) {
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -648,12 +652,21 @@ private fun BluetoothDeviceContent(
     trigger: Trigger.BluetoothDevice,
     onUpdate: (Trigger.BluetoothDevice) -> Unit,
 ) {
+    val context = LocalContext.current
+    var showDevicePicker by remember { mutableStateOf(false) }
     Column {
         NothingEnumSelector(
             label = "State",
-            value = trigger.state.name,
-            options = ConnState.entries.map { it.name },
-            onSelect = { onUpdate(trigger.copy(state = ConnState.valueOf(it))) },
+            value = trigger.state.name.enumLabel(),
+            options = enumLabelList<ConnState>(),
+            onSelect = { onUpdate(trigger.copy(state = enumByLabel(it))) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        // Paired-device picker — no system picker exists, so list bonded devices.
+        NothingPillButton(
+            text = "Pick paired device",
+            onClick = { showDevicePicker = true },
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -668,7 +681,120 @@ private fun BluetoothDeviceContent(
             label = "MAC address (blank = any)",
         )
     }
+    if (showDevicePicker) {
+        BondedDevicePickerDialog(
+            onSelect = { name, address ->
+                onUpdate(
+                    trigger.copy(
+                        deviceName = name,
+                        deviceAddress = address,
+                    ),
+                )
+                showDevicePicker = false
+            },
+            onDismiss = { showDevicePicker = false },
+        )
+    }
 }
+
+@Composable
+private fun BondedDevicePickerDialog(
+    onSelect: (name: String?, address: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val devices =
+        remember {
+            runCatching {
+                val adapter =
+                    (context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
+                        as? android.bluetooth.BluetoothManager)?.adapter
+                @SuppressLint("MissingPermission")
+                adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
+            }.getOrDefault(emptyList())
+        }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Paired devices", fontFamily = NothingFonts.mono())
+        },
+        text = {
+            Column {
+                NothingListRow(
+                    title = "Any device",
+                    subtitle = "Matches every Bluetooth device",
+                    onClick = { onSelect(null, null) },
+                )
+                if (devices.isEmpty()) {
+                    Text(
+                        text = "No paired devices found.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                    )
+                } else {
+                    devices.forEach { (name, address) ->
+                        NothingListRow(
+                            title = name ?: address,
+                            subtitle = address,
+                            onClick = { onSelect(name, address) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("CANCEL") }
+        },
+    )
+}
+
+@Composable
+private fun WifiConnectedContent(
+    trigger: Trigger.WifiConnected,
+    onUpdate: (Trigger.WifiConnected) -> Unit,
+) {
+    val context = LocalContext.current
+    Column {
+        // Android exposes no system Wi-Fi picker — offer the current network
+        // as a one-tap fill, manual entry stays for anything else.
+        NothingPillButton(
+            text = "Use current network",
+            onClick = {
+                val ssid = currentSsid(context)
+                if (ssid != null) {
+                    onUpdate(trigger.copy(ssid = ssid))
+                } else {
+                    Toast.makeText(context, "No Wi-Fi network connected", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = trigger.ssid ?: "",
+            onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
+            label = "Network name / SSID (blank = any)",
+        )
+    }
+}
+
+/** SSID of the connected Wi-Fi network, or null. Needs location permission. */
+private fun currentSsid(context: android.content.Context): String? =
+    runCatching {
+        val granted =
+            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return null
+        val wm =
+            context.applicationContext.getSystemService(
+                android.content.Context.WIFI_SERVICE,
+            ) as? android.net.wifi.WifiManager
+        wm?.connectionInfo?.ssid?.takeUnless { it == WifiManager.UNKNOWN_SSID }
+            ?.removeSurrounding("\"")
+    }.getOrNull()
 
 @Composable
 private fun GeofenceContent(
@@ -676,8 +802,79 @@ private fun GeofenceContent(
     onUpdate: (Trigger.Geofence) -> Unit,
 ) {
     val context = LocalContext.current
+    val mapView = remember { org.osmdroid.views.MapView(context) }
+    var fenceOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Polygon?>(null) }
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        org.osmdroid.config.Configuration.getInstance().apply {
+            load(context, context.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
+            userAgentValue = context.packageName
+        }
+        mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        mapView.setMultiTouchControls(true)
+        mapView.controller.setZoom(15.0)
+        mapView.controller.setCenter(
+            org.osmdroid.util.GeoPoint(
+                if (trigger.lat == 0.0 && trigger.lng == 0.0) 50.0755 else trigger.lat,
+                if (trigger.lat == 0.0 && trigger.lng == 0.0) 14.4378 else trigger.lng,
+            ),
+        )
+        // Tap on the map moves the fence center.
+        mapView.overlays.add(
+            object : org.osmdroid.views.overlay.Overlay() {
+                override fun onSingleTapConfirmed(
+                    e: android.view.MotionEvent,
+                    mv: org.osmdroid.views.MapView,
+                ): Boolean {
+                    val p = mv.projection.fromPixels(e.x.toInt(), e.y.toInt()) as org.osmdroid.util.GeoPoint
+                    onUpdate(trigger.copy(lat = p.latitude, lng = p.longitude))
+                    return true
+                }
+            },
+        )
+        mapView.onResume()
+        onDispose { mapView.onPause() }
+    }
+
+    // Redraw the fence circle whenever the center or radius changes.
+    androidx.compose.runtime.LaunchedEffect(trigger.lat, trigger.lng, trigger.radiusM) {
+        if (trigger.lat != 0.0 || trigger.lng != 0.0) {
+            val center = org.osmdroid.util.GeoPoint(trigger.lat, trigger.lng)
+            fenceOverlay?.let { mapView.overlays.remove(it) }
+            val poly =
+                org.osmdroid.views.overlay.Polygon(mapView).apply {
+                    points = org.osmdroid.views.overlay.Polygon.pointsAsCircle(center, trigger.radiusM)
+                    fillPaint.color = android.graphics.Color.argb(40, 255, 60, 60)
+                    outlinePaint.color = android.graphics.Color.rgb(255, 60, 60)
+                    outlinePaint.strokeWidth = 4f
+                }
+            mapView.overlays.add(poly)
+            fenceOverlay = poly
+            mapView.controller.animateTo(center)
+            mapView.invalidate()
+        }
+    }
 
     Column {
+        Text(
+            text = "Tap the map to place the fence.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { mapView },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clip(NothingShapes.input)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
         // "Use current location" button — fetches last known location from FusedLocationProvider.
         NothingPillButton(
             text = "Use current location",
@@ -725,9 +922,9 @@ private fun GeofenceContent(
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
             label = "Transition",
-            value = trigger.transition.name,
-            options = Transition.entries.map { it.name },
-            onSelect = { onUpdate(trigger.copy(transition = Transition.valueOf(it))) },
+            value = trigger.transition.name.enumLabel(),
+            options = enumLabelList<Transition>(),
+            onSelect = { onUpdate(trigger.copy(transition = enumByLabel(it))) },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -744,11 +941,19 @@ private fun CalendarEventContent(
     trigger: Trigger.CalendarEvent,
     onUpdate: (Trigger.CalendarEvent) -> Unit,
 ) {
+    val context = LocalContext.current
+    var showCalendarPicker by remember { mutableStateOf(false) }
     Column {
         NothingInput(
             value = trigger.titleMatch ?: "",
             onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
             label = "Title contains (blank = any)",
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingPillButton(
+            text = "Pick calendar",
+            onClick = { showCalendarPicker = true },
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -759,11 +964,87 @@ private fun CalendarEventContent(
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
             label = "Direction",
-            value = trigger.direction.name,
-            options = CalendarDirection.entries.map { it.name },
-            onSelect = { onUpdate(trigger.copy(direction = CalendarDirection.valueOf(it))) },
+            value = trigger.direction.name.enumLabel(),
+            options = enumLabelList<CalendarDirection>(),
+            onSelect = { onUpdate(trigger.copy(direction = enumByLabel(it))) },
         )
     }
+    if (showCalendarPicker) {
+        CalendarPickerDialog(
+            onSelect = { id ->
+                onUpdate(trigger.copy(calendarId = id))
+                showCalendarPicker = false
+            },
+            onDismiss = { showCalendarPicker = false },
+        )
+    }
+}
+
+/** Device calendars via CalendarContract — needs READ_CALENDAR. */
+@Composable
+private fun CalendarPickerDialog(
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val calendars =
+        remember {
+            runCatching {
+                val granted =
+                    context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) ==
+                        PackageManager.PERMISSION_GRANTED
+                if (!granted) return@runCatching emptyList<Pair<String, String>>()
+                val out = mutableListOf<Pair<String, String>>()
+                context.contentResolver
+                    .query(
+                        android.provider.CalendarContract.Calendars.CONTENT_URI,
+                        arrayOf(
+                            android.provider.CalendarContract.Calendars._ID,
+                            android.provider.CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                        ),
+                        null,
+                        null,
+                        null,
+                    )?.use { c ->
+                        while (c.moveToNext()) {
+                            out += c.getString(0) to (c.getString(1) ?: "Calendar")
+                        }
+                    }
+                out
+            }.getOrDefault(emptyList())
+        }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Calendars", fontFamily = NothingFonts.mono()) },
+        text = {
+            Column {
+                NothingListRow(
+                    title = "Any calendar",
+                    subtitle = "Matches every calendar",
+                    onClick = { onSelect(null) },
+                )
+                if (calendars.isEmpty()) {
+                    Text(
+                        text = "No calendars found — grant the calendar permission in Settings.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                    )
+                } else {
+                    calendars.forEach { (id, name) ->
+                        NothingListRow(
+                            title = name,
+                            subtitle = "ID $id",
+                            onClick = { onSelect(id) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("CANCEL") }
+        },
+    )
 }
 
 @Composable

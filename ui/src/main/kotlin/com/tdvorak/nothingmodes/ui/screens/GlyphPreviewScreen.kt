@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -171,6 +172,7 @@ fun GlyphPreviewScreen(
                             modifier = Modifier.padding(top = NothingSpacing.sm),
                         )
                     } else {
+                        val canDeepLink = remember { toysBridge.canOpenAodPicker() }
                         Row(
                             modifier =
                                 Modifier
@@ -179,8 +181,21 @@ fun GlyphPreviewScreen(
                             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                         ) {
                             GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
-                            GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
-                            GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
+                            // AOD picker + timeout only exist where the
+                            // glyphtoy:// deep link resolves — hide elsewhere.
+                            if (canDeepLink) {
+                                GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
+                                GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
+                            }
+                        }
+                        if (!canDeepLink) {
+                            Text(
+                                text = "Always-on and timeout are set inside the system Glyph Toys screen.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                                modifier = Modifier.padding(top = NothingSpacing.sm),
+                            )
                         }
                         activeAodToy?.let {
                             Text(
@@ -285,6 +300,11 @@ fun GlyphPreviewScreen(
                                     .clip(NothingShapes.input)
                                     .clickable(enabled = viewModel.glyphAvailable) {
                                         viewModel.turnOffNow()
+                                        Toast.makeText(
+                                            context,
+                                            "Glyph off",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                     }.padding(
                                         horizontal = NothingSpacing.md,
                                         vertical = NothingSpacing.sm,
@@ -294,10 +314,11 @@ fun GlyphPreviewScreen(
                 }
             }
 
-            // Registered toys on the system (our app included).
+            // Registered toys on the system (our app included) — informational
+            // only; ordering happens in Nothing's own Glyph Toys UI.
             if (registeredToys.isNotEmpty()) {
                 item {
-                    NothingSectionHeader(text = "Registered toys")
+                    NothingSectionHeader(text = "Registered toys — read-only")
                     NothingCard {
                         registeredToys.forEachIndexed { index, toy ->
                             if (index > 0) NothingDivider()
@@ -331,7 +352,7 @@ fun GlyphPreviewScreen(
 
             if (systemToys.isNotEmpty()) {
                 item {
-                    NothingSectionHeader(text = "System toy table")
+                    NothingSectionHeader(text = "System toy table — diagnostics")
                     NothingCard {
                         systemToys.forEachIndexed { index, toy ->
                             if (index > 0) NothingDivider()
@@ -413,10 +434,18 @@ fun GlyphPreviewScreen(
                 }
             }
 
-            // Preset list
+            // Preset list — canvas previews only; hardware output happens via
+            // the "Glyph preset" action inside a routine.
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.xl))
-                NothingSectionHeader(text = "Presets")
+                NothingSectionHeader(text = "Presets — preview only")
+                Text(
+                    text = "Selecting a preset only changes the preview above. To light the real LEDs, add a Glyph preset action to a routine.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                )
                 NothingCard {
                     presets.forEachIndexed { index, (name, visual) ->
                         val isSelected = visual == selected
@@ -429,15 +458,28 @@ fun GlyphPreviewScreen(
                                 selectedName = name
                             },
                             leading = {
-                                NothingIconCircle(size = 40f) {
-                                    NothingRedDot(size = 6f)
-                                }
+                                // Square marker — matches the actual LED cells.
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(24.dp)
+                                            .background(
+                                                if (isSelected) {
+                                                    NothingColors.accent
+                                                } else {
+                                                    MaterialTheme.colorScheme.surfaceVariant
+                                                },
+                                            ),
+                                )
                             },
                             trailing = {
                                 if (isSelected) {
-                                    NothingRedDot(size = 6f)
-                                } else {
-                                    NothingRedDot(size = 6f, modifier = Modifier.size(0.dp))
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(8.dp)
+                                                .background(NothingColors.accent),
+                                    )
                                 }
                             },
                         )
@@ -569,13 +611,22 @@ private fun GlyphLinkButton(
     modifier: Modifier = Modifier,
     onClick: () -> Boolean,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Box(
         modifier =
             modifier
                 .clip(NothingShapes.input)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(vertical = NothingSpacing.sm)
-                .clickable { onClick() },
+                .clickable {
+                    if (!onClick()) {
+                        Toast.makeText(
+                            context,
+                            "Not available on this device",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -146,6 +146,30 @@ class TriggerMatcherTest {
         assertTrue(matcher.isWindowActive(trigger, monday, ZoneId.of("UTC")))
     }
 
+    // 2026-06-19 is a Friday, 2026-06-20 a Saturday.
+    @Test
+    fun `TimeWindow overnight tail uses the start day for the day filter`() {
+        val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC", days = listOf(DayOfWeek.FRIDAY))
+        // Saturday 03:00 — tail of Friday's window, must stay active.
+        val saturdayEarly = LocalDateTime.of(2026, 6, 20, 3, 0, 0, 0)
+        assertTrue(matcher.isWindowActive(trigger, saturdayEarly, ZoneId.of("UTC")))
+    }
+
+    @Test
+    fun `TimeWindow overnight head uses the current day for the day filter`() {
+        val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC", days = listOf(DayOfWeek.FRIDAY))
+        // Saturday 23:00 — a new window would start on Saturday, not selected.
+        val saturdayLate = LocalDateTime.of(2026, 6, 20, 23, 0, 0, 0)
+        assertFalse(matcher.isWindowActive(trigger, saturdayLate, ZoneId.of("UTC")))
+    }
+
+    @Test
+    fun `TimeWindow overnight window stays off outside the window even on a selected day`() {
+        val trigger = Trigger.TimeWindow("22:00", "07:00", "UTC", days = listOf(DayOfWeek.FRIDAY))
+        val fridayNoon = LocalDateTime.of(2026, 6, 19, 12, 0, 0, 0)
+        assertFalse(matcher.isWindowActive(trigger, fridayNoon, ZoneId.of("UTC")))
+    }
+
     @Test
     fun `Time shouldFireOnDay - null days fires every day`() {
         val trigger = Trigger.Time(cron = "0 8 * * *", tz = "UTC")

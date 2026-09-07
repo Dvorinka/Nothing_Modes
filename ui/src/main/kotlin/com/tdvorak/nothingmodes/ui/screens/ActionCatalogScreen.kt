@@ -61,6 +61,9 @@ fun ActionCatalogScreen(navController: NavController) {
     var search by remember { mutableStateOf("") }
     // Multi-select: tapping toggles an action instead of closing the catalog.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
+    // "Glyph" opens a dedicated view inside the catalog instead of twelve
+    // separate rows; same plumbing, result still lands on the builder.
+    var focus by remember { mutableStateOf<String?>(null) }
 
     val items =
         remember {
@@ -357,18 +360,43 @@ fun ActionCatalogScreen(navController: NavController) {
         }
 
     val filtered =
-        remember(search, items) {
-            if (search.isBlank()) items else items.filter { it.label.contains(search, ignoreCase = true) }
+        remember(search, focus, items) {
+            val base =
+                when {
+                    focus != null -> items.filter { it.category == focus }
+                    search.isBlank() -> items
+                    else ->
+                        items.filter {
+                            it.label.contains(search, ignoreCase = true) ||
+                                it.category.contains(search, ignoreCase = true)
+                        }
+                }
+            base
         }
 
-    val grouped = filtered.groupBy { it.category.uppercase() }
+    // Collapse the whole Glyph category into one entry point on the main list.
+    val displayed =
+        remember(filtered, focus, search) {
+            if (focus == null && search.isBlank()) {
+                filtered.filter { it.category != "Glyph" }
+            } else {
+                filtered
+            }
+        }
+
+    val grouped = displayed.groupBy { it.category.uppercase() }
+    val glyphCount = items.count { it.category == "Glyph" }
+
+    if (focus != null) {
+        androidx.activity.compose.BackHandler { focus = null }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Add Action",
-                onBack = { navController.popBackStack() },
+                title = focus ?: "Add Action",
+                onBack = { if (focus != null) focus = null else navController.popBackStack() },
             )
         },
     ) { padding ->
@@ -384,15 +412,52 @@ fun ActionCatalogScreen(navController: NavController) {
                         .fillMaxSize()
                         .padding(horizontal = NothingSpacing.md),
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    NothingInput(
-                        value = search,
-                        onValueChange = { search = it },
-                        label = "Search",
-                        placeholder = "Find an action",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                if (focus == null) {
+                    item {
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                        NothingInput(
+                            value = search,
+                            onValueChange = { search = it },
+                            label = "Search",
+                            placeholder = "Find an action",
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                    }
+                } else {
+                    item {
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                        Text(
+                            text = "GLYPH LIGHT CONTROLS — PICK WHAT THE ROUTINE DOES WITH THE LIGHTS.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    }
+                }
+
+                if (focus == null && search.isBlank()) {
+                    item {
+                        NothingSectionHeader(text = "GLYPH")
+                        NothingCard {
+                            NothingListRow(
+                                title = "Glyph",
+                                subtitle = "$glyphCount options — matrix, stripes, text, presets, off",
+                                onClick = { focus = "Glyph" },
+                                leading = {
+                                    NothingIconCircle(size = 44f) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Lightbulb,
+                                            contentDescription = "Glyph",
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                    }
                 }
 
                 grouped.forEach { (category, actions) ->

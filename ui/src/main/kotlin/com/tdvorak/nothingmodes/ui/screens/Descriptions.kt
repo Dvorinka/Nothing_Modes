@@ -33,6 +33,27 @@ fun cronToSummary(cron: String): String {
     return "$dayLabel at $time"
 }
 
+/** Human label for enum-style names: INCOMING_CALL_ENDED -> "Incoming call ended". */
+internal fun String.enumLabel(): String =
+    lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/** Display labels for every entry of an enum, e.g. for pickers. */
+internal inline fun <reified E : Enum<E>> enumLabelList(): List<String> =
+    enumValues<E>().map { it.name.enumLabel() }
+
+/** Reverse lookup for [enumLabelList]. */
+internal inline fun <reified E : Enum<E>> enumByLabel(label: String): E =
+    enumValues<E>().firstOrNull { it.name.enumLabel() == label }
+        ?: enumValues<E>().first()
+
+/** Friendly DND mode names — "priority or total" reads badly raw. */
+internal fun com.tdvorak.nothingmodes.engine.model.DndMode.displayName(): String =
+    when (this) {
+        com.tdvorak.nothingmodes.engine.model.DndMode.OFF -> "Off"
+        com.tdvorak.nothingmodes.engine.model.DndMode.PRIORITY -> "Priority only"
+        com.tdvorak.nothingmodes.engine.model.DndMode.TOTAL -> "Total silence"
+    }
+
 private fun dayName(day: String): String =
     when (day) {
         "0", "7" -> "Sun"
@@ -72,8 +93,8 @@ fun triggerDescription(trigger: Trigger): String =
             }
             is Trigger.Immediate -> "Immediate"
             is Trigger.Notification -> "Notification from ${trigger.pkg}"
-            is Trigger.PhoneState -> "Phone: ${trigger.event}"
-            is Trigger.Connectivity -> "${trigger.medium} ${trigger.state}"
+            is Trigger.PhoneState -> "Phone: ${trigger.event.name.enumLabel()}"
+            is Trigger.Connectivity -> "${trigger.medium.name.enumLabel()} ${trigger.state.name}"
             is Trigger.Boot -> "On boot"
             is Trigger.BatteryLevel -> "Battery at ${trigger.level}%"
             is Trigger.ScreenStateTrigger -> "Screen ${trigger.state}"
@@ -95,12 +116,12 @@ fun actionDescription(action: Action): String =
             is Action.SetWifi -> "Wi-Fi: ${if (action.on) "On" else "Off"}"
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
-            is Action.SetDnd -> "DND: ${action.mode.name.lowercase()}"
+            is Action.SetDnd -> "DND: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode}"
             is Action.LaunchApp -> "Launch: ${action.pkg}"
             is Action.OpenUrl -> "Open URL: ${action.url}"
             is Action.ShowNotification -> "Notification: ${action.title}"
-            is Action.SetVolume -> "Volume ${action.stream}: ${action.level}"
+            is Action.SetVolume -> "Volume ${action.stream.name.enumLabel()}: ${action.level}"
             is Action.SetFlashlight -> "Flashlight: ${if (action.on) "On" else "Off"}"
             is Action.SetDarkMode -> "Dark Mode: ${action.mode.name.lowercase()}"
             is Action.OpenSettingsScreen -> "Open Settings: ${action.screen.name.lowercase()}"

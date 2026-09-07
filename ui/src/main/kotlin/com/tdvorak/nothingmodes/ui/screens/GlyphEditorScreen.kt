@@ -873,12 +873,17 @@ private fun CanvasCard(
     onDrag: (Int, Int, Boolean) -> Unit,
 ) {
     NothingCard(borderless = true) {
+        // 70% of the width — leaves more room for the scrollable tools below.
         Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(NothingShapes.input)
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.7f)
+                        .aspectRatio(1f)
+                        .clip(NothingShapes.input)
                     .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
                     .background(Color.Black)
                     .pointerInput(gridSize, paintMode, brush) {
@@ -934,6 +939,7 @@ private fun CanvasCard(
                 }
             }
         }
+        }
     }
 }
 
@@ -955,7 +961,6 @@ private fun GlyphCanvas(
     Canvas(modifier = Modifier.fillMaxSize()) {
         val canvasSize = size.width
         val cellW = canvasSize / gridSize.toFloat()
-        val radius = cellW * 0.38f
         val widths = GlyphFrameCodec.rowWidths(gridSize)
         for (row in 0 until gridSize) {
             val start = (gridSize - widths[row]) / 2
@@ -970,7 +975,15 @@ private fun GlyphCanvas(
                         pixels[idx] > 0 -> primary.copy(alpha = (pixels[idx] / 4095f).coerceIn(0f, 1f))
                         else -> onSurface.copy(alpha = 0.22f)
                     }
-                drawCircle(color = color, radius = radius, center = Offset(cx, cy))
+                // Squares — the matrix LEDs are square cells, not dots.
+                val inset = cellW * 0.12f
+                drawRect(
+                    color = color,
+                    topLeft = Offset(cx - cellW / 2f + inset, cy - cellW / 2f + inset),
+                    size =
+                        androidx.compose.ui.geometry
+                            .Size(cellW - inset * 2, cellW - inset * 2),
+                )
             }
         }
     }

@@ -156,12 +156,6 @@ fun ActionConfigScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        BooleanRow(
-                            label = "Restore previous",
-                            checked = a.restore,
-                            onChange = { action = a.copy(restore = it) },
-                        )
                     }
 
                     is Action.SetAutoBrightness -> {
@@ -177,11 +171,6 @@ fun ActionConfigScreen(
                             label = "Extra dim enabled",
                             checked = a.on,
                             onChange = { action = a.copy(on = it) },
-                        )
-                        BooleanRow(
-                            label = "Restore previous",
-                            checked = a.restore,
-                            onChange = { action = a.copy(restore = it) },
                         )
                     }
 
@@ -204,31 +193,20 @@ fun ActionConfigScreen(
                     is Action.SetDnd -> {
                         NothingEnumSelector(
                             label = "DND mode",
-                            value = a.mode.name,
-                            options = DndMode.entries.map { it.name },
-                            onSelect = { action = a.copy(mode = DndMode.valueOf(it)) },
+                            value = a.mode.displayName(),
+                            options = DndMode.entries.map { it.displayName() },
+                            onSelect = { sel ->
+                                action =
+                                    a.copy(mode = DndMode.entries.first { it.displayName() == sel })
+                            },
                         )
                     }
 
                     is Action.SetVolume -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                        ) {
-                            NothingEnumSelector(
-                                label = "Stream",
-                                value = a.stream.name,
-                                options = VolumeStream.entries.map { it.name },
-                                onSelect = { action = a.copy(stream = VolumeStream.valueOf(it)) },
-                                modifier = Modifier.weight(1f),
-                            )
-                            NothingInput(
-                                value = a.level.toString(),
-                                onValueChange = { action = a.copy(level = it.toIntOrNull() ?: a.level) },
-                                label = "Level",
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        VolumeRow(
+                            action = a,
+                            onChange = { action = it },
+                        )
                     }
 
                     is Action.Vibrate -> {
@@ -258,18 +236,18 @@ fun ActionConfigScreen(
                     is Action.SetLocationMode -> {
                         NothingEnumSelector(
                             label = "Location mode",
-                            value = a.mode.name,
-                            options = LocationMode.entries.map { it.name },
-                            onSelect = { action = a.copy(mode = LocationMode.valueOf(it)) },
+                            value = a.mode.name.enumLabel(),
+                            options = enumLabelList<LocationMode>(),
+                            onSelect = { action = a.copy(mode = enumByLabel<LocationMode>(it)) },
                         )
                     }
 
                     is Action.OpenSettingsScreen -> {
                         NothingEnumSelector(
                             label = "Settings screen",
-                            value = a.screen.name,
-                            options = SettingsScreen.entries.map { it.name },
-                            onSelect = { action = a.copy(screen = SettingsScreen.valueOf(it)) },
+                            value = a.screen.name.enumLabel(),
+                            options = enumLabelList<SettingsScreen>(),
+                            onSelect = { action = a.copy(screen = enumByLabel<SettingsScreen>(it)) },
                         )
                     }
 
@@ -445,17 +423,17 @@ fun ActionConfigScreen(
                     is Action.SetScreenRotation ->
                         NothingEnumSelector(
                             label = "Orientation",
-                            value = a.orientation.name,
-                            options = ScreenOrientation.entries.map { it.name },
-                            onSelect = { action = a.copy(orientation = ScreenOrientation.valueOf(it)) },
+                            value = a.orientation.name.enumLabel(),
+                            options = enumLabelList<ScreenOrientation>(),
+                            onSelect = { action = a.copy(orientation = enumByLabel<ScreenOrientation>(it)) },
                         )
 
                     is Action.MediaControl ->
                         NothingEnumSelector(
                             label = "Media command",
-                            value = a.command.name,
-                            options = MediaCommand.entries.map { it.name },
-                            onSelect = { action = a.copy(command = MediaCommand.valueOf(it)) },
+                            value = a.command.name.enumLabel(),
+                            options = enumLabelList<MediaCommand>(),
+                            onSelect = { action = a.copy(command = enumByLabel<MediaCommand>(it)) },
                         )
 
                     is Action.SendSms -> {
@@ -478,9 +456,9 @@ fun ActionConfigScreen(
                     is Action.WriteSetting -> {
                         NothingEnumSelector(
                             label = "Namespace",
-                            value = a.namespace.name,
-                            options = SettingNamespace.entries.map { it.name },
-                            onSelect = { action = a.copy(namespace = SettingNamespace.valueOf(it)) },
+                            value = a.namespace.name.enumLabel(),
+                            options = enumLabelList<SettingNamespace>(),
+                            onSelect = { action = a.copy(namespace = enumByLabel<SettingNamespace>(it)) },
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
                         NothingInput(
@@ -511,7 +489,7 @@ fun ActionConfigScreen(
                                 val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                                 action = a.copy(channels = list.ifEmpty { null })
                             },
-                            label = "Channels (comma separated)",
+                            label = "LED zones (comma separated)",
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -525,11 +503,6 @@ fun ActionConfigScreen(
                             },
                             label = "Colors (comma separated hex)",
                             modifier = Modifier.fillMaxWidth(),
-                        )
-                        BooleanRow(
-                            label = "Restore previous",
-                            checked = a.restore,
-                            onChange = { action = a.copy(restore = it) },
                         )
                     }
 
@@ -595,7 +568,7 @@ fun ActionConfigScreen(
                                 val list = text.split(",").mapNotNull { it.trim().toIntOrNull() }
                                 action = a.copy(channels = list.ifEmpty { null })
                             },
-                            label = "Channels (comma separated, overrides zone)",
+                            label = "LED zones (comma separated, overrides zone)",
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

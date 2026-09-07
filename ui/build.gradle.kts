@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.reorderable)
     implementation(libs.play.services.location)
+    implementation(libs.osmdroid.android)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit4)

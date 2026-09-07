@@ -98,8 +98,11 @@ class Engine(
                     }
                 }
 
-                // Mode window-end: restore snapshots before executing actions
-                if (event is TriggerEvent.ModeWindowEnd && automation.type == AutomationType.MODE) {
+                // Window-end: restore snapshots and stop — the action list must
+                // NOT run again or it would instantly undo the restore. Windowed
+                // automations snapshot at start regardless of MODE/ROUTINE type.
+                val isWindowed = automation.trigger is Trigger.TimeWindow
+                if (event is TriggerEvent.ModeWindowEnd && isWindowed) {
                     restoreSnapshots(automation.id, batchNow)
                     // Glyph output isn't a settings key — clear it explicitly so
                     // text/matrix/stripes never linger after the mode ends.
@@ -119,29 +122,31 @@ class Engine(
                     }
                 }
 
-                // Mode window-start: snapshot affected settings before executing
-                if (event is TriggerEvent.ModeWindowStart && automation.type == AutomationType.MODE) {
+                // Window-start: snapshot affected settings before executing
+                if (event is TriggerEvent.ModeWindowStart && isWindowed) {
                     snapshotSettings(automation, batchNow)
                 }
 
-                automation.actions.forEachIndexed { index, action ->
-                    val context =
-                        FireContext(
-                            eventId = envelope.id,
-                            executionId = executionId,
-                            automationId = automation.id,
-                            actionIndex = index,
-                            priority = automation.priority,
-                        )
-                    val result =
-                        try {
-                            executor.execute(action, context)
-                        } catch (_: CancellationException) {
-                            throw CancellationException()
-                        } catch (_: Exception) {
-                            ActionResult.Failure("executor_exception")
-                        }
-                    actionResults += result
+                if (event !is TriggerEvent.ModeWindowEnd) {
+                    automation.actions.forEachIndexed { index, action ->
+                        val context =
+                            FireContext(
+                                eventId = envelope.id,
+                                executionId = executionId,
+                                automationId = automation.id,
+                                actionIndex = index,
+                                priority = automation.priority,
+                            )
+                        val result =
+                            try {
+                                executor.execute(action, context)
+                            } catch (_: CancellationException) {
+                                throw CancellationException()
+                            } catch (_: Exception) {
+                                ActionResult.Failure("executor_exception")
+                            }
+                        actionResults += result
+                    }
                 }
 
                 journal.finish(
@@ -162,12 +167,11 @@ class Engine(
                     ),
                 )
 
-                val isModeActivation =
-                    automation.type == AutomationType.MODE &&
-                        event !is TriggerEvent.ModeWindowEnd
-                val isModeDeactivation =
-                    event is TriggerEvent.ModeWindowEnd &&
-                        automation.type == AutomationType.MODE
+                // Modes and routines merged: window semantics come from the
+                // trigger, not the legacy type flag.
+                val modeLike = automation.type == AutomationType.MODE || isWindowed
+                val isModeActivation = modeLike && event !is TriggerEvent.ModeWindowEnd
+                val isModeDeactivation = event is TriggerEvent.ModeWindowEnd && modeLike
 
                 if (isModeActivation) {
                     modeActivationSink.activate(automation.id, batchNow)
@@ -181,7 +185,7 @@ class Engine(
                         kind =
                             if (isModeDeactivation) {
                                 AuditKind.MODE_DEACTIVATED
-                            } else if (automation.type == AutomationType.MODE) {
+                            } else if (modeLike) {
                                 AuditKind.MODE_ACTIVATED
                             } else {
                                 AuditKind.FIRED
@@ -283,18 +287,7 @@ class Engine(
         // Deduplicate by setting key, keeping the newest snapshot per key
         val latestByKey = snapshots.associateBy { it.settingKey }
         for (snapshot in latestByKey.values) {
-            val ns =
-                when (snapshot.namespace) {
-                    "secure" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SECURE
-                    "global" -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL
-                    else -> com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM
-                }
-            val restoreAction =
-                Action.WriteSetting(
-                    namespace = ns,
-                    key = snapshot.settingKey,
-                    value = snapshot.previousValue,
-                )
+            val restoreAction = restoreActionFor(snapshot) ?: continue
             val context =
                 FireContext(
                     eventId = "restore:${id.value}",
@@ -306,6 +299,62 @@ class Engine(
             runCatching { executor.execute(restoreAction, context) }
         }
         snapshotStore.deleteForAutomation(id)
+    }
+
+    /**
+     * Maps a snapshotted key back to a real action. Semantic keys (dnd_mode,
+     * night_mode, volume_*) restore through their proper controllers; plain
+     * settings keys go through WriteSetting. Glyph keys are cleared separately.
+     */
+    private fun restoreActionFor(snapshot: StateSnapshot): Action? {
+        when {
+            snapshot.settingKey == "dnd_mode" ->
+                return Action.SetDnd(
+                    mode =
+                        runCatching {
+                            com.tdvorak.nothingmodes.engine.model.DndMode
+                                .valueOf(snapshot.previousValue)
+                        }.getOrDefault(com.tdvorak.nothingmodes.engine.model.DndMode.OFF),
+                    restore = false,
+                )
+            snapshot.settingKey == "night_mode" ->
+                return Action.SetDarkMode(
+                    mode =
+                        runCatching {
+                            com.tdvorak.nothingmodes.engine.model.NightMode
+                                .valueOf(snapshot.previousValue)
+                        }.getOrDefault(com.tdvorak.nothingmodes.engine.model.NightMode.OFF),
+                    restore = false,
+                )
+            snapshot.settingKey.startsWith("volume_") -> {
+                val stream =
+                    runCatching {
+                        com.tdvorak.nothingmodes.engine.model.VolumeStream
+                            .valueOf(
+                                snapshot.settingKey
+                                    .removePrefix("volume_")
+                                    .uppercase(),
+                            )
+                    }.getOrNull() ?: return null
+                val level = snapshot.previousValue.toIntOrNull() ?: return null
+                return Action.SetVolume(stream = stream, level = level, restore = false)
+            }
+            snapshot.settingKey.startsWith("glyph_") -> return null
+            else ->
+                return Action.WriteSetting(
+                    namespace =
+                        when (snapshot.namespace) {
+                            "secure" ->
+                                com.tdvorak.nothingmodes.engine.model.SettingNamespace.SECURE
+                            "global" ->
+                                com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL
+                            else ->
+                                com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM
+                        },
+                    key = snapshot.settingKey,
+                    value = snapshot.previousValue,
+                )
+        }
     }
 
     /** Maps a setting key to its Android Settings namespace. */

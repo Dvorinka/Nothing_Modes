@@ -104,23 +104,33 @@ class TriggerMatcher {
         now: LocalDateTime,
         zone: ZoneId,
     ): Boolean {
-        val dayOk =
-            trigger.days?.let { days ->
-                val mapped = now.dayOfWeek.toEngineDayOfWeek() ?: return@let true
-                mapped in days
-            } ?: true
-        if (!dayOk) return false
-
         val start = LocalTime.parse(trigger.startLocal, DateTimeFormatter.ofPattern("HH:mm"))
         val end = LocalTime.parse(trigger.endLocal, DateTimeFormatter.ofPattern("HH:mm"))
         val current = now.toLocalTime()
 
-        return if (start <= end) {
-            current >= start && current < end
-        } else {
-            // Window crosses midnight (e.g., 22:30 → 07:00)
-            current >= start || current < end
-        }
+        val sameDay = start <= end
+        val inWindow =
+            if (sameDay) {
+                current >= start && current < end
+            } else {
+                // Window crosses midnight (e.g., 22:30 → 07:00)
+                current >= start || current < end
+            }
+        if (!inWindow) return false
+
+        // Day filter applies to the day the window STARTED. In the post-midnight
+        // tail of an overnight window that's yesterday, not today — otherwise a
+        // "Fri 22:00-07:00" window dies at midnight.
+        val effectiveDate =
+            if (!sameDay && current < end) {
+                now.toLocalDate().minusDays(1)
+            } else {
+                now.toLocalDate()
+            }
+        return trigger.days?.let { days ->
+            val mapped = effectiveDate.dayOfWeek.toEngineDayOfWeek() ?: return@let true
+            mapped in days
+        } ?: true
     }
 
     private fun matchesDirection(
