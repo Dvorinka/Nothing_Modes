@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing Modes — Submit a Feature</title>
+<meta name="description" content="Submit a mode or glyph design to the Nothing Modes community library.">
+<meta name="theme-color" content="#000000">
+<script src="https://rybbit.tdvorak.dev/api/script.js" data-site-id="fe8285816716" defer></script>
+<style>
+  @font-face { font-family:"Doto"; src:url("fonts/doto.ttf") format("truetype"); font-display:swap; }
+  @font-face { font-family:"Geist Mono"; src:url("fonts/geist_mono_regular.ttf") format("truetype"); font-display:swap; }
+  @font-face { font-family:"Geist Sans"; src:url("fonts/geist_sans_regular.ttf") format("truetype"); font-display:swap; }
+  :root { --bg:#000; --panel:#161616; --panel2:#0f0f0f; --line:#262626; --fg:#fafaf8;
+    --dim:#8a8a8a; --red:#D71921; --green:#3fb950; --amber:#e0a030; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:14px/1.55 "Geist Sans",system-ui,sans-serif; min-height:100vh; }
+  code, .mono { font-family:"Geist Mono",ui-monospace,Menlo,monospace; }
+  a { color:inherit; }
+
+  .nav { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.4rem;
+    border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); z-index:10; }
+  .wordmark { font-family:"Geist Mono",monospace; font-weight:600; letter-spacing:.18em; text-decoration:none; font-size:.85rem; }
+  .wordmark::before { content:""; display:inline-block; width:.55rem; height:.55rem; background:var(--red);
+    border-radius:50%; margin-right:.6rem; }
+  .nav a.back { color:var(--dim); text-decoration:none; font-family:"Geist Mono",monospace; font-size:.75rem; letter-spacing:.1em; }
+
+  main { max-width:44rem; margin:0 auto; padding:2.4rem 1.25rem 5rem; }
+  h1 { font-family:"Doto",monospace; font-size:clamp(1.6rem,5vw,2.4rem); letter-spacing:.06em; font-weight:400; }
+  .lbl { color:var(--dim); font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; font-family:"Geist Mono",monospace; }
+  .lbl .dot { display:inline-block; width:.5rem; height:.5rem; background:var(--red); border-radius:50%; margin-right:.5rem; }
+  .sub { color:var(--dim); margin:.8rem 0 2rem; }
+
+  .tabs { display:flex; gap:.5rem; margin-bottom:1.6rem; }
+  .tab { background:var(--panel); border:1px solid var(--line); color:var(--dim); padding:.6rem 1.2rem;
+    border-radius:.5rem; font:inherit; cursor:pointer; font-size:.82rem; letter-spacing:.1em; text-transform:uppercase; }
+  .tab.on { border-color:var(--red); color:var(--fg); }
+
+  .field { margin-bottom:1.1rem; }
+  label { display:block; color:var(--dim); font-size:.7rem; text-transform:uppercase; letter-spacing:.12em;
+    font-family:"Geist Mono",monospace; margin-bottom:.4rem; }
+  input, textarea, select { width:100%; background:var(--panel); border:1px solid var(--line); color:var(--fg);
+    padding:.7rem .9rem; border-radius:.5rem; font:inherit; }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--red); }
+  textarea { min-height:12rem; font-family:"Geist Mono",monospace; font-size:.8rem; line-height:1.45; }
+  .hint { color:var(--dim); font-size:.8rem; margin-top:.3rem; }
+
+  .file { position:relative; display:inline-block; width:100%; }
+  .file input[type=file] { opacity:0; position:absolute; inset:0; cursor:pointer; }
+  .file-label { display:block; border:1px dashed var(--line); color:var(--dim); padding:1rem; border-radius:.5rem;
+    text-align:center; font-family:"Geist Mono",monospace; font-size:.8rem; }
+  .file:hover .file-label { border-color:var(--red); color:var(--fg); }
+
+  .btn { background:var(--red); color:#fff; border:0; padding:.7rem 1.5rem; border-radius:.5rem;
+    font:inherit; font-weight:600; cursor:pointer; letter-spacing:.05em; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .status { margin-top:1.2rem; padding:1rem; border:1px solid var(--line); border-radius:.5rem;
+    background:var(--panel); font-family:"Geist Mono",monospace; font-size:.85rem; }
+  .status.ok { border-color:rgba(63,185,80,.4); color:var(--green); }
+  .status.err { border-color:rgba(215,25,33,.4); color:var(--red); }
+  .status.warn { border-color:rgba(224,160,48,.35); color:var(--amber); }
+  .status ul { margin:.5rem 0 0 1.2rem; }
+  .status li { margin:.2rem 0; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="/">NOTHING_MODES</a>
+  <a class="back" href="/library">← BACK TO LIBRARY</a>
+</header>
+
+<main>
+  <p class="lbl"><span class="dot"></span>CONTRIBUTE</p>
+  <h1>SUBMIT A FEATURE</h1>
+  <p class="sub">Share a mode or a Glyph design with the community. Everything is reviewed before it goes public. Your email stays private and is only used to notify you of the decision.</p>
+
+  <div class="tabs">
+    <button class="tab on" data-type="template">MODE / TEMPLATE</button>
+    <button class="tab" data-type="glyph">GLYPH DESIGN</button>
+  </div>
+
+  <form id="shareForm">
+    <div class="field">
+      <label for="title">Title</label>
+      <input id="title" type="text" required maxlength="120" placeholder="e.g. Night Owl">
+    </div>
+    <div class="field">
+      <label for="description">Description</label>
+      <input id="description" type="text" maxlength="1000" placeholder="What it does and when to use it">
+    </div>
+    <div class="field">
+      <label for="handle">Author handle</label>
+      <input id="handle" type="text" required maxlength="120" placeholder="@yourname">
+    </div>
+    <div class="field">
+      <label for="email">Email (optional, private)</label>
+      <input id="email" type="email" maxlength="320" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label for="github">GitHub (optional)</label>
+      <input id="github" type="text" maxlength="200" placeholder="https://github.com/yourname or @yourname">
+    </div>
+    <div class="field">
+      <label for="payload">Payload JSON</label>
+      <textarea id="payload" required placeholder="Paste the exported JSON here"></textarea>
+      <p class="hint" id="payloadHint">For a mode: export from the app as JSON. For a glyph: the Glyph Matrix JSON with frames.</p>
+      <div class="file" style="margin-top:.6rem">
+        <span class="file-label" id="fileLabel">Or drop a .json file here</span>
+        <input id="file" type="file" accept=".json,application/json">
+      </div>
+    </div>
+    <button class="btn" type="submit" id="submitBtn">SUBMIT FOR REVIEW</button>
+  </form>
+
+  <div id="result" class="status hidden"></div>
+</main>
+
+<script>
+let type = 'template';
+
+document.querySelectorAll('.tab').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+    type = b.dataset.type;
+    document.getElementById('payloadHint').textContent =
+      type === 'template'
+        ? 'For a mode: export from the app as JSON.'
+        : 'For a glyph: the Glyph Matrix JSON with frames.';
+  }));
+
+document.getElementById('file').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('fileLabel').textContent = f.name;
+  const text = await f.text();
+  document.getElementById('payload').value = text;
+});
+
+const form = document.getElementById('shareForm');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const resEl = document.getElementById('result');
+  btn.disabled = true;
+  resEl.className = 'status hidden';
+  resEl.innerHTML = '';
+
+  let payload;
+  try {
+    payload = JSON.parse(document.getElementById('payload').value);
+  } catch {
+    resEl.className = 'status err';
+    resEl.textContent = 'Payload is not valid JSON.';
+    btn.disabled = false;
+    return;
+  }
+
+  const body = {
+    type,
+    title: document.getElementById('title').value.trim(),
+    description: document.getElementById('description').value.trim(),
+    handle: document.getElementById('handle').value.trim().replace(/^@/, ''),
+    email: document.getElementById('email').value.trim(),
+    github: document.getElementById('github').value.trim(),
+    payload,
+  };
+
+  try {
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 201) {
+      resEl.className = 'status ok';
+      resEl.innerHTML = `Submitted and queued for review. ID: <code>${esc(data.id)}</code>`;
+      form.reset();
+      document.getElementById('fileLabel').textContent = 'Or drop a .json file here';
+    } else if (res.status === 422) {
+      resEl.className = 'status err';
+      const findings = (data.findings || []).map(f => `<li><b>${esc(f.severity)}</b> ${esc(f.code)} — ${esc(f.detail)}</li>`).join('');
+      resEl.innerHTML = `<p>Rejected:</p><ul>${findings || '<li>' + esc(data.verdict || 'unknown') + '</li>'}</ul>`;
+    } else if (res.status === 409) {
+      resEl.className = 'status warn';
+      resEl.textContent = 'This exact content was already submitted.';
+    } else if (res.status === 429) {
+      resEl.className = 'status warn';
+      resEl.textContent = 'Rate limited. Try again tomorrow.';
+    } else {
+      resEl.className = 'status err';
+      resEl.textContent = `Failed: ${res.status} — ${esc(data.detail || 'unknown')}`;
+    }
+  } catch (err) {
+    resEl.className = 'status err';
+    resEl.textContent = 'Network error: ' + esc(String(err));
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { ensureSharedTable, getSql, isAdmin } from './lib/db';
+import { notifyAuthor } from './lib/email';
 
 export const config = { runtime: 'edge' };
 
@@ -59,34 +60,4 @@ export default async function handler(req: Request): Promise<Response> {
     : 'no-email';
 
   return Response.json({ ok: true, id: item.id, status: decision, authorMail });
-}
-
-async function notifyAuthor(to: string, title: string, decision: string, reason: string): Promise<string> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return 'skipped:no-key';
-  const esc = (s: string) =>
-    s.replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
-    );
-  const approved = decision === 'approved';
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Nothing Modes <nothing-modes@tdvorak.dev>',
-      to: [to],
-      subject: approved
-        ? `Your Nothing Modes submission "${title}" was published`
-        : `Your Nothing Modes submission "${title}" was not published`,
-      text: approved
-        ? `"${title}" is now live in the Nothing Modes library: https://nothing-modes.vercel.app/library`
-        : `"${title}" was not published.${reason ? `\nReason: ${reason}` : ''}`,
-      html: `<div style="font-family:ui-monospace,Menlo,monospace;max-width:560px;padding:24px">
-        <h2 style="margin:0 0 12px">${approved ? 'Published' : 'Not published'}</h2>
-        <p>"${esc(title)}" ${approved ? 'is now live in the <a href="https://nothing-modes.vercel.app/library">Nothing Modes library</a>.' : 'was not published.'}</p>
-        ${reason ? `<p style="color:#555">${esc(reason)}</p>` : ''}
-      </div>`,
-    }),
-  });
-  return res.ok ? 'sent' : `failed:${res.status}`;
 }

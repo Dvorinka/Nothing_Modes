@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import kotlinx.serialization.json.jsonPrimitive
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -55,6 +61,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPrimaryButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
@@ -759,10 +766,35 @@ private fun LibraryRow(
     onClick: () -> Unit,
 ) {
     NothingCard(modifier = Modifier.fillMaxWidth()) {
+        val iconName = item.preview?.get("icon")?.jsonPrimitive?.content ?: "routine"
+        val bgHex = item.preview?.get("iconBackground")?.jsonPrimitive?.content
+        val fallback = MaterialTheme.colorScheme.surfaceVariant
+        val bgColor =
+            remember(bgHex, fallback) {
+                runCatching { Color(android.graphics.Color.parseColor(bgHex)) }.getOrNull()
+                    ?: fallback
+            }
+        val icon = iconForName(iconName)
         NothingListRow(
             title = item.title,
             subtitle = item.description.ifBlank { item.summary },
             onClick = onClick,
+            leading = {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .clip(NothingShapes.iconChip)
+                            .background(bgColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            },
         )
         Row(
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),

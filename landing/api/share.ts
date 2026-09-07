@@ -1,5 +1,6 @@
 import { ensureSharedTable, getSql, sha256Hex } from './lib/db';
 import { analyzeGlyph, analyzeTemplate } from './lib/analyze';
+import { notifyAdmin } from './lib/email';
 
 export const config = { runtime: 'edge' };
 
@@ -105,71 +106,16 @@ export default async function handler(req: Request): Promise<Response> {
     RETURNING id
   `;
 
-  const emailStatus = await notifyAdmin(row.id, { type, title, handle, description }, analysis).catch(
-    (e) => `error:${String(e).slice(0, 80)}`,
-  );
+  const itemUrl = `https://nothing-modes.vercel.app/admin`;
+  const emailStatus = await notifyAdmin(
+    process.env.CRASH_NOTIFY_EMAIL || '',
+    { id: row.id, type, title, handle, description },
+    { verdict: analysis.verdict, findings: analysis.findings, summary: analysis.summary },
+    itemUrl,
+  ).catch((e) => `error:${String(e).slice(0, 80)}`);
 
   return Response.json(
     { ok: true, id: row.id, verdict: analysis.verdict, findings: analysis.findings, email: emailStatus },
     { status: 201 },
   );
-}
-
-async function notifyAdmin(
-  id: string,
-  sub: { type: string; title: string; handle: string; description: string },
-  analysis: { verdict: string; findings: { severity: string; code: string; detail: string }[]; summary: string },
-): Promise<string> {
-  const key = process.env.RESEND_API_KEY;
-  const to = process.env.CRASH_NOTIFY_EMAIL;
-  if (!key || !to) return 'skipped:no-key-or-email';
-
-  const esc = (s: unknown) =>
-    String(s ?? '').replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
-    );
-
-  const findingsHtml = analysis.findings.length
-    ? `<ul style="margin:8px 0;padding-left:18px">${analysis.findings
-        .map(
-          (f) =>
-            `<li style="color:${f.severity === 'block' ? '#D71921' : f.severity === 'warn' ? '#b8860b' : '#555'};font-size:12px;margin:4px 0">
-              <b>${esc(f.severity.toUpperCase())}</b> ${esc(f.code)} — ${esc(f.detail)}</li>`,
-        )
-        .join('')}</ul>`
-    : '<p style="color:#555;font-size:12px">No findings.</p>';
-
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:ui-monospace,Menlo,Consolas,monospace">
-  <div style="max-width:640px;margin:0 auto;padding:24px">
-    <div style="background:#0a0a0a;border-radius:8px 8px 0 0;padding:20px 24px">
-      <span style="color:#fff;font-size:14px;letter-spacing:.25em">N O T H I N G &nbsp; M O D E S</span>
-      <span style="float:right;color:#D71921;font-size:11px;letter-spacing:.1em;font-weight:700">NEW SUBMISSION</span>
-    </div>
-    <div style="background:#fff;border:1px solid #e5e5e5;border-top:0;padding:16px 24px">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr><td style="padding:6px 0;color:#888;font-size:11px">TYPE</td><td>${esc(sub.type)}</td></tr>
-        <tr><td style="padding:6px 0;color:#888;font-size:11px">TITLE</td><td><b>${esc(sub.title)}</b></td></tr>
-        <tr><td style="padding:6px 0;color:#888;font-size:11px">AUTHOR</td><td>@${esc(sub.handle)}</td></tr>
-        <tr><td style="padding:6px 0;color:#888;font-size:11px">SUMMARY</td><td>${esc(analysis.summary)}</td></tr>
-        <tr><td style="padding:6px 0;color:#888;font-size:11px">VERDICT</td><td><b>${esc(analysis.verdict.toUpperCase())}</b></td></tr>
-      </table>
-      ${sub.description ? `<p style="font-size:13px;color:#333;border-top:1px solid #eee;padding-top:12px;margin-top:12px">${esc(sub.description)}</p>` : ''}
-      ${findingsHtml}
-      <p style="margin-top:16px"><a href="https://nothing-modes.vercel.app/admin" style="color:#D71921">Review at nothing-modes.vercel.app/admin</a></p>
-      <p style="color:#aaa;font-size:10px">id: ${esc(id)}</p>
-    </div>
-  </div></body></html>`;
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Nothing Modes <nothing-modes@tdvorak.dev>',
-      to: [to],
-      subject: `[Nothing Modes] New ${sub.type} submission: ${sub.title} (@${sub.handle})`,
-      text: `New ${sub.type} submission pending review.\nTitle: ${sub.title}\nAuthor: @${sub.handle}\nSummary: ${analysis.summary}\nVerdict: ${analysis.verdict}\nFindings: ${analysis.findings.map((f) => `${f.severity} ${f.code} ${f.detail}`).join('; ') || 'none'}\nReview: https://nothing-modes.vercel.app/admin\nid: ${id}`,
-      html,
-    }),
-  });
-  return res.ok ? 'sent' : `failed:${res.status}`;
 }

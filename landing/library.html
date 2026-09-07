@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nothing Modes — Library</title>
-<meta name="description" content="Community-made modes and glyph designs for Nothing Modes. Every item is security-reviewed before publication.">
+<title>Nothing Modes — Feature Library</title>
+<meta name="description" content="Community-made modes and glyph designs for Nothing Modes. Every item is reviewed before publication.">
 <meta name="theme-color" content="#000000">
+<script src="https://rybbit.tdvorak.dev/api/script.js" data-site-id="fe8285816716" defer></script>
 <style>
   @font-face { font-family:"Doto"; src:url("fonts/doto.ttf") format("truetype"); font-display:swap; }
   @font-face { font-family:"Geist Mono"; src:url("fonts/geist_mono_regular.ttf") format("truetype"); font-display:swap; }
@@ -18,20 +19,26 @@
   a { color:inherit; }
 
   .nav { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.4rem;
-    border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); }
+    border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); z-index:10; }
   .wordmark { font-family:"Geist Mono",monospace; font-weight:600; letter-spacing:.18em; text-decoration:none; font-size:.85rem; }
   .wordmark::before { content:""; display:inline-block; width:.55rem; height:.55rem; background:var(--red);
     border-radius:50%; margin-right:.6rem; }
   .nav a.back { color:var(--dim); text-decoration:none; font-family:"Geist Mono",monospace; font-size:.75rem; letter-spacing:.1em; }
   .nav a.back:hover { color:var(--fg); }
 
-  main { max-width:56rem; margin:0 auto; padding:2.4rem 1.25rem 5rem; }
+  main { max-width:60rem; margin:0 auto; padding:2.4rem 1.25rem 5rem; }
   h1 { font-family:"Doto",monospace; font-size:clamp(1.8rem,6vw,3rem); letter-spacing:.06em; font-weight:400; }
   .lbl { color:var(--dim); font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; font-family:"Geist Mono",monospace; }
   .lbl .dot { display:inline-block; width:.5rem; height:.5rem; background:var(--red); border-radius:50%; margin-right:.5rem; }
   .sub { color:var(--dim); margin:.8rem 0 2rem; max-width:36rem; }
 
-  .toolbar { display:flex; gap:.6rem; margin-bottom:1.6rem; flex-wrap:wrap; }
+  .tabs { display:flex; gap:.5rem; margin-bottom:1.2rem; }
+  .tab { background:var(--panel); border:1px solid var(--line); color:var(--dim); padding:.6rem 1.2rem;
+    border-radius:.5rem; font:inherit; cursor:pointer; font-size:.82rem; letter-spacing:.1em; text-transform:uppercase; }
+  .tab.on { border-color:var(--red); color:var(--fg); }
+  .tab:hover { color:var(--fg); }
+
+  .toolbar { display:flex; gap:.6rem; margin-bottom:1.2rem; flex-wrap:wrap; align-items:center; }
   .toolbar input, .toolbar select { flex:1; min-width:160px; background:var(--panel); border:1px solid var(--line);
     color:var(--fg); padding:.6rem .9rem; border-radius:.5rem; font:inherit; }
   .toolbar input:focus, .toolbar select:focus { outline:none; border-color:#444; }
@@ -42,26 +49,47 @@
   .chip:hover { color:var(--fg); }
   .caps { display:flex; gap:.5rem; flex-wrap:wrap; margin:.8rem 0 1.2rem; }
 
+  .section-head { display:flex; justify-content:space-between; align-items:baseline; margin:1.4rem 0 .6rem; }
+  .section-title { font-family:"Doto",monospace; font-size:1.1rem; letter-spacing:.12em; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(18rem, 1fr)); gap:1rem; }
   .item { background:var(--panel); border:1px solid var(--line); border-radius:.7rem;
-    padding:1.1rem 1.25rem; margin-bottom:.8rem; }
-  .item .head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
-  .item h2 { font-size:1.05rem; font-weight:600; }
-  .kind { flex-shrink:0; font-size:.6rem; font-weight:700; letter-spacing:.12em; padding:.28rem .65rem;
-    border-radius:99px; text-transform:uppercase; border:1px solid rgba(215,25,33,.4);
-    background:rgba(215,25,33,.12); color:var(--red); }
-  .kind.glyph { border-color:rgba(138,138,138,.5); background:rgba(138,138,138,.1); color:var(--fg); }
-  .by { color:var(--dim); font-size:.78rem; margin-top:.15rem; }
+    padding:1rem; display:flex; gap:1rem; align-items:flex-start; cursor:pointer; transition:border-color .15s; }
+  .item:hover { border-color:#3a3a3a; }
+  .item .thumb { flex-shrink:0; width:72px; height:72px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:.5rem; display:grid; place-items:center; overflow:hidden; }
+  .item .thumb canvas { display:block; width:100%; height:100%; }
+  .item .icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+    font-size:1.4rem; border:1px solid var(--line); }
+  .item .body { flex:1; min-width:0; }
+  .item h2 { font-size:1.05rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .by { color:var(--dim); font-size:.78rem; margin-top:.1rem; }
   .by a { color:var(--dim); }
-  .desc { color:#bbb; font-size:.86rem; margin-top:.55rem; }
-  .meta { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.7rem; align-items:center; }
+  .desc { color:#bbb; font-size:.85rem; margin-top:.35rem; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .meta { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.6rem; align-items:center; }
   .tag { background:var(--panel2); border:1px solid var(--line); border-radius:.4rem;
     padding:.18rem .55rem; font-size:.68rem; color:var(--dim); font-family:"Geist Mono",monospace; }
   .dl { margin-left:auto; background:var(--red); color:#fff; border:0; padding:.5rem 1.1rem;
     border-radius:.5rem; font:inherit; font-weight:600; cursor:pointer; font-size:.8rem; letter-spacing:.05em; }
   .dl:active { opacity:.85; }
-  .hint { color:var(--dim); font-size:.72rem; font-family:"Geist Mono",monospace; margin-top:.5rem; }
-  .empty { color:var(--dim); text-align:center; padding:4rem 0; font-family:"Geist Mono",monospace; }
+
+  .empty { color:var(--dim); text-align:center; padding:4rem 0; font-family:"Geist Mono",monospace; grid-column:1 / -1; }
   #status { color:var(--dim); font-size:.85rem; min-height:1.4em; margin-bottom:1rem; }
+
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+  .submit { color:var(--dim); text-decoration:none; font-family:"Geist Mono",monospace; font-size:.8rem; letter-spacing:.1em; border:1px solid var(--line); padding:.5rem 1rem; border-radius:.5rem; }
+  .submit:hover { color:var(--fg); border-color:#444; }
+
+  /* modal */
+  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:50; align-items:center; justify-content:center; padding:1rem; }
+  .modal.open { display:flex; }
+  .modal-card { background:var(--panel); border:1px solid var(--line); border-radius:.8rem; max-width:26rem; width:100%; max-height:90vh; overflow:auto; padding:1.2rem; }
+  .modal-head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:1rem; }
+  .modal h2 { font-size:1.2rem; }
+  .modal canvas { width:100%; max-width:320px; display:block; margin:0 auto 1rem; background:#000; border:1px solid var(--line); border-radius:.5rem; }
+  .modal .controls { display:flex; justify-content:center; gap:.6rem; margin-bottom:1rem; }
+  .close { background:none; border:1px solid var(--line); color:var(--dim); padding:.4rem .8rem; border-radius:.4rem; cursor:pointer; font:inherit; }
+  .close:hover { color:var(--fg); }
 </style>
 </head>
 <body>
@@ -72,16 +100,20 @@
 </header>
 
 <main>
-  <p class="lbl"><span class="dot"></span>COMMUNITY LIBRARY</p>
-  <h1>MODES &amp; GLYPHS</h1>
-  <p class="sub">Made by users, reviewed before publication. Download a file, then import it in the app
-    — Modes → Browse Templates → Import, or Glyph Studio → Import.</p>
+  <p class="lbl"><span class="dot"></span>COMMUNITY FEATURE LIBRARY</p>
+  <h1>FEATURE LIBRARY</h1>
+  <p class="sub">Modes and Glyph designs made by users, reviewed before publication. Tap an item to preview; click the download button to save the JSON for import in the app.</p>
+
+  <div class="topbar">
+    <div class="tabs">
+      <button class="tab on" data-type="template">MODES</button>
+      <button class="tab" data-type="glyph">GLYPHS</button>
+    </div>
+    <a class="submit" href="/submit">SUBMIT A FEATURE</a>
+  </div>
 
   <div class="toolbar">
     <input id="q" type="search" placeholder="Search title, description, author…">
-    <button class="chip on" data-type="">All</button>
-    <button class="chip" data-type="template">Modes</button>
-    <button class="chip" data-type="glyph">Glyphs</button>
     <select id="sort">
       <option value="newest">Newest first</option>
       <option value="download">Most downloaded</option>
@@ -90,32 +122,69 @@
   </div>
   <div id="caps" class="caps"></div>
   <div id="status">Loading…</div>
-  <div id="list"></div>
+  <div id="list" class="grid"></div>
 </main>
+
+<div id="modal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTitle">Preview</h2>
+        <div id="modalMeta" class="by"></div>
+      </div>
+      <button class="close" onclick="closeModal()">✕</button>
+    </div>
+    <canvas id="modalCanvas" width="250" height="250"></canvas>
+    <div class="controls">
+      <button class="chip" id="playBtn" onclick="togglePlay()">PAUSE</button>
+      <button class="dl" id="modalDl" data-id="" onclick="download(this.dataset.id, this.dataset.name)">DOWNLOAD</button>
+    </div>
+    <p class="desc" id="modalDesc"></p>
+  </div>
+</div>
 
 <script>
 const qEl = document.getElementById('q');
 const sortEl = document.getElementById('sort');
 const capsEl = document.getElementById('caps');
-let type = '';
+let type = 'template';
 let sort = 'newest';
 let selectedCaps = new Set();
 let allItems = [];
 let items = [];
 let debounce;
+let modalTimer = null;
+let modalItem = null;
+let playing = true;
+
+const ROWS_25 = [7,11,15,17,19,21,21,23,23,25,25,25,25,25,25,25,23,23,21,21,19,17,15,11,7];
+const ROWS_13 = [5,9,11,11,13,13,13,13,13,11,11,9,5];
+
+const ICONS = {
+  dark_mode:'🌙', moon:'🌙', lightbulb:'💡', bulb:'💡', bolt:'⚡', zap:'⚡',
+  music:'🎵', note:'🎵', bluetooth:'🔵', wifi:'📶', airplane:'✈️', battery:'🔋',
+  car:'🚗', home:'🏠', work:'💼', sleep:'😴', game:'🎮', coffee:'☕', phone:'📞',
+  message:'💬', camera:'📷', settings:'⚙️', time:'⏰', location:'📍', sun:'☀️',
+  cloud:'☁️', star:'⭐', heart:'❤️', lock:'🔒', unlock:'🔓', alert:'🔔', mute:'🔇',
+  volume:'🔊', flash:'🔦', mail:'✉️', calendar:'📅', routine:'◉'
+};
 
 qEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(load, 250); });
 sortEl.addEventListener('change', () => { sort = sortEl.value; load(); });
-document.querySelectorAll('[data-type]').forEach(b =>
+
+document.querySelectorAll('.tab').forEach(b =>
   b.addEventListener('click', () => {
-    document.querySelectorAll('[data-type]').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
     type = b.dataset.type;
+    selectedCaps.clear();
     load();
   }));
 
 async function load() {
+  document.getElementById('status').textContent = 'Loading…';
   const p = new URLSearchParams();
-  if (type) p.set('type', type);
+  p.set('type', type);
+  p.set('preview', '1');
   if (qEl.value.trim()) p.set('q', qEl.value.trim());
   p.set('sort', sort);
   if (selectedCaps.size) p.set('caps', [...selectedCaps].join(','));
@@ -149,6 +218,7 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
 function ago(ts) {
   const s = (Date.now() - new Date(ts)) / 1000;
   if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
@@ -166,29 +236,69 @@ function render() {
   for (const it of items) {
     const el = document.createElement('div');
     el.className = 'item';
+    el.addEventListener('click', (e) => {
+      if (!e.target.closest('.dl')) openModal(it);
+    });
     const gh = it.github
       ? (it.github.startsWith('http') ? it.github : 'https://github.com/' + it.github.replace(/^@/, ''))
       : '';
+
+    let thumb = '';
+    if (type === 'glyph' && it.preview?.firstFrame) {
+      thumb = `<div class="thumb"><canvas width="72" height="72" data-preview="${esc(JSON.stringify(it.preview))}"></canvas></div>`;
+    } else if (type === 'template' && it.preview) {
+      const bg = it.preview.iconBackground === 'transparent' ? 'var(--panel2)' : esc(it.preview.iconBackground);
+      const icon = ICONS[it.preview.icon] || ICONS.routine;
+      thumb = `<div class="thumb" style="background:${bg}"><div class="icon" style="background:${bg};font-size:1.6rem">${icon}</div></div>`;
+    } else {
+      thumb = `<div class="thumb"></div>`;
+    }
+
     el.innerHTML = `
-      <div class="head">
-        <div>
-          <h2>${esc(it.title)}</h2>
-          <div class="by">by <b>@${esc(it.handle)}</b>${gh ? ` · <a href="${esc(gh)}" target="_blank" rel="noopener">${esc(gh.replace(/^https:\/\/(www\.)?github\.com\//, ''))}</a>` : ''} · ${ago(it.created_at)}</div>
+      ${thumb}
+      <div class="body">
+        <h2>${esc(it.title)}</h2>
+        <div class="by">by <b>@${esc(it.handle)}</b>${gh ? ` · <a href="${esc(gh)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(gh.replace(/^https:\/\/(www\.)?github\.com\//, ''))}</a>` : ''} · ${ago(it.created_at)}</div>
+        ${it.description ? `<div class="desc">${esc(it.description)}</div>` : ''}
+        <div class="meta">
+          ${it.summary ? `<span class="tag">${esc(it.summary)}</span>` : ''}
+          ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
+          <span class="tag">${it.downloads} downloads</span>
+          <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}" onclick="event.stopPropagation()">DOWNLOAD</button>
         </div>
-        <span class="kind ${it.type}">${esc(it.type)}</span>
-      </div>
-      ${it.description ? `<div class="desc">${esc(it.description)}</div>` : ''}
-      <div class="meta">
-        ${it.summary ? `<span class="tag">${esc(it.summary)}</span>` : ''}
-        ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
-        <span class="tag">${it.downloads} downloads</span>
-        <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}">DOWNLOAD</button>
-      </div>
-      <div class="hint">sha256 ${esc(String(it.content_hash).slice(0, 16))}… — content fingerprint, security-reviewed</div>`;
+      </div>`;
     list.appendChild(el);
   }
   list.querySelectorAll('.dl').forEach(b =>
     b.addEventListener('click', () => download(b.dataset.id, b.dataset.name)));
+  list.querySelectorAll('canvas[data-preview]').forEach(c => drawGlyphThumb(c, JSON.parse(c.dataset.preview)));
+}
+
+function drawGlyphThumb(canvas, preview) {
+  const ctx = canvas.getContext('2d');
+  const size = preview.size || 25;
+  const p = Array.isArray(preview.firstFrame) ? preview.firstFrame : [];
+  const rows = size === 13 ? ROWS_13 : ROWS_25;
+  const cell = canvas.width / size;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let idx = 0;
+  for (let r = 0; r < size; r++) {
+    const w = rows[r] || 0;
+    const start = (size - w) >> 1;
+    for (let c = 0; c < w; c++) {
+      const v = Number(p[idx++] ?? 0);
+      if (v > 0) {
+        const a = v / 255;
+        ctx.fillStyle = `rgba(215,25,33,${a})`;
+        ctx.beginPath();
+        const x = (start + c) * cell + cell/2;
+        const y = r * cell + cell/2;
+        ctx.arc(x, y, cell * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
 }
 
 async function download(id, name) {
@@ -202,6 +312,83 @@ async function download(id, name) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
+function openModal(it) {
+  if (it.type !== 'glyph' || !it.preview?.firstFrame) return;
+  modalItem = it;
+  document.getElementById('modalTitle').textContent = esc(it.title);
+  document.getElementById('modalMeta').innerHTML = `by @${esc(it.handle)} · ${esc(it.summary || '')}`;
+  document.getElementById('modalDesc').textContent = it.description || '';
+  document.getElementById('modalDl').dataset.id = it.id;
+  document.getElementById('modalDl').dataset.name = it.title;
+  document.getElementById('modal').classList.add('open');
+  playing = true;
+  document.getElementById('playBtn').textContent = 'PAUSE';
+  playModal();
+}
+
+async function playModal() {
+  if (!modalItem) return;
+  if (!modalItem._payload) {
+    const res = await fetch('/api/item?id=' + encodeURIComponent(modalItem.id));
+    const { item } = await res.json();
+    modalItem._payload = item.payload;
+  }
+  const payload = modalItem._payload;
+  const frames = payload.frames || [];
+  const size = payload.v === 4 ? 13 : 25;
+  const canvas = document.getElementById('modalCanvas');
+  const rows = size === 13 ? ROWS_13 : ROWS_25;
+  const cell = canvas.width / size;
+  let frame = 0;
+
+  if (modalTimer) clearInterval(modalTimer);
+  function draw() {
+    const f = frames[frame];
+    if (!f) return;
+    const p = Array.isArray(f.p) ? f.p : [];
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let idx = 0;
+    for (let r = 0; r < size; r++) {
+      const w = rows[r] || 0;
+      const start = (size - w) >> 1;
+      for (let c = 0; c < w; c++) {
+        const v = Number(p[idx++] ?? 0);
+        if (v > 0) {
+          const a = v / 255;
+          ctx.fillStyle = `rgba(215,25,33,${a})`;
+          ctx.beginPath();
+          const x = (start + c) * cell + cell/2;
+          const y = r * cell + cell/2;
+          ctx.arc(x, y, cell * 0.38, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    frame = (frame + 1) % frames.length;
+  }
+  draw();
+  const dur = (frames[0] && Number(frames[0].d) > 0) ? Number(frames[0].d) : 100;
+  modalTimer = setInterval(() => { if (playing) draw(); }, dur);
+}
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? 'PAUSE' : 'PLAY';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  if (modalTimer) clearInterval(modalTimer);
+  modalTimer = null;
+  modalItem = null;
+}
+
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') closeModal();
+});
 
 load();
 </script>

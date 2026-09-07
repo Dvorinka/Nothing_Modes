@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -269,6 +270,9 @@ fun GlyphEditorScreen(
     var dialogText by remember { mutableStateOf("") }
     var pendingImport by remember { mutableStateOf<ImportType?>(null) }
     var shareDesign by remember { mutableStateOf<String?>(null) }
+    var selectedLibraryItem by remember { mutableStateOf<com.tdvorak.nothingmodes.data.community.CommunityApi.LibraryItem?>(null) }
+    var selectedLibraryDesign by remember { mutableStateOf<GlyphFrameCodec.Design?>(null) }
+    var importing by remember { mutableStateOf(false) }
     val library by viewModel.library.collectAsState()
     var glyphSearch by remember { mutableStateOf("") }
     var glyphSort by remember { mutableStateOf("newest") }
@@ -1040,22 +1044,9 @@ fun GlyphEditorScreen(
                             } else {
                                 visibleLibrary.forEachIndexed { index, item ->
                                     if (index > 0) NothingDivider()
-                                    NothingListRow(
-                                        title = item.title,
-                                        subtitle =
-                                            "by @${item.handle}" +
-                                                if (item.summary.isNotBlank()) " · ${item.summary}" else "",
-                                        onClick = {
-                                            scope.launch {
-                                                val stored = viewModel.importLibraryItem(item)
-                                                Toast.makeText(
-                                                    context,
-                                                    if (stored != null) "Imported as $stored" else "Import failed",
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                                refreshNames()
-                                            }
-                                        },
+                                    GlyphCommunityRow(
+                                        item = item,
+                                        onClick = { selectedLibraryItem = item },
                                     )
                                 }
                             }
@@ -1081,6 +1072,96 @@ fun GlyphEditorScreen(
                 },
                 onDismiss = { shareDesign = null },
             )
+        }
+    }
+
+    selectedLibraryItem?.let { item ->
+        val design = selectedLibraryDesign
+        LaunchedEffect(item) {
+            selectedLibraryDesign = null
+            runCatching {
+                val payload = com.tdvorak.nothingmodes.data.community.CommunityApi.fetchItem(item.id)
+                GlyphFrameCodec.decode(payload.toString())
+            }.getOrNull()?.let { selectedLibraryDesign = it }
+        }
+        ModalBottomSheet(
+            onDismissRequest = {
+                selectedLibraryItem = null
+                selectedLibraryDesign = null
+            },
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(NothingSpacing.lg)
+                        .navigationBarsPadding(),
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "by @${item.handle}${if (item.summary.isNotBlank()) " · ${item.summary}" else ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                if (item.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                if (design != null) {
+                    AnimatedGlyphCanvas(
+                        design = design,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clip(NothingShapes.input)
+                                .background(Color.Black),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "LOADING PREVIEW",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                com.tdvorak.nothingmodes.ui.theme.NothingPrimaryButton(
+                    text = "Import",
+                    enabled = !importing,
+                    onClick = {
+                        importing = true
+                        scope.launch {
+                            val stored = viewModel.importLibraryItem(item)
+                            importing = false
+                            Toast.makeText(
+                                context,
+                                if (stored != null) "Imported as $stored" else "Import failed",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            refreshNames()
+                            selectedLibraryItem = null
+                            selectedLibraryDesign = null
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -1176,7 +1257,7 @@ private fun cellFromOffset(offset: Offset, canvasSize: Float, gridSize: Int): Pa
 }
 
 @Composable
-private fun GlyphCanvas(
+internal fun GlyphCanvas(
     gridSize: Int,
     pixels: IntArray,
 ) {

@@ -27,6 +27,7 @@
   .back { display:inline-block; margin-top:2.5rem; color:var(--dim); text-decoration:none; font-size:.85rem; }
   .back:hover { color:var(--fg); }
 </style>
+<script src="https://rybbit.tdvorak.dev/api/script.js" data-site-id="fe8285816716" defer></script>
 </head>
 <body>
 <main>
@@ -36,7 +37,7 @@
   <p>Nothing Modes is an open-source automation manager for Android, with optional Nothing Phone Glyph integration.</p>
 
   <h2>Data Collection</h2>
-  <p><strong>No personal data is collected.</strong></p>
+  <p><strong>No personal data is collected by the app.</strong> The public website uses privacy-first page-view analytics (Rybbit) to understand traffic; no cookies or advertising identifiers are used.</p>
   <ul>
     <li>No analytics, telemetry, or tracking SDKs are included.</li>
     <li>Crash and error reporting is <strong>optional and off by default</strong>. If you enable it in Settings &rarr; Privacy, the app sends anonymous reports (device model, Android version, app version, exception details and stack trace) to the developer's own server — not to Google or any third party. No account, advertising ID, or device identifier is included.</li>
@@ -49,6 +50,7 @@
     <tr><td>GitHub API <code>releases/latest</code></td><td>Check for app updates when the user taps "Check for updates"</td><td>None (anonymous)</td></tr>
     <tr><td><code>raw.githubusercontent.com/.../templates/</code></td><td>Load the community template index and template bundles</td><td>None (anonymous)</td></tr>
     <tr><td>GitHub Releases APK download</td><td>Download an update APK when the user approves an update</td><td>None (anonymous, via device DownloadManager)</td></tr>
+    <tr><td><code>rybbit.tdvorak.dev/api/script.js</code></td><td>Anonymous page-view analytics on the website only</td><td>None (anonymous)</td></tr>
     <tr><td><code>POST nothing-modes.vercel.app/api/crash</code></td><td>Optional crash/error reporting, only when enabled in Settings &rarr; Privacy</td><td>Anonymous crash report (see above)</td></tr>
   </table>
 

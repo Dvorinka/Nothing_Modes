@@ -96,6 +96,7 @@
   .sub-actions { display:flex; gap:.6rem; margin-top:.8rem; }
   .btn.ok { background:#1a7f37; } .btn.no { background:var(--red); }
 </style>
+<script src="https://rybbit.tdvorak.dev/api/script.js" data-site-id="fe8285816716" defer></script>
 </head>
 <body>
 
@@ -130,6 +131,11 @@
   </div>
 
   <div id="subsView" style="display:none">
+    <div class="filters" style="margin-bottom:1rem">
+      <button class="chip on" data-stype="all">All</button>
+      <button class="chip" data-stype="template">Templates</button>
+      <button class="chip" data-stype="glyph">Glyphs</button>
+    </div>
     <div class="filters">
       <button class="chip on" data-sstatus="pending">Pending</button>
       <button class="chip" data-sstatus="approved">Approved</button>
@@ -273,6 +279,7 @@ function esc(s) {
 
 // ── Submissions tab ─────────────────────────────────────────────────────────
 let subsStatus = 'pending';
+let subsType = 'all';
 let subs = [];
 
 document.querySelectorAll('[data-view]').forEach(b =>
@@ -290,11 +297,20 @@ document.querySelectorAll('[data-sstatus]').forEach(b =>
     subsStatus = b.dataset.sstatus;
     loadSubs();
   }));
+document.querySelectorAll('[data-stype]').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-stype]').forEach(x => x.classList.toggle('on', x === b));
+    subsType = b.dataset.stype;
+    loadSubs();
+  }));
 
 async function loadSubs() {
   const el = document.getElementById('subsStatus');
   el.textContent = 'Loading…';
-  const res = await fetch('/api/submissions?status=' + subsStatus, {
+  const u = new URLSearchParams();
+  u.set('status', subsStatus);
+  if (subsType !== 'all') u.set('type', subsType);
+  const res = await fetch('/api/submissions?' + u, {
     headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
   });
   if (res.status === 401) { el.textContent = 'Unauthorized.'; return; }
@@ -302,7 +318,8 @@ async function loadSubs() {
   subs = data.submissions || [];
   renderSubs();
   // badge on the tab shows pending count whenever we're on either view
-  fetch('/api/submissions?status=pending', {
+  const badgeU = new URLSearchParams(); badgeU.set('status', 'pending');
+  fetch('/api/submissions?' + badgeU, {
     headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
   }).then(r => r.json()).then(d => {
     document.getElementById('subBadge').textContent = (d.submissions || []).length || '';
@@ -314,7 +331,8 @@ function renderSubs() {
   document.getElementById('subsStatus').textContent = subs.length ? '' : '';
   list.innerHTML = '';
   if (!subs.length) {
-    list.innerHTML = '<div class="empty">NOTHING ' + subsStatus.toUpperCase() + '</div>';
+    const t = subsType === 'all' ? '' : ' ' + subsType.toUpperCase();
+    list.innerHTML = '<div class="empty">NO ' + subsStatus.toUpperCase() + t + ' SUBMISSIONS</div>';
     return;
   }
   for (const s of subs) {

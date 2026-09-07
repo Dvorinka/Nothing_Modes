@@ -40,6 +40,7 @@ object CommunityApi {
         val capabilities: List<String>,
         val downloads: Long,
         val createdAt: String,
+        val preview: JsonObject? = null,
     )
 
     data class Finding(
@@ -63,7 +64,12 @@ object CommunityApi {
     ): List<LibraryItem> =
         withContext(Dispatchers.IO) {
             val params = buildString {
-                if (!type.isNullOrBlank()) append("type=").append(type)
+                if (isNotEmpty()) append('&')
+                append("preview=1")
+                if (!type.isNullOrBlank()) {
+                    append('&')
+                    append("type=").append(type)
+                }
                 if (query.isNotBlank()) {
                     if (isNotEmpty()) append('&')
                     append("q=").append(URLEncoder.encode(query, "UTF-8"))
@@ -95,6 +101,7 @@ object CommunityApi {
                             o["capabilities"]?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList(),
                         downloads = o["downloads"]?.jsonPrimitive?.longOrNull ?: 0,
                         createdAt = o.str("created_at") ?: "",
+                        preview = o["preview"]?.jsonObject,
                     )
                 } ?: emptyList()
         }
