@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Nothing Modes</title>
+<style>
+  :root { --bg:#0a0a0a; --panel:#141414; --line:#262626; --fg:#e8e8e8; --dim:#9a9a9a; --accent:#d9ff3f; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:15px/1.7 system-ui,-apple-system,'Geist Sans',sans-serif; }
+  main { max-width:44rem; margin:0 auto; padding:3rem 1.25rem 4rem; }
+  h1 { font-size:1.4rem; letter-spacing:.05em; margin-bottom:.4rem; }
+  h2 { font-size:1rem; letter-spacing:.08em; text-transform:uppercase; margin:2.2rem 0 .8rem; color:var(--accent); }
+  p { margin:.7rem 0; color:#c8c8c8; }
+  ul { margin:.6rem 0 .6rem 1.2rem; color:#c8c8c8; }
+  li { margin:.35rem 0; }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:.85rem; }
+  th { text-align:left; color:var(--dim); font-weight:600; font-size:.75rem; text-transform:uppercase;
+       letter-spacing:.06em; border-bottom:1px solid var(--line); padding:.5rem .6rem; }
+  td { border-bottom:1px solid var(--line); padding:.5rem .6rem; color:#c8c8c8; vertical-align:top; }
+  code { background:var(--panel); border:1px solid var(--line); border-radius:.3rem; padding:.05rem .35rem; font-size:.85em; }
+  strong { color:var(--fg); }
+  a { color:var(--accent); }
+  .sub { color:var(--dim); font-size:.85rem; margin-bottom:2rem; }
+  .back { display:inline-block; margin-top:2.5rem; color:var(--dim); text-decoration:none; font-size:.85rem; }
+  .back:hover { color:var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="sub">Nothing Modes — last updated 2026-09-07</p>
+
+  <p>Nothing Modes is an open-source automation manager for Android, with optional Nothing Phone Glyph integration.</p>
+
+  <h2>Data Collection</h2>
+  <p><strong>No personal data is collected.</strong></p>
+  <ul>
+    <li>No analytics, telemetry, or tracking SDKs are included.</li>
+    <li>Crash and error reporting is <strong>optional and off by default</strong>. If you enable it in Settings &rarr; Privacy, the app sends anonymous reports (device model, Android version, app version, exception details and stack trace) to the developer's own server — not to Google or any third party. No account, advertising ID, or device identifier is included.</li>
+    <li>No account or sign-in is required.</li>
+    <li>No user data is sent to our servers, except the opt-in crash reports described above.</li>
+  </ul>
+  <p>The app does make a small number of network requests, all initiated by the user or for user-facing features:</p>
+  <table>
+    <tr><th>Request</th><th>Purpose</th><th>Data sent</th></tr>
+    <tr><td>GitHub API <code>releases/latest</code></td><td>Check for app updates when the user taps "Check for updates"</td><td>None (anonymous)</td></tr>
+    <tr><td><code>raw.githubusercontent.com/.../templates/</code></td><td>Load the community template index and template bundles</td><td>None (anonymous)</td></tr>
+    <tr><td>GitHub Releases APK download</td><td>Download an update APK when the user approves an update</td><td>None (anonymous, via device DownloadManager)</td></tr>
+    <tr><td><code>POST nothing-modes.vercel.app/api/crash</code></td><td>Optional crash/error reporting, only when enabled in Settings &rarr; Privacy</td><td>Anonymous crash report (see above)</td></tr>
+  </table>
+
+  <h2>Data Storage</h2>
+  <p>All user data is stored locally on the device:</p>
+  <ul>
+    <li><strong>Automation configurations</strong>: Room database (internal app storage)</li>
+    <li><strong>Execution audit log</strong>: Room database (internal app storage, capped at 50 recent entries)</li>
+    <li><strong>Theme preference</strong>: SharedPreferences (internal app storage)</li>
+    <li><strong>Crash report queue</strong>: internal app storage — written on crash and uploaded on the next launch, only if reporting is enabled</li>
+    <li><strong>Exported JSON / templates</strong>: User-selected location via Storage Access Framework</li>
+  </ul>
+  <p>Uninstalling the app removes all internal data.</p>
+
+  <h2>Permissions</h2>
+  <p>The app uses the following permissions to function. Some are required at all times; others are requested only when the user enables a matching feature.</p>
+  <table>
+    <tr><th>Permission</th><th>Purpose</th><th>Required?</th></tr>
+    <tr><td><code>INTERNET</code></td><td>Check for updates and load community templates</td><td>Yes</td></tr>
+    <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>Reschedule automations after reboot</td><td>Yes</td></tr>
+    <tr><td><code>SCHEDULE_EXACT_ALARM</code></td><td>Fire time-based triggers precisely</td><td>Yes</td></tr>
+    <tr><td><code>FOREGROUND_SERVICE</code> / <code>FOREGROUND_SERVICE_SPECIAL_USE</code></td><td>Process triggers in background</td><td>Yes</td></tr>
+    <tr><td><code>POST_NOTIFICATIONS</code></td><td>Show automation notifications</td><td>Yes</td></tr>
+    <tr><td><code>WRITE_SETTINGS</code></td><td>Change brightness, screen timeout, auto-rotate</td><td>Yes</td></tr>
+    <tr><td><code>ACCESS_NOTIFICATION_POLICY</code></td><td>Enable Do Not Disturb</td><td>Yes</td></tr>
+    <tr><td><code>CAMERA</code></td><td>Toggle flashlight</td><td>Yes</td></tr>
+    <tr><td><code>VIBRATE</code></td><td>Vibration feedback</td><td>Yes</td></tr>
+    <tr><td><code>WAKE_LOCK</code></td><td>Keep the device awake during automation execution</td><td>Yes</td></tr>
+    <tr><td><code>QUERY_ALL_PACKAGES</code></td><td>Show the list of installed apps for the "Launch app" action</td><td>Yes</td></tr>
+    <tr><td><code>REQUEST_INSTALL_PACKAGES</code></td><td>Install downloaded app updates (used only for GitHub builds)</td><td>Yes</td></tr>
+    <tr><td><code>ACCESS_NETWORK_STATE</code> / <code>ACCESS_WIFI_STATE</code></td><td>Detect Wi-Fi connect/disconnect triggers</td><td>Optional</td></tr>
+    <tr><td><code>BLUETOOTH</code> / <code>BLUETOOTH_CONNECT</code></td><td>Detect Bluetooth connect/disconnect triggers</td><td>Optional</td></tr>
+    <tr><td><code>READ_PHONE_STATE</code></td><td>Detect incoming calls</td><td>Optional (call triggers)</td></tr>
+    <tr><td><code>RECEIVE_SMS</code> / <code>SEND_SMS</code></td><td>Read/send SMS content for SMS triggers and actions</td><td>Optional (SMS features)</td></tr>
+    <tr><td><code>READ_CALENDAR</code></td><td>Trigger on calendar events</td><td>Optional (calendar trigger)</td></tr>
+    <tr><td><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code> / <code>ACCESS_BACKGROUND_LOCATION</code></td><td>Geofence triggers</td><td>Optional (location triggers)</td></tr>
+    <tr><td><code>PACKAGE_USAGE_STATS</code></td><td>Detect foreground app</td><td>Optional (app triggers)</td></tr>
+    <tr><td><code>BIND_NOTIFICATION_LISTENER_SERVICE</code></td><td>Notification triggers and clear notifications</td><td>Optional (notification features)</td></tr>
+    <tr><td><code>com.nothing.ketchum.permission.*</code></td><td>Nothing Phone Glyph integration</td><td>Optional (Glyph features)</td></tr>
+    <tr><td><code>moe.shizuku.manager.permission.API_V23</code></td><td>Communicate with the Shizuku app for privileged actions</td><td>Optional (Shizuku mode)</td></tr>
+  </table>
+
+  <h2>Shizuku</h2>
+  <p>The app optionally integrates with Shizuku for privileged operations such as toggling Wi-Fi, Bluetooth, mobile data, airplane mode, and writing system settings. Shizuku runs as a separate app and manages its own permissions. Nothing Modes communicates with Shizuku via local IPC, not over the network.</p>
+
+  <h2>Open Source</h2>
+  <p>The full source code is available at the project repository. The app is licensed under GPL-3.0.</p>
+
+  <a class="back" href="/">&larr; nothing-modes.vercel.app</a>
+</main>
+</body>
+</html>
