@@ -71,3 +71,9 @@ scorecard.png
 # Local TODO scratch file
 TODO.md
 node_modules/
+
+# Test artifacts
+.playwright-mcp/
+/android-*.png
+/library-*.png
+/submit.png

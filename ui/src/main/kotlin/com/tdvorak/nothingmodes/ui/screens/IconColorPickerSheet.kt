@@ -63,6 +63,7 @@ private val iconOptions =
         IconEntry("sun", Icons.Outlined.WbSunny, listOf("sun", "day", "light", "bright", "morning")),
         IconEntry("dark_mode", Icons.Outlined.DarkMode, listOf("dark", "night", "moon", "sleep")),
         IconEntry("brightness", Icons.Outlined.Brightness6, listOf("brightness", "screen", "dim")),
+        IconEntry("bolt", Icons.Outlined.Bolt, listOf("bolt", "zap", "flash", "lightning")),
         IconEntry("lightbulb", Icons.Outlined.Lightbulb, listOf("light", "bulb", "idea", "lamp")),
         IconEntry("notification", Icons.Outlined.Notifications, listOf("notification", "alert", "bell", "notify")),
         IconEntry("volume", Icons.AutoMirrored.Outlined.VolumeUp, listOf("volume", "sound", "audio", "loud")),
@@ -188,7 +189,7 @@ fun iconForName(name: String): ImageVector = iconOptions.find { it.name == name 
 
 private val emojiToIconName =
     mapOf(
-        "🌙" to "dark_mode", "💡" to "lightbulb", "⚡" to "battery", "🎧" to "music",
+        "🌙" to "dark_mode", "💡" to "lightbulb", "⚡" to "bolt", "🎧" to "music",
         "🏠" to "home", "🏡" to "home", "✈️" to "airplane", "🛫" to "airplane",
         "📍" to "location", "🗺️" to "location", "⏰" to "alarm", "🕐" to "clock",
         "⏱️" to "timer", "⏲️" to "timer", "🔕" to "notification", "🔔" to "notification",

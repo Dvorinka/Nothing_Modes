@@ -60,7 +60,8 @@
     border-radius:.5rem; display:grid; place-items:center; overflow:hidden; }
   .item .thumb canvas { display:block; width:100%; height:100%; }
   .item .icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
-    font-size:1.4rem; border:1px solid var(--line); }
+    border:1px solid rgba(255,255,255,0.1); color:#fff; }
+  .item .icon .material-symbols-outlined { font-size:22px; }
   .item .body { flex:1; min-width:0; }
   .item h2 { font-size:1.05rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .by { color:var(--dim); font-size:.78rem; margin-top:.1rem; }
@@ -134,7 +135,7 @@
       </div>
       <button class="close" onclick="closeModal()">✕</button>
     </div>
-    <canvas id="modalCanvas" width="250" height="250"></canvas>
+    <canvas id="modalCanvas" width="320" height="320"></canvas>
     <div class="controls">
       <button class="chip" id="playBtn" onclick="togglePlay()">PAUSE</button>
       <button class="dl" id="modalDl" data-id="" onclick="download(this.dataset.id, this.dataset.name)">DOWNLOAD</button>
@@ -160,14 +161,25 @@ let playing = true;
 const ROWS_25 = [7,11,15,17,19,21,21,23,23,25,25,25,25,25,25,25,23,23,21,21,19,17,15,11,7];
 const ROWS_13 = [5,9,11,11,13,13,13,13,13,11,11,9,5];
 
-const ICONS = {
-  dark_mode:'🌙', moon:'🌙', lightbulb:'💡', bulb:'💡', bolt:'⚡', zap:'⚡',
-  music:'🎵', note:'🎵', bluetooth:'🔵', wifi:'📶', airplane:'✈️', battery:'🔋',
-  car:'🚗', home:'🏠', work:'💼', sleep:'😴', game:'🎮', coffee:'☕', phone:'📞',
-  message:'💬', camera:'📷', settings:'⚙️', time:'⏰', location:'📍', sun:'☀️',
-  cloud:'☁️', star:'⭐', heart:'❤️', lock:'🔒', unlock:'🔓', alert:'🔔', mute:'🔇',
-  volume:'🔊', flash:'🔦', mail:'✉️', calendar:'📅', routine:'◉'
-};
+let iconMap = new Map();
+let iconFallback = 'star';
+
+async function loadIcons() {
+  try {
+    const res = await fetch('/icons.json');
+    const data = await res.json();
+    iconFallback = data.fallback || 'star';
+    for (const i of data.icons) iconMap.set(i.name, i.symbol);
+    const names = [...new Set(data.icons.map(i => i.symbol))].sort().join(',');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=${encodeURIComponent(names)}&display=block`;
+    document.head.appendChild(link);
+    await document.fonts.load('24px "Material Symbols Outlined"');
+  } catch (e) {
+    // Keep fallback star. Real icons will not render without the icon map.
+  }
+}
 
 qEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(load, 250); });
 sortEl.addEventListener('change', () => { sort = sortEl.value; load(); });
@@ -248,8 +260,8 @@ function render() {
       thumb = `<div class="thumb"><canvas width="72" height="72" data-preview="${esc(JSON.stringify(it.preview))}"></canvas></div>`;
     } else if (type === 'template' && it.preview) {
       const bg = it.preview.iconBackground === 'transparent' ? 'var(--panel2)' : esc(it.preview.iconBackground);
-      const icon = ICONS[it.preview.icon] || ICONS.routine;
-      thumb = `<div class="thumb" style="background:${bg}"><div class="icon" style="background:${bg};font-size:1.6rem">${icon}</div></div>`;
+      const symbol = iconMap.get(it.preview.icon) || iconMap.get(iconFallback) || 'star';
+      thumb = `<div class="thumb" style="background:${bg}"><div class="icon" style="background:${bg}"><span class="material-symbols-outlined">${esc(symbol)}</span></div></div>`;
     } else {
       thumb = `<div class="thumb"></div>`;
     }
@@ -274,28 +286,48 @@ function render() {
   list.querySelectorAll('canvas[data-preview]').forEach(c => drawGlyphThumb(c, JSON.parse(c.dataset.preview)));
 }
 
+function fillCell(ctx, x, y, s, r) {
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, s, s, r);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x, y, s, s);
+  }
+}
+
 function drawGlyphThumb(canvas, preview) {
   const ctx = canvas.getContext('2d');
   const size = preview.size || 25;
   const p = Array.isArray(preview.firstFrame) ? preview.firstFrame : [];
   const rows = size === 13 ? ROWS_13 : ROWS_25;
-  const cell = canvas.width / size;
+  drawGlyphFrame(ctx, size, rows, p, canvas.width, canvas.height);
+}
+
+function drawGlyphFrame(ctx, size, rows, pixels, w, h) {
   ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
+  const cell = w / size;
+  const inset = cell * 0.16;
+  const inner = cell - inset * 2;
+  const radius = Math.max(1, cell * 0.08);
   let idx = 0;
   for (let r = 0; r < size; r++) {
     const w = rows[r] || 0;
     const start = (size - w) >> 1;
-    for (let c = 0; c < w; c++) {
-      const v = Number(p[idx++] ?? 0);
-      if (v > 0) {
-        const a = v / 255;
-        ctx.fillStyle = `rgba(215,25,33,${a})`;
-        ctx.beginPath();
-        const x = (start + c) * cell + cell/2;
-        const y = r * cell + cell/2;
-        ctx.arc(x, y, cell * 0.35, 0, Math.PI * 2);
-        ctx.fill();
+    for (let c = 0; c < size; c++) {
+      const x = c * cell + inset;
+      const y = r * cell + inset;
+      if (c >= start && c < start + w) {
+        const v = Number(pixels[idx++] ?? 0);
+        if (v > 0) {
+          const a = v / 255;
+          ctx.fillStyle = `rgba(215,25,33,${a})`;
+          fillCell(ctx, x, y, inner, radius);
+        } else {
+          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          fillCell(ctx, x, y, inner, radius);
+        }
       }
     }
   }
@@ -339,39 +371,26 @@ async function playModal() {
   const size = payload.v === 4 ? 13 : 25;
   const canvas = document.getElementById('modalCanvas');
   const rows = size === 13 ? ROWS_13 : ROWS_25;
-  const cell = canvas.width / size;
   let frame = 0;
 
-  if (modalTimer) clearInterval(modalTimer);
-  function draw() {
-    const f = frames[frame];
-    if (!f) return;
-    const p = Array.isArray(f.p) ? f.p : [];
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    let idx = 0;
-    for (let r = 0; r < size; r++) {
-      const w = rows[r] || 0;
-      const start = (size - w) >> 1;
-      for (let c = 0; c < w; c++) {
-        const v = Number(p[idx++] ?? 0);
-        if (v > 0) {
-          const a = v / 255;
-          ctx.fillStyle = `rgba(215,25,33,${a})`;
-          ctx.beginPath();
-          const x = (start + c) * cell + cell/2;
-          const y = r * cell + cell/2;
-          ctx.arc(x, y, cell * 0.38, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-    frame = (frame + 1) % frames.length;
-  }
-  draw();
+  if (modalTimer) cancelAnimationFrame(modalTimer);
+  let last = 0;
   const dur = (frames[0] && Number(frames[0].d) > 0) ? Number(frames[0].d) : 100;
-  modalTimer = setInterval(() => { if (playing) draw(); }, dur);
+  function step(ts) {
+    if (!playing) { modalTimer = requestAnimationFrame(step); return; }
+    if (!last || ts - last >= dur) {
+      const f = frames[frame];
+      if (f) {
+        const p = Array.isArray(f.p) ? f.p : [];
+        const ctx = canvas.getContext('2d');
+        drawGlyphFrame(ctx, size, rows, p, canvas.width, canvas.height);
+      }
+      frame = (frame + 1) % frames.length;
+      last = ts;
+    }
+    modalTimer = requestAnimationFrame(step);
+  }
+  step(0);
 }
 
 function togglePlay() {
@@ -381,7 +400,7 @@ function togglePlay() {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
-  if (modalTimer) clearInterval(modalTimer);
+  if (modalTimer) cancelAnimationFrame(modalTimer);
   modalTimer = null;
   modalItem = null;
 }
@@ -390,7 +409,7 @@ document.getElementById('modal').addEventListener('click', (e) => {
   if (e.target.id === 'modal') closeModal();
 });
 
-load();
+loadIcons().then(load);
 </script>
 </body>
 </html>

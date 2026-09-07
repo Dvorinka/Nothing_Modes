@@ -1,0 +1,482 @@
+{
+  "generated_from": "ui/src/main/kotlin/com/tdvorak/nothingmodes/ui/screens/IconColorPickerSheet.kt",
+  "fallback": "star",
+  "icons": [
+    {
+      "name": "star",
+      "symbol": "star"
+    },
+    {
+      "name": "home",
+      "symbol": "home"
+    },
+    {
+      "name": "wifi",
+      "symbol": "wifi"
+    },
+    {
+      "name": "bluetooth",
+      "symbol": "bluetooth"
+    },
+    {
+      "name": "sun",
+      "symbol": "wb_sunny"
+    },
+    {
+      "name": "dark_mode",
+      "symbol": "dark_mode"
+    },
+    {
+      "name": "brightness",
+      "symbol": "brightness_6"
+    },
+    {
+      "name": "bolt",
+      "symbol": "bolt"
+    },
+    {
+      "name": "lightbulb",
+      "symbol": "lightbulb"
+    },
+    {
+      "name": "notification",
+      "symbol": "notifications"
+    },
+    {
+      "name": "volume",
+      "symbol": "volume_up"
+    },
+    {
+      "name": "music",
+      "symbol": "music_note"
+    },
+    {
+      "name": "alarm",
+      "symbol": "alarm"
+    },
+    {
+      "name": "timer",
+      "symbol": "timer"
+    },
+    {
+      "name": "clock",
+      "symbol": "access_time"
+    },
+    {
+      "name": "location",
+      "symbol": "location_on"
+    },
+    {
+      "name": "language",
+      "symbol": "language"
+    },
+    {
+      "name": "airplane",
+      "symbol": "flight"
+    },
+    {
+      "name": "power",
+      "symbol": "power_settings_new"
+    },
+    {
+      "name": "battery",
+      "symbol": "battery_full"
+    },
+    {
+      "name": "flashlight",
+      "symbol": "flashlight_on"
+    },
+    {
+      "name": "campaign",
+      "symbol": "campaign"
+    },
+    {
+      "name": "message",
+      "symbol": "textsms"
+    },
+    {
+      "name": "email",
+      "symbol": "email"
+    },
+    {
+      "name": "phone",
+      "symbol": "phone"
+    },
+    {
+      "name": "settings",
+      "symbol": "settings"
+    },
+    {
+      "name": "speed",
+      "symbol": "speed"
+    },
+    {
+      "name": "lock",
+      "symbol": "lock"
+    },
+    {
+      "name": "vibration",
+      "symbol": "vibration"
+    },
+    {
+      "name": "mic",
+      "symbol": "mic"
+    },
+    {
+      "name": "cloud",
+      "symbol": "cloud"
+    },
+    {
+      "name": "air",
+      "symbol": "air"
+    },
+    {
+      "name": "work",
+      "symbol": "work"
+    },
+    {
+      "name": "fitness",
+      "symbol": "fitness_center"
+    },
+    {
+      "name": "food",
+      "symbol": "fastfood"
+    },
+    {
+      "name": "shopping",
+      "symbol": "shopping_cart"
+    },
+    {
+      "name": "game",
+      "symbol": "gamepad"
+    },
+    {
+      "name": "person",
+      "symbol": "account_circle"
+    },
+    {
+      "name": "check",
+      "symbol": "check_circle"
+    },
+    {
+      "name": "bed",
+      "symbol": "bed"
+    },
+    {
+      "name": "nights",
+      "symbol": "nights_stay"
+    },
+    {
+      "name": "dnd",
+      "symbol": "do_not_disturb"
+    },
+    {
+      "name": "coffee",
+      "symbol": "coffee"
+    },
+    {
+      "name": "car",
+      "symbol": "directions_car"
+    },
+    {
+      "name": "hospital",
+      "symbol": "local_hospital"
+    },
+    {
+      "name": "movie",
+      "symbol": "movie"
+    },
+    {
+      "name": "book",
+      "symbol": "menu_book"
+    },
+    {
+      "name": "ac_unit",
+      "symbol": "ac_unit"
+    },
+    {
+      "name": "beach",
+      "symbol": "beach_access"
+    },
+    {
+      "name": "cyclone",
+      "symbol": "cyclone"
+    },
+    {
+      "name": "eco",
+      "symbol": "eco"
+    },
+    {
+      "name": "fire",
+      "symbol": "local_fire_department"
+    },
+    {
+      "name": "nature",
+      "symbol": "nature"
+    },
+    {
+      "name": "park",
+      "symbol": "park"
+    },
+    {
+      "name": "storm",
+      "symbol": "storm"
+    },
+    {
+      "name": "umbrella",
+      "symbol": "umbrella"
+    },
+    {
+      "name": "water",
+      "symbol": "water"
+    },
+    {
+      "name": "waves",
+      "symbol": "waves"
+    },
+    {
+      "name": "wb_cloudy",
+      "symbol": "wb_cloudy"
+    },
+    {
+      "name": "airport",
+      "symbol": "local_airport"
+    },
+    {
+      "name": "bike",
+      "symbol": "pedal_bike"
+    },
+    {
+      "name": "boat",
+      "symbol": "directions_boat"
+    },
+    {
+      "name": "bus",
+      "symbol": "directions_bus"
+    },
+    {
+      "name": "electric_car",
+      "symbol": "electric_car"
+    },
+    {
+      "name": "gas",
+      "symbol": "local_gas_station"
+    },
+    {
+      "name": "grocery",
+      "symbol": "local_grocery_store"
+    },
+    {
+      "name": "hotel",
+      "symbol": "local_hotel"
+    },
+    {
+      "name": "mall",
+      "symbol": "local_mall"
+    },
+    {
+      "name": "parking",
+      "symbol": "local_parking"
+    },
+    {
+      "name": "pizza",
+      "symbol": "local_pizza"
+    },
+    {
+      "name": "railway",
+      "symbol": "directions_railway"
+    },
+    {
+      "name": "restaurant",
+      "symbol": "restaurant"
+    },
+    {
+      "name": "rocket",
+      "symbol": "rocket"
+    },
+    {
+      "name": "run",
+      "symbol": "directions_run"
+    },
+    {
+      "name": "subway",
+      "symbol": "subway"
+    },
+    {
+      "name": "taxi",
+      "symbol": "local_taxi"
+    },
+    {
+      "name": "train",
+      "symbol": "train"
+    },
+    {
+      "name": "tram",
+      "symbol": "tram"
+    },
+    {
+      "name": "walk",
+      "symbol": "directions_walk"
+    },
+    {
+      "name": "bath",
+      "symbol": "bathtub"
+    },
+    {
+      "name": "brush",
+      "symbol": "brush"
+    },
+    {
+      "name": "camera",
+      "symbol": "camera_alt"
+    },
+    {
+      "name": "celebration",
+      "symbol": "celebration"
+    },
+    {
+      "name": "cookie",
+      "symbol": "cookie"
+    },
+    {
+      "name": "dining",
+      "symbol": "dinner_dining"
+    },
+    {
+      "name": "edit",
+      "symbol": "edit"
+    },
+    {
+      "name": "event",
+      "symbol": "event"
+    },
+    {
+      "name": "flower",
+      "symbol": "local_florist"
+    },
+    {
+      "name": "gift",
+      "symbol": "card_giftcard"
+    },
+    {
+      "name": "icecream",
+      "symbol": "icecream"
+    },
+    {
+      "name": "laptop",
+      "symbol": "laptop"
+    },
+    {
+      "name": "light",
+      "symbol": "lightbulb"
+    },
+    {
+      "name": "medical",
+      "symbol": "medical_services"
+    },
+    {
+      "name": "money",
+      "symbol": "attach_money"
+    },
+    {
+      "name": "pets",
+      "symbol": "pets"
+    },
+    {
+      "name": "photo",
+      "symbol": "photo_camera"
+    },
+    {
+      "name": "pool",
+      "symbol": "pool"
+    },
+    {
+      "name": "science",
+      "symbol": "science"
+    },
+    {
+      "name": "shopping_bag",
+      "symbol": "shopping_bag"
+    },
+    {
+      "name": "shopping_basket",
+      "symbol": "shopping_basket"
+    },
+    {
+      "name": "shower",
+      "symbol": "shower"
+    },
+    {
+      "name": "skateboard",
+      "symbol": "skateboarding"
+    },
+    {
+      "name": "smartphone",
+      "symbol": "smartphone"
+    },
+    {
+      "name": "sports_bar",
+      "symbol": "sports_bar"
+    },
+    {
+      "name": "sports_baseball",
+      "symbol": "sports_baseball"
+    },
+    {
+      "name": "sports_basketball",
+      "symbol": "sports_basketball"
+    },
+    {
+      "name": "sports_football",
+      "symbol": "sports_football"
+    },
+    {
+      "name": "sports_golf",
+      "symbol": "sports_golf"
+    },
+    {
+      "name": "sports_soccer",
+      "symbol": "sports_soccer"
+    },
+    {
+      "name": "sports_tennis",
+      "symbol": "sports_tennis"
+    },
+    {
+      "name": "stadium",
+      "symbol": "stadium"
+    },
+    {
+      "name": "store",
+      "symbol": "store"
+    },
+    {
+      "name": "storefront",
+      "symbol": "storefront"
+    },
+    {
+      "name": "surfing",
+      "symbol": "surfing"
+    },
+    {
+      "name": "theater",
+      "symbol": "theater_comedy"
+    },
+    {
+      "name": "toys",
+      "symbol": "toys"
+    },
+    {
+      "name": "wallet",
+      "symbol": "wallet"
+    },
+    {
+      "name": "watch",
+      "symbol": "watch"
+    },
+    {
+      "name": "wine",
+      "symbol": "wine_bar"
+    }
+  ]
+}

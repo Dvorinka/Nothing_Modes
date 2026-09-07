@@ -62,6 +62,10 @@
   .status ul { margin:.5rem 0 0 1.2rem; }
   .status li { margin:.2rem 0; }
   .hidden { display:none; }
+  .icon-preview { display:flex; align-items:center; gap:1rem; min-height:3rem; }
+  .icon-preview .icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.1); color:#fff; }
+  .icon-preview .icon .material-symbols-outlined { font-size:22px; }
+  .icon-preview .label { color:var(--dim); font-family:"Geist Mono",monospace; font-size:.8rem; }
 </style>
 </head>
 <body>
@@ -102,6 +106,21 @@
       <label for="github">GitHub (optional)</label>
       <input id="github" type="text" maxlength="200" placeholder="https://github.com/yourname or @yourname">
     </div>
+
+    <div id="iconFields" class="hidden">
+      <div class="field" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:2; min-width:140px;">
+          <label for="icon">Icon</label>
+          <select id="icon"></select>
+        </div>
+        <div style="flex:1; min-width:120px;">
+          <label for="iconBg">Icon background</label>
+          <input id="iconBg" type="text" maxlength="20" value="#161616" placeholder="#161616">
+        </div>
+      </div>
+      <div class="field icon-preview" id="iconPreview"></div>
+    </div>
+
     <div class="field">
       <label for="payload">Payload JSON</label>
       <textarea id="payload" required placeholder="Paste the exported JSON here"></textarea>
@@ -119,6 +138,65 @@
 
 <script>
 let type = 'template';
+let iconList = [];
+let iconMap = new Map();
+let iconFallback = 'star';
+
+async function loadIcons() {
+  try {
+    const res = await fetch('/icons.json');
+    const data = await res.json();
+    iconFallback = data.fallback || 'star';
+    iconList = data.icons || [];
+    iconMap = new Map(iconList.map(i => [i.name, i.symbol]));
+    const names = [...new Set(iconList.map(i => i.symbol))].sort().join(',');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=${encodeURIComponent(names)}&display=block`;
+    document.head.appendChild(link);
+    await document.fonts.load('24px "Material Symbols Outlined"');
+    populateIconSelect();
+  } catch (e) {
+    // Icon picker unavailable.
+  }
+}
+
+function populateIconSelect() {
+  const select = document.getElementById('icon');
+  select.innerHTML = '';
+  for (const i of iconList) {
+    const opt = document.createElement('option');
+    opt.value = i.name;
+    opt.textContent = i.name;
+    select.appendChild(opt);
+  }
+  select.value = 'star';
+  updateIconPreview();
+}
+
+function updateIconPreview() {
+  const name = document.getElementById('icon').value;
+  const bg = document.getElementById('iconBg').value || '#161616';
+  const symbol = iconMap.get(name) || iconMap.get(iconFallback) || 'star';
+  document.getElementById('iconPreview').innerHTML = `
+    <div class="icon" style="background:${esc(bg)}"><span class="material-symbols-outlined">${esc(symbol)}</span></div>
+    <span class="label">${esc(name)}</span>
+  `;
+}
+
+function syncIconFromPayload() {
+  try {
+    const payload = JSON.parse(document.getElementById('payload').value);
+    if (payload && typeof payload === 'object') {
+      if (payload.icon) document.getElementById('icon').value = payload.icon;
+      if (payload.iconBackground) document.getElementById('iconBg').value = payload.iconBackground;
+      updateIconPreview();
+    }
+  } catch {}
+}
+
+document.getElementById('icon').addEventListener('change', updateIconPreview);
+document.getElementById('iconBg').addEventListener('input', updateIconPreview);
 
 document.querySelectorAll('.tab').forEach(b =>
   b.addEventListener('click', () => {
@@ -128,6 +206,7 @@ document.querySelectorAll('.tab').forEach(b =>
       type === 'template'
         ? 'For a mode: export from the app as JSON.'
         : 'For a glyph: the Glyph Matrix JSON with frames.';
+    document.getElementById('iconFields').classList.toggle('hidden', type !== 'template');
   }));
 
 document.getElementById('file').addEventListener('change', async (e) => {
@@ -136,6 +215,11 @@ document.getElementById('file').addEventListener('change', async (e) => {
   document.getElementById('fileLabel').textContent = f.name;
   const text = await f.text();
   document.getElementById('payload').value = text;
+  if (type === 'template') syncIconFromPayload();
+});
+
+document.getElementById('payload').addEventListener('input', () => {
+  if (type === 'template') syncIconFromPayload();
 });
 
 const form = document.getElementById('shareForm');
@@ -155,6 +239,11 @@ form.addEventListener('submit', async (e) => {
     resEl.textContent = 'Payload is not valid JSON.';
     btn.disabled = false;
     return;
+  }
+
+  if (type === 'template' && payload && typeof payload === 'object') {
+    payload.icon = document.getElementById('icon').value;
+    payload.iconBackground = document.getElementById('iconBg').value;
   }
 
   const body = {
@@ -205,6 +294,9 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+document.getElementById('iconFields').classList.toggle('hidden', type !== 'template');
+loadIcons();
 </script>
 </body>
 </html>
