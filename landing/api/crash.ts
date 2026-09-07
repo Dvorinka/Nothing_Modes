@@ -107,10 +107,11 @@ async function notify(report: CrashReport): Promise<string> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Nothing Modes <onboarding@resend.dev>',
+      from: 'Nothing Modes <nothing-modes@tdvorak.dev>',
       to: [to],
       subject,
       text,
+      html: renderHtml(report, subject),
     }),
   });
   if (!res.ok) {
@@ -118,4 +119,45 @@ async function notify(report: CrashReport): Promise<string> {
     return `failed:${res.status}:${err.slice(0, 150)}`;
   }
   return 'sent';
+}
+
+function esc(s: unknown): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+  );
+}
+
+function row(label: string, value: unknown): string {
+  return `<tr>
+    <td style="padding:6px 12px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;vertical-align:top">${label}</td>
+    <td style="padding:6px 12px;color:#1a1a1a;font-size:13px">${esc(value) || '—'}</td>
+  </tr>`;
+}
+
+function renderHtml(report: CrashReport, subject: string): string {
+  const time = report.client_time ? new Date(report.client_time).toISOString() : '';
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:ui-monospace,Menlo,Consolas,monospace">
+  <div style="max-width:640px;margin:0 auto;padding:24px">
+    <div style="background:#0a0a0a;border-radius:8px 8px 0 0;padding:20px 24px">
+      <span style="color:#fff;font-size:14px;letter-spacing:.25em">N O T H I N G &nbsp; M O D E S</span>
+      <span style="float:right;color:#d9ff3f;font-size:11px;letter-spacing:.1em">${esc(report.kind ?? 'crash').toUpperCase()}</span>
+    </div>
+    <div style="background:#fff;border:1px solid #e5e5e5;border-top:0;padding:8px 12px">
+      <table style="width:100%;border-collapse:collapse">
+        ${row('Exception', report.exception_class)}
+        ${row('Message', report.message)}
+        ${row('App', `${report.app_version ?? ''} (${report.version_code ?? ''}) · ${report.flavor ?? ''}`)}
+        ${row('Device', `${report.device ?? ''} — Android ${report.android_release ?? ''} (SDK ${report.sdk_int ?? ''})`)}
+        ${row('Thread', report.thread)}
+        ${row('Context', report.context)}
+        ${row('Time', time)}
+      </table>
+    </div>
+    <div style="background:#fff;border:1px solid #e5e5e5;border-top:0;border-radius:0 0 8px 8px;padding:16px 24px">
+      <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Stack trace</div>
+      <pre style="margin:0;padding:12px;background:#0f0f0f;color:#ccc;border-radius:6px;font-size:11px;line-height:1.5;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${esc(String(report.stacktrace ?? '').slice(0, 8000))}</pre>
+    </div>
+    <p style="color:#aaa;font-size:10px;text-align:center;margin-top:16px">${esc(subject)} — view all reports at nothing-modes.vercel.app/admin</p>
+  </div>
+</body></html>`;
 }
