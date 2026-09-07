@@ -38,16 +38,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.nothing.GlyphFrameCodec
 import com.tdvorak.nothingmodes.nothing.GlyphRasterizer
@@ -88,6 +93,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 private enum class PaintMode { PAINT, SELECT }
 
@@ -111,7 +117,7 @@ class GlyphEditorViewModel
     @Inject
     constructor(
         private val matrixProvider: NothingGlyphMatrixProvider,
-        @ApplicationContext context: Context,
+        @ApplicationContext private val context: Context,
     ) : ViewModel() {
         private val store = CustomGlyphStore(context)
 
@@ -152,6 +158,84 @@ class GlyphEditorViewModel
         fun importJson(json: String): String? = store.import(json, null)
 
         fun author(name: String): String? = store.design(name)?.author
+
+        // ── Community library ──────────────────────────────────────────────
+
+        private val _library =
+            kotlinx.coroutines.flow.MutableStateFlow<List<com.tdvorak.nothingmodes.data.community.CommunityApi.LibraryItem>>(
+                emptyList(),
+            )
+        val library = _library
+
+        private val _sharing = kotlinx.coroutines.flow.MutableStateFlow(false)
+        val sharing = _sharing
+
+        private val _shareResult =
+            kotlinx.coroutines.flow.MutableStateFlow<com.tdvorak.nothingmodes.data.community.CommunityApi.SubmitResult?>(
+                null,
+            )
+        val shareResult = _shareResult
+
+        val creatorProfile = com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences(context)
+
+        init {
+            viewModelScope.launch {
+                _library.value =
+                    runCatching {
+                        com.tdvorak.nothingmodes.data.community.CommunityApi.list(type = "glyph")
+                    }.getOrDefault(emptyList())
+            }
+        }
+
+        /** Publish a saved design to the community library (admin review). */
+        fun publishGlyph(
+            designName: String,
+            title: String,
+            description: String,
+            handle: String,
+            email: String,
+            github: String,
+        ) {
+            val designJson = store.designJson(designName) ?: run {
+                _shareResult.value =
+                    com.tdvorak.nothingmodes.data.community.CommunityApi.SubmitResult.Failed("design not found")
+                return
+            }
+            viewModelScope.launch {
+                _sharing.value = true
+                _shareResult.value =
+                    runCatching {
+                        com.tdvorak.nothingmodes.data.community.CommunityApi.submit(
+                            type = "glyph",
+                            title = title,
+                            description = description,
+                            handle = handle,
+                            email = email,
+                            github = github,
+                            payload =
+                                com.tdvorak.nothingmodes.engine.model.EngineJson.json
+                                    .parseToJsonElement(designJson),
+                        )
+                    }.getOrElse {
+                        com.tdvorak.nothingmodes.data.community.CommunityApi.SubmitResult.Failed(
+                            it.message ?: "submit failed",
+                        )
+                    }
+                _sharing.value = false
+            }
+        }
+
+        fun clearShareResult() {
+            _shareResult.value = null
+        }
+
+        /** Import an approved community design; returns the stored name or null. */
+        suspend fun importLibraryItem(item: com.tdvorak.nothingmodes.data.community.CommunityApi.LibraryItem): String? =
+            runCatching {
+                val payload =
+                    com.tdvorak.nothingmodes.data.community.CommunityApi.fetchItem(item.id)
+                store.import(payload.toString(), item.title)
+            }.getOrNull()
     }
 
 private val targets =
@@ -160,6 +244,7 @@ private val targets =
         TargetDevice("13 \u00d7 13 \u00b7 Phone 4a Pro", 13),
     )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlyphEditorScreen(
     onBack: () -> Unit,
@@ -182,6 +267,11 @@ fun GlyphEditorScreen(
     var showEmojiDialog by remember { mutableStateOf(false) }
     var dialogText by remember { mutableStateOf("") }
     var pendingImport by remember { mutableStateOf<ImportType?>(null) }
+    var shareDesign by remember { mutableStateOf<String?>(null) }
+    val library by viewModel.library.collectAsState()
+    val sharing by viewModel.sharing.collectAsState()
+    val shareResult by viewModel.shareResult.collectAsState()
+    val scope = rememberCoroutineScope()
 
     val brush = remember(opacity) { opacity * 4095 / 255 }
 
@@ -836,19 +926,34 @@ fun GlyphEditorScreen(
                                             }
                                         },
                                         trailing = {
-                                            Text(
-                                                text = "X",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = NothingColors.accent,
-                                                fontFamily = NothingFonts.mono(),
-                                                modifier =
-                                                    Modifier
-                                                        .clip(NothingShapes.input)
-                                                        .clickable {
-                                                            viewModel.delete(entry)
-                                                            refreshNames()
-                                                        }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
-                                            )
+                                            Row {
+                                                Text(
+                                                    text = "SHARE",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    fontFamily = NothingFonts.mono(),
+                                                    modifier =
+                                                        Modifier
+                                                            .clip(NothingShapes.input)
+                                                            .clickable {
+                                                                viewModel.clearShareResult()
+                                                                shareDesign = entry
+                                                            }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                                                )
+                                                Text(
+                                                    text = "X",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = NothingColors.accent,
+                                                    fontFamily = NothingFonts.mono(),
+                                                    modifier =
+                                                        Modifier
+                                                            .clip(NothingShapes.input)
+                                                            .clickable {
+                                                                viewModel.delete(entry)
+                                                                refreshNames()
+                                                            }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                                                )
+                                            }
                                         },
                                     )
                                 }
@@ -857,6 +962,54 @@ fun GlyphEditorScreen(
                     }
                 }
             }
+
+            if (library.isNotEmpty()) {
+                item {
+                    NothingCard {
+                        NothingSectionHeader(text = "Community designs — reviewed", modifier = Modifier)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            library.forEachIndexed { index, item ->
+                                if (index > 0) NothingDivider()
+                                NothingListRow(
+                                    title = item.title,
+                                    subtitle =
+                                        "by @${item.handle}" +
+                                            if (item.summary.isNotBlank()) " · ${item.summary}" else "",
+                                    onClick = {
+                                        scope.launch {
+                                            val stored = viewModel.importLibraryItem(item)
+                                            Toast.makeText(
+                                                context,
+                                                if (stored != null) "Imported as $stored" else "Import failed",
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
+                                            refreshNames()
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    shareDesign?.let { designName ->
+        ModalBottomSheet(
+            onDismissRequest = { shareDesign = null },
+        ) {
+            ShareSheet(
+                initialTitle = designName,
+                initialDescription = "",
+                profile = viewModel.creatorProfile.get(),
+                sharing = sharing,
+                result = shareResult,
+                onPublish = { t, d, h, e, g ->
+                    viewModel.publishGlyph(designName, t, d, h, e, g)
+                },
+                onDismiss = { shareDesign = null },
+            )
         }
     }
 }

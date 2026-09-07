@@ -41,10 +41,12 @@ import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.model.TemplateIndex
 import com.tdvorak.nothingmodes.engine.model.TemplateSummary
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ExportBundle
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -116,6 +118,24 @@ class TemplateCatalogViewModel
         private val _installed = MutableStateFlow<ImportResult?>(null)
         val installed: StateFlow<ImportResult?> = _installed.asStateFlow()
 
+        /** Approved community items from the website library (type=template). */
+        private val _library = MutableStateFlow<List<CommunityApi.LibraryItem>>(emptyList())
+        val library: StateFlow<List<CommunityApi.LibraryItem>> = _library.asStateFlow()
+
+        private val _sharing = MutableStateFlow(false)
+        val sharing: StateFlow<Boolean> = _sharing.asStateFlow()
+
+        private val _shareResult = MutableStateFlow<CommunityApi.SubmitResult?>(null)
+        val shareResult: StateFlow<CommunityApi.SubmitResult?> = _shareResult.asStateFlow()
+
+        /** User template currently staged for publishing. */
+        private val _shareTarget =
+            MutableStateFlow<com.tdvorak.nothingmodes.engine.model.UserTemplate?>(null)
+        val shareTarget: StateFlow<com.tdvorak.nothingmodes.engine.model.UserTemplate?> =
+            _shareTarget.asStateFlow()
+
+        val creatorProfile = CreatorPreferences(context)
+
         private val importExportService =
             ImportExportService(
                 store,
@@ -141,6 +161,8 @@ class TemplateCatalogViewModel
                 } catch (e: Exception) {
                     _error.value = "Could not load templates: ${e.message}"
                 }
+                _library.value =
+                    runCatching { CommunityApi.list(type = "template") }.getOrDefault(emptyList())
                 _loading.value = false
             }
         }
@@ -164,6 +186,101 @@ class TemplateCatalogViewModel
                     ?.sortedBy { it.name }
                     ?: emptyList()
             }
+
+        fun stageShare(template: com.tdvorak.nothingmodes.engine.model.UserTemplate) {
+            _shareResult.value = null
+            _shareTarget.value = template
+        }
+
+        fun dismissShare() {
+            _shareTarget.value = null
+            _shareResult.value = null
+        }
+
+        /** Publish a user template to the community library (goes to admin review). */
+        fun publish(
+            title: String,
+            description: String,
+            handle: String,
+            email: String,
+            github: String,
+        ) {
+            val template = _shareTarget.value ?: return
+            viewModelScope.launch {
+                _sharing.value = true
+                try {
+                    val bundle =
+                        ExportBundle(
+                            schemaVersion = 1,
+                            exportedAt = System.currentTimeMillis(),
+                            automations = template.automations,
+                            appVersion =
+                                runCatching {
+                                    context.packageManager
+                                        .getPackageInfo(context.packageName, 0).versionName
+                                }.getOrNull().orEmpty(),
+                        )
+                    val payload =
+                        com.tdvorak.nothingmodes.engine.model.EngineJson.json
+                            .parseToJsonElement(EngineJson.json.encodeToString(bundle))
+                    _shareResult.value =
+                        CommunityApi.submit(
+                            type = "template",
+                            title = title,
+                            description = description,
+                            handle = handle,
+                            email = email,
+                            github = github,
+                            payload = payload,
+                        )
+                } catch (e: Exception) {
+                    _shareResult.value = CommunityApi.SubmitResult.Failed(e.message ?: "submit failed")
+                }
+                _sharing.value = false
+            }
+        }
+
+        /** Fetch an approved library item and stage it through the same review sheet. */
+        fun selectLibraryItem(item: CommunityApi.LibraryItem) {
+            viewModelScope.launch {
+                _error.value = null
+                try {
+                    val payload = CommunityApi.fetchItem(item.id)
+                    val preview = importExportService.preview(payload.toString())
+                    val summary =
+                        TemplateSummary(
+                            id = "lib:${item.id}",
+                            name = item.title,
+                            description = item.description,
+                            creator = item.handle,
+                            file = "",
+                        )
+                    if (!preview.isSupported) {
+                        _pending.value =
+                            PendingTemplateInstall(summary, emptyList(), emptyList(), emptyList(), preview.errors)
+                        return@launch
+                    }
+                    val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                    val resolution = CapabilityResolver(caps).resolve(item.id, preview.requiredCapabilities)
+                    _pending.value =
+                        PendingTemplateInstall(
+                            summary = summary,
+                            automations = preview.automations,
+                            warnings =
+                                resolution.missing
+                                    .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                                    .distinct(),
+                            satisfied =
+                                (preview.requiredCapabilities - resolution.missing)
+                                    .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                                    .distinct(),
+                            errors = emptyList(),
+                        )
+                } catch (e: Exception) {
+                    _error.value = "Could not load item: ${e.message}"
+                }
+            }
+        }
 
         fun deleteUserTemplate(id: String) {
             java.io.File(templateDir(), "$id.json").delete()
@@ -309,6 +426,10 @@ fun TemplateCatalogScreen(
     val pending by viewModel.pending.collectAsState()
     val installing by viewModel.installing.collectAsState()
     val installed by viewModel.installed.collectAsState()
+    val library by viewModel.library.collectAsState()
+    val shareTarget by viewModel.shareTarget.collectAsState()
+    val sharing by viewModel.sharing.collectAsState()
+    val shareResult by viewModel.shareResult.collectAsState()
     var search by remember { mutableStateOf("") }
 
     val visibleRemote =
@@ -323,6 +444,13 @@ fun TemplateCatalogScreen(
             search.isBlank() ||
                 it.name.contains(search, true) ||
                 it.description.contains(search, true)
+        }
+    val visibleLibrary =
+        library.filter {
+            search.isBlank() ||
+                it.title.contains(search, true) ||
+                it.description.contains(search, true) ||
+                it.handle.contains(search, true)
         }
 
     Scaffold(
@@ -403,17 +531,30 @@ fun TemplateCatalogScreen(
                                             },
                                         onClick = { viewModel.selectUserTemplate(template) },
                                         trailing = {
-                                            Text(
-                                                text = "DELETE",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = NothingColors.accent,
-                                                fontFamily = NothingFonts.mono(),
-                                                modifier =
-                                                    Modifier
-                                                        .clickable {
-                                                            viewModel.deleteUserTemplate(template.id)
-                                                        }.padding(NothingSpacing.sm),
-                                            )
+                                            Row {
+                                                Text(
+                                                    text = "SHARE",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    fontFamily = NothingFonts.mono(),
+                                                    modifier =
+                                                        Modifier
+                                                            .clickable {
+                                                                viewModel.stageShare(template)
+                                                            }.padding(NothingSpacing.sm),
+                                                )
+                                                Text(
+                                                    text = "DELETE",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = NothingColors.accent,
+                                                    fontFamily = NothingFonts.mono(),
+                                                    modifier =
+                                                        Modifier
+                                                            .clickable {
+                                                                viewModel.deleteUserTemplate(template.id)
+                                                            }.padding(NothingSpacing.sm),
+                                                )
+                                            }
                                         },
                                     )
                                 }
@@ -422,12 +563,24 @@ fun TemplateCatalogScreen(
 
                         if (visibleRemote.isNotEmpty()) {
                             item {
-                                NothingLabel(text = "Community templates")
+                                NothingLabel(text = "Featured templates")
                             }
                             items(visibleRemote, key = { it.id }) { template ->
                                 TemplateRow(
                                     template = template,
                                     onClick = { viewModel.select(template) },
+                                )
+                            }
+                        }
+
+                        if (visibleLibrary.isNotEmpty()) {
+                            item {
+                                NothingLabel(text = "Community library — reviewed")
+                            }
+                            items(visibleLibrary, key = { "lib:${it.id}" }) { item ->
+                                LibraryRow(
+                                    item = item,
+                                    onClick = { viewModel.selectLibraryItem(item) },
                                 )
                             }
                         }
@@ -445,6 +598,23 @@ fun TemplateCatalogScreen(
                 install = install,
                 installing = installing,
                 onConfirm = { viewModel.confirmInstall() },
+            )
+        }
+    }
+
+    shareTarget?.let { template ->
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.dismissShare() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            ShareSheet(
+                initialTitle = template.name,
+                initialDescription = template.description,
+                profile = viewModel.creatorProfile.get(),
+                sharing = sharing,
+                result = shareResult,
+                onPublish = { t, d, h, e, g -> viewModel.publish(t, d, h, e, g) },
+                onDismiss = { viewModel.dismissShare() },
             )
         }
     }
@@ -525,6 +695,37 @@ private fun TemplateRow(
                 template.tags.take(3).forEach { tag ->
                     NothingTag(text = tag, active = false)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryRow(
+    item: CommunityApi.LibraryItem,
+    onClick: () -> Unit,
+) {
+    NothingCard(modifier = Modifier.fillMaxWidth()) {
+        NothingListRow(
+            title = item.title,
+            subtitle = item.description.ifBlank { item.summary },
+            onClick = onClick,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "by @${item.handle}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            if (item.summary.isNotBlank()) {
+                NothingTag(text = item.summary, active = false)
+            }
+            if ("shizuku_required" in item.capabilities) {
+                NothingTag(text = "Shizuku", active = false)
             }
         }
     }

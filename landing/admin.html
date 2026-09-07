@@ -81,8 +81,20 @@
   pre { background:var(--panel2); border:1px solid var(--line); border-radius:.45rem; padding:.8rem;
     overflow-x:auto; font-size:.72rem; line-height:1.55; white-space:pre-wrap; word-break:break-all; color:#bbb; }
 
-  #status { color:var(--dim); margin-bottom:1rem; font-size:.85rem; min-height:1.2em; }
+  #status, #subsStatus { color:var(--dim); margin-bottom:1rem; font-size:.85rem; min-height:1.2em; }
   .empty { color:var(--dim); text-align:center; padding:3rem 0; font-family:"Geist Mono",monospace; font-size:.85rem; }
+
+  /* ── tabs & submissions ── */
+  .tabs { display:flex; gap:.6rem; margin-bottom:1.4rem; }
+  .subbadge { background:var(--red); color:#fff; border-radius:99px; padding:.1rem .45rem;
+    font-size:.62rem; margin-left:.3rem; }
+  .subbadge:empty { display:none; }
+  .sub .sev { font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+  .sev.block { color:var(--red); } .sev.warn { color:var(--amber); } .sev.info { color:var(--dim); }
+  .findings { margin:.6rem 0; }
+  .findings li { font-size:.78rem; margin:.3rem 0; color:var(--dim); list-style:none; }
+  .sub-actions { display:flex; gap:.6rem; margin-top:.8rem; }
+  .btn.ok { background:#1a7f37; } .btn.no { background:var(--red); }
 </style>
 </head>
 <body>
@@ -96,18 +108,36 @@
 
 <div id="app">
   <div class="top">
-    <h1>NOTHING MODES <em>/</em> CRASH REPORTS</h1>
+    <h1>NOTHING MODES <em>/</em> <span id="viewTitle">CRASH REPORTS</span></h1>
     <button class="btn ghost" onclick="logout()">Sign out</button>
   </div>
-  <div class="stats" id="stats"></div>
-  <div class="filters">
-    <input id="q" type="search" placeholder="Filter by exception, message, device, version…">
-    <button class="chip on" data-kind="all">All</button>
-    <button class="chip" data-kind="crash"><span class="dot" style="background:var(--red)"></span>Crashes</button>
-    <button class="chip" data-kind="error"><span class="dot" style="background:var(--amber)"></span>Errors</button>
+  <div class="tabs">
+    <button class="chip on" data-view="crashes">Crash reports</button>
+    <button class="chip" data-view="subs">Submissions <span id="subBadge" class="subbadge"></span></button>
   </div>
-  <div id="status">Loading…</div>
-  <div id="list"></div>
+
+  <div id="crashesView">
+    <div class="stats" id="stats"></div>
+    <div class="filters">
+      <input id="q" type="search" placeholder="Filter by exception, message, device, version…">
+      <button class="chip on" data-kind="all">All</button>
+      <button class="chip" data-kind="crash"><span class="dot" style="background:var(--red)"></span>Crashes</button>
+      <button class="chip" data-kind="error"><span class="dot" style="background:var(--amber)"></span>Errors</button>
+    </div>
+    <div id="status">Loading…</div>
+    <div id="list"></div>
+  </div>
+
+  <div id="subsView" style="display:none">
+    <div class="filters">
+      <button class="chip on" data-sstatus="pending">Pending</button>
+      <button class="chip" data-sstatus="approved">Approved</button>
+      <button class="chip" data-sstatus="rejected">Rejected</button>
+      <button class="chip" data-sstatus="all">All</button>
+    </div>
+    <div id="subsStatus"></div>
+    <div id="subsList"></div>
+  </div>
 </div>
 
 <script>
@@ -238,6 +268,102 @@ function render() {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ── Submissions tab ─────────────────────────────────────────────────────────
+let subsStatus = 'pending';
+let subs = [];
+
+document.querySelectorAll('[data-view]').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('on', x === b));
+    const subs_ = b.dataset.view === 'subs';
+    document.getElementById('crashesView').style.display = subs_ ? 'none' : '';
+    document.getElementById('subsView').style.display = subs_ ? '' : 'none';
+    document.getElementById('viewTitle').textContent = subs_ ? 'SUBMISSIONS' : 'CRASH REPORTS';
+    if (subs_) loadSubs();
+  }));
+document.querySelectorAll('[data-sstatus]').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-sstatus]').forEach(x => x.classList.toggle('on', x === b));
+    subsStatus = b.dataset.sstatus;
+    loadSubs();
+  }));
+
+async function loadSubs() {
+  const el = document.getElementById('subsStatus');
+  el.textContent = 'Loading…';
+  const res = await fetch('/api/submissions?status=' + subsStatus, {
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
+  });
+  if (res.status === 401) { el.textContent = 'Unauthorized.'; return; }
+  const data = await res.json();
+  subs = data.submissions || [];
+  renderSubs();
+  // badge on the tab shows pending count whenever we're on either view
+  fetch('/api/submissions?status=pending', {
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
+  }).then(r => r.json()).then(d => {
+    document.getElementById('subBadge').textContent = (d.submissions || []).length || '';
+  }).catch(() => {});
+}
+
+function renderSubs() {
+  const list = document.getElementById('subsList');
+  document.getElementById('subsStatus').textContent = subs.length ? '' : '';
+  list.innerHTML = '';
+  if (!subs.length) {
+    list.innerHTML = '<div class="empty">NOTHING ' + subsStatus.toUpperCase() + '</div>';
+    return;
+  }
+  for (const s of subs) {
+    const a = s.analysis || {};
+    const findings = (a.findings || []);
+    const el = document.createElement('div');
+    el.className = 'group sub';
+    el.innerHTML = `
+      <div class="group-head">
+        <span class="badge ${s.status === 'pending' ? 'error' : s.status === 'approved' ? '' : 'crash'}"
+              style="${s.status === 'approved' ? 'background:rgba(26,127,55,.15);color:#3fb950;border-color:rgba(63,185,80,.4)' : ''}">
+          ${esc(s.status)}</span>
+        <div class="group-body">
+          <div class="sig">${esc(s.title)}</div>
+          <div class="msg">@${esc(s.handle)} · ${esc(s.type)} · ${esc(s.summary || '')}${s.github ? ' · ' + esc(s.github) : ''}</div>
+          <div class="meta">
+            <span class="tag">${ago(s.created_at)}</span>
+            <span class="tag">verdict: ${esc(a.verdict || '?')}</span>
+            ${(s.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
+            ${s.moderated_by ? `<span class="tag">by ${esc(s.moderated_by)}</span>` : ''}
+          </div>
+          <ul class="findings">${findings.map(f =>
+            `<li><span class="sev ${f.severity}">${esc(f.severity)}</span> ${esc(f.code)} — ${esc(f.detail)}</li>`).join('')}</ul>
+          ${s.description ? `<div class="msg" style="margin-top:.4rem">${esc(s.description)}</div>` : ''}
+          ${s.moderation_reason ? `<div class="msg" style="color:var(--amber)">reason: ${esc(s.moderation_reason)}</div>` : ''}
+          <pre style="display:none" class="payload">${esc(JSON.stringify(s.payload, null, 2))}</pre>
+          <div class="sub-actions">
+            <button class="btn ghost" onclick="event.stopPropagation();this.closest('.sub').querySelector('.payload').style.display=this.closest('.sub').querySelector('.payload').style.display==='none'?'block':'none'">JSON</button>
+            ${s.status === 'pending' ? `
+              <button class="btn ok" onclick="event.stopPropagation();moderate('${s.id}','approve')">Approve</button>
+              <button class="btn no" onclick="event.stopPropagation();moderate('${s.id}','reject')">Reject</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(el);
+  }
+}
+
+async function moderate(id, decision) {
+  const reason = decision === 'reject' ? (prompt('Reason (sent to the author):') || '') : '';
+  const res = await fetch('/api/moderate', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token'),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ id, decision, reason, moderatedBy: 'admin' }),
+  });
+  if (!res.ok) { alert('Failed: ' + await res.text()); return; }
+  loadSubs();
 }
 </script>
 </body>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing Modes — Library</title>
+<meta name="description" content="Community-made modes and glyph designs for Nothing Modes. Every item is security-reviewed before publication.">
+<meta name="theme-color" content="#000000">
+<style>
+  @font-face { font-family:"Doto"; src:url("fonts/doto.ttf") format("truetype"); font-display:swap; }
+  @font-face { font-family:"Geist Mono"; src:url("fonts/geist_mono_regular.ttf") format("truetype"); font-display:swap; }
+  @font-face { font-family:"Geist Sans"; src:url("fonts/geist_sans_regular.ttf") format("truetype"); font-display:swap; }
+  :root { --bg:#000; --panel:#161616; --panel2:#0f0f0f; --line:#262626; --fg:#fafaf8;
+    --dim:#8a8a8a; --red:#D71921; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:14px/1.55 "Geist Sans",system-ui,sans-serif; min-height:100vh; }
+  code, .mono { font-family:"Geist Mono",ui-monospace,Menlo,monospace; }
+  a { color:inherit; }
+
+  .nav { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.4rem;
+    border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); }
+  .wordmark { font-family:"Geist Mono",monospace; font-weight:600; letter-spacing:.18em; text-decoration:none; font-size:.85rem; }
+  .wordmark::before { content:""; display:inline-block; width:.55rem; height:.55rem; background:var(--red);
+    border-radius:50%; margin-right:.6rem; }
+  .nav a.back { color:var(--dim); text-decoration:none; font-family:"Geist Mono",monospace; font-size:.75rem; letter-spacing:.1em; }
+  .nav a.back:hover { color:var(--fg); }
+
+  main { max-width:56rem; margin:0 auto; padding:2.4rem 1.25rem 5rem; }
+  h1 { font-family:"Doto",monospace; font-size:clamp(1.8rem,6vw,3rem); letter-spacing:.06em; font-weight:400; }
+  .lbl { color:var(--dim); font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; font-family:"Geist Mono",monospace; }
+  .lbl .dot { display:inline-block; width:.5rem; height:.5rem; background:var(--red); border-radius:50%; margin-right:.5rem; }
+  .sub { color:var(--dim); margin:.8rem 0 2rem; max-width:36rem; }
+
+  .toolbar { display:flex; gap:.6rem; margin-bottom:1.6rem; flex-wrap:wrap; }
+  .toolbar input { flex:1; min-width:200px; background:var(--panel); border:1px solid var(--line);
+    color:var(--fg); padding:.6rem .9rem; border-radius:.5rem; font:inherit; }
+  .toolbar input:focus { outline:none; border-color:#444; }
+  .chip { background:var(--panel); border:1px solid var(--line); color:var(--dim); padding:.55rem 1rem;
+    border-radius:.5rem; font:inherit; cursor:pointer; font-size:.82rem; text-decoration:none; }
+  .chip.on { border-color:var(--red); color:var(--fg); }
+  .chip:hover { color:var(--fg); }
+
+  .item { background:var(--panel); border:1px solid var(--line); border-radius:.7rem;
+    padding:1.1rem 1.25rem; margin-bottom:.8rem; }
+  .item .head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
+  .item h2 { font-size:1.05rem; font-weight:600; }
+  .kind { flex-shrink:0; font-size:.6rem; font-weight:700; letter-spacing:.12em; padding:.28rem .65rem;
+    border-radius:99px; text-transform:uppercase; border:1px solid rgba(215,25,33,.4);
+    background:rgba(215,25,33,.12); color:var(--red); }
+  .kind.glyph { border-color:rgba(138,138,138,.5); background:rgba(138,138,138,.1); color:var(--fg); }
+  .by { color:var(--dim); font-size:.78rem; margin-top:.15rem; }
+  .by a { color:var(--dim); }
+  .desc { color:#bbb; font-size:.86rem; margin-top:.55rem; }
+  .meta { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.7rem; align-items:center; }
+  .tag { background:var(--panel2); border:1px solid var(--line); border-radius:.4rem;
+    padding:.18rem .55rem; font-size:.68rem; color:var(--dim); font-family:"Geist Mono",monospace; }
+  .dl { margin-left:auto; background:var(--red); color:#fff; border:0; padding:.5rem 1.1rem;
+    border-radius:.5rem; font:inherit; font-weight:600; cursor:pointer; font-size:.8rem; letter-spacing:.05em; }
+  .dl:active { opacity:.85; }
+  .hint { color:var(--dim); font-size:.72rem; font-family:"Geist Mono",monospace; margin-top:.5rem; }
+  .empty { color:var(--dim); text-align:center; padding:4rem 0; font-family:"Geist Mono",monospace; }
+  #status { color:var(--dim); font-size:.85rem; min-height:1.4em; margin-bottom:1rem; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="/">NOTHING_MODES</a>
+  <a class="back" href="/">← BACK TO SITE</a>
+</header>
+
+<main>
+  <p class="lbl"><span class="dot"></span>COMMUNITY LIBRARY</p>
+  <h1>MODES &amp; GLYPHS</h1>
+  <p class="sub">Made by users, reviewed before publication. Download a file, then import it in the app
+    — Modes → Browse Templates → Import, or Glyph Studio → Import.</p>
+
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Search title, description, author…">
+    <button class="chip on" data-type="">All</button>
+    <button class="chip" data-type="template">Modes</button>
+    <button class="chip" data-type="glyph">Glyphs</button>
+  </div>
+  <div id="status">Loading…</div>
+  <div id="list"></div>
+</main>
+
+<script>
+const qEl = document.getElementById('q');
+let type = '';
+let items = [];
+let debounce;
+
+qEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(load, 250); });
+document.querySelectorAll('[data-type]').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-type]').forEach(x => x.classList.toggle('on', x === b));
+    type = b.dataset.type;
+    load();
+  }));
+
+async function load() {
+  const p = new URLSearchParams();
+  if (type) p.set('type', type);
+  if (qEl.value.trim()) p.set('q', qEl.value.trim());
+  const res = await fetch('/api/library?' + p);
+  const data = await res.json();
+  items = data.items || [];
+  document.getElementById('status').textContent = '';
+  render();
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function ago(ts) {
+  const s = (Date.now() - new Date(ts)) / 1000;
+  if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">NOTHING HERE YET — BE THE FIRST</div>';
+    return;
+  }
+  for (const it of items) {
+    const el = document.createElement('div');
+    el.className = 'item';
+    const gh = it.github
+      ? (it.github.startsWith('http') ? it.github : 'https://github.com/' + it.github.replace(/^@/, ''))
+      : '';
+    el.innerHTML = `
+      <div class="head">
+        <div>
+          <h2>${esc(it.title)}</h2>
+          <div class="by">by <b>@${esc(it.handle)}</b>${gh ? ` · <a href="${esc(gh)}" target="_blank" rel="noopener">${esc(gh.replace(/^https:\/\/(www\.)?github\.com\//, ''))}</a>` : ''} · ${ago(it.created_at)}</div>
+        </div>
+        <span class="kind ${it.type}">${esc(it.type)}</span>
+      </div>
+      ${it.description ? `<div class="desc">${esc(it.description)}</div>` : ''}
+      <div class="meta">
+        ${it.summary ? `<span class="tag">${esc(it.summary)}</span>` : ''}
+        ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
+        <span class="tag">${it.downloads} downloads</span>
+        <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}">DOWNLOAD</button>
+      </div>
+      <div class="hint">sha256 ${esc(String(it.content_hash).slice(0, 16))}… — content fingerprint, security-reviewed</div>`;
+    list.appendChild(el);
+  }
+  list.querySelectorAll('.dl').forEach(b =>
+    b.addEventListener('click', () => download(b.dataset.id, b.dataset.name)));
+}
+
+async function download(id, name) {
+  const res = await fetch('/api/item?id=' + encodeURIComponent(id));
+  if (!res.ok) { alert('Download failed'); return; }
+  const { item } = await res.json();
+  const blob = new Blob([JSON.stringify(item.payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (name || 'nothing-modes').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+load();
+</script>
+</body>
+</html>
