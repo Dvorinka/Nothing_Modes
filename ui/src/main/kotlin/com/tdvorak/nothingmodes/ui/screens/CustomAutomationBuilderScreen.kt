@@ -89,6 +89,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
+import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1354,6 +1355,7 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.BatteryTemp -> "Battery temp ${condition.op.name} ${condition.celsius}°C"
         is Condition.ThermalLevel -> "Thermal ${condition.op.name} level ${condition.level}"
         is Condition.BooleanState -> "${booleanStateLabel(condition.key)} ${if (condition.on) "on" else "off"}"
+        is Condition.NumericState -> "${numericStateLabel(condition.key)} ${condition.op.name} ${condition.value}"
         is Condition.And -> "AND (${condition.all.size} conditions)"
         is Condition.Or -> "OR (${condition.any.size} conditions)"
         is Condition.Not -> "NOT"

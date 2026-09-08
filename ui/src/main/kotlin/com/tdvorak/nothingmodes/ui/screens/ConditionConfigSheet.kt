@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
+import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
@@ -43,6 +44,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
+import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,6 +255,12 @@ fun ConditionConfigSheet(
                         onChange = { current = it },
                     )
 
+                is Condition.NumericState ->
+                    NumericStateSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
                 is Condition.BooleanState ->
                     BooleanConditionContent(
                         label = booleanStateLabel(c.key),
@@ -316,6 +324,7 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.BatteryTemp -> "Battery temperature"
         is Condition.ThermalLevel -> "Thermal status"
         is Condition.BooleanState -> booleanStateLabel(condition.key)
+        is Condition.NumericState -> numericStateLabel(condition.key)
         else -> "Condition"
     }
 
@@ -739,6 +748,36 @@ private fun ThermalLevelSheetContent(
                 onClick = { onChange(condition.copy(op = op)) },
             )
         }
+    }
+}
+
+@Composable
+private fun NumericStateSheetContent(
+    condition: Condition.NumericState,
+    onChange: (Condition.NumericState) -> Unit,
+) {
+    val ops = remember { CmpOp.entries.map { it.name } }
+    Column {
+        NothingEnumSelector(
+            label = "Operator",
+            value = condition.op.name,
+            options = ops,
+            onSelect = { op ->
+                runCatching { CmpOp.valueOf(op) }.getOrNull()?.let {
+                    onChange(condition.copy(op = it))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.value.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(value = it)) }
+            },
+            label = "Value",
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

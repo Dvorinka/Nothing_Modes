@@ -8,6 +8,8 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.display.DisplayManager
+import android.view.Display
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.LocationManager
@@ -141,6 +143,10 @@ class AndroidStateProvider(
         values[StateKeys.MOBILE_DATA] = readMobileData().toString()
         readAodEnabled()?.let { values[StateKeys.AOD_ENABLED] = it.toString() }
 
+        readBrightness()?.let { values[StateKeys.BRIGHTNESS] = it.toString() }
+        readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
+        readScreenTimeout()?.let { values[StateKeys.SCREEN_TIMEOUT] = it.toString() }
+
         batteryIntent?.let { intent ->
             val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
             values["charging_source"] =
@@ -234,6 +240,25 @@ class AndroidStateProvider(
         runCatching {
             Settings.Secure.getInt(context.contentResolver, "doze_always_on", 0) == 1
         }.getOrNull()
+
+    private fun readBrightness(): Int? =
+        runCatching {
+            Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, -1)
+        }.getOrNull()?.takeIf { it >= 0 }
+
+    private fun readRefreshRate(): Float? =
+        try {
+            val displayManager = context.getSystemService(DisplayManager::class.java)
+            val display = displayManager?.getDisplay(Display.DEFAULT_DISPLAY)
+            display?.mode?.refreshRate
+        } catch (_: Exception) {
+            null
+        }
+
+    private fun readScreenTimeout(): Long? =
+        runCatching {
+            Settings.System.getLong(context.contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, -1L)
+        }.getOrNull()?.takeIf { it >= 0 }
 
     private fun readNfcEnabled(): Boolean =
         try {

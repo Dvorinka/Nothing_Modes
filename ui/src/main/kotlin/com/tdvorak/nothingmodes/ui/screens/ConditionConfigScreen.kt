@@ -39,6 +39,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
+import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -470,6 +471,13 @@ fun ConditionConfigScreen(
                         )
                     }
 
+                    is Condition.NumericState -> {
+                        NumericStateScreenContent(
+                            condition = c,
+                            onChange = { condition = it },
+                        )
+                    }
+
                     is Condition.ThermalLevel -> {
                         Text(
                             text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
@@ -558,6 +566,36 @@ private fun BooleanRow(
         NothingToggle(
             checked = checked,
             onCheckedChange = onChange,
+        )
+    }
+}
+
+@Composable
+private fun NumericStateScreenContent(
+    condition: Condition.NumericState,
+    onChange: (Condition.NumericState) -> Unit,
+) {
+    val ops = remember { CmpOp.entries.map { it.name } }
+    Column {
+        NothingEnumSelector(
+            label = "Operator",
+            value = condition.op.name,
+            options = ops,
+            onSelect = { op ->
+                runCatching { CmpOp.valueOf(op) }.getOrNull()?.let {
+                    onChange(condition.copy(op = it))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.value.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(value = it)) }
+            },
+            label = "Value",
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

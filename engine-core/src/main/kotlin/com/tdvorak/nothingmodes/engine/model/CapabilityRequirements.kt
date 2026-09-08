@@ -261,12 +261,10 @@ object CapabilityRequirements {
             is Condition.ChargingSource -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.BatteryTemp -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.ThermalLevel -> setOf(CapabilityIds.STATE_READER_BUILTIN)
-            is Condition.BooleanState -> booleanStateCapabilities(condition.key)
+            is Condition.BooleanState -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.NumericState -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Not -> conditionCapabilities(condition.cond)
         }
-
-    private fun booleanStateCapabilities(key: String): Set<String> =
-        setOf(CapabilityIds.STATE_READER_BUILTIN)
 }

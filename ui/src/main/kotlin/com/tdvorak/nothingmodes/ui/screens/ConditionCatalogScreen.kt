@@ -45,6 +45,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
+import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -244,6 +245,13 @@ fun ConditionCatalogScreen(navController: NavController) {
                     category = it.category,
                     icon = it.icon,
                     condition = Condition.BooleanState(it.key, true),
+                )
+            } + NUMERIC_STATE_ITEMS.map {
+                ConditionItem(
+                    label = it.label,
+                    category = it.category,
+                    icon = it.icon,
+                    condition = Condition.NumericState(it.key, it.defaultOp, it.defaultValue),
                 )
             }
         }

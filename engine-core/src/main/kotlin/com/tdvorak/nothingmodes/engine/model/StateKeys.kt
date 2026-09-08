@@ -19,6 +19,11 @@ object StateKeys {
     const val MOBILE_DATA = "mobile_data"
     const val AOD_ENABLED = "aod_enabled"
 
+    // Numeric state keys (Condition.NumericState)
+    const val BRIGHTNESS = "brightness"
+    const val REFRESH_RATE = "refresh_rate"
+    const val SCREEN_TIMEOUT = "screen_timeout"
+
     /** chiave -> valori ammessi (usato nel render del manifest e in doc) */
     val ALL: Map<String, String> =
         mapOf(
@@ -35,5 +40,8 @@ object StateKeys {
             BLUETOOTH_RADIO to "true|false",
             MOBILE_DATA to "true|false",
             AOD_ENABLED to "true|false",
+            BRIGHTNESS to "0-255",
+            REFRESH_RATE to "0-144",
+            SCREEN_TIMEOUT to "0-",
         )
 }

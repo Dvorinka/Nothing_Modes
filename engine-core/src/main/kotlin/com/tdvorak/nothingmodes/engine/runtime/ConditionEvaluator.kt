@@ -63,6 +63,7 @@ class ConditionEvaluator {
             is Condition.BatteryTemp -> evaluateBatteryTemp(condition, state)
             is Condition.ThermalLevel -> evaluateThermalLevel(condition, state)
             is Condition.BooleanState -> evaluateBooleanState(condition, state)
+            is Condition.NumericState -> evaluateNumericState(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -316,6 +317,14 @@ class ConditionEvaluator {
         condition: Condition.BooleanState,
         state: DeviceState,
     ): Result = evaluateBooleanValue(condition.on, condition.key, state)
+
+    private fun evaluateNumericState(
+        condition: Condition.NumericState,
+        state: DeviceState,
+    ): Result {
+        val actual = state.values[condition.key]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
+        return compareNumeric(condition.op, actual, condition.value)
+    }
 
     // ponytail: AlarmRinging only works if a RingingAlarmProvider is wired; otherwise the value is absent
     //          and the condition reports STATE_UNAVAILABLE. Upgrade by populating values["alarm_ringing"].

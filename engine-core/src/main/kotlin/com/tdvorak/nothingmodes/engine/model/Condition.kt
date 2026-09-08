@@ -217,6 +217,18 @@ sealed interface Condition {
         val on: Boolean,
     ) : Condition
 
+    /**
+     * Generic numeric state check. Reads state.values[key] as a number.
+     * Use StateKeys constants for key names.
+     */
+    @Serializable
+    @SerialName("numeric_state")
+    data class NumericState(
+        val key: String,
+        val op: CmpOp,
+        val value: Double,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

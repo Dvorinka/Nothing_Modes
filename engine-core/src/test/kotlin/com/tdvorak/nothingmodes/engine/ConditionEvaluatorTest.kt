@@ -908,6 +908,32 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `numericState met when comparison matches`() {
+        val state = DeviceState(values = mapOf(StateKeys.BRIGHTNESS to "200"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.NumericState(StateKeys.BRIGHTNESS, CmpOp.GTE, 100.0), state),
+        )
+    }
+
+    @Test
+    fun `numericState notMet when comparison fails`() {
+        val state = DeviceState(values = mapOf(StateKeys.REFRESH_RATE to "60"))
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.NumericState(StateKeys.REFRESH_RATE, CmpOp.GT, 90.0), state),
+        )
+    }
+
+    @Test
+    fun `numericState unavailable when key missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.NumericState(StateKeys.SCREEN_TIMEOUT, CmpOp.GTE, 1000.0), DeviceState()),
+        )
+    }
+
+    @Test
     fun `nested And-Or-Not evaluates correctly`() {
         val cond =
             Condition.And(
