@@ -59,6 +59,7 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
+import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -903,51 +904,55 @@ private fun GeofenceContent(
     }
 
     Column {
-        Text(
-            text = "Tap the map to place the fence.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = NothingFonts.mono(),
+        PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            rationale = "Geofence triggers need location access to place the fence and use your current location.",
             modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        androidx.compose.ui.viewinterop.AndroidView(
-            factory = { mapView },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .clip(NothingShapes.input)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        ) {
+            Column {
+                Text(
+                    text = "Tap the map to place the fence.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { mapView },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .clip(NothingShapes.input)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
-        // "Use current location" button — fetches last known location from FusedLocationProvider.
-        NothingPillButton(
-            text = "Use current location",
-            onClick = {
-                runCatching {
-                    val fusedLocationClient =
-                        com.google.android.gms.location.LocationServices
-                            .getFusedLocationProviderClient(context)
-                    if (context.checkSelfPermission(
-                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                        context.checkSelfPermission(
-                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    ) {
-                        fusedLocationClient.lastLocation
-                            .addOnSuccessListener { location ->
-                                if (location != null) {
-                                    onUpdate(trigger.copy(lat = location.latitude, lng = location.longitude))
+                // "Use current location" button — fetches last known location from FusedLocationProvider.
+                NothingPillButton(
+                    text = "Use current location",
+                    onClick = {
+                        runCatching {
+                            val fusedLocationClient =
+                                com.google.android.gms.location.LocationServices
+                                    .getFusedLocationProviderClient(context)
+                            fusedLocationClient.lastLocation
+                                .addOnSuccessListener { location ->
+                                    if (location != null) {
+                                        onUpdate(trigger.copy(lat = location.latitude, lng = location.longitude))
+                                    }
                                 }
-                            }
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
@@ -1064,26 +1069,31 @@ private fun CalendarPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Calendars", fontFamily = NothingFonts.mono()) },
         text = {
-            Column {
-                NothingListRow(
-                    title = "Any calendar",
-                    subtitle = "Matches every calendar",
-                    onClick = { onSelect(null) },
-                )
-                if (calendars.isEmpty()) {
-                    Text(
-                        text = "No calendars found — grant the calendar permission in Settings.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
+            PermissionGate(
+                permissions = listOf(android.Manifest.permission.READ_CALENDAR),
+                rationale = "Calendar triggers need read access to your calendars.",
+            ) {
+                Column {
+                    NothingListRow(
+                        title = "Any calendar",
+                        subtitle = "Matches every calendar",
+                        onClick = { onSelect(null) },
                     )
-                } else {
-                    calendars.forEach { (id, name) ->
-                        NothingListRow(
-                            title = name,
-                            subtitle = "ID $id",
-                            onClick = { onSelect(id) },
+                    if (calendars.isEmpty()) {
+                        Text(
+                            text = "No calendars found.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
                         )
+                    } else {
+                        calendars.forEach { (id, name) ->
+                            NothingListRow(
+                                title = name,
+                                subtitle = "ID $id",
+                                onClick = { onSelect(id) },
+                            )
+                        }
                     }
                 }
             }
