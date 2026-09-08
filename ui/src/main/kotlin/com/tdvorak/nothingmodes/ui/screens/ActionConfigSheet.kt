@@ -573,6 +573,23 @@ fun ActionConfigContent(
         }
 
         is Action.WriteSetting -> {
+            val selected = writeSettingPresets.firstOrNull { it.second == a }?.first ?: "Custom"
+            NothingEnumSelector(
+                label = "Preset",
+                value = selected,
+                options = writeSettingPresets.map { it.first },
+                onSelect = { label ->
+                    writeSettingPresets.firstOrNull { it.first == label }?.second?.let { onActionChange(it) }
+                },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            Text(
+                text = "Custom key/value. Global/secure writes need Shizuku; system writes need Write Settings permission.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingEnumSelector(
                 label = "Namespace",
                 value = a.namespace.name.enumLabel(),
@@ -849,6 +866,17 @@ internal val waitPresets =
         "30 seconds" to 30_000L,
         "1 minute" to 60_000L,
         "5 minutes" to 300_000L,
+    )
+
+internal val writeSettingPresets =
+    listOf(
+        "Custom" to null,
+        "Animation scale 0.5x" to Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "0.5"),
+        "Animation scale 1x" to Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0"),
+        "Font scale 1.0" to Action.WriteSetting(SettingNamespace.GLOBAL, "font_scale", "1.0"),
+        "Font scale 1.25" to Action.WriteSetting(SettingNamespace.GLOBAL, "font_scale", "1.25"),
+        "Show taps" to Action.WriteSetting(SettingNamespace.SYSTEM, "show_touches", "1"),
+        "Hide taps" to Action.WriteSetting(SettingNamespace.SYSTEM, "show_touches", "0"),
     )
 
 private fun actionTitle(action: Action): String =

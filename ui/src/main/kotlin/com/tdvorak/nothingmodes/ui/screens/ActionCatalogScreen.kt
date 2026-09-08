@@ -121,7 +121,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Glyph animate", "Glyph", Icons.Outlined.Lightbulb, Action.GlyphAnimate()),
                 ActionItem("Glyph music", "Glyph", Icons.Outlined.MusicNote, Action.GlyphMusic()),
                 ActionItem("Glyph turn off", "Glyph", Icons.Outlined.PowerSettingsNew, Action.GlyphTurnOff),
-                ActionItem("Write setting", "Advanced", Icons.Outlined.Settings, Action.WriteSetting(SettingNamespace.SYSTEM, "", "")),
+                ActionItem("Write setting", "Advanced", Icons.Outlined.Settings, Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0")),
             ).filter { it.action !is Action.LockScreen || FeatureFlags.enableLockScreen }
         }
 
