@@ -43,6 +43,15 @@
 - [x] Template/glyph detail modal uses the local `_payload` without requiring `/api/preview` or `/api/item`.
 - [x] Favicon link added to `library.html` to silence the `favicon.ico` 404.
 
+## Completed this pass (2026-09-08)
+
+### Remaining blocks
+- [x] **Execution journal latency display** — added `latencyMillis` to `AuditEvent`/`AuditEntity`, Room migration 1→2, engine capture, and `ExecutionLogScreen` display. Verified non-zero latency in the audit log.
+- [x] **F-Droid index generation** — fixed `repo_url` and `mirrors` config, generated signed `index-v1.json` from release APK, added `fdroid-local.sh` and `fdroid-release.sh`, `.gitignore` for secrets and built artifacts, removed `config.yml` from tracked files with `config.example.yml`.
+- [x] **Calendar trigger merge into Time/Day** — added a "Source" selector in `CustomTimePicker` and `CalendarEventContent` to switch between clock and calendar sources; the standalone Calendar catalog entry is already gone.
+- [x] **Glyph Studio consolidation** — the saved/community/import sections already exist; added an "Open Glyph Museum" link from the Import section.
+- [x] **Live community e2e** — verified `/api/library?type=glyph`, `/api/item`, and `/api/preview` respond with approved glyph items on the live deployment. `CommunityApi` and `GlyphEditorScreen` already consume these endpoints.
+
 ---
 
 ## 0. Verified on-device findings (bugs & intel)
@@ -361,8 +370,8 @@ Every item above gets tested **on the real Phone 3** before being marked done:
 
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
 - [ ] Create `docs/DEVICE-TEST-MATRIX.md`: table of feature × status (works / needs-Shizuku / broken / impossible-on-this-device) — the "scratch list" the user asked for.
-- [x] SMS send test to the user-approved number (user's own number) — confirm SEND_SMS actually delivers.
-- [x] SMS/call trigger matching on the user-approved number — verify engine fires `show_notification` actions for `SMS_RECEIVED` and `INCOMING_CALL`.
+- [ ] SMS send test to the user-approved number (user's own number) — confirm SEND_SMS actually delivers. Final device step; requires your confirmation before running.
+- [ ] SMS/call trigger matching on the user-approved number — verify engine fires `show_notification` actions for `SMS_RECEIVED` and `INCOMING_CALL`. Final device step; requires your confirmation before running.
 - [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and the manual routine runs (Shizuku shell captured).
 
 ---
