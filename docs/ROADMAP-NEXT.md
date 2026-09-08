@@ -128,7 +128,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Add Condition parity**: condition catalog now behaves like action catalog — tapping a condition opens `ConditionConfigSheet`, configured conditions appear in a "Selected" list, and each can be edited or removed before returning.
 - [x] **Screen timeout**: dropdown of presets (15s/30s/1m/2m/5m/10m/30m/never), not free input.
 - [x] **Always-On Display**: off / tap-to-show / always / schedule modes mapped to `doze_always_on`, `doze_tap_gesture`, and `doze_*_hour/minute` secure settings.
-- [ ] **Volume**: show all streams at once (media, ring, alarm, notification) as labeled sliders — no dropdown.
+- [x] **Volume**: show all streams at once (media, ring, alarm, notification) as labeled sliders — no dropdown.
 - [x] **Vibrate**: dropdown with duration presets (Short/Medium/Long/1 second).
 - [x] **Ringer mode**: explanation added below the radio options.
 - [x] **Descriptions on every action** — catalog rows show a one-line hint; action config sheets show the same note.
