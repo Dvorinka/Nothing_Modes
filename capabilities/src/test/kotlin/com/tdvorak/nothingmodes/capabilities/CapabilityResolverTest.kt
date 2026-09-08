@@ -94,6 +94,7 @@ class CapabilityResolverTest {
             hasUsageAccess = true,
             hasFlashlight = true,
             hasVibrator = true,
+            hasPostNotifications = true,
             hasGlyphLightStripe = true,
             hasGlyphMatrix = true,
             shizukuStatus = ShizukuCapabilityStatus.AUTHORIZED,

@@ -32,6 +32,8 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -333,6 +336,8 @@ fun AutomationListScreen(
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val items by viewModel.items.collectAsState()
     val selected by viewModel.selected.collectAsState()
     val activeIds by viewModel.activeIds.collectAsState()
@@ -372,6 +377,7 @@ fun AutomationListScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             NothingTopBar(
                 title = if (inSelection) "${selected.size} SELECTED" else "Modes",
@@ -543,7 +549,15 @@ fun AutomationListScreen(
                             onClick = { onAutomationClick(automation.id.value) },
                             onToggleSelection = { viewModel.toggleSelected(automation.id) },
                             onToggleEnabled = { viewModel.toggleEnabled(automation) },
-                            onRun = { viewModel.runNow(automation) },
+                            onRun = {
+                                viewModel.runNow(automation)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Running: ${automation.name.take(40)}",
+                                        withDismissAction = true,
+                                    )
+                                }
+                            },
                         )
                     }
                 }
@@ -554,7 +568,15 @@ fun AutomationListScreen(
                     onSelectAll = viewModel::selectAll,
                     onExport = viewModel::exportSelected,
                     onDelete = viewModel::deleteSelected,
-                    onRun = viewModel::runSelected,
+                    onRun = {
+                        viewModel.runSelected()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                "Running ${selected.size} routine(s)",
+                                withDismissAction = true,
+                            )
+                        }
+                    },
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)

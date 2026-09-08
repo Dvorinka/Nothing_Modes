@@ -70,7 +70,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_RINGER -> true
             CapabilityIds.ACTION_LAUNCH_APP -> true
             CapabilityIds.ACTION_OPEN_URL -> true
-            CapabilityIds.ACTION_SHOW_NOTIFICATION -> true
+            CapabilityIds.ACTION_SHOW_NOTIFICATION -> capabilities.hasPostNotifications
             CapabilityIds.ACTION_SET_VOLUME -> true
             CapabilityIds.ACTION_SET_FLASHLIGHT -> capabilities.hasFlashlight
             CapabilityIds.ACTION_SET_DARK_MODE,
