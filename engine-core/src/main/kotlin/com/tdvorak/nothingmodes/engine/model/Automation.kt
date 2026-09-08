@@ -47,6 +47,8 @@ data class Automation(
     val icon: String = "",
     /** Background color as a hex string. */
     val iconBackground: String = "",
+    /** Icon tint color as a hex string. */
+    val iconTint: String = "",
 )
 
 @Serializable

@@ -110,6 +110,7 @@ data class BuilderState(
     val priority: Int = 5,
     val icon: String = "",
     val iconBackground: String = "",
+    val iconTint: String = "",
     val enabled: Boolean = true,
     val quickAction: Boolean = true,
     val cooldownMs: Long = 0,
@@ -145,6 +146,7 @@ class CustomBuilderViewModel
                         priority = automation.priority,
                         icon = automation.icon,
                         iconBackground = automation.iconBackground,
+                        iconTint = automation.iconTint,
                         enabled = automation.enabled,
                         quickAction = automation.quickAction,
                         cooldownMs = automation.cooldownMs,
@@ -186,6 +188,10 @@ class CustomBuilderViewModel
 
         fun updateIconBackground(color: String) {
             _state.value = _state.value.copy(iconBackground = color)
+        }
+
+        fun updateIconTint(color: String) {
+            _state.value = _state.value.copy(iconTint = color)
         }
 
         fun addAction(action: Action) {
@@ -308,6 +314,7 @@ class CustomBuilderViewModel
                         enabled = s.enabled,
                         icon = s.icon,
                         iconBackground = s.iconBackground,
+                        iconTint = s.iconTint,
                     )
                 store.save(automation)
                 WidgetRefreshHelper.refresh(context)
@@ -355,6 +362,7 @@ class CustomBuilderViewModel
                         enabled = s.enabled,
                         icon = s.icon,
                         iconBackground = s.iconBackground,
+                        iconTint = s.iconTint,
                     )
                 store.save(automation)
                 WidgetRefreshHelper.refresh(context)
@@ -939,9 +947,11 @@ fun CustomAutomationBuilderScreen(
             IconColorPickerSheet(
                 initialIcon = state.icon,
                 initialColor = state.iconBackground,
-                onDone = { icon, color ->
+                initialTint = state.iconTint,
+                onDone = { icon, color, tint ->
                     viewModel.updateIcon(icon)
                     viewModel.updateIconBackground(color)
+                    viewModel.updateIconTint(tint)
                     showIconPicker = false
                 },
                 onDismiss = { showIconPicker = false },
@@ -1315,12 +1325,21 @@ private fun AutomationPreviewTile(
             subtitle = "${state.actions.size} actions · ${state.conditions.size} conditions — tap to set icon",
             onClick = onClick,
             leading = {
-                NothingIconCircle(size = 48f) {
+                val bgColor =
+                    state.iconBackground
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                val tintColor =
+                    state.iconTint
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                        ?: MaterialTheme.colorScheme.onSurface
+                NothingIconCircle(size = 48f, backgroundColor = bgColor) {
                     if (state.icon.isNotBlank()) {
                         Icon(
                             imageVector = iconForName(state.icon),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
+                            tint = tintColor,
                             modifier = Modifier.size(28.dp),
                         )
                     } else {
@@ -1331,7 +1350,7 @@ private fun AutomationPreviewTile(
                                     ?.uppercaseChar()
                                     ?.toString() ?: "?",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = tintColor,
                             fontFamily = GeistSans,
                         )
                     }

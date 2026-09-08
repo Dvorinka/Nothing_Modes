@@ -945,12 +945,14 @@ fun NothingIconCircle(
     modifier: Modifier = Modifier,
     size: Float = 48f,
     accent: Boolean = false,
+    backgroundColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
     NothingIconChip(
         modifier = modifier,
         size = size,
         accent = accent,
+        backgroundColor = backgroundColor,
         content = content,
     )
 }
@@ -960,6 +962,7 @@ fun NothingIconChip(
     modifier: Modifier = Modifier,
     size: Float = 48f,
     accent: Boolean = false,
+    backgroundColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -968,11 +971,12 @@ fun NothingIconChip(
                 .size(size.dp)
                 .clip(NothingShapes.iconChip)
                 .background(
-                    if (accent) {
-                        NothingColors.accent.copy(alpha = 0.16f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
+                    backgroundColor
+                        ?: if (accent) {
+                            NothingColors.accent.copy(alpha = 0.16f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
                 ).then(
                     if (accent) {
                         Modifier.border(1.dp, NothingColors.accent, NothingShapes.iconChip)

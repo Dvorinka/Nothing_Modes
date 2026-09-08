@@ -3,18 +3,21 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -206,16 +210,19 @@ private val emojiToIconName =
 
 fun iconForEmoji(emoji: String): ImageVector = iconForName(emojiToIconName[emoji.trim()] ?: "")
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IconColorPickerSheet(
     initialIcon: String,
     initialColor: String,
-    onDone: (String, String) -> Unit,
+    initialTint: String,
+    onDone: (String, String, String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selectedIcon by remember { mutableStateOf(initialIcon.ifBlank { "star" }) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedColor by remember { mutableStateOf(initialColor) }
+    var selectedTint by remember { mutableStateOf(initialTint) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val filteredIcons =
@@ -258,12 +265,21 @@ fun IconColorPickerSheet(
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-            // Live preview — monochrome icon on surface, onSurface tint.
-            NothingIconCircle(size = 80f) {
+            // Live preview — selected background + tint.
+            val bgColor =
+                selectedColor
+                    .takeIf { it.isNotBlank() }
+                    ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+            val tintColor =
+                selectedTint
+                    .takeIf { it.isNotBlank() }
+                    ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                    ?: MaterialTheme.colorScheme.onSurface
+            NothingIconCircle(size = 80f, backgroundColor = bgColor) {
                 Icon(
                     imageVector = iconForName(selectedIcon),
                     contentDescription = selectedIcon,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = tintColor,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -289,16 +305,17 @@ fun IconColorPickerSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            FlowRow(
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(6),
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 240.dp),
+                        .height(240.dp),
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                maxItemsInEachRow = 6,
+                contentPadding = PaddingValues(bottom = NothingSpacing.md),
             ) {
-                filteredIcons.forEach { entry ->
+                items(filteredIcons) { entry ->
                     IconOption(
                         icon = entry.icon,
                         selected = selectedIcon == entry.name,
@@ -306,6 +323,22 @@ fun IconColorPickerSheet(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+
+            ColorSwatches(
+                label = "BACKGROUND",
+                selected = selectedColor,
+                onSelect = { selectedColor = it },
+            )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+
+            ColorSwatches(
+                label = "ICON TINT",
+                selected = selectedTint,
+                onSelect = { selectedTint = it },
+            )
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
@@ -320,7 +353,7 @@ fun IconColorPickerSheet(
                 )
                 NothingPillButton(
                     text = "Save",
-                    onClick = { onDone(selectedIcon, initialColor) },
+                    onClick = { onDone(selectedIcon, selectedColor, selectedTint) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -358,5 +391,93 @@ private fun IconOption(
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp),
         )
+    }
+}
+
+private val colorPresets =
+    listOf(
+        "#FF1C1C1C" to "Black",
+        "#FFFFFFFF" to "White",
+        "#FFD71921" to "Red",
+        "#FF4A90E2" to "Blue",
+        "#FFF5A623" to "Yellow",
+        "#FF7ED321" to "Green",
+        "#FF9013FE" to "Purple",
+        "#FF000000" to "Pure black",
+    )
+
+@Composable
+private fun ColorSwatches(
+    label: String,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "$label (${colorPresets.size})",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            colorPresets.forEach { (hex, _) ->
+                val color =
+                    runCatching { Color(android.graphics.Color.parseColor(hex)) }
+                        .getOrDefault(Color.Transparent)
+                Box(
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .border(
+                                width = if (selected == hex) 2.dp else 1.dp,
+                                color = if (selected == hex) NothingColors.accent else MaterialTheme.colorScheme.outline,
+                                shape = CircleShape,
+                            ).clickable { onSelect(hex) },
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+
+        var customHex by remember(selected) {
+            mutableStateOf(
+                selected.takeIf { it.isNotBlank() && it !in colorPresets.map { it.first } } ?: "",
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            NothingInput(
+                value = customHex,
+                onValueChange = { customHex = it },
+                label = "Custom hex",
+                placeholder = "#FF0000",
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = "Apply",
+                onClick = {
+                    if (customHex.isNotBlank() &&
+                        runCatching { android.graphics.Color.parseColor(customHex) }.isSuccess
+                    ) {
+                        onSelect(customHex)
+                    }
+                },
+                enabled =
+                    customHex.isNotBlank() &&
+                        runCatching { android.graphics.Color.parseColor(customHex) }.isSuccess,
+            )
+        }
     }
 }
