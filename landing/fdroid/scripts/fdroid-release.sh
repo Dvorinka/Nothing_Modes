@@ -29,6 +29,16 @@ curl -L --fail -o "unsigned/${APK_NAME}" "$APK_URL"
 mkdir -p "repo"
 cp "unsigned/${APK_NAME}" "repo/${APP_ID}_${VERSION_CODE}.apk"
 
+if [ ! -f keystore.p12 ]; then
+    echo "Creating F-Droid repo signing key..."
+    fdroid update --create-key
+fi
+
+# apksigner lets fdroid verify modern APKs; fall back if it cannot be found.
+if command -v apksigner >/dev/null 2>&1; then
+    export PATH="$(dirname "$(command -v apksigner)"):$PATH"
+fi
+
 echo "Updating F-Droid index..."
 fdroid update
 

@@ -1,17 +1,20 @@
 # F-Droid self-hosted repository configuration.
-# This repo is intended to be served from https://nothing-modes.vercel.app/fdroid/
-# or the equivalent GitHub Pages / raw path.
+# Copy this file to `config.yml`, then run `fdroid update --create-key` once.
+# Keep `config.yml` and `keystore.p12` private; do not commit them.
 
 repo_name: Nothing Modes
 repo_description: Self-hosted F-Droid repository for Nothing Modes
-repo_url: https://nothing-modes.vercel.app/fdroid/
+repo_url: https://nothing-modes.vercel.app/fdroid/repo
 repo_keyalias: nothing-modes-fdroid
 
 # Mirrors where the index can be fetched. The first is canonical.
 mirrors:
-  - https://nothing-modes.vercel.app/fdroid/
+  - https://nothing-modes.vercel.app/fdroid
 
 # apks are kept out of git; the index points at GitHub release assets.
 # Place a downloaded release APK here when running `fdroid update`,
 # or edit metadata to reference an external binary URL.
 archive_older: 0
+
+# fdroid update --create-key will add the remaining fields:
+# keydname, keystorepass, keypass
