@@ -210,7 +210,7 @@ Built:
 Still open in this feature:
 - [ ] Live e2e smoke: submit → email → approve → visible on site + in app.
 - [ ] Env check: `DATABASE_URL`, `RESEND_API_KEY`, `CRASH_NOTIFY_EMAIL` exist; `ADMIN_TOKEN` optional (falls back to `CRASH_ADMIN_TOKEN`).
-- [ ] Content-hash verification on import (JSONB reorders keys — needs canonical serialization first).
+- [x] Content-hash verification on import (JSONB reorders keys — needs canonical serialization first).
 
 **Creator profile**: **handle** is the public attribution. Email is asked optionally and kept private (used only for the decision notice). Optional GitHub link shown publicly. Handle lives in Settings → Creator Profile and is pre-filled when publishing.
 
