@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -68,6 +69,7 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
+            AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE -> handleNotifyBefore(intent)
             ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
             ACTION_CHARGER -> handleCharger(intent)
             ACTION_UNLOCKED -> handleUnlocked()
@@ -163,6 +165,19 @@ class AutomationService : Service() {
                 automationId = AutomationId(automationId),
                 atMillis = System.currentTimeMillis(),
             ),
+        )
+    }
+
+    private fun handleNotifyBefore(intent: Intent) {
+        val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        val name = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_NAME) ?: ""
+        val minutes = intent.getIntExtra(AutomationAlarmReceiver.EXTRA_LEAD_MINUTES, 0)
+        trackJob(
+            scope.launch {
+                store.get(AutomationId(automationId))?.let {
+                    ModeNotificationHelper(this@AutomationService).postBefore(it, minutes)
+                }
+            },
         )
     }
 
@@ -425,7 +440,7 @@ class AutomationService : Service() {
     }
 
     private fun dispatchEvent(event: TriggerEvent) {
-        trackJob(
+        val job =
             scope.launch {
                 val envelope =
                     TriggerEnvelope(
@@ -433,9 +448,18 @@ class AutomationService : Service() {
                         event = event,
                         receivedAtMillis = System.currentTimeMillis(),
                     )
-                engine.onTrigger(envelope)
-            },
-        )
+                val outcomes = engine.onTrigger(envelope)
+                val isEnd = event is TriggerEvent.ModeWindowEnd
+                val helper = ModeNotificationHelper(this@AutomationService)
+                outcomes.forEach { outcome ->
+                    if (isEnd) {
+                        helper.postOnEnd(outcome.automation)
+                    } else {
+                        helper.postOnTrigger(outcome.automation, outcome.results)
+                    }
+                }
+            }
+        trackJob(job)
     }
 
     /** Registers [job] so the service stays alive until all in-flight work finishes. */

@@ -62,6 +62,8 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
+import com.tdvorak.nothingmodes.data.prefs.NotificationPreferences
+import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -716,6 +718,28 @@ fun SettingsScreen(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
+                        )
+                    }
+
+                    // ── Notifications ─────────────────────────────────────────
+                    NothingSectionHeader(text = "Notifications")
+                    NothingCardLarge {
+                        val notificationPrefs = remember { NotificationPreferences(context) }
+                        var defaultRules by remember { mutableStateOf(notificationPrefs.getDefaultRules()) }
+
+                        Text(
+                            text = "Default for modes that haven't chosen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                        NotifyRulesEditor(
+                            rules = defaultRules,
+                            onChange = {
+                                defaultRules = it
+                                notificationPrefs.setDefaultRules(it)
+                            },
                         )
                     }
 

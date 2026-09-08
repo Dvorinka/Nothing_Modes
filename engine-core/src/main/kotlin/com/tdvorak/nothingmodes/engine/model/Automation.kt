@@ -35,6 +35,8 @@ data class Automation(
     val actions: List<Action>,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val conditions: Condition? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val notifyRules: List<NotifyRule> = emptyList(),
     val enabled: Boolean = true,
     /** Allow this automation to appear in quick-action surfaces (widget, Quick Settings tile). */
     val quickAction: Boolean = true,
@@ -59,6 +61,8 @@ data class AutomationDraft(
     val actions: List<Action>,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val conditions: Condition? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val notifyRules: List<NotifyRule> = emptyList(),
     val rationale: String = "",
     val cooldownMs: Long = 0,
 )

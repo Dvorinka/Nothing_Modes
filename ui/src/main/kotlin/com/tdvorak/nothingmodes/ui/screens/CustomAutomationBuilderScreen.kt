@@ -62,12 +62,14 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
+import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.canRestore
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.model.withRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
@@ -118,6 +120,7 @@ data class BuilderState(
     val enabled: Boolean = true,
     val quickAction: Boolean = true,
     val cooldownMs: Long = 0,
+    val notifyRules: List<NotifyRule> = emptyList(),
 )
 
 @HiltViewModel
@@ -165,6 +168,7 @@ class CustomBuilderViewModel
                         enabled = automation.enabled,
                         quickAction = automation.quickAction,
                         cooldownMs = automation.cooldownMs,
+                        notifyRules = automation.notifyRules,
                     )
             }
         }
@@ -199,6 +203,18 @@ class CustomBuilderViewModel
 
         fun updateCooldown(minutes: Long) {
             _state.value = _state.value.copy(cooldownMs = minutes.coerceIn(0, 1440) * 60_000)
+        }
+
+        fun addNotifyRule(rule: NotifyRule) {
+            _state.value = _state.value.copy(notifyRules = _state.value.notifyRules + rule)
+        }
+
+        fun removeNotifyRule(rule: NotifyRule) {
+            _state.value = _state.value.copy(notifyRules = _state.value.notifyRules - rule)
+        }
+
+        fun updateNotifyRules(rules: List<NotifyRule>) {
+            _state.value = _state.value.copy(notifyRules = rules)
         }
 
         fun updateIconBackground(color: String) {
@@ -326,6 +342,7 @@ class CustomBuilderViewModel
                         priority = s.priority,
                         quickAction = s.quickAction,
                         cooldownMs = s.cooldownMs,
+                        notifyRules = s.notifyRules,
                         enabled = s.enabled,
                         icon = s.icon,
                         iconBackground = s.iconBackground,
@@ -376,6 +393,7 @@ class CustomBuilderViewModel
                         priority = s.priority,
                         quickAction = s.quickAction,
                         cooldownMs = s.cooldownMs,
+                        notifyRules = s.notifyRules,
                         enabled = s.enabled,
                         icon = s.icon,
                         iconBackground = s.iconBackground,
@@ -762,6 +780,30 @@ fun CustomAutomationBuilderScreen(
                             )
                         }
                     }
+                }
+            }
+
+            // NOTIFY: per-mode heads-up rules. Off by default.
+            item {
+                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
+                    Text(
+                        text = "NOTIFY",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.doto(),
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                    )
+                    Text(
+                        text = "Heads-up about this mode. Off unless you add a rule.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                    )
+                    NotifyRulesEditor(
+                        rules = state.notifyRules,
+                        onChange = viewModel::updateNotifyRules,
+                    )
                 }
             }
 

@@ -9,6 +9,7 @@ import android.util.Log
 import com.tdvorak.nothingmodes.automation.lifecycle.GeofenceMonitor
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.CronSchedule
 import java.time.ZoneId
@@ -26,12 +27,16 @@ class AutomationScheduler(
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val geofenceMonitor = GeofenceMonitor(context)
     private val registeredGeofences = mutableSetOf<String>()
+    // Tracks scheduled BEFORE lead times per automation so cancel() can remove them.
+    // ponytail: in-memory only; re-populated on each reschedule/boot.
+    private val scheduledBefore = mutableMapOf<String, Set<Int>>()
+
 
     /** Schedule all triggers for an automation. */
     fun schedule(automation: Automation) {
         when (val trigger = automation.trigger) {
-            is Trigger.Time -> scheduleTime(automation.id, trigger)
-            is Trigger.TimeWindow -> scheduleWindow(automation.id, trigger)
+            is Trigger.Time -> scheduleTime(automation, trigger)
+            is Trigger.TimeWindow -> scheduleWindow(automation, trigger)
             is Trigger.Geofence -> scheduleGeofence(automation.id, trigger)
             else -> Unit
         }
@@ -43,6 +48,10 @@ class AutomationScheduler(
         alarmManager.cancel(timePendingIntent(automationId, isStart = false))
         alarmManager.cancel(windowPendingIntent(automationId, isStart = true))
         alarmManager.cancel(windowPendingIntent(automationId, isStart = false))
+        scheduledBefore[automationId.value]?.forEach { minutes ->
+            alarmManager.cancel(beforePendingIntent(automationId, minutes))
+        }
+        scheduledBefore.remove(automationId.value)
         // Always attempt removal — the registeredGeofences set is lost on
         // process death but the OS-side geofence registration persists.
         geofenceMonitor.removeGeofence(automationId.value)
@@ -59,9 +68,10 @@ class AutomationScheduler(
     }
 
     private fun scheduleTime(
-        id: AutomationId,
+        automation: Automation,
         trigger: Trigger.Time,
     ) {
+        val id = automation.id
         val zone =
             runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: run {
                 Log.e(TAG, "Invalid timezone '${trigger.tz}' for automation ${id.value}")
@@ -81,6 +91,7 @@ class AutomationScheduler(
                 return
             }
             setAlarm(id, triggerAtMillis, isTime = true)
+            scheduleBefore(automation, triggerAtMillis)
             return
         }
 
@@ -94,6 +105,7 @@ class AutomationScheduler(
         val next = schedule.nextFire(now) ?: return
         val triggerAtMillis = next.toInstant().toEpochMilli()
         setAlarm(id, triggerAtMillis, isTime = true)
+        scheduleBefore(automation, triggerAtMillis)
     }
 
     private fun canScheduleExactAlarms(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
@@ -125,9 +137,10 @@ class AutomationScheduler(
     }
 
     private fun scheduleWindow(
-        id: AutomationId,
+        automation: Automation,
         trigger: Trigger.TimeWindow,
     ) {
+        val id = automation.id
         val zone =
             runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: run {
                 Log.e(TAG, "Invalid timezone '${trigger.tz}' for automation ${id.value}")
@@ -186,6 +199,7 @@ class AutomationScheduler(
                     windowPendingIntent(id, isStart = false),
                 )
             }
+            scheduleBefore(automation, nextStart.toInstant().toEpochMilli())
         } catch (e: SecurityException) {
             Log.e(TAG, "Cannot schedule window alarms for ${id.value}: ${e.message}")
         }
@@ -250,6 +264,78 @@ class AutomationScheduler(
         id: String,
         isStart: Boolean,
     ): Int = (id.hashCode() and 0x7FFFFFFF) or (if (isStart) 0 else 1)
+
+    private fun scheduleBefore(
+        automation: Automation,
+        triggerAtMillis: Long,
+    ) {
+        if (triggerAtMillis <= System.currentTimeMillis()) return
+        val beforeRules = automation.notifyRules.filterIsInstance<NotifyRule.Before>()
+        if (beforeRules.isEmpty()) {
+            scheduledBefore.remove(automation.id.value)
+            return
+        }
+
+        // Cancel any existing before alarms for this automation so we don't
+        // leave stale alarms when the next occurrence changes.
+        scheduledBefore[automation.id.value]?.forEach { minutes ->
+            alarmManager.cancel(beforePendingIntent(automation.id, minutes))
+        }
+
+        val minutesSet = beforeRules.map { it.minutes }.toSortedSet()
+        minutesSet.forEach { minutes ->
+            val leadMs = minutes * 60_000L
+            val beforeAtMillis = triggerAtMillis - leadMs
+            if (beforeAtMillis > System.currentTimeMillis()) {
+                setBeforeAlarm(automation, minutes, beforeAtMillis)
+            }
+        }
+        scheduledBefore[automation.id.value] = minutesSet
+    }
+
+    private fun setBeforeAlarm(
+        automation: Automation,
+        minutes: Int,
+        atMillis: Long,
+    ) {
+        val pendingIntent = beforePendingIntent(automation.id, minutes, automation.name)
+        try {
+            if (canScheduleExactAlarms()) {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(atMillis, null),
+                    pendingIntent,
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    atMillis,
+                    pendingIntent,
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Cannot schedule before alarm for ${automation.id.value}: ${e.message}")
+        }
+    }
+
+    private fun beforePendingIntent(
+        id: AutomationId,
+        minutes: Int,
+        name: String = "",
+    ): PendingIntent {
+        val intent =
+            Intent(context, AutomationAlarmReceiver::class.java).apply {
+                action = AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE
+                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
+                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_NAME, name)
+                putExtra(AutomationAlarmReceiver.EXTRA_LEAD_MINUTES, minutes)
+            }
+        return PendingIntent.getBroadcast(
+            context,
+            requestCode(id.value, isStart = true) + minutes + 10_000,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
 
     companion object {
         const val TAG = "AutomationScheduler"
