@@ -343,7 +343,8 @@ fun AutomationListScreen(
     val inSelection = selected.isNotEmpty()
 
     // Type filter chips (All / Modes / Routines) — display-only, client-side.
-    var typeFilter by rememberSaveable { mutableStateOf("ALL") }
+    val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
+    var typeFilter by remember { mutableStateOf(prefs.getString("automation_list_filter", "ALL") ?: "ALL") }
     val visibleItems =
         remember(items, typeFilter) {
             if (typeFilter == "ALL") items else items.filter { it.type.name == typeFilter }
@@ -488,20 +489,24 @@ fun AutomationListScreen(
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                             ) {
+                                val setFilter = { f: String ->
+                                    typeFilter = f
+                                    prefs.edit().putString("automation_list_filter", f).apply()
+                                }
                                 NothingTag(
                                     text = "All",
                                     active = typeFilter == "ALL",
-                                    onClick = { typeFilter = "ALL" },
+                                    onClick = { setFilter("ALL") },
                                 )
                                 NothingTag(
                                     text = "Modes",
                                     active = typeFilter == "MODE",
-                                    onClick = { typeFilter = "MODE" },
+                                    onClick = { setFilter("MODE") },
                                 )
                                 NothingTag(
                                     text = "Routines",
                                     active = typeFilter == "ROUTINE",
-                                    onClick = { typeFilter = "ROUTINE" },
+                                    onClick = { setFilter("ROUTINE") },
                                 )
                             }
                             Spacer(modifier = Modifier.height(NothingSpacing.lg))
