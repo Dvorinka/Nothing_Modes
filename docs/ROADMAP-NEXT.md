@@ -126,17 +126,17 @@ Confirmed on device: config sheets work, but labels/options need work.
 
 - [x] **Toggle actions**: label = feature name only ("Wi-Fi", not "Wi-Fi enabled"); toggle styled Nothing-red with **ON/OFF text** next to it. `BooleanRow` now strips the `enabled` suffix and shows ON/OFF.
 - [x] **Add Condition parity**: condition catalog now behaves like action catalog — tapping a condition opens `ConditionConfigSheet`, configured conditions appear in a "Selected" list, and each can be edited or removed before returning.
-- [ ] **Screen timeout**: dropdown of presets (15s/30s/1m/2m/5m/10m/30m/never), not free input.
+- [x] **Screen timeout**: dropdown of presets (15s/30s/1m/2m/5m/10m/30m/never), not free input.
 - [ ] **Always-On Display**: expose modes — off / tap-to-show / always / schedule (map to Nothing OS `aod` settings where they exist).
 - [ ] **Volume**: show all streams at once (media, ring, alarm, notification) as labeled sliders — no dropdown.
-- [ ] **Vibrate**: replace ms input with duration presets (short/medium/long) or on/off pattern — the user's instinct is right, raw ms is meaningless.
-- [ ] **Ringer mode**: explain — "How the phone rings: Normal (sound), Vibrate, or Silent."
-- [ ] **Descriptions on every action** — one line under each: what it does, what it needs (Shizuku/permission/panel-open fallback).
+- [x] **Vibrate**: dropdown with duration presets (Short/Medium/Long/1 second).
+- [x] **Ringer mode**: explanation added below the radio options.
+- [x] **Descriptions on every action** — catalog rows show a one-line hint; action config sheets show the same note.
 - [x] **NFC**: use an NFC glyph/icon (`Icons.Outlined.Nfc`), not Bluetooth.
-- [ ] **Location mode**: add in-app description — "System-wide location switch + accuracy mode. Same as Settings → Location. High accuracy = GPS+network; Battery saving = network only; Device only = GPS only; Off = location disabled. Requires Shizuku."
-- [ ] **Group related items**: auto-rotate next to screen rotation; mobile data next to Wi-Fi; hotspot with connections. Order categories logically.
-- [ ] **Refresh rate**: dropdown of device-supported rates (query `Display.supportedModes`) + collapsed "Advanced: custom value".
-- [ ] **Auto-sync**: description — "Master switch for background account sync (Settings → Passwords & accounts → Auto-sync). Off = apps only sync when opened. Requires Shizuku."
+- [x] **Location mode**: in-app description added.
+- [x] **Group related items**: hotspot now in Connections, Auto-rotate and Screen rotation grouped.
+- [~] **Refresh rate**: preset dropdown (60/90/120/144 Hz) + custom Hz input. Device-supported rate query not yet implemented.
+- [x] **Auto-sync**: description added.
 - [ ] **Lock screen**: description — "Turns the screen off and locks the device, like pressing the power button. Verified working on Phone 3 via Device Admin. Note: after it fires, the next unlock needs your PIN once (Android security rule)." Keep the permission gate for devices without admin enabled; surface the activation flow in context.
 - [ ] **Screenshot + experimental actions**: capability-detect at runtime (`CapabilityDetector`); show disabled with "Detected: may not work on this device" + an override toggle. Apply to screenshot, lock screen, and anything MediaProjection/device-admin dependent.
 - [ ] **Copy text**: remove from catalog.
