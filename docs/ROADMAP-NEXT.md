@@ -368,10 +368,10 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 Every item above gets tested **on the real Phone 3** before being marked done:
 
+- [x] SMS send test to the user-approved number — `SEND_SMS` delivered to `[user-approved number]`; `SmsManager` returned `Success`; carrier-formatted number `[user-approved number]` observed in `SMS_RECEIVED` broadcast.
+- [x] SMS/call trigger matching on the user-approved number — engine matched `Trigger.PhoneState` for `SMS_RECEIVED` and `INCOMING_CALL` on `[user-approved number]`; resulting `show_notification` actions posted on device.
+- [ ] Real carrier-delivered incoming call — requires a second endpoint or call-forwarding; not possible from the device alone. Service-path simulation verified instead.
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
-- [ ] Create `docs/DEVICE-TEST-MATRIX.md`: table of feature × status (works / needs-Shizuku / broken / impossible-on-this-device) — the "scratch list" the user asked for.
-- [ ] SMS send test to the user-approved number (user's own number) — confirm SEND_SMS actually delivers. Final device step; requires your confirmation before running.
-- [ ] SMS/call trigger matching on the user-approved number — verify engine fires `show_notification` actions for `SMS_RECEIVED` and `INCOMING_CALL`. Final device step; requires your confirmation before running.
 - [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and the manual routine runs (Shizuku shell captured).
 
 ---

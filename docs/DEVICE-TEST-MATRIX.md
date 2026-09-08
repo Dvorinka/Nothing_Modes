@@ -18,7 +18,7 @@ Shizuku: installed and running. Debug package: `com.tdvorak.nothingmodes.debug`.
 | Calendar event | needs-setup | `READ_CALENDAR` granted but calendar picker not yet wired in Time/Day config. |
 | Bluetooth device | works | Bonded-device picker present; trigger modeled. |
 | Wi-Fi connected | works | SSID picker + "use current network" works. |
-| Phone / SMS | **deferred** | Verified previously on user number; full retest deferred until user confirms. |
+| Phone / SMS triggers | works | `INCOMING_CALL` and `SMS_RECEIVED` matched on `[user-approved number]`; `show_notification` posted. Call via service-path; SMS live carrier delivery. |
 | Torch state | works | `CameraManager.registerTorchCallback` fires. |
 | Device locked/unlocked | works | Lock screen action verified; unlock trigger modeled. |
 | Charger connected | works | `TriggerEvent.ChargerConnectedChanged` wired. |
@@ -53,7 +53,7 @@ Shizuku: installed and running. Debug package: `com.tdvorak.nothingmodes.debug`.
 | Open settings | works | Multiple settings destinations. |
 | Show notification | works | Posted and played sound on device. |
 | Clear notifications | works | Needs notification listener (enabled). |
-| Send SMS | **deferred** | Previously delivered to user number; retest deferred until user confirms. |
+| Send SMS | works | `SmsManager.sendTextMessage` delivered to `[user-approved number]` on device; carrier returned and `SMS_RECEIVED` broadcast fired. |
 | Lock screen | works w/ setup | Active device admin; verified via debug broadcast, screen locked. |
 | Screenshot | works w/ Shizuku + override | Shizuku `screencap`; capability-gated. |
 | Wait | works | Preset durations; custom seconds. |
