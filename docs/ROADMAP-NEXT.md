@@ -23,6 +23,26 @@
 - [x] Add `bolt` icon to the in-app icon catalog so the seed template resolves correctly.
 - [x] Build and install the debug APK on the Nothing Phone 3; confirm launch.
 
+## Completed this session
+
+### Device validation (Nothing Phone 3)
+- [x] `:app:assembleGithubDebug` builds clean; `:engine-core:test` and `:capabilities:test` pass.
+- [x] Debug APK installed and launched on the connected Nothing Phone 3.
+- [x] Torch, notification, screenshot, Wi-Fi/Bluetooth, vibration, flashlight, and Glyph debug actions verified on-device.
+- [x] SMS action `send_sms` sent to the user-approved number; executor returned `Success`.
+- [x] Phone/SMS trigger pipeline wired end-to-end:
+  - `DebugActionReceiver` dispatches `phone_state` (ringing/idle) and `sms_received` events.
+  - `AutomationService` routes them through `TriggerEvent.PhoneStateChanged`.
+  - Engine matches `Trigger.PhoneState` for `INCOMING_CALL` and `SMS_RECEIVED` on the user-approved number.
+  - Resulting `show_notification` actions posted and played sound on device.
+- [x] Debug `manual` broadcast type added to `DebugActionReceiver` for testing any automation by id.
+
+### Website / community library
+- [x] `library.html` now falls back to `seed.json` for local static-server previews (`localhost:8888`) when `/api/library` is not available.
+- [x] Client-side search, type tabs, sort, and capability chips work against the local seed fallback.
+- [x] Template/glyph detail modal uses the local `_payload` without requiring `/api/preview` or `/api/item`.
+- [x] Favicon link added to `library.html` to silence the `favicon.ico` 404.
+
 ---
 
 ## 0. Verified on-device findings (bugs & intel)
@@ -91,10 +111,10 @@ User is right: asking for a `calendarId` string is backwards.
 - [x] Remove the standalone "Calendar" trigger type from the catalog (fold into Time/Day).
 
 ### New triggers requested
-- [ ] **Torch/flashlight active** — `CameraManager.registerTorchCallback` (no permission needed for state). New `Trigger.TorchState(on: Boolean)`.
+- [x] **Torch/flashlight active** — `CameraManager.registerTorchCallback` (no permission needed for state). `Trigger.TorchState(on: Boolean)` is modeled, in the trigger catalog, and verified on-device.
 - [ ] **Device connects** — `Trigger.BluetoothDevice` exists; surface it clearly ("When this device connects") with bonded-device picker.
 - [ ] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` exists; add SSID picker from `WifiManager.connectionInfo`/`configured` networks + "any network".
-- [ ] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` already modeled. Build the UI: contact picker (`READ_CONTACTS`) OR custom number field + "any text / contains text" field. Wire `PhoneStateReceiver` to match.
+- [~] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` already modeled. The in-app UI has phone/SMS event, number, and text-match fields. `PhoneStateReceiver` and `AutomationService` are wired end-to-end and verified on-device. Contact picker (`READ_CONTACTS`) not yet implemented.
 - [x] Template: **"Locate my phone"** — SMS "LOCATE" keyword → flashlight on, mobile data on, high-accuracy location on, reply SMS. Shipped as a built-in template with description.
 - [~] **Condition parity pass** — Added generic `Condition.BooleanState`, `Condition.NumericState`, `Condition.AtLocation`, `Condition.EventActive`, and `Condition.NotificationPresent` with a closed `StateKeys` registry. Covered: device locked, Wi-Fi/Bluetooth/mobile data/hotspot/AOD/DND/torch radios, brightness, refresh rate, screen timeout, at-location radius, calendar event active, notification present. Done.
 
@@ -339,7 +359,8 @@ Every item above gets tested **on the real Phone 3** before being marked done:
 
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
 - [ ] Create `docs/DEVICE-TEST-MATRIX.md`: table of feature × status (works / needs-Shizuku / broken / impossible-on-this-device) — the "scratch list" the user asked for.
-- [ ] SMS send test to [redacted phone number] (user's own number) — confirm SEND_SMS actually delivers.
+- [x] SMS send test to the user-approved number (user's own number) — confirm SEND_SMS actually delivers.
+- [x] SMS/call trigger matching on the user-approved number — verify engine fires `show_notification` actions for `SMS_RECEIVED` and `INCOMING_CALL`.
 - [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and the manual routine runs (Shizuku shell captured).
 
 ---
@@ -389,7 +410,7 @@ Workarounds and their real costs:
 3. `TakeScreenshot` — **remove** from catalog and model (MediaProjection consent per capture makes it useless for automation).
 4. "Surge" — was a voice-dictation artifact (Whispr Flow). Intended meaning: **fully wire everything across all surfaces** — app, website, GitHub — including search across library/templates. No specific product; fold into the community-pipeline work.
 5. Creator profile — **keep handle + email (private, author contact) + optional GitHub field** added.
-6. SMS send test — **approved** to [redacted phone number] when we reach it.
+6. SMS send test — **approved** to the user's own number when we reach it.
 7. Glyph always-on — Phone 3 requires the system toy enabled; we deep-link. Accepted.
 8. Admin AI agent — pending; design as advisory verdict + human final approval.
 

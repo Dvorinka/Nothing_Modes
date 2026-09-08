@@ -6,6 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
+import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.PhoneStateReceiver
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -130,6 +133,43 @@ class DebugActionReceiver : BroadcastReceiver() {
         }
         if (intent.getStringExtra("type") == "glyph_battery") {
             glyphBattery(context, intent)
+            return
+        }
+        if (intent.getStringExtra("type") == "phone_state") {
+            val event = intent.getStringExtra("event").orEmpty()
+            val number = intent.getStringExtra("number").orEmpty()
+            val svc =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_PHONE_STATE
+                    putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, event)
+                    putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, number)
+                }
+            ContextCompat.startForegroundService(context, svc)
+            Log.i(TAG, "dispatched phone_state event=$event number=$number")
+            return
+        }
+        if (intent.getStringExtra("type") == "sms_received") {
+            val sender = intent.getStringExtra("sender").orEmpty()
+            val body = intent.getStringExtra("body").orEmpty()
+            val svc =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_SMS
+                    putExtra(PhoneStateReceiver.EXTRA_SMS_SENDER, sender)
+                    putExtra(PhoneStateReceiver.EXTRA_SMS_BODY, body)
+                }
+            ContextCompat.startForegroundService(context, svc)
+            Log.i(TAG, "dispatched sms_received sender=$sender body=$body")
+            return
+        }
+        if (intent.getStringExtra("type") == "manual") {
+            val id = intent.getStringExtra("id") ?: return
+            val svc =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_MANUAL
+                    putExtra(AutomationService.EXTRA_MANUAL_ID, id)
+                }
+            ContextCompat.startForegroundService(context, svc)
+            Log.i(TAG, "dispatched manual id=$id")
             return
         }
         val executor =

@@ -6,6 +6,7 @@
 <title>Nothing Modes — Feature Library</title>
 <meta name="description" content="Community-made modes and glyph designs for Nothing Modes. Every item is reviewed before publication.">
 <meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E<circle cx='16.0' cy='7.6' r='1.5' fill='%23D71921'/><circle cx='11.8' cy='11.8' r='1.5' fill='%23D71921'/><circle cx='16.0' cy='11.8' r='1.5' fill='%23D71921'/><circle cx='20.2' cy='11.8' r='1.5' fill='%23D71921'/><circle cx='7.6' cy='16.0' r='1.5' fill='%23D71921'/><circle cx='11.8' cy='16.0' r='1.5' fill='%23D71921'/><circle cx='16.0' cy='16.0' r='1.5' fill='%23D71921'/><circle cx='20.2' cy='16.0' r='1.5' fill='%23D71921'/><circle cx='24.4' cy='16.0' r='1.5' fill='%23D71921'/><circle cx='11.8' cy='20.2' r='1.5' fill='%23D71921'/><circle cx='16.0' cy='20.2' r='1.5' fill='%23D71921'/><circle cx='20.2' cy='20.2' r='1.5' fill='%23D71921'/><circle cx='16.0' cy='24.4' r='1.5' fill='%23D71921'/>%3C/svg%3E">
 <script src="https://rybbit.tdvorak.dev/api/script.js" data-site-id="fe8285816716" defer></script>
 <style>
   @font-face { font-family:"Doto"; src:url("fonts/doto.ttf") format("truetype"); font-display:swap; }
@@ -292,6 +293,86 @@ let modalTimer = null;
 let modalItem = null;
 let playing = true;
 const adminToken = localStorage.getItem('crash_admin_token') || '';
+let seedItems = null;
+
+function slugify(s) {
+  return String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function normalizeSeed(rawItems) {
+  const out = [];
+  const now = Date.now();
+  for (let i = 0; i < rawItems.length; i++) {
+    const it = rawItems[i];
+    const payload = it.payload || {};
+    const id = slugify(it.file ? it.file.replace(/\.json$/, '') : it.title) || 'item-' + i;
+    let preview = null;
+    let capabilities = [];
+    let summary = '';
+    if (it.type === 'glyph') {
+      const frames = Array.isArray(payload.frames) ? payload.frames : [];
+      const first = frames[0];
+      preview = first ? { size: payload.v === 4 ? 13 : 25, frameCount: frames.length, firstFrame: first.p, duration: first.d } : null;
+      capabilities = ['glyph'];
+      summary = `${frames.length} frames`;
+    } else {
+      const automations = Array.isArray(payload.automations) ? payload.automations : [];
+      const first = automations[0];
+      const actionCount = automations.reduce((n, a) => n + (Array.isArray(a.actions) ? a.actions.length : 0), 0);
+      preview = first ? { icon: first.icon || 'routine', iconBackground: first.iconBackground || 'transparent', automationCount: automations.length, actionCount } : null;
+      capabilities = Array.isArray(payload.requiredCapabilities) ? payload.requiredCapabilities : [];
+      summary = first?.trigger?.type ? first.trigger.type.replace(/_/g, ' ') : 'routine';
+    }
+    out.push({
+      id,
+      type: it.type,
+      title: it.title,
+      description: it.description || '',
+      handle: 'nothing-modes',
+      github: '',
+      created_at: new Date(now - i * 86400000).toISOString(),
+      summary,
+      capabilities,
+      downloads: 0,
+      preview,
+      _payload: payload,
+    });
+  }
+  return out;
+}
+
+async function loadSeed() {
+  if (seedItems) return seedItems;
+  const res = await fetch('/seed.json');
+  if (!res.ok) throw new Error('seed.json unavailable: ' + res.status);
+  const data = await res.json();
+  seedItems = normalizeSeed(data.items || []);
+  return seedItems;
+}
+
+function filterSeed(items, type, q, sort, caps) {
+  let filtered = items.slice();
+  if (type) filtered = filtered.filter(it => it.type === type);
+  const query = q.trim().toLowerCase();
+  if (query) {
+    filtered = filtered.filter(it =>
+      (it.title || '').toLowerCase().includes(query) ||
+      (it.description || '').toLowerCase().includes(query) ||
+      (it.handle || '').toLowerCase().includes(query)
+    );
+  }
+  if (caps.length) {
+    filtered = filtered.filter(it => caps.every(c => (it.capabilities || []).includes(c)));
+  }
+  if (sort === 'alpha') {
+    filtered.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sort === 'download') {
+    filtered.sort((a, b) => b.downloads - a.downloads);
+  } else {
+    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return filtered;
+}
 
 const ROWS_25 = [7,11,15,17,19,21,21,23,23,25,25,25,25,25,25,25,23,23,21,21,19,17,15,11,7];
 const ROWS_13 = [5,9,11,11,13,13,13,13,13,11,11,9,5];
@@ -329,19 +410,31 @@ document.querySelectorAll('.tab').forEach(b =>
 
 async function load() {
   document.getElementById('status').textContent = 'Loading…';
+  const q = qEl.value.trim();
+  const capList = [...selectedCaps];
   const p = new URLSearchParams();
   p.set('type', type);
   p.set('preview', '1');
-  if (qEl.value.trim()) p.set('q', qEl.value.trim());
+  if (q) p.set('q', q);
   p.set('sort', sort);
-  if (selectedCaps.size) p.set('caps', [...selectedCaps].join(','));
-  const res = await fetch('/api/library?' + p);
-  const data = await res.json();
-  allItems = data.items || [];
-  items = allItems;
-  document.getElementById('status').textContent = '';
-  renderCaps();
-  render();
+  if (capList.length) p.set('caps', capList.join(','));
+  try {
+    const res = await fetch('/api/library?' + p);
+    if (res.ok) {
+      const data = await res.json();
+      allItems = data.items || [];
+    } else {
+      const seed = await loadSeed();
+      allItems = filterSeed(seed, type, q, sort, capList);
+    }
+    allItems.forEach(it => { if (!it._payload && it.payload) it._payload = it.payload; });
+    items = allItems;
+    document.getElementById('status').textContent = '';
+    renderCaps();
+    render();
+  } catch (e) {
+    document.getElementById('status').textContent = 'Could not load library.';
+  }
 }
 
 function renderCaps() {
@@ -486,10 +579,15 @@ function drawGlyphFrame(ctx, size, rows, pixels, w, h) {
 }
 
 async function download(id, name) {
-  const res = await fetch('/api/item?id=' + encodeURIComponent(id));
-  if (!res.ok) { alert('Download failed'); return; }
-  const { item } = await res.json();
-  const blob = new Blob([JSON.stringify(item.payload, null, 2)], { type: 'application/json' });
+  const it = allItems.find(x => x.id === id);
+  let payload = it?._payload;
+  if (!payload) {
+    const res = await fetch('/api/item?id=' + encodeURIComponent(id));
+    if (!res.ok) { alert('Download failed'); return; }
+    const { item } = await res.json();
+    payload = item.payload;
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (name || 'nothing-modes').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.json';
