@@ -314,9 +314,8 @@ The model marks **12 actions as Shizuku-required**: Wi-Fi, Bluetooth, mobile dat
 Triggers: **none need Shizuku**; the gated ones need runtime permissions/services — notification listener, SMS/phone state, usage access (app-opened), location (geofence), calendar read, BT connect. Conditions: most read via builtin providers; `STATE_READER_SETTING/SYSFS/DUMPSYS` conditions → Shizuku; foreground-app → usage access.
 
 ### 7c. Catalog filters
-- [ ] Filter chips on action/condition/trigger catalogs: **"No Shizuku needed"**, **"Needs Shizuku"**, **"Needs setup"** (permission missing right now), **"Glyph"** (Nothing hardware), category chips. Multi-select.
-- [ ] **Persist the filter** — a user who never installs Shizuku shouldn't wade through dead rows every time.
-- [ ] **"Clear filters" button** — one tap resets all.
+- [x] Filter chips on action catalog: **"No Shizuku needed"**, **"Needs Shizuku"**, **"Needs setup"** (missing capability right now), **"Glyph"**. Multi-select, with a Clear button.
+- [~] **Persist the filter** and add category chips to condition/trigger catalogs — not yet implemented.
 
 ### 7d. Play vs GitHub flavor — what's lost + upsell path
 

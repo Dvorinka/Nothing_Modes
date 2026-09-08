@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.AodMode
+import com.tdvorak.nothingmodes.engine.model.CapabilityIds
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -80,6 +85,7 @@ fun ActionCatalogScreen(navController: NavController) {
         withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
     }
     var search by remember { mutableStateOf("") }
+    var activeFilters by remember { mutableStateOf<Set<ActionFilter>>(emptySet()) }
     // Actions the user has configured and wants to add.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
     // Index of the selected action currently being edited, or null for a new action.
@@ -147,13 +153,25 @@ fun ActionCatalogScreen(navController: NavController) {
             }
         }
 
+    val resolver = remember(caps) { CapabilityResolver(caps) }
     val filtered =
-        remember(search, items) {
-            if (search.isBlank()) {
-                items
-            } else {
-                items.filter { it.label.contains(search, ignoreCase = true) }
-            }
+        remember(search, items, activeFilters, caps) {
+            items
+                .filter {
+                    if (search.isBlank()) true else it.label.contains(search, ignoreCase = true)
+                }
+                .filter {
+                    if (activeFilters.isEmpty()) return@filter true
+                    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(it.action))
+                    activeFilters.all { f ->
+                        when (f) {
+                            ActionFilter.NO_SHIZUKU -> CapabilityIds.SHIZUKU_REQUIRED !in required
+                            ActionFilter.NEEDS_SHIZUKU -> CapabilityIds.SHIZUKU_REQUIRED in required
+                            ActionFilter.NEEDS_SETUP -> !resolver.resolve(it.label, required).canRun
+                            ActionFilter.GLYPH -> it.category == "Glyph"
+                        }
+                    }
+                }
         }
 
     val grouped = filtered.groupBy { it.category.uppercase() }
@@ -190,6 +208,32 @@ fun ActionCatalogScreen(navController: NavController) {
                         label = "Search",
                         placeholder = "Find an action",
                     )
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    LazyRow(
+                        contentPadding = PaddingValues(vertical = NothingSpacing.sm),
+                    ) {
+                        items(ActionFilter.entries) { filter ->
+                            FilterChip(
+                                selected = filter in activeFilters,
+                                onClick = {
+                                    activeFilters =
+                                        if (filter in activeFilters) activeFilters - filter else activeFilters + filter
+                                },
+                                label = { Text(filter.label, fontFamily = NothingFonts.mono()) },
+                                modifier = Modifier.padding(end = NothingSpacing.sm),
+                            )
+                        }
+                        if (activeFilters.isNotEmpty() || search.isNotBlank()) {
+                            item {
+                                TextButton(
+                                    onClick = { activeFilters = emptySet(); search = "" },
+                                    modifier = Modifier.padding(start = NothingSpacing.sm),
+                                ) {
+                                    Text("Clear", fontFamily = NothingFonts.mono())
+                                }
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
 
@@ -340,6 +384,13 @@ private fun actionCapabilityHint(
     } else {
         static
     }
+}
+
+private enum class ActionFilter(val label: String) {
+    NO_SHIZUKU("No Shizuku"),
+    NEEDS_SHIZUKU("Needs Shizuku"),
+    NEEDS_SETUP("Needs setup"),
+    GLYPH("Glyph"),
 }
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
