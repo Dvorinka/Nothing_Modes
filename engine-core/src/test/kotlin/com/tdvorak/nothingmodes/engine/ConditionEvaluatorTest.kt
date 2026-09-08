@@ -943,6 +943,32 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `atLocation met when inside radius`() {
+        val state = DeviceState(values = mapOf(StateKeys.LAT to "50.0755", StateKeys.LNG to "14.4378"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.AtLocation(50.0755, 14.4378, 100.0), state),
+        )
+    }
+
+    @Test
+    fun `atLocation notMet when outside radius`() {
+        val state = DeviceState(values = mapOf(StateKeys.LAT to "48.8584", StateKeys.LNG to "2.2945"))
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.AtLocation(50.0755, 14.4378, 100.0), state),
+        )
+    }
+
+    @Test
+    fun `atLocation unavailable when location missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.AtLocation(50.0755, 14.4378, 100.0), DeviceState()),
+        )
+    }
+
+    @Test
     fun `nested And-Or-Not evaluates correctly`() {
         val cond =
             Condition.And(

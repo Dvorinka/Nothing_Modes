@@ -239,6 +239,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.DeviceThermostat,
                     condition = Condition.ThermalLevel(CmpOp.GTE, 3),
                 ),
+                ConditionItem(
+                    label = "At location",
+                    category = "Location",
+                    icon = Icons.Outlined.LocationOn,
+                    condition = Condition.AtLocation(50.0755, 14.4378, 500.0),
+                ),
             ) + BOOLEAN_STATE_ITEMS.map {
                 ConditionItem(
                     label = it.label,

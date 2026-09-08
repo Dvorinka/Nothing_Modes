@@ -10,10 +10,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.display.DisplayManager
+import android.location.LocationManager
 import android.view.Display
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.location.LocationManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.ConnectivityManager
@@ -149,6 +149,12 @@ class AndroidStateProvider(
         readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
         readScreenTimeout()?.let { values[StateKeys.SCREEN_TIMEOUT] = it.toString() }
 
+        val (lat, lng) = readLocation()
+        if (lat != null && lng != null) {
+            values[StateKeys.LAT] = lat.toString()
+            values[StateKeys.LNG] = lng.toString()
+        }
+
         batteryIntent?.let { intent ->
             val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
             values["charging_source"] =
@@ -249,6 +255,18 @@ class AndroidStateProvider(
             notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
         } catch (e: SecurityException) {
             false
+        }
+
+    @SuppressLint("MissingPermission")
+    private fun readLocation(): Pair<Double?, Double?> =
+        try {
+            val locationManager = context.getSystemService(LocationManager::class.java)
+            val location =
+                locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            location?.latitude to location?.longitude
+        } catch (_: SecurityException) {
+            null to null
         }
 
     private fun readBrightness(): Int? =

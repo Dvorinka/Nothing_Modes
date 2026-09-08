@@ -478,6 +478,13 @@ fun ConditionConfigScreen(
                         )
                     }
 
+                    is Condition.AtLocation -> {
+                        AtLocationScreenContent(
+                            condition = c,
+                            onChange = { condition = it },
+                        )
+                    }
+
                     is Condition.ThermalLevel -> {
                         Text(
                             text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
@@ -595,6 +602,41 @@ private fun NumericStateScreenContent(
                 text.toDoubleOrNull()?.let { onChange(condition.copy(value = it)) }
             },
             label = "Value",
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun AtLocationScreenContent(
+    condition: Condition.AtLocation,
+    onChange: (Condition.AtLocation) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.lat.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(lat = it)) }
+            },
+            label = "Latitude",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.lng.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(lng = it)) }
+            },
+            label = "Longitude",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.radiusM.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(radiusM = it)) }
+            },
+            label = "Radius (meters)",
             modifier = Modifier.fillMaxWidth(),
         )
     }

@@ -4,6 +4,11 @@ import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.StateKeys
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -64,6 +69,7 @@ class ConditionEvaluator {
             is Condition.ThermalLevel -> evaluateThermalLevel(condition, state)
             is Condition.BooleanState -> evaluateBooleanState(condition, state)
             is Condition.NumericState -> evaluateNumericState(condition, state)
+            is Condition.AtLocation -> evaluateAtLocation(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -326,8 +332,36 @@ class ConditionEvaluator {
         return compareNumeric(condition.op, actual, condition.value)
     }
 
+    private fun evaluateAtLocation(
+        condition: Condition.AtLocation,
+        state: DeviceState,
+    ): Result {
+        val lat = state.values[StateKeys.LAT]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
+        val lng = state.values[StateKeys.LNG]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
+        return if (haversineMeters(lat, lng, condition.lat, condition.lng) <= condition.radiusM) {
+            Result.MET
+        } else {
+            Result.NOT_MET
+        }
+    }
+
     // ponytail: AlarmRinging only works if a RingingAlarmProvider is wired; otherwise the value is absent
     //          and the condition reports STATE_UNAVAILABLE. Upgrade by populating values["alarm_ringing"].
+    private fun haversineMeters(
+        lat1: Double,
+        lng1: Double,
+        lat2: Double,
+        lng2: Double,
+    ): Double {
+        val r = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLng = Math.toRadians(lng2 - lng1)
+        val a =
+            sin(dLat / 2).let { it * it } +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).let { it * it }
+        return 2 * r * atan2(sqrt(a), sqrt(1 - a))
+    }
+
     private fun evaluateAlarmRinging(
         condition: Condition.AlarmRinging,
         state: DeviceState,

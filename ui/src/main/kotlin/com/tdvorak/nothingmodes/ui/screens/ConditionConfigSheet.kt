@@ -261,6 +261,12 @@ fun ConditionConfigSheet(
                         onChange = { current = it },
                     )
 
+                is Condition.AtLocation ->
+                    AtLocationSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
                 is Condition.BooleanState ->
                     BooleanConditionContent(
                         label = booleanStateLabel(c.key),
@@ -325,6 +331,7 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.ThermalLevel -> "Thermal status"
         is Condition.BooleanState -> booleanStateLabel(condition.key)
         is Condition.NumericState -> numericStateLabel(condition.key)
+        is Condition.AtLocation -> "At location"
         else -> "Condition"
     }
 
@@ -776,6 +783,41 @@ private fun NumericStateSheetContent(
                 text.toDoubleOrNull()?.let { onChange(condition.copy(value = it)) }
             },
             label = "Value",
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun AtLocationSheetContent(
+    condition: Condition.AtLocation,
+    onChange: (Condition.AtLocation) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.lat.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(lat = it)) }
+            },
+            label = "Latitude",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.lng.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(lng = it)) }
+            },
+            label = "Longitude",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.radiusM.toString(),
+            onValueChange = { text ->
+                text.toDoubleOrNull()?.let { onChange(condition.copy(radiusM = it)) }
+            },
+            label = "Radius (meters)",
             modifier = Modifier.fillMaxWidth(),
         )
     }

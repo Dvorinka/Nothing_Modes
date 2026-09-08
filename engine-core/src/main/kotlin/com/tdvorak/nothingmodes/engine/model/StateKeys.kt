@@ -27,6 +27,10 @@ object StateKeys {
     const val REFRESH_RATE = "refresh_rate"
     const val SCREEN_TIMEOUT = "screen_timeout"
 
+    // Location state keys (Condition.AtLocation)
+    const val LAT = "lat"
+    const val LNG = "lng"
+
     /** chiave -> valori ammessi (usato nel render del manifest e in doc) */
     val ALL: Map<String, String> =
         mapOf(
@@ -47,5 +51,7 @@ object StateKeys {
             BRIGHTNESS to "0-255",
             REFRESH_RATE to "0-144",
             SCREEN_TIMEOUT to "0-",
+            LAT to "-90..90",
+            LNG to "-180..180",
         )
 }

@@ -229,6 +229,18 @@ sealed interface Condition {
         val value: Double,
     ) : Condition
 
+    /**
+     * Device is currently within radiusM of (lat, lng).
+     * Requires a location provider that populates values["lat"] and values["lng"].
+     */
+    @Serializable
+    @SerialName("at_location")
+    data class AtLocation(
+        val lat: Double,
+        val lng: Double,
+        val radiusM: Double,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(
