@@ -222,20 +222,33 @@ fun ActionConfigContent(
         }
 
         is Action.SetScreenTimeout -> {
-            NothingInput(
-                value = a.timeoutMs.toString(),
-                onValueChange = { onActionChange(a.copy(timeoutMs = it.toIntOrNull() ?: a.timeoutMs)) },
-                label = "Timeout (ms) — 2147483647 = never",
-                modifier = Modifier.fillMaxWidth(),
+            val selected = screenTimeoutPresets.firstOrNull { it.second == a.timeoutMs }?.first
+            NothingEnumSelector(
+                label = "Timeout",
+                value = selected ?: a.timeoutMs.toString(),
+                options = screenTimeoutPresets.map { it.first },
+                onSelect = { label ->
+                    screenTimeoutPresets.firstOrNull { it.first == label }?.let {
+                        onActionChange(a.copy(timeoutMs = it.second))
+                    }
+                },
             )
         }
 
         is Action.SetAlwaysOnDisplay -> {
-            BooleanRow(
-                label = "Always-on display enabled",
-                checked = a.on,
-                onChange = { onActionChange(a.copy(on = it)) },
-            )
+            Column {
+                BooleanRow(
+                    label = "Always-on display",
+                    checked = a.on,
+                    onChange = { onActionChange(a.copy(on = it)) },
+                )
+                Text(
+                    text = "Keeps the screen on while the mode is active. Tap-to-show and scheduled AOD modes are not yet supported.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
         }
 
         is Action.SetDnd -> {
@@ -259,11 +272,16 @@ fun ActionConfigContent(
         }
 
         is Action.Vibrate -> {
-            NothingInput(
-                value = a.durationMs.toString(),
-                onValueChange = { onActionChange(a.copy(durationMs = it.toIntOrNull() ?: a.durationMs)) },
-                label = "Duration (ms)",
-                modifier = Modifier.fillMaxWidth(),
+            val selected = vibratePresets.firstOrNull { it.second == a.durationMs }?.first
+            NothingEnumSelector(
+                label = "Duration",
+                value = selected ?: a.durationMs.toString(),
+                options = vibratePresets.map { it.first },
+                onSelect = { label ->
+                    vibratePresets.firstOrNull { it.first == label }?.let {
+                        onActionChange(a.copy(durationMs = it.second))
+                    }
+                },
             )
         }
 
@@ -284,12 +302,21 @@ fun ActionConfigContent(
         }
 
         is Action.SetLocationMode -> {
-            NothingEnumSelector(
-                label = "Location mode",
-                value = a.mode.name.enumLabel(),
-                options = enumLabelList<LocationMode>(),
-                onSelect = { onActionChange(a.copy(mode = enumByLabel<LocationMode>(it))) },
-            )
+            Column {
+                NothingEnumSelector(
+                    label = "Location mode",
+                    value = a.mode.name.enumLabel(),
+                    options = enumLabelList<LocationMode>(),
+                    onSelect = { onActionChange(a.copy(mode = enumByLabel<LocationMode>(it))) },
+                )
+                Text(
+                    text = "System-wide location switch and accuracy mode. High accuracy uses GPS + networks; Battery saving uses networks only; Device only uses GPS; Off disables location.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.padding(top = NothingSpacing.sm),
+                )
+            }
         }
 
         is Action.OpenSettingsScreen -> {
@@ -302,11 +329,19 @@ fun ActionConfigContent(
         }
 
         is Action.SetFlashlight -> {
-            BooleanRow(
-                label = "Flashlight enabled",
-                checked = a.on,
-                onChange = { onActionChange(a.copy(on = it)) },
-            )
+            Column {
+                BooleanRow(
+                    label = "Flashlight",
+                    checked = a.on,
+                    onChange = { onActionChange(a.copy(on = it)) },
+                )
+                Text(
+                    text = "Camera flashlight. The engine reads state where possible, but some devices report it unreliably; restore may not always return to the exact previous state.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
         }
 
         is Action.GlyphPreset -> {
@@ -457,20 +492,49 @@ fun ActionConfigContent(
         }
 
         is Action.SetAutoSync -> {
-            BooleanRow(
-                label = "Auto-sync enabled",
-                checked = a.on,
-                onChange = { onActionChange(a.copy(on = it)) },
-            )
+            Column {
+                BooleanRow(
+                    label = "Auto-sync",
+                    checked = a.on,
+                    onChange = { onActionChange(a.copy(on = it)) },
+                )
+                Text(
+                    text = "Master switch for background account sync (Settings → Passwords & accounts → Auto-sync). Off means apps only sync when opened.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
         }
 
         is Action.SetRefreshRate -> {
-            NothingInput(
-                value = a.hz.toString(),
-                onValueChange = { onActionChange(a.copy(hz = it.toIntOrNull() ?: a.hz)) },
-                label = "Hz",
-                modifier = Modifier.fillMaxWidth(),
-            )
+            val customLabel = "Custom"
+            val selected = refreshRatePresets.firstOrNull { it.second == a.hz }?.first ?: customLabel
+            var customHz by remember(a.hz) { mutableStateOf(a.hz.toString()) }
+            Column {
+                NothingEnumSelector(
+                    label = "Refresh rate",
+                    value = selected,
+                    options = refreshRatePresets.map { it.first } + customLabel,
+                    onSelect = { label ->
+                        refreshRatePresets.firstOrNull { it.first == label }?.let {
+                            onActionChange(a.copy(hz = it.second))
+                        }
+                    },
+                )
+                if (selected == customLabel) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    NothingInput(
+                        value = customHz,
+                        onValueChange = {
+                            customHz = it
+                            it.toIntOrNull()?.let { hz -> onActionChange(a.copy(hz = hz)) }
+                        },
+                        label = "Custom Hz",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
 
         is Action.SetScreenRotation -> {
@@ -703,6 +767,34 @@ internal val GLYPH_PRESET_NAMES =
 
 
 
+private val screenTimeoutPresets =
+    listOf(
+        "15 seconds" to 15_000,
+        "30 seconds" to 30_000,
+        "1 minute" to 60_000,
+        "2 minutes" to 120_000,
+        "5 minutes" to 300_000,
+        "10 minutes" to 600_000,
+        "30 minutes" to 1_800_000,
+        "Never" to Int.MAX_VALUE,
+    )
+
+private val vibratePresets =
+    listOf(
+        "Short" to 100,
+        "Medium" to 300,
+        "Long" to 500,
+        "1 second" to 1_000,
+    )
+
+private val refreshRatePresets =
+    listOf(
+        "60 Hz" to 60,
+        "90 Hz" to 90,
+        "120 Hz" to 120,
+        "144 Hz" to 144,
+    )
+
 private fun actionTitle(action: Action): String =
     when (action) {
         is Action.SetWifi -> "Wi-Fi"
@@ -814,6 +906,13 @@ internal fun RingerModeSelector(
             onClick = { onChange(m) },
         )
     }
+    Text(
+        text = "How the phone rings: Normal (sound), Vibrate, or Silent.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontFamily = NothingFonts.mono(),
+        modifier = Modifier.padding(top = NothingSpacing.sm),
+    )
 }
 
 @Composable
