@@ -59,7 +59,6 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
-import com.tdvorak.nothingmodes.ui.components.NothingTimeZoneField
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -86,7 +85,7 @@ private data class TriggerType(
 
 private fun triggerTypes(): List<TriggerType> =
     listOf(
-        TriggerType("Time", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
+        TriggerType("Time / Day", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
         TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
         TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
         TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
@@ -113,7 +112,7 @@ fun TriggerConfigScreen(
     val initial =
         remember(triggerJson) {
             runCatching { Json.decodeFromString<Trigger>(triggerJson) }.getOrNull()
-                ?: Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())
+                ?: Trigger.Manual
         }
     var trigger by remember { mutableStateOf(initial) }
     var showTypePicker by remember { mutableStateOf(false) }
@@ -466,11 +465,6 @@ private fun TimeWindowContent(
                 modifier = Modifier.weight(1f),
             )
         }
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingTimeZoneField(
-            value = trigger.tz,
-            onValueChange = { onUpdate(trigger.copy(tz = it)) },
-        )
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         NothingLabel(text = "Days (none selected = every day)")
         Spacer(modifier = Modifier.height(NothingSpacing.xs))

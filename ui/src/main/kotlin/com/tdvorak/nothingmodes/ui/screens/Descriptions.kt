@@ -77,20 +77,7 @@ fun triggerDescription(trigger: Trigger): String =
                     ?: trigger.afterMs?.let { "In ${it / 1000}s" }
                     ?: "Time-based"
             }
-            is Trigger.TimeWindow -> {
-                // Only show the zone when it differs from the phone's own — keeps cards short.
-                val tzSuffix =
-                    if (trigger.tz !=
-                        java.time.ZoneId
-                            .systemDefault()
-                            .id
-                    ) {
-                        " (${trigger.tz.substringAfterLast('/')})"
-                    } else {
-                        ""
-                    }
-                "${trigger.startLocal}–${trigger.endLocal}$tzSuffix"
-            }
+            is Trigger.TimeWindow -> "${trigger.startLocal}–${trigger.endLocal}"
             is Trigger.Immediate -> "Immediate"
             is Trigger.Notification -> "Notification from ${trigger.pkg}"
             is Trigger.PhoneState -> "Phone: ${trigger.event.name.enumLabel()}"

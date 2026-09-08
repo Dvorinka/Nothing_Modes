@@ -33,6 +33,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
@@ -74,20 +75,21 @@ private data class TimeSchedule(
 )
 
 private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
-    val zone = runCatching { ZoneId.of(trigger.tz) }.getOrNull() ?: ZoneId.systemDefault()
+    val zone = ZoneId.systemDefault()
 
     trigger.at?.let {
         val at =
             runCatching { ZonedDateTime.parse(it) }.getOrNull()
                 ?: runCatching { ZonedDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME) }.getOrNull()
         if (at != null) {
+            val local = at.withZoneSameInstant(zone)
             return TimeSchedule(
                 recurrence = Recurrence.ONCE,
-                hour = at.hour,
-                minute = at.minute,
-                year = at.year,
-                month = at.monthValue,
-                dayOfMonth = at.dayOfMonth,
+                hour = local.hour,
+                minute = local.minute,
+                year = local.year,
+                month = local.monthValue,
+                dayOfMonth = local.dayOfMonth,
             )
         }
     }
@@ -132,10 +134,11 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
     }
 }
 
-private fun TimeSchedule.toTrigger(tz: String): Trigger.Time =
-    when (recurrence) {
+private fun TimeSchedule.toTrigger(): Trigger.Time {
+    val tz = defaultTimeZone()
+    val zone = ZoneId.systemDefault()
+    return when (recurrence) {
         Recurrence.ONCE -> {
-            val zone = runCatching { ZoneId.of(tz) }.getOrDefault(ZoneId.systemDefault())
             val at =
                 try {
                     ZonedDateTime.of(year, month, dayOfMonth, hour, minute, 0, 0, zone).toString()
@@ -158,6 +161,7 @@ private fun TimeSchedule.toTrigger(tz: String): Trigger.Time =
         Recurrence.MONTHLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth * *", tz = tz)
         Recurrence.YEARLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth $month *", tz = tz)
     }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -174,7 +178,7 @@ fun CustomTimePicker(
 
     fun update(updater: TimeSchedule.() -> TimeSchedule) {
         schedule = schedule.updater()
-        onUpdate(schedule.toTrigger(trigger.tz))
+        onUpdate(schedule.toTrigger())
     }
 
     val options = Recurrence.entries.map { it.label }
@@ -277,14 +281,8 @@ fun CustomTimePicker(
         }
     }
 
-    Spacer(modifier = Modifier.height(NothingSpacing.md))
-    NothingTimeZoneField(
-        value = trigger.tz,
-        onValueChange = { onUpdate(trigger.copy(tz = it)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
     Spacer(modifier = Modifier.height(NothingSpacing.sm))
-    val preview = triggerDescription(schedule.toTrigger(trigger.tz))
+    val preview = triggerDescription(schedule.toTrigger())
     Text(
         text = preview,
         style = MaterialTheme.typography.labelSmall,

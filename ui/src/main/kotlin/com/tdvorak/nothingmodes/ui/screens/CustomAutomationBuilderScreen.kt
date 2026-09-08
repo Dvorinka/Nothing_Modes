@@ -86,7 +86,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
-import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,7 +104,7 @@ import javax.inject.Inject
 data class BuilderState(
     val name: String = "",
     val type: AutomationType = AutomationType.ROUTINE,
-    val trigger: Trigger = Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone()),
+    val trigger: Trigger = Trigger.Manual,
     val actions: List<Action> = emptyList(),
     val conditions: List<Condition> = emptyList(),
     val priority: Int = 5,
@@ -526,14 +525,14 @@ fun CustomAutomationBuilderScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
+                title = if (automationId != null) "EDIT MODE" else "NEW MODE",
                 onBack = { showDiscardDialog = true },
             )
         },
         // Sticky bottom bar — save button always visible, not clipped by system insets.
         bottomBar = {
             NothingBottomActionBar(
-                text = if (automationId != null) "Save Changes" else "Create Automation",
+                text = if (automationId != null) "Save Changes" else "Create Mode",
                 onClick = { viewModel.save() },
                 enabled = state.actions.isNotEmpty(),
             )
@@ -555,13 +554,13 @@ fun CustomAutomationBuilderScreen(
             // Hero — screen title in Doto
             item {
                 Text(
-                    text = if (automationId != null) "EDIT ROUTINE" else "NEW ROUTINE",
+                    text = if (automationId != null) "EDIT MODE" else "NEW MODE",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = NothingFonts.doto(),
                 )
                 Text(
-                    text = "WHEN · ONLY IF · THEN",
+                    text = "IF · ONLY IF · THEN",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
@@ -590,19 +589,21 @@ fun CustomAutomationBuilderScreen(
                 )
             }
 
-            // WHEN: the trigger decides when the routine fires.
+            // IF: the trigger decides when the mode fires.
             item {
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
                     Text(
-                        text = "TRIGGER — the event that starts this routine.",
+                        text = "IF",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.doto(),
+                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                    )
+                    Text(
+                        text = "When this happens",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
-                    )
-                    NothingLabel(
-                        text = "When this happens",
-                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
                     TriggerEditor(
@@ -613,14 +614,14 @@ fun CustomAutomationBuilderScreen(
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
-                        text = "CONDITIONS — optional checks that must be true after the trigger.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
+                        text = "ONLY IF",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.doto(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
                     )
                     Text(
-                        text = "ONLY IF (ALL MUST BE TRUE)",
+                        text = "All of these must be true",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = NothingFonts.mono(),
@@ -629,7 +630,7 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.conditions.isEmpty()) {
                         Text(
-                            "ALWAYS — RUNS WHENEVER THE TRIGGER FIRES",
+                            "ALWAYS — RUNS WHENEVER IF FIRES",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -667,9 +668,11 @@ fun CustomAutomationBuilderScreen(
             // THEN: Actions
             item {
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
-                    NothingLabel(
+                    Text(
                         text = "THEN",
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.doto(),
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
                     NothingDivider()
@@ -717,18 +720,20 @@ fun CustomAutomationBuilderScreen(
                 }
             }
 
-            // WHEN IT ENDS — windowed routines revert by default; per-action opt-out.
+            // AFTER IT ENDS — windowed modes revert by default; per-action opt-out.
             if (state.trigger is Trigger.TimeWindow) {
                 item {
                     val endLocal = (state.trigger as Trigger.TimeWindow).endLocal
                     NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
-                        NothingLabel(
-                            text = "When it ends ($endLocal)",
+                        Text(
+                            text = "AFTER IT ENDS ($endLocal)",
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary,
+                            fontFamily = NothingFonts.doto(),
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
                         )
                         Text(
-                            text = "Ticked items return to how they were before the routine started. Unticked items keep their new value.",
+                            text = "Ticked items return to how they were before the mode started. Unticked items keep their new value.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -739,7 +744,7 @@ fun CustomAutomationBuilderScreen(
                                 .mapIndexedNotNull { i, a -> if (a.canRestore) i to a else null }
                         if (restorable.isEmpty()) {
                             Text(
-                                text = "No revertible changes — the routine just stops.",
+                                text = "No revertible changes — the mode just stops.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = NothingFonts.mono(),
@@ -781,7 +786,7 @@ fun CustomAutomationBuilderScreen(
                 }
             }
 
-            // Advanced — folded away; most routines never need it.
+            // Advanced — folded away; most modes never need it.
             item {
                 var showAdvanced by rememberSaveable { mutableStateOf(false) }
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
@@ -834,7 +839,7 @@ fun CustomAutomationBuilderScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 NothingLabel(text = "Cooldown")
                                 Text(
-                                    text = "Minimum minutes before the routine can fire again.",
+                                    text = "Minimum minutes before the mode can fire again.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = NothingSpacing.xs),
@@ -868,7 +873,7 @@ fun CustomAutomationBuilderScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 NothingLabel(text = "Priority")
                                 Text(
-                                    text = "Higher wins when two routines fight.",
+                                    text = "Higher wins when two modes fight.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = NothingSpacing.xs),
@@ -1060,7 +1065,7 @@ private fun TriggerEditor(
 ) {
     NothingListRow(
         title = triggerDescription(trigger),
-        subtitle = "Trigger",
+        subtitle = "IF",
         onClick = onConfigure,
         leading = {
             NothingIconCircle(size = 44f) {
