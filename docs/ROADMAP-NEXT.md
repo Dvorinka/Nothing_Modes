@@ -227,7 +227,7 @@ Still open in this feature:
 - [x] **Static analysis on ingest** (server-side, in `share.ts` / `analyze.ts`): reject payloads containing `send_sms` to non-e.164 numbers, `open_url` to non-https, `write_setting` to non-allowlisted keys, `launch_app` to known-bad packages, unbounded `wait`, scripts/`content://`/`file://` URIs. Maintain an allowlist of action types for shared content; anything else → auto-reject.
 - [x] **Admin review queue** in `admin.html` (extend): view rendered summary + raw JSON, approve/reject/delete.
 - [x] **AI-agent endpoint**: documented in `landing/api/AGENT.md`; agents can pull pending and POST decisions.
-- [ ] Signing/integrity: server stores a content hash; app verifies downloaded payload hash before import.
+- [x] **Signing/integrity: server stores a content hash; app verifies downloaded payload hash before import.** `ImportExport.preview`/`import` accept `expectedContentHash` and reject on `jsonSha256` mismatch; `TemplateCatalogScreen` passes `item.contentHash` through.
 - [x] Rate-limit submissions per handle/IP; payload size cap (e.g. 64 KB).
 - [x] Privacy: never publish device identifiers; strip `number`, `ssid`, `pkg`, geofence coords from shared templates (or mark as "user fills in on import" placeholders). This is important — a shared "SMS from mom" template must not leak the author's contacts.
 
@@ -255,7 +255,7 @@ Still open in this feature:
 - [x] **Bottom bar gap** (confirmed visually): `NothingBottomActionBar` floating pill shows content beneath it — wrap in an opaque `Surface` with `navigationBarsPadding` (it already does — but the catalog screens draw it in a `Box` overlay; ensure the container under the button is `background`-colored, not transparent) and push the button lower/solid. Done for `ActionConfigSheet` and `ConditionConfigSheet` "Done" bars.
 - [x] Toggle styling: Nothing-red track + ON/OFF text labels, app-wide.
 - [x] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
-- [ ] **Classic theme restyle** — user dislikes it on app AND website. Full redesign pass; **do not touch the Nothing theme** (it stays as-is). Website has a "DOTS" style-toggle — restyle the non-dot variant.
+- [x] **Classic theme restyle** — app + website. App: `NothingDotGrid` gated to NOTHING style; screens already use `NothingFonts.doto()`/`mono()` (null in CLASSIC) and `NothingColors.accent` (resolves to primary in CLASSIC); `NothingScreenHero`/`NothingTopBar`/buttons/labels already branch on `classic`. Website: `styles.css` `[data-style="normal"]` restyles to indigo-accent premium SaaS; `library.html` gained the DOTS/PLAIN + dark/light toggle (persisted via `localStorage`, mirroring `script.js`) and `[data-style="normal"]` overrides. Nothing style untouched.
 - [~] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` moved to `Dispatchers.IO` in `SettingsViewModel.detect()`. `GlyphToysBridge` not found in this screen; remaining cache/no-op items still to audit.
 - [ ] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam.
 - [x] Save/schedule feedback: confirm "Routine saved" on successful save.
@@ -310,7 +310,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 - [ ] In the **play** build: a dismissible banner/notice in Settings (and on the capability warning sheet when a github-only feature is tapped): "This action isn't available in the Play version. The GitHub build unlocks device admin, full app discovery, and in-app updates — same app, free." → link to the GitHub releases page. Never nag — once per feature area, dismissible, persisted.
 
-- [ ] Central `PermissionGate` helper: when a user selects a trigger/action requiring a runtime permission (calendar, contacts, SMS, location, notifications, camera/mic, exact alarm, accessibility, device admin, Shizuku), show an inline explainer row + "Grant" → system dialog **at that moment**, not buried in settings.
+- [x] Central `PermissionGate` helper: when a user selects a trigger/action requiring a runtime permission (calendar, contacts, SMS, location, notifications, camera/mic, exact alarm, accessibility, device admin, Shizuku), show an inline explainer row + "Grant" → system dialog **at that moment**, not buried in settings.
 - [x] A permission status section in Settings showing granted/missing with deep links.
 - [ ] Already granted on debug device: calendar, SMS, location, notifications, camera, mic, WRITE_SETTINGS, notification listener, device admin. Nothing critical missing; exact alarm falls back to inexact (SCHEDULE_EXACT_ALARM denied by default on A13+ — prompt to grant for punctual triggers).
 
@@ -328,7 +328,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 - [ ] Verify windowed semantics on-device: a 22:00–07:00 window must fire exactly twice (start, end) — no extra triggers. Add `AutomationFlowTest` coverage for overnight windows (there is `SleepMorningTest` — extend).
 - [ ] Cooldown enforcement, priority conflict resolution — verify with instrumented tests on the real device.
-- [ ] Audit receivers for duplicate registrations (`ConnectivityReceiver`, `DeviceStateReceiver`, `CalendarObserver`) — ensure idempotent re-registration after process death.
+- [x] Audit receivers for duplicate registrations (`ConnectivityReceiver`, `DeviceStateReceiver`, `CalendarObserver`) — ensure idempotent re-registration after process death. Verified: `PersistentMonitorService` registers receivers in `onCreate` and unregisters (runCatching) in `onDestroy`; battery/screen/phone/connectivity are dynamic-only (manifest comment confirms), `CalendarObserver` is recreated fresh per service instance. No duplicates.
 - [ ] Execution journal → surface latency in Execution Log screen ("fired in X ms").
 
 ---
