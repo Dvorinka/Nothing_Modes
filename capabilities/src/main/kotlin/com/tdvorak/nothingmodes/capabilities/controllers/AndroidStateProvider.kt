@@ -405,17 +405,32 @@ class AndroidStateProvider(
 
     private fun readWifiState(): Pair<Boolean, String?> =
         try {
-            val wifiManager = context.getSystemService(WifiManager::class.java)
-            val info = wifiManager?.connectionInfo
-            if (info != null && info.ipAddress != 0) {
-                val ssid = info.ssid?.removeSurrounding("\"")
-                Pair(true, ssid)
-            } else {
-                Pair(false, null)
-            }
+            ssidFromConnectivity() ?: ssidFromWifiManager()
         } catch (e: SecurityException) {
             Pair(false, null)
         }
+
+    private fun ssidFromConnectivity(): Pair<Boolean, String?>? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        val cm = context.getSystemService(ConnectivityManager::class.java) ?: return null
+        val network = cm.activeNetwork ?: return null
+        val caps = cm.getNetworkCapabilities(network) ?: return null
+        val info = caps.transportInfo as? android.net.wifi.WifiInfo ?: return null
+        val ssid = info.ssid?.takeUnless { it == android.net.wifi.WifiManager.UNKNOWN_SSID }?.removeSurrounding("\"")
+        return Pair(true, ssid)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun ssidFromWifiManager(): Pair<Boolean, String?> {
+        val wifiManager = context.getSystemService(WifiManager::class.java)
+        val info = wifiManager?.connectionInfo
+        return if (info != null && info.ipAddress != 0) {
+            val ssid = info.ssid?.removeSurrounding("\"")
+            Pair(true, ssid)
+        } else {
+            Pair(false, null)
+        }
+    }
 
     @SuppressLint("MissingPermission")
     private fun readBluetoothState(): Pair<Boolean, String?> =

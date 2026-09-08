@@ -2,7 +2,7 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
+
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -782,13 +782,23 @@ private fun currentSsid(context: android.content.Context): String? =
                 context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!granted) return null
-        val wm =
-            context.applicationContext.getSystemService(
-                android.content.Context.WIFI_SERVICE,
-            ) as? android.net.wifi.WifiManager
-        wm?.connectionInfo?.ssid?.takeUnless { it == WifiManager.UNKNOWN_SSID }
-            ?.removeSurrounding("\"")
+        ssidFromConnectivity(context) ?: ssidFromWifiManager(context)
     }.getOrNull()
+
+private fun ssidFromConnectivity(context: android.content.Context): String? {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return null
+    val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return null
+    val network = cm.activeNetwork ?: return null
+    val caps = cm.getNetworkCapabilities(network) ?: return null
+    val info = caps.transportInfo as? android.net.wifi.WifiInfo ?: return null
+    return info.ssid?.takeUnless { it == android.net.wifi.WifiManager.UNKNOWN_SSID }?.removeSurrounding("\"")
+}
+
+@Suppress("DEPRECATION")
+private fun ssidFromWifiManager(context: android.content.Context): String? {
+    val wm = context.applicationContext.getSystemService(android.content.Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+    return wm?.connectionInfo?.ssid?.takeUnless { it == android.net.wifi.WifiManager.UNKNOWN_SSID }?.removeSurrounding("\"")
+}
 
 @Composable
 private fun GeofenceContent(
