@@ -66,6 +66,15 @@
   .icon-preview .icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.1); color:#fff; }
   .icon-preview .icon .material-symbols-outlined { font-size:22px; }
   .icon-preview .label { color:var(--dim); font-family:"Geist Mono",monospace; font-size:.8rem; }
+
+  .icon-search { width:100%; background:var(--panel); border:1px solid var(--line); color:var(--fg); padding:.7rem .9rem; border-radius:.5rem; font:inherit; }
+  .icon-search:focus { outline:none; border-color:var(--red); }
+  .icon-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(3.2rem, 1fr)); gap:.5rem; max-height:16rem; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:.5rem; padding:.6rem; }
+  .icon-tile { width:100%; aspect-ratio:1/1; border:1px solid var(--line); background:var(--panel2); border-radius:.5rem; display:grid; place-items:center; cursor:pointer; color:var(--fg); }
+  .icon-tile:hover { border-color:#3a3a3a; }
+  .icon-tile.on { border-color:var(--red); background:var(--panel); }
+  .icon-tile .material-symbols-outlined { font-size:22px; }
+  .icon-tile-title { display:none; }
 </style>
 </head>
 <body>
@@ -108,10 +117,12 @@
     </div>
 
     <div id="iconFields" class="hidden">
+      <input id="icon" type="hidden" value="star">
       <div class="field" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
         <div style="flex:2; min-width:140px;">
-          <label for="icon">Icon</label>
-          <select id="icon"></select>
+          <label for="iconSearch">Icon</label>
+          <input id="iconSearch" class="icon-search" type="text" placeholder="Search icons..." autocomplete="off">
+          <div id="iconGrid" class="icon-grid" style="margin-top:.6rem;"></div>
         </div>
         <div style="flex:1; min-width:120px;">
           <label for="iconBg">Icon background</label>
@@ -161,24 +172,33 @@ async function loadIcons() {
   }
 }
 
-function populateIconSelect() {
-  const select = document.getElementById('icon');
-  select.innerHTML = '';
+function renderIconGrid(filter = '') {
+  const grid = document.getElementById('iconGrid');
+  const q = filter.toLowerCase().trim();
+  const selected = document.getElementById('icon').value;
+  grid.innerHTML = '';
   for (const i of iconList) {
-    const opt = document.createElement('option');
-    opt.value = i.name;
-    opt.textContent = i.name;
-    select.appendChild(opt);
+    if (q && !i.name.toLowerCase().includes(q) && !i.symbol.toLowerCase().includes(q)) continue;
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'icon-tile' + (i.name === selected ? ' on' : '');
+    tile.title = i.name;
+    tile.innerHTML = `<span class="material-symbols-outlined">${esc(i.symbol)}</span><span class="icon-tile-title">${esc(i.name)}</span>`;
+    tile.addEventListener('click', () => {
+      document.getElementById('icon').value = i.name;
+      renderIconGrid(q);
+      updateIconPreview();
+    });
+    grid.appendChild(tile);
   }
-  select.value = 'star';
-  updateIconPreview();
 }
 
 function updateIconPreview() {
   const name = document.getElementById('icon').value;
   const bg = document.getElementById('iconBg').value || '#161616';
   const symbol = iconMap.get(name) || iconMap.get(iconFallback) || 'star';
-  document.getElementById('iconPreview').innerHTML = `
+  const el = document.getElementById('iconPreview');
+  el.innerHTML = `
     <div class="icon" style="background:${esc(bg)}"><span class="material-symbols-outlined">${esc(symbol)}</span></div>
     <span class="label">${esc(name)}</span>
   `;
@@ -190,13 +210,19 @@ function syncIconFromPayload() {
     if (payload && typeof payload === 'object') {
       if (payload.icon) document.getElementById('icon').value = payload.icon;
       if (payload.iconBackground) document.getElementById('iconBg').value = payload.iconBackground;
+      renderIconGrid(document.getElementById('iconSearch').value);
       updateIconPreview();
     }
   } catch {}
 }
 
-document.getElementById('icon').addEventListener('change', updateIconPreview);
+document.getElementById('iconSearch').addEventListener('input', (e) => renderIconGrid(e.target.value));
 document.getElementById('iconBg').addEventListener('input', updateIconPreview);
+
+function populateIconSelect() {
+  renderIconGrid();
+  updateIconPreview();
+}
 
 document.querySelectorAll('.tab').forEach(b =>
   b.addEventListener('click', () => {
