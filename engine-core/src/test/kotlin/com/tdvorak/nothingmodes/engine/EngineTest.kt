@@ -39,7 +39,7 @@ class EngineTest {
                 Action.SetBrightness(128, restore = true),
                 Action.SetExtraDim(true, restore = true),
                 Action.SetScreenTimeout(30000, restore = true),
-                Action.SetVolume(com.tdvorak.nothingmodes.engine.model.VolumeStream.MEDIA, 50),
+                Action.SetVolume(mapOf(com.tdvorak.nothingmodes.engine.model.VolumeStream.MEDIA to 50)),
                 Action.SetWifi(true),
                 Action.SetGlyph(true, channels = listOf(0, 1, 2)),
             )

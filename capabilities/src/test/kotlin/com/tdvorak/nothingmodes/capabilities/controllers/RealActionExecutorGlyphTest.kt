@@ -112,7 +112,7 @@ class RealActionExecutorGlyphTest {
 
     @Test
     fun `SetVolume delegates to controller`() = runTest {
-        val result = executor().execute(Action.SetVolume(VolumeStream.MEDIA, 50), fireContext)
+        val result = executor().execute(Action.SetVolume(mapOf(VolumeStream.MEDIA to 50)), fireContext)
         assertEquals(ActionResult.Success, result)
     }
 

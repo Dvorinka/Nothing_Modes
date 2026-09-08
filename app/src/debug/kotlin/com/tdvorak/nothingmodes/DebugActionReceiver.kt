@@ -184,11 +184,10 @@ class DebugActionReceiver : BroadcastReceiver() {
             "launch_app" -> Action.LaunchApp(pkg)
             "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes.vercel.app" })
             "show_notification" -> Action.ShowNotification("NmDebug", text.ifBlank { "test" })
-            "set_volume" ->
-                Action.SetVolume(
-                    VolumeStream.valueOf(intent.getStringExtra("stream").orEmpty().ifBlank { "MEDIA" }.uppercase()),
-                    level,
-                )
+            "set_volume" -> {
+                val stream = VolumeStream.valueOf(intent.getStringExtra("stream").orEmpty().ifBlank { "MEDIA" }.uppercase())
+                Action.SetVolume(mapOf(stream to level))
+            }
             "set_flashlight" -> Action.SetFlashlight(on)
             "set_dark_mode" -> Action.SetDarkMode(NightMode.valueOf(mode.ifBlank { "ON" }.uppercase()))
             "open_settings" ->

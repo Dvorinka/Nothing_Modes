@@ -1141,6 +1141,7 @@ internal fun VolumePercentSlider(
     level: Int,
     onLevel: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val maxLevel = remember(stream) { streamMaxLevel(context, stream) }
@@ -1164,6 +1165,7 @@ internal fun VolumePercentSlider(
                 onLevel((v / 100f * maxLevel).toInt().coerceIn(0, maxLevel))
             },
             valueRange = 0f..100f,
+            enabled = enabled,
             modifier = Modifier.weight(1f),
         )
     }
@@ -1175,20 +1177,36 @@ internal fun VolumeRow(
     action: Action.SetVolume,
     onChange: (Action.SetVolume) -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column {
-        NothingEnumSelector(
-            label = "Volume for",
-            value = action.stream.name.enumLabel(),
-            options = enumLabelList<VolumeStream>(),
-            onSelect = { onChange(action.copy(stream = enumByLabel<VolumeStream>(it))) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        VolumePercentSlider(
-            stream = action.stream,
-            level = action.level,
-            onLevel = { onChange(action.copy(level = it)) },
-        )
+        VolumeStream.entries.forEach { stream ->
+            val included = stream in action.volumes
+            val maxLevel = remember(stream) { streamMaxLevel(context, stream) }
+            val level = action.volumes[stream] ?: (maxLevel / 2)
+            BooleanRow(
+                label = stream.name.enumLabel(),
+                checked = included,
+                onChange = { on ->
+                    onChange(
+                        action.copy(
+                            volumes =
+                                if (on) {
+                                    action.volumes + (stream to (action.volumes[stream] ?: (maxLevel / 2)))
+                                } else {
+                                    action.volumes - stream
+                                },
+                        ),
+                    )
+                },
+            )
+            VolumePercentSlider(
+                stream = stream,
+                level = if (included) level else 0,
+                onLevel = { onChange(action.copy(volumes = action.volumes + (stream to it))) },
+                enabled = included,
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
     }
 }
 

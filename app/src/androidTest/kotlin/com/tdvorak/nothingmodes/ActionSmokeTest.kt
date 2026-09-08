@@ -51,7 +51,7 @@ class ActionSmokeTest {
                     Action.LaunchApp("com.android.settings"),
                     Action.OpenUrl("https://example.com"),
                     Action.ShowNotification("Smoke test", "Notification action works"),
-                    Action.SetVolume(VolumeStream.MEDIA, 8),
+                    Action.SetVolume(mapOf(VolumeStream.MEDIA to 8)),
                     Action.SetFlashlight(false),
                     Action.SetDarkMode(NightMode.OFF),
                     Action.OpenSettingsScreen(SettingsScreen.SETTINGS, null),

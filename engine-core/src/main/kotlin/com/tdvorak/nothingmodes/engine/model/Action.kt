@@ -10,6 +10,7 @@ enum class DndMode { OFF, PRIORITY, TOTAL }
 @Serializable
 enum class NightMode { OFF, ON, AUTO }
 
+@Serializable
 enum class VolumeStream { MEDIA, RING, ALARM, NOTIFICATION }
 
 enum class SettingsScreen { WIFI, BLUETOOTH, DISPLAY, SOUND, LOCATION, BATTERY, DATE, APP_DETAILS, STORAGE, SECURITY, ACCESSIBILITY, NOTIFICATION, APPS, NETWORK, ACCOUNTS, SETTINGS }
@@ -130,8 +131,7 @@ sealed interface Action {
     @Serializable
     @SerialName(ActionTypeIds.SET_VOLUME)
     data class SetVolume(
-        val stream: VolumeStream,
-        val level: Int,
+        val volumes: Map<VolumeStream, Int> = emptyMap(),
         /** Revert to the pre-run level when a windowed routine ends. */
         val restore: Boolean = true,
     ) : Action
@@ -583,7 +583,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetScreenTimeout -> setOf("screen_off_timeout")
             is Action.SetDarkMode -> setOf("night_mode")
             is Action.SetDnd -> setOf("dnd_mode")
-            is Action.SetVolume -> setOf("volume_${stream.name.lowercase()}")
+            is Action.SetVolume -> volumes.keys.map { "volume_${it.name.lowercase()}" }.toSet()
             is Action.SetGlyph -> setOf("glyph_state")
             is Action.SetGlyphMatrix -> setOf("glyph_matrix_state")
             is Action.SetAutoRotate -> setOf("accelerometer_rotation")

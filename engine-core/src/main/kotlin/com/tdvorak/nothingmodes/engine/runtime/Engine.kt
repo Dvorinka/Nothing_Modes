@@ -363,7 +363,7 @@ class Engine(
                             .valueOf(snapshot.settingKey.removePrefix("volume_").uppercase())
                     }.getOrNull() ?: return null
                 val level = value.toIntOrNull() ?: return null
-                Action.SetVolume(stream = stream, level = level, restore = false)
+                Action.SetVolume(volumes = mapOf(stream to level), restore = false)
             }
             snapshot.settingKey in setOf("glyph_state", "glyph_matrix_state") -> null
             else ->

@@ -108,7 +108,16 @@ fun actionDescription(action: Action): String =
             is Action.LaunchApp -> if (action.pkg.isBlank()) "Launch app" else "Launch: ${action.pkg}"
             is Action.OpenUrl -> if (action.url.isBlank()) "Open URL" else "Open URL: ${action.url}"
             is Action.ShowNotification -> if (action.title.isBlank()) "Show notification" else "Notification: ${action.title}"
-            is Action.SetVolume -> "Volume ${action.stream.name.enumLabel()}: ${action.level}"
+            is Action.SetVolume -> {
+                if (action.volumes.isEmpty()) {
+                    "Volume: none set"
+                } else {
+                    action.volumes.entries.joinToString(
+                        prefix = "Volume ",
+                        transform = { "${it.key.name.enumLabel()} ${it.value}" },
+                    )
+                }
+            }
             is Action.SetFlashlight -> "Flashlight: ${if (action.on) "On" else "Off"}"
             is Action.SetDarkMode -> "Dark Mode: ${action.mode.name.enumLabel()}"
             is Action.OpenSettingsScreen -> "Open Settings: ${action.screen.name.enumLabel()}"

@@ -88,7 +88,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Screen timeout", "Display", Icons.Outlined.Timer, Action.SetScreenTimeout(30_000)),
                 ActionItem("Always-on display", "Display", Icons.Outlined.PhoneAndroid, Action.SetAlwaysOnDisplay(AodMode.OFF)),
                 ActionItem("Do not disturb", "Sound", Icons.Outlined.Notifications, Action.SetDnd(DndMode.OFF)),
-                ActionItem("Volume", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetVolume(VolumeStream.MEDIA, 8)),
+                ActionItem("Volume", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetVolume(mapOf(VolumeStream.MEDIA to 8))),
                 ActionItem("Vibrate", "Sound", Icons.Outlined.Vibration, Action.Vibrate(500)),
                 ActionItem("Ringer mode", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetRinger("normal")),
                 ActionItem("Flashlight", "Sound", Icons.Outlined.FlashlightOn, Action.SetFlashlight(true)),

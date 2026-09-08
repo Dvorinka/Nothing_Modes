@@ -87,7 +87,17 @@ class RealActionExecutor(
             is Action.SetAutoBrightness -> brightness.setAutoBrightness(action.on).toActionResult()
             is Action.SetExtraDim -> setExtraDim(action.on)
             is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
-            is Action.SetVolume -> volume.setVolume(action.stream, action.level).toActionResult()
+            is Action.SetVolume -> {
+                val results = action.volumes.map { (stream, level) ->
+                    volume.setVolume(stream, level)
+                }
+                when {
+                    results.all { it == ControllerResult.Success } -> ActionResult.Success
+                    else -> results.filterIsInstance<ControllerResult.Failure>().firstOrNull()
+                        ?.let { ActionResult.Failure(it.reason) }
+                        ?: ActionResult.Failure("volume failed")
+                }
+            }
             is Action.SetRinger -> ringer.setRinger(action.mode).toActionResult()
             is Action.Vibrate -> vibrate(action.durationMs)
             is Action.CopyText -> copyText(action.text)
