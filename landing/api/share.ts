@@ -37,7 +37,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const type = sub.type === 'glyph' ? 'glyph' : sub.type === 'template' ? 'template' : null;
   const title = clean(sub.title, 120);
-  const description = clean(sub.description, 1000);
+  const submittedDescription = clean(sub.description, 1000);
   const handle = clean(sub.handle, 120).replace(/^@/, '');
   const email = clean(sub.email, 320);
   const github = clean(sub.github, 200);
@@ -54,6 +54,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ── static analysis — runs before anything touches the DB ────────────────
   const analysis = type === 'template' ? analyzeTemplate(sub.payload) : analyzeGlyph(sub.payload);
+  const description = submittedDescription || analysis.description;
   if (analysis.verdict === 'reject') {
     return Response.json(
       { ok: false, verdict: 'reject', findings: analysis.findings },

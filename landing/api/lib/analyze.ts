@@ -27,6 +27,8 @@ export interface AnalysisResult {
   sanitized: unknown;
   /** Human summary, e.g. "2 automations · 6 actions · needs Shizuku". */
   summary: string;
+  /** Auto-generated description of what the template does, derived from the payload. */
+  description: string;
   capabilities: string[];
 }
 
@@ -304,7 +306,7 @@ export function analyzeTemplate(payload: unknown): AnalysisResult {
 
   if (!isRecord(sanitized) || !Array.isArray(sanitized.automations)) {
     return {
-      verdict: 'reject', sanitized: payload, capabilities: [], summary: '',
+      verdict: 'reject', sanitized: payload, capabilities: [], summary: '', description: '',
       findings: [{ severity: 'block', code: 'shape', detail: 'payload must be an export bundle with an "automations" array' }],
     };
   }
@@ -361,6 +363,8 @@ export function analyzeTemplate(payload: unknown): AnalysisResult {
   }
   redact(sanitized, findings);
 
+  const description = describeTemplate(sanitized);
+
   const summary =
     `${autos.length} automation${autos.length === 1 ? '' : 's'} · ${actionCount} action${actionCount === 1 ? '' : 's'}` +
     (caps.has('shizuku_required') ? ' · needs Shizuku' : '') +
@@ -372,7 +376,7 @@ export function analyzeTemplate(payload: unknown): AnalysisResult {
       ? 'flag'
       : 'ok';
 
-  return { verdict, findings, sanitized, summary, capabilities: [...caps].sort() };
+  return { verdict, findings, sanitized, summary, description, capabilities: [...caps].sort() };
 }
 
 export function analyzeGlyph(payload: unknown): AnalysisResult {
@@ -382,7 +386,7 @@ export function analyzeGlyph(payload: unknown): AnalysisResult {
 
   if (!isRecord(sanitized)) {
     return {
-      verdict: 'reject', sanitized: payload, capabilities: [], summary: '',
+      verdict: 'reject', sanitized: payload, capabilities: [], summary: '', description: '',
       findings: [{ severity: 'block', code: 'shape', detail: 'glyph payload must be an object' }],
     };
   }
@@ -443,5 +447,149 @@ export function analyzeGlyph(payload: unknown): AnalysisResult {
       ? 'flag'
       : 'ok';
 
-  return { verdict, findings, sanitized, summary, capabilities: [...caps] };
+  return { verdict, findings, sanitized, summary, description: summary, capabilities: [...caps] };
+}
+
+function sentence(s: string): string {
+  if (!s) return s;
+  return s[0].toUpperCase() + s.slice(1) + (s.endsWith('.') ? '' : '.');
+}
+
+function triggerSummary(trigger: Record<string, unknown>): string {
+  const t = typeOf(trigger);
+  switch (t) {
+    case 'time': {
+      const at = typeof trigger.at === 'string' ? trigger.at.slice(0, 16).replace('T', ' ') : null;
+      const cron = typeof trigger.cron === 'string' ? trigger.cron : null;
+      const after = Number(trigger.afterMs ?? 0);
+      if (at) return `at ${at}`;
+      if (cron) return `on schedule ${cron}`;
+      if (after > 0) return `after ${Math.round(after / 1000)}s`;
+      return 'on a time trigger';
+    }
+    case 'time_window':
+      return `between ${String(trigger.startLocal ?? '?')} and ${String(trigger.endLocal ?? '?')}`;
+    case 'manual':
+      return 'manually triggered';
+    case 'notification':
+      return `notification from ${typeof trigger.pkg === 'string' ? trigger.pkg : 'an app'}`;
+    case 'phone_state':
+      return `phone ${typeof trigger.event === 'string' ? trigger.event : 'state'} event`;
+    case 'connectivity':
+      return `${typeof trigger.medium === 'string' ? trigger.medium : 'network'} ${typeof trigger.state === 'string' ? trigger.state : 'changes'}`;
+    case 'boot':
+      return 'after boot';
+    case 'battery_level':
+      return `battery at ${Number(trigger.level ?? 0)}%`;
+    case 'screen_state':
+      return `screen ${typeof trigger.state === 'string' ? trigger.state : 'changes'}`;
+    case 'app_opened':
+      return `app ${typeof trigger.pkg === 'string' ? trigger.pkg : ''} opened`;
+    case 'geofence':
+      return `at location (${Number(trigger.lat ?? 0).toFixed(4)}, ${Number(trigger.lng ?? 0).toFixed(4)})`;
+    case 'bt_device':
+      return `bluetooth device ${typeof trigger.state === 'string' ? trigger.state : 'connects'}`;
+    case 'wifi_connected':
+      return `wifi connected${typeof trigger.ssid === 'string' ? ` to ${trigger.ssid}` : ''}`;
+    case 'calendar_event':
+      return `calendar event ${typeof trigger.direction === 'string' ? trigger.direction : ''}`;
+    case 'charger_connected':
+      return `charger ${trigger.connected ? 'connected' : 'disconnected'}`;
+    case 'device_unlocked':
+      return 'device is unlocked';
+    case 'device_locked':
+      return 'device is locked';
+    default:
+      return `on ${t || 'an unknown'} trigger`;
+  }
+}
+
+function actionSummary(action: Record<string, unknown>): string {
+  const t = typeOf(action);
+  switch (t) {
+    case 'set_wifi': return `turn Wi-Fi ${action.on ? 'on' : 'off'}`;
+    case 'set_bluetooth': return `turn Bluetooth ${action.on ? 'on' : 'off'}`;
+    case 'set_mobile_data': return `turn mobile data ${action.on ? 'on' : 'off'}`;
+    case 'set_dnd': return `set Do Not Disturb to ${String(action.mode ?? '')}`;
+    case 'set_ringer': return `set ringer to ${String(action.mode ?? '')}`;
+    case 'launch_app': return `launch ${typeof action.pkg === 'string' ? action.pkg : 'an app'}`;
+    case 'open_url': return `open ${typeof action.url === 'string' ? action.url : 'a URL'}`;
+    case 'show_notification': return `show notification "${typeof action.title === 'string' ? action.title : ''}"`;
+    case 'set_volume': return `set volume`;
+    case 'set_flashlight': return `flashlight ${action.on ? 'on' : 'off'}`;
+    case 'set_dark_mode': return `dark mode ${String(action.mode ?? '')}`;
+    case 'open_settings_screen': return `open ${String(action.screen ?? '')} settings`;
+    case 'vibrate': return `vibrate for ${Number(action.durationMs ?? 0)}ms`;
+    case 'set_brightness': return `brightness ${Number(action.level ?? 0)}`;
+    case 'set_auto_brightness': return `auto brightness ${action.on ? 'on' : 'off'}`;
+    case 'set_extra_dim': return `extra dim ${action.on ? 'on' : 'off'}`;
+    case 'set_screen_timeout': return `screen timeout ${Number(action.timeoutMs ?? 0)}ms`;
+    case 'set_glyph': return `glyph ${action.on ? 'on' : 'off'}`;
+    case 'set_glyph_matrix': return `glyph matrix`;
+    case 'glyph_animate': return `glyph animate`;
+    case 'glyph_progress': return `glyph progress ${Number(action.progress ?? 0)}%`;
+    case 'glyph_text': return `show glyph text "${typeof action.text === 'string' ? action.text : ''}"`;
+    case 'glyph_scrolling_text': return `scroll glyph text "${typeof action.text === 'string' ? action.text : ''}"`;
+    case 'glyph_preset': return `play glyph preset ${String(action.preset ?? '')}`;
+    case 'glyph_turnoff': return 'turn glyph off';
+    case 'glyph_icon': return `glyph icon ${String(action.name ?? '')}`;
+    case 'glyph_number': return `glyph number ${Number(action.number ?? 0)}`;
+    case 'glyph_countdown': return `glyph countdown ${Number(action.seconds ?? 0)}s`;
+    case 'glyph_music': return `glyph music ${String(action.style ?? '')}`;
+    case 'copy_text': return `copy "${typeof action.text === 'string' ? action.text : ''}"`;
+    case 'wait': return `wait ${Number(action.durationMs ?? 0)}ms`;
+    case 'write_setting': return `write ${String(action.namespace ?? '')}/${String(action.key ?? '')}=${String(action.value ?? '')}`;
+    case 'set_auto_rotate': return `auto-rotate ${action.on ? 'on' : 'off'}`;
+    case 'set_battery_saver': return `battery saver ${action.on ? 'on' : 'off'}`;
+    case 'set_airplane_mode': return `airplane mode ${action.on ? 'on' : 'off'}`;
+    case 'set_data_saver': return `data saver ${action.on ? 'on' : 'off'}`;
+    case 'set_hotspot': return `hotspot ${action.on ? 'on' : 'off'}`;
+    case 'set_nfc': return `NFC ${action.on ? 'on' : 'off'}`;
+    case 'set_refresh_rate': return `refresh rate ${Number(action.hz ?? 0)}Hz`;
+    case 'set_screen_rotation': return `rotation ${String(action.orientation ?? '')}`;
+    case 'media_control': return `media ${String(action.command ?? '')}`;
+    case 'send_sms': return `send SMS${typeof action.number === 'string' ? ` to ${action.number}` : ''}`;
+    case 'lock_screen': return `lock screen${action.force ? ' (override)' : ''}`;
+    case 'set_location_mode': return `location ${String(action.mode ?? '')}`;
+    case 'set_auto_sync': return `auto-sync ${action.on ? 'on' : 'off'}`;
+    case 'set_aod': return `always-on display ${String(action.mode ?? '')}`;
+    case 'clear_notifications': return 'clear notifications';
+    case 'take_screenshot': return `screenshot${action.force ? ' (override)' : ''}`;
+    default: return t ? `${t.replace(/_/g, ' ')}` : 'an action';
+  }
+}
+
+function conditionSummary(cond: Record<string, unknown>): string {
+  const t = typeOf(cond);
+  if (t === 'boolean_state' || t === 'numeric_state') {
+    return `${String(cond.key ?? '')} is ${String(cond.value ?? '')}`;
+  }
+  if (t === 'at_location') {
+    return `near (${Number(cond.lat ?? 0).toFixed(4)}, ${Number(cond.lng ?? 0).toFixed(4)})`;
+  }
+  if (t === 'event_active') {
+    return 'calendar event active';
+  }
+  if (t === 'notification_present') {
+    return `notification from ${typeof cond.pkg === 'string' ? cond.pkg : 'an app'}`;
+  }
+  if (t === 'torch_on') {
+    return `torch is ${cond.on ? 'on' : 'off'}`;
+  }
+  return t ? t.replace(/_/g, ' ') : 'condition met';
+}
+
+export function describeTemplate(payload: Record<string, unknown>): string {
+  const autos = Array.isArray(payload.automations) ? payload.automations as Record<string, unknown>[] : [];
+  if (autos.length === 0) return 'Empty template with no automations.';
+  const parts = autos.map((a) => {
+    const trigger = isRecord(a.trigger) ? a.trigger : {};
+    const actions = Array.isArray(a.actions) ? a.actions as Record<string, unknown>[] : [];
+    const conditions = Array.isArray(a.conditions) ? a.conditions as Record<string, unknown>[] : [];
+    const when = triggerSummary(trigger);
+    const then = actions.map(actionSummary).join(', ');
+    const onlyIf = conditions.length > 0 ? `, only if ${conditions.map(conditionSummary).join(' and ')}` : '';
+    return `When ${when}, ${then ? `then ${then}` : 'do nothing'}${onlyIf}`;
+  });
+  return sentence(parts.join(' / ').slice(0, 1000));
 }
