@@ -101,7 +101,6 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
         TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
         TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-        TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
     )
 
 @Composable

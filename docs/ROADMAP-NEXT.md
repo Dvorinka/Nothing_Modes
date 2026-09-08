@@ -88,7 +88,7 @@ User is right: asking for a `calendarId` string is backwards.
 - [ ] Merge into Time/Day config as a **"From calendar"** source option.
 - [ ] On select: request `READ_CALENDAR` **in context** (see §7), then show a calendar picker (default: **all calendars**, optional restrict to one).
 - [ ] Show upcoming events from the chosen calendars so the user can pick a specific event or a title pattern. Keep `calendarId`/`titleMatch`/`direction` model fields — they're fine; it's purely a UX rewrite.
-- [ ] Remove the standalone "Calendar" trigger type from the catalog (fold into Time/Day).
+- [x] Remove the standalone "Calendar" trigger type from the catalog (fold into Time/Day).
 
 ### New triggers requested
 - [ ] **Torch/flashlight active** — `CameraManager.registerTorchCallback` (no permission needed for state). New `Trigger.TorchState(on: Boolean)`.
