@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.capabilities.controllers
 
 import android.annotation.SuppressLint
+import android.app.KeyguardManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
@@ -20,6 +21,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.telephony.TelephonyManager
+import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
@@ -133,6 +135,12 @@ class AndroidStateProvider(
                 Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0) == 1
             }.getOrDefault(false).toString()
 
+        values[StateKeys.DEVICE_LOCKED] = readDeviceLocked().toString()
+        values[StateKeys.WIFI_RADIO] = readWifiRadio().toString()
+        values[StateKeys.BLUETOOTH_RADIO] = readBluetoothRadio().toString()
+        values[StateKeys.MOBILE_DATA] = readMobileData().toString()
+        readAodEnabled()?.let { values[StateKeys.AOD_ENABLED] = it.toString() }
+
         batteryIntent?.let { intent ->
             val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
             values["charging_source"] =
@@ -182,6 +190,50 @@ class AndroidStateProvider(
         } catch (e: SecurityException) {
             false
         }
+
+    private fun readDeviceLocked(): Boolean =
+        try {
+            val keyguardManager = context.getSystemService(KeyguardManager::class.java)
+            keyguardManager?.isKeyguardLocked ?: false
+        } catch (_: Exception) {
+            false
+        }
+
+    private fun readWifiRadio(): Boolean =
+        try {
+            val wifiManager = context.getSystemService(WifiManager::class.java)
+            wifiManager?.isWifiEnabled ?: false
+        } catch (_: SecurityException) {
+            false
+        }
+
+    @SuppressLint("MissingPermission")
+    private fun readBluetoothRadio(): Boolean =
+        try {
+            val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
+            adapter?.isEnabled ?: false
+        } catch (_: SecurityException) {
+            false
+        }
+
+    private fun readMobileData(): Boolean =
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val telephonyManager = context.getSystemService(TelephonyManager::class.java)
+                telephonyManager?.isDataEnabled ?: false
+            } else {
+                Settings.Global.getInt(context.contentResolver, "mobile_data", 0) == 1
+            }
+        } catch (_: SecurityException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
+
+    private fun readAodEnabled(): Boolean? =
+        runCatching {
+            Settings.Secure.getInt(context.contentResolver, "doze_always_on", 0) == 1
+        }.getOrNull()
 
     private fun readNfcEnabled(): Boolean =
         try {

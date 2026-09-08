@@ -4,6 +4,7 @@ import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
+import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.runtime.ConditionEvaluator
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
@@ -877,6 +878,32 @@ class ConditionEvaluatorTest {
         assertEquals(
             ConditionEvaluator.Result.STATE_UNAVAILABLE,
             evaluator.result(Condition.ThermalLevel(CmpOp.GT, 0), DeviceState()),
+        )
+    }
+
+    @Test
+    fun `booleanState met when key matches expected`() {
+        val state = DeviceState(values = mapOf(StateKeys.DEVICE_LOCKED to "true"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.BooleanState(StateKeys.DEVICE_LOCKED, true), state),
+        )
+    }
+
+    @Test
+    fun `booleanState notMet when key mismatches`() {
+        val state = DeviceState(values = mapOf(StateKeys.DEVICE_LOCKED to "false"))
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.BooleanState(StateKeys.DEVICE_LOCKED, true), state),
+        )
+    }
+
+    @Test
+    fun `booleanState unavailable when key missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.BooleanState(StateKeys.WIFI_RADIO, true), DeviceState()),
         )
     }
 

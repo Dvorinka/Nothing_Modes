@@ -44,6 +44,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -237,7 +238,14 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.DeviceThermostat,
                     condition = Condition.ThermalLevel(CmpOp.GTE, 3),
                 ),
-            )
+            ) + BOOLEAN_STATE_ITEMS.map {
+                ConditionItem(
+                    label = it.label,
+                    category = it.category,
+                    icon = it.icon,
+                    condition = Condition.BooleanState(it.key, true),
+                )
+            }
         }
 
     val filtered =

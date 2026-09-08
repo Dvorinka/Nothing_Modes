@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -459,6 +460,14 @@ fun ConditionConfigScreen(
                                 )
                             }
                         }
+                    }
+
+                    is Condition.BooleanState -> {
+                        BooleanRow(
+                            label = booleanStateLabel(c.key),
+                            checked = c.on,
+                            onChange = { condition = c.copy(on = it) },
+                        )
                     }
 
                     is Condition.ThermalLevel -> {

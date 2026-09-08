@@ -206,6 +206,17 @@ sealed interface Condition {
         val level: Int,
     ) : Condition
 
+    /**
+     * Generic boolean state check. Reads state.values[key].
+     * Use StateKeys constants for key names.
+     */
+    @Serializable
+    @SerialName("boolean_state")
+    data class BooleanState(
+        val key: String,
+        val on: Boolean,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

@@ -42,6 +42,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -252,6 +253,13 @@ fun ConditionConfigSheet(
                         onChange = { current = it },
                     )
 
+                is Condition.BooleanState ->
+                    BooleanConditionContent(
+                        label = booleanStateLabel(c.key),
+                        checked = c.on,
+                        onChange = { current = c.copy(on = it) },
+                    )
+
                 else -> {
                     Text(
                         text = conditionDescription(current),
@@ -307,6 +315,7 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.ChargingSource -> "Charging source"
         is Condition.BatteryTemp -> "Battery temperature"
         is Condition.ThermalLevel -> "Thermal status"
+        is Condition.BooleanState -> booleanStateLabel(condition.key)
         else -> "Condition"
     }
 
@@ -732,3 +741,5 @@ private fun ThermalLevelSheetContent(
         }
     }
 }
+
+

@@ -12,6 +12,13 @@ object StateKeys {
     const val AIRPLANE = "airplane"
     const val SCREEN = "screen"
 
+    // Boolean state keys (Condition.BooleanState)
+    const val DEVICE_LOCKED = "device_locked"
+    const val WIFI_RADIO = "wifi_radio"
+    const val BLUETOOTH_RADIO = "bluetooth_radio"
+    const val MOBILE_DATA = "mobile_data"
+    const val AOD_ENABLED = "aod_enabled"
+
     /** chiave -> valori ammessi (usato nel render del manifest e in doc) */
     val ALL: Map<String, String> =
         mapOf(
@@ -23,5 +30,10 @@ object StateKeys {
             CHARGING to "true|false",
             AIRPLANE to "on|off",
             SCREEN to "on|off",
+            DEVICE_LOCKED to "true|false",
+            WIFI_RADIO to "true|false",
+            BLUETOOTH_RADIO to "true|false",
+            MOBILE_DATA to "true|false",
+            AOD_ENABLED to "true|false",
         )
 }

@@ -96,17 +96,7 @@ User is right: asking for a `calendarId` string is backwards.
 - [ ] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` exists; add SSID picker from `WifiManager.connectionInfo`/`configured` networks + "any network".
 - [ ] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` already modeled. Build the UI: contact picker (`READ_CONTACTS`) OR custom number field + "any text / contains text" field. Wire `PhoneStateReceiver` to match.
 - [ ] Template: **"Locate my phone"** — SMS "LOKALIZUJ SE" → GPS on, mobile data on, battery saver on, location shared. Ship as a built-in template with description.
-- [ ] **Condition parity pass — audited, real gaps found** (user flagged: geofence exists as trigger but not as condition). New conditions to add, grouped:
-  - `Condition.AtLocation(lat, lng, radiusM)` — "device is currently inside this area". Use `LocationManager.getCurrentLocation` with short timeout (last-known is too stale). Same permission as the geofence trigger — the gate is shared.
-  - `Condition.EventActive` — a calendar event is in progress right now (calendar trigger exists; condition doesn't).
-  - `Condition.TorchOn` — flashlight currently on (CameraManager torch callback state).
-  - `Condition.DeviceLocked` — keyguard locked now (`KeyguardManager.isKeyguardLocked`).
-  - `Condition.DndActive` — `SetDnd` action exists but its state isn't readable as a condition.
-  - `Condition.HotspotOn`, `Condition.AodOn` — actions exist, conditions don't.
-  - `Condition.WifiRadioOn` / `BluetoothOn` / `MobileDataOn` — existing conditions only cover *connected*, not *adapter enabled*.
-  - `Condition.NotificationPresent(pkg, match)` — "app X currently has a notification" — the notification listener is already running, this is a read of state we already see.
-  - `Condition.BrightnessLevel(op, level)` / refresh-rate / screen-timeout current value — settable, not checkable.
-  - Rule going forward: **every settable state is checkable, every event trigger has a matching "is it true now" condition where the state is readable.**
+- [~] **Condition parity pass** — Added generic `Condition.BooleanState` as a catch-all boolean state check with a closed `StateKeys` registry. Covered: device locked, Wi-Fi radio, Bluetooth radio, mobile data, always-on display. `TorchOn`, `DndActive`, `HotspotOn`, `NotificationPresent`, `AtLocation`, `EventActive`, and numeric state checks still to add.
 
 ---
 
