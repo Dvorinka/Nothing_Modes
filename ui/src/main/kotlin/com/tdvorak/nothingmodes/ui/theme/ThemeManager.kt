@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.theme
 
 import android.content.Context
+import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,10 +36,15 @@ class ThemeManager private constructor(
         _uiStyle.value = style
     }
 
-    /** Effective style after AUTO resolution. Nothing is the primary identity. */
+    /** Effective style after AUTO resolution. NOTHING on Nothing devices, CLASSIC elsewhere. */
     fun resolvedUiStyle(): UiStyle =
         when (_uiStyle.value) {
-            UiStyle.AUTO -> UiStyle.NOTHING
+            UiStyle.AUTO ->
+                if (Build.MANUFACTURER.equals("nothing", ignoreCase = true)) {
+                    UiStyle.NOTHING
+                } else {
+                    UiStyle.CLASSIC
+                }
             else -> _uiStyle.value
         }
 
