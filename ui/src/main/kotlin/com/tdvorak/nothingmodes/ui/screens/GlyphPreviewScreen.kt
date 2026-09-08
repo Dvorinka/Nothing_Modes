@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,12 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,30 +28,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.GlyphToysBridge
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
-import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
-import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
-import com.tdvorak.nothingmodes.ui.theme.NothingListRow
-import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -67,12 +56,6 @@ class GlyphPreviewViewModel
     ) : ViewModel() {
         val glyphAvailable: Boolean
             get() = stripeProvider.isAvailable() || matrixProvider.isAvailable()
-
-        /** Blank every glyph output — the manual "reset" for stuck text/frames. */
-        fun turnOffNow() {
-            runCatching { stripeProvider.turnOff() }
-            runCatching { matrixProvider.turnOff() }
-        }
     }
 
 @Composable
@@ -81,43 +64,19 @@ fun GlyphPreviewScreen(
     onOpenEditor: () -> Unit = {},
     viewModel: GlyphPreviewViewModel = hiltViewModel(),
 ) {
-    val presets =
-        remember {
-            listOf(
-                "Sleep Mode" to GlyphPresets.sleepMode,
-                "Morning" to GlyphPresets.morning,
-                "Work Focus" to GlyphPresets.workFocus,
-                "DND Active" to GlyphPresets.dndActive,
-                "DND Off" to GlyphPresets.dndOff,
-                "Automation Fired" to GlyphPresets.automationFired,
-                "Error" to GlyphPresets.error,
-                "Success" to GlyphPresets.success,
-                "Charging Start" to GlyphPresets.chargingStart,
-                "Charging Complete" to GlyphPresets.chargingComplete,
-                "Incoming Call" to GlyphPresets.incomingCall,
-                "SMS Received" to GlyphPresets.smsReceived,
-                "Timer Fired" to GlyphPresets.timerFired,
-                "Off" to GlyphPresets.off,
-            )
-        }
-    var selected by remember { mutableStateOf<GlyphPresets.GlyphVisual>(GlyphPresets.sleepMode) }
-    var selectedName by remember { mutableStateOf("Sleep Mode") }
-
     val context = androidx.compose.ui.platform.LocalContext.current
     val toysBridge = remember { GlyphToysBridge(context) }
     var systemInstalled by remember { mutableStateOf(toysBridge.isGlyphSystemInstalled()) }
-    var registeredToys by remember { mutableStateOf(toysBridge.listRegisteredToys()) }
     var systemToys by remember { mutableStateOf(toysBridge.listSystemToys()) }
     var activeAodToy by remember { mutableStateOf(toysBridge.activeAodToy()) }
 
-    // Refresh when the user returns from the system Glyph Toys screens.
+    // Refresh when the user returns from the system Glyph settings.
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer =
             androidx.lifecycle.LifecycleEventObserver { _, event ->
                 if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                     systemInstalled = toysBridge.isGlyphSystemInstalled()
-                    registeredToys = toysBridge.listRegisteredToys()
                     systemToys = toysBridge.listSystemToys()
                     activeAodToy = toysBridge.activeAodToy()
                 }
@@ -164,84 +123,73 @@ fun GlyphPreviewScreen(
                             fontFamily = NothingFonts.mono(),
                         )
                     }
-                    if (!systemInstalled) {
+
+                    // Ownership verdict — Nothing arbitrates the matrix:
+                    // exactly one toy can drive the lights at a time.
+                    val ours = systemToys.firstOrNull { it.packageName == context.packageName }
+                    val weOwnMatrix = ours?.let { it.isActive || it.isAodActive } == true
+                    NothingDivider(modifier = Modifier.padding(top = NothingSpacing.md))
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = NothingSpacing.sm),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        NothingLabel(text = "Matrix owner")
                         Text(
-                            text = "The Glyph Toys manager is part of Nothing OS. On this device you can still register this app's toy — it appears in the list below.",
+                            text = if (weOwnMatrix) "NOTHING MODES" else "ANOTHER TOY",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                if (weOwnMatrix) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    NothingColors.accent
+                                },
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                    Text(
+                        text =
+                            if (weOwnMatrix) {
+                                "This app currently controls the lights. Every Glyph action will be visible."
+                            } else {
+                                "Nothing reserves the matrix for one selected toy. Open system Glyph settings and pick Nothing Modes. " +
+                                    "We cannot start other apps' toys or show output while another toy owns the lights."
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    activeAodToy?.let {
+                        Text(
+                            text = "Always-on toy: $it",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
                             modifier = Modifier.padding(top = NothingSpacing.sm),
                         )
-                    } else {
-                        val canDeepLink = remember { toysBridge.canOpenAodPicker() }
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = NothingSpacing.md),
-                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    }
+
+                    NothingDivider(modifier = Modifier.padding(vertical = NothingSpacing.sm))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        GlyphLinkButton(
+                            "Open system Glyph settings",
+                            Modifier.weight(1f),
                         ) {
-                            GlyphLinkButton("Open toys", Modifier.weight(1f)) { toysBridge.openToysManager() }
-                            // AOD picker + timeout only exist where the
-                            // glyphtoy:// deep link resolves — hide elsewhere.
-                            if (canDeepLink) {
-                                GlyphLinkButton("Always-on", Modifier.weight(1f)) { toysBridge.openAodToyPicker() }
-                                GlyphLinkButton("Timeout", Modifier.weight(1f)) { toysBridge.openTimeoutSettings() }
-                            }
+                            toysBridge.openToysManager() || toysBridge.openAodToyPicker()
                         }
-                        if (!canDeepLink) {
-                            Text(
-                                text = "Always-on and timeout are set inside the system Glyph Toys screen.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = NothingFonts.mono(),
-                                modifier = Modifier.padding(top = NothingSpacing.sm),
-                            )
-                        }
-                        activeAodToy?.let {
-                            Text(
-                                text = "Always-on toy: $it",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = NothingFonts.mono(),
-                                modifier = Modifier.padding(top = NothingSpacing.sm),
-                            )
-                        }
-                        // Ownership verdict — Nothing arbitrates the matrix:
-                        // exactly one toy can drive the lights at a time.
-                        val ours = systemToys.firstOrNull { it.packageName == context.packageName }
-                        val weOwnMatrix = ours?.let { it.isActive || it.isAodActive } == true
-                        NothingDivider(modifier = Modifier.padding(top = NothingSpacing.md))
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = NothingSpacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            NothingLabel(text = "Matrix owner")
-                            Text(
-                                text = if (weOwnMatrix) "NOTHING MODES" else "ANOTHER TOY",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color =
-                                    if (weOwnMatrix) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        NothingColors.accent
-                                    },
-                                fontFamily = NothingFonts.mono(),
-                            )
-                        }
+                    }
+                    if (!systemInstalled) {
                         Text(
-                            text =
-                                if (weOwnMatrix) {
-                                    "This app currently controls the lights. Every Glyph action will be visible."
-                                } else {
-                                    "Nothing reserves the matrix for one selected toy. Pick Nothing Modes under " +
-                                        "Open toys (or as the Always-on toy) — we cannot start other apps' toys " +
-                                        "or show output while another toy owns the lights."
-                                },
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "System settings open only on Nothing phones with the Glyph Toys manager.",
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(top = NothingSpacing.sm),
                         )
                     }
                     NothingDivider(modifier = Modifier.padding(vertical = NothingSpacing.sm))
@@ -267,7 +215,7 @@ fun GlyphPreviewScreen(
                 }
             }
 
-            // Live control — the reset the user was missing.
+            // ── Device capability summary ───────────────────────────────────
             item {
                 Spacer(modifier = Modifier.height(NothingSpacing.md))
                 NothingCard {
@@ -276,289 +224,26 @@ fun GlyphPreviewScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            NothingLabel(text = "Glyph output")
-                            Text(
-                                text =
-                                    if (viewModel.glyphAvailable) {
-                                        "Hardware detected"
-                                    } else {
-                                        "No Glyph hardware on this device"
-                                    },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = NothingSpacing.xs),
-                            )
-                        }
+                        NothingLabel(text = "Glyph output")
                         Text(
-                            text = "TURN OFF",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = NothingColors.accent,
+                            text = if (viewModel.glyphAvailable) "Hardware detected" else "No Glyph hardware on this device",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                if (viewModel.glyphAvailable) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             fontFamily = NothingFonts.mono(),
-                            modifier =
-                                Modifier
-                                    .clip(NothingShapes.input)
-                                    .clickable(enabled = viewModel.glyphAvailable) {
-                                        viewModel.turnOffNow()
-                                        Toast.makeText(
-                                            context,
-                                            "Glyph off",
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                    }.padding(
-                                        horizontal = NothingSpacing.md,
-                                        vertical = NothingSpacing.sm,
-                                    ),
                         )
                     }
-                }
-            }
-
-            // Registered toys on the system (our app included) — informational
-            // only; ordering happens in Nothing's own Glyph Toys UI.
-            if (registeredToys.isNotEmpty()) {
-                item {
-                    NothingSectionHeader(text = "Registered toys — read-only")
-                    NothingCard {
-                        registeredToys.forEachIndexed { index, toy ->
-                            if (index > 0) NothingDivider()
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = NothingSpacing.sm),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = toy.label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = NothingFonts.mono(),
-                                    modifier = Modifier.weight(1f),
-                                )
-                                if (toy.isOurs) {
-                                    Text(
-                                        text = "THIS APP",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = NothingColors.accent,
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (systemToys.isNotEmpty()) {
-                item {
-                    NothingSectionHeader(text = "System toy table — diagnostics")
-                    NothingCard {
-                        systemToys.forEachIndexed { index, toy ->
-                            if (index > 0) NothingDivider()
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = NothingSpacing.sm),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = toy.shortName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                    Text(
-                                        text = toy.packageName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                }
-                                val status =
-                                    buildString {
-                                        if (toy.isActive) append("ON")
-                                        if (toy.isAodActive) {
-                                            if (isNotEmpty()) append(" · ")
-                                            append("AOD")
-                                        }
-                                    }
-                                if (status.isNotEmpty()) {
-                                    Text(
-                                        text = status,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = NothingColors.accent,
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Hero — selected preset name in Doto
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                Text(
-                    text = selectedName,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = NothingFonts.doto(),
-                )
-                NothingLabel(text = "Glyph Preset")
-            }
-
-            // Stripe preview — the one break in the grid (circular/visual element)
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingCard(borderless = true) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(5f)
-                                .clip(NothingShapes.input)
-                                .background(Color.Black),
-                    ) {
-                        StripeCanvas(selected)
-                    }
                     Text(
-                        text = descriptionFor(selected),
+                        text = "Real Glyph output happens inside a routine via the Glyph preset action. This screen only shows status and deep links.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = NothingSpacing.sm),
                     )
                 }
-            }
-
-            // Preset list — canvas previews only; hardware output happens via
-            // the "Glyph preset" action inside a routine.
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.xl))
-                NothingSectionHeader(text = "Presets — preview only")
-                Text(
-                    text = "Selecting a preset only changes the preview above. To light the real LEDs, add a Glyph preset action to a routine.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                    modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                )
-                NothingCard {
-                    presets.forEachIndexed { index, (name, visual) ->
-                        val isSelected = visual == selected
-                        if (index > 0) NothingDivider()
-                        NothingListRow(
-                            title = name,
-                            selected = isSelected,
-                            onClick = {
-                                selected = visual
-                                selectedName = name
-                            },
-                            leading = {
-                                // Square marker — matches the actual LED cells.
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(24.dp)
-                                            .background(
-                                                if (isSelected) {
-                                                    NothingColors.accent
-                                                } else {
-                                                    MaterialTheme.colorScheme.surfaceVariant
-                                                },
-                                            ),
-                                )
-                            },
-                            trailing = {
-                                if (isSelected) {
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .size(8.dp)
-                                                .background(NothingColors.accent),
-                                    )
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StripeCanvas(visual: GlyphPresets.GlyphVisual) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        when (visual) {
-            is GlyphPresets.GlyphVisual.Stripe -> {
-                val channelCount = 15
-                val gap = 4f
-                val ledWidth = (w - gap * (channelCount + 1)) / channelCount
-                val litChannels =
-                    when {
-                        visual.zone == "A" -> listOf(0)
-                        visual.zone == "B" -> listOf(1)
-                        visual.zone == "C" -> listOf(2, 3, 4, 5)
-                        visual.zone == "D" -> (7..14).toList()
-                        visual.zone == "E" -> listOf(6)
-                        visual.progress != null -> {
-                            val p = visual.progress!!
-                            val count = (channelCount * p / 100).coerceIn(0, channelCount)
-                            (0 until count).toList()
-                        }
-                        else -> (0 until channelCount).toList()
-                    }
-                for (i in 0 until channelCount) {
-                    val x = gap + i * (ledWidth + gap)
-                    val color = if (i in litChannels) Color.White else Color(0xFF222222)
-                    drawRoundRect(
-                        color = color,
-                        topLeft = Offset(x, gap),
-                        size =
-                            androidx.compose.ui.geometry
-                                .Size(ledWidth, h - gap * 2),
-                        cornerRadius =
-                            androidx.compose.ui.geometry
-                                .CornerRadius(2f, 2f),
-                    )
-                }
-            }
-            is GlyphPresets.GlyphVisual.Matrix -> {
-                val size = 25
-                val cellW = w / size
-                val cellH = h / size
-                val matrixColor = visual.color?.let(::intColorToCompose) ?: intColorToCompose(visual.fillColor)
-                for (row in 0 until size) {
-                    for (col in 0 until size) {
-                        val lit =
-                            when {
-                                visual.color != null -> true
-                                visual.percentFill != null -> {
-                                    val pf = visual.percentFill!!
-                                    val fillRows = (size * pf / 100)
-                                    (size - 1 - row) < fillRows
-                                }
-                                else -> false
-                            }
-                        val color = if (lit) matrixColor else Color(0xFF111111)
-                        drawRect(
-                            color = color,
-                            topLeft = Offset(col * cellW, row * cellH),
-                            size =
-                                androidx.compose.ui.geometry
-                                    .Size(cellW - 1, cellH - 1),
-                        )
-                    }
-                }
-            }
-            GlyphPresets.GlyphVisual.Off -> {
-                drawRect(color = Color.Black)
             }
         }
     }
@@ -579,31 +264,6 @@ private fun openGlyphMuseum(context: Context) {
         runCatching { context.startActivity(store) }
     }
 }
-
-private fun descriptionFor(visual: GlyphPresets.GlyphVisual): String =
-    when (visual) {
-        is GlyphPresets.GlyphVisual.Stripe ->
-            buildString {
-                visual.zone?.let { append("Zone: $it. ") }
-                if (visual.periodMs > 0) append("Period: ${visual.periodMs}ms. ")
-                if (visual.cycles > 0) append("Cycles: ${visual.cycles}. ")
-                visual.progress?.let { append("Progress: $it%. ") }
-                if (periodMs(visual) == 0 && visual.cycles == 0 && visual.progress == null && visual.zone == null) {
-                    append("All channels on.")
-                }
-            }
-        is GlyphPresets.GlyphVisual.Matrix ->
-            buildString {
-                visual.color?.let { append("Color fill. ") }
-                visual.text?.let { append("Text: $it. ") }
-                visual.scrollingText?.let { append("Scrolling: $it. ") }
-                visual.percentFill?.let { append("Fill: $it%. ") }
-                visual.number?.let { append("Number: $it. ") }
-            }
-        GlyphPresets.GlyphVisual.Off -> "All glyphs off."
-    }
-
-private fun periodMs(v: GlyphPresets.GlyphVisual.Stripe) = v.periodMs
 
 @Composable
 private fun GlyphLinkButton(
@@ -637,11 +297,3 @@ private fun GlyphLinkButton(
         )
     }
 }
-
-private fun intColorToCompose(color: Int): Color =
-    Color(
-        red = ((color shr 16) and 0xFF) / 255f,
-        green = ((color shr 8) and 0xFF) / 255f,
-        blue = (color and 0xFF) / 255f,
-        alpha = ((color shr 24) and 0xFF) / 255f,
-    )
