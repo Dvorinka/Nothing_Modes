@@ -106,9 +106,8 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
-            CapabilityIds.ACTION_SEND_SMS,
-            CapabilityIds.ACTION_SET_LOCATION_MODE,
-            -> capabilities.hasTelephony
+            CapabilityIds.ACTION_SEND_SMS -> capabilities.hasTelephony
+            CapabilityIds.ACTION_SET_LOCATION_MODE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_MEDIA_CONTROL -> true
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
@@ -126,6 +125,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_DARK_MODE,
             CapabilityIds.ACTION_SET_EXTRA_DIM,
             CapabilityIds.ACTION_SET_MOBILE_DATA,
+            CapabilityIds.ACTION_SET_LOCATION_MODE,
             CapabilityIds.ACTION_WRITE_SETTING,
             CapabilityIds.ACTION_SET_BATTERY_SAVER,
             CapabilityIds.ACTION_SET_AIRPLANE_MODE,
@@ -159,9 +159,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"
             CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
             CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
-            CapabilityIds.ACTION_SEND_SMS,
-            CapabilityIds.ACTION_SET_LOCATION_MODE,
-            -> "Telephony not available on this device"
+            CapabilityIds.ACTION_SEND_SMS -> "Telephony not available on this device"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Detected: may not work on this device"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Detected: may not work on this device"
