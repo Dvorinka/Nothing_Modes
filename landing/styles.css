@@ -334,7 +334,7 @@ a { color: inherit; text-decoration: none; }
   gap: 1px;
 }
 .library-card, .library-placeholder {
-  background: var(--panel);
+  background: var(--surface);
   border: 1px solid var(--border);
   padding: 24px;
   min-height: 160px;

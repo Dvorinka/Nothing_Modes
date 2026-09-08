@@ -186,7 +186,7 @@
 <main>
   <p class="lbl"><span class="dot"></span>COMMUNITY FEATURE LIBRARY</p>
   <h1>FEATURE LIBRARY</h1>
-  <p class="sub">Modes and Glyph designs made by users, reviewed before publication. Tap an item to preview; click the download button to save the JSON for import in the app.</p>
+  <p class="sub">Modes and Glyph designs made by users, reviewed before publication. On Android, tap OPEN IN APP to install directly into Nothing Modes. Elsewhere, download the JSON and import it in the app.</p>
 
   <div class="topbar">
     <div class="tabs">
@@ -235,7 +235,7 @@
 
     <div class="controls" id="modalControls">
       <button class="chip" id="playBtn" onclick="togglePlay()">PAUSE</button>
-      <button class="dl" id="modalDl" data-id="" onclick="download(this.dataset.id, this.dataset.name)">DOWNLOAD</button>
+      <button class="dl" id="modalDl" data-id="" data-type="" data-name="" onclick="install(this.dataset.id, this.dataset.name, this.dataset.type)">DOWNLOAD</button>
     </div>
     <p class="desc" id="modalDesc"></p>
   </div>
@@ -505,13 +505,13 @@ function render() {
           ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
           <span class="tag">${it.downloads} downloads</span>
           ${adminToken ? `<button class="tag" style="color:var(--red);border-color:rgba(215,25,33,.4)" data-id="${esc(it.id)}" onclick="event.stopPropagation()">DELETE</button>` : ''}
-          <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}" onclick="event.stopPropagation()">DOWNLOAD</button>
+          <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}" data-type="${esc(it.type)}" onclick="event.stopPropagation()">${isAndroid() ? 'OPEN IN APP' : 'DOWNLOAD'}</button>
         </div>
       </div>`;
     list.appendChild(el);
   }
   list.querySelectorAll('.dl').forEach(b =>
-    b.addEventListener('click', () => download(b.dataset.id, b.dataset.name)));
+    b.addEventListener('click', () => install(b.dataset.id, b.dataset.name, b.dataset.type)));
   list.querySelectorAll('.meta .tag[data-id]').forEach(b =>
     b.addEventListener('click', () => deleteItem(b.dataset.id)));
   list.querySelectorAll('canvas[data-preview]').forEach(c => drawGlyphThumb(c, JSON.parse(c.dataset.preview)));
@@ -578,6 +578,24 @@ function drawGlyphFrame(ctx, size, rows, pixels, w, h) {
   }
 }
 
+function isAndroid() { return /Android/i.test(navigator.userAgent); }
+
+async function install(id, name, type) {
+  if (isAndroid()) {
+    const it = allItems.find(x => x.id === id);
+    const t = type || it?.type || 'template';
+    const url = `nothingmodes://import?type=${encodeURIComponent(t)}&id=${encodeURIComponent(id)}`;
+    window.location.href = url;
+    setTimeout(() => {
+      if (confirm('If Nothing Modes did not open, download the JSON file instead?')) {
+        download(id, name);
+      }
+    }, 800);
+    return;
+  }
+  download(id, name);
+}
+
 async function download(id, name) {
   const it = allItems.find(x => x.id === id);
   let payload = it?._payload;
@@ -600,8 +618,11 @@ async function openModal(it) {
   document.getElementById('modalTitle').textContent = esc(it.title);
   document.getElementById('modalMeta').innerHTML = `by @${esc(it.handle)} · ${esc(it.summary || '')}`;
   document.getElementById('modalDesc').textContent = it.description || '';
-  document.getElementById('modalDl').dataset.id = it.id;
-  document.getElementById('modalDl').dataset.name = it.title;
+  const dl = document.getElementById('modalDl');
+  dl.dataset.id = it.id;
+  dl.dataset.name = it.title;
+  dl.dataset.type = it.type;
+  dl.textContent = isAndroid() ? 'OPEN IN APP' : 'DOWNLOAD';
   document.getElementById('modal').classList.add('open');
 
   if (it.type === 'glyph') {

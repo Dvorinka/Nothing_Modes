@@ -147,29 +147,29 @@
   const libraryPreview = document.getElementById("library-preview");
   if (libraryPreview) {
     fetch("/api/library?type=template&limit=3&preview=1")
-      .then((r) => r.json())
-      .then((data) => {
-        const items = (data.items || []).slice(0, 3);
-        if (!items.length) {
-          libraryPreview.innerHTML = '<article class="library-placeholder"><p class="mono-label">NO ITEMS YET</p></article>';
-          return;
-        }
-        libraryPreview.innerHTML = items
-          .map(
-            (it) => `
-            <article class="library-card">
-              <p class="library-type mono-label">${esc(it.type || "template")}</p>
-              <h3 class="library-title">${esc(it.title || "Untitled")}</h3>
-              <p class="library-desc">${esc((it.description || it.summary || "").slice(0, 120))}</p>
-              <p class="library-meta mono-label">by ${esc(it.handle || "anonymous")}</p>
-            </article>
-          `
-          )
-          .join("");
-      })
-      .catch(() => {
-        libraryPreview.innerHTML = '<article class="library-placeholder"><p class="mono-label">LIBRARY UNAVAILABLE</p></article>';
-      });
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
+      .then((data) => renderLibraryPreview(data.items || []))
+      .catch(() => fetch("/seed.json").then((r) => r.json()).then((data) => renderLibraryPreview((data.items || []).filter((it) => it.type === "template"))));
+  }
+
+  function renderLibraryPreview(items) {
+    const picked = items.slice(0, 3);
+    if (!picked.length) {
+      libraryPreview.innerHTML = '<article class="library-placeholder"><p class="mono-label">NO ITEMS YET</p></article>';
+      return;
+    }
+    libraryPreview.innerHTML = picked
+      .map(
+        (it) => `
+          <article class="library-card">
+            <p class="library-type mono-label">${esc(it.type || "template")}</p>
+            <h3 class="library-title">${esc(it.title || "Untitled")}</h3>
+            <p class="library-desc">${esc((it.description || it.summary || "").slice(0, 120))}</p>
+            <p class="library-meta mono-label">by ${esc(it.handle || "nothing-modes")}</p>
+          </article>
+        `,
+      )
+      .join("");
   }
 
   function esc(s) {

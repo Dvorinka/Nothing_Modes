@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
@@ -501,7 +502,7 @@ class AutomationService : Service() {
             .Builder(this, CHANNEL_ID)
             .setContentTitle("Nothing Modes")
             .setContentText("Processing automation...")
-            .setSmallIcon(android.R.drawable.ic_menu_manage)
+            .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 

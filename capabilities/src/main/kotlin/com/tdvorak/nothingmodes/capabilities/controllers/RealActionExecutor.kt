@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -766,12 +768,22 @@ class RealActionExecutor(
                     NotificationManager.IMPORTANCE_DEFAULT,
                 )
             nm.createNotificationChannel(channel)
+            val smallIcon =
+                context.resources.getIdentifier("ic_notification", "drawable", context.packageName)
+                    .takeIf { it != 0 }
+                    ?: android.R.drawable.ic_dialog_info
+            val largeIcon =
+                runCatching {
+                    val id = context.resources.getIdentifier("ic_launcher", "mipmap", context.packageName)
+                    if (id != 0) BitmapFactory.decodeResource(context.resources, id) else null
+                }.getOrNull()
             val notification =
                 androidx.core.app.NotificationCompat
                     .Builder(context, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(title)
                     .setContentText(text)
-                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setSmallIcon(smallIcon)
+                    .setLargeIcon(largeIcon)
                     .setAutoCancel(true)
                     .build()
             nm.notify(NOTIFICATION_ID_BASE + (title.hashCode() and 0xFFF), notification)

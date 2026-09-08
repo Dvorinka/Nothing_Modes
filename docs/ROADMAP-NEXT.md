@@ -52,6 +52,44 @@
 - [x] **Glyph Studio consolidation** — the saved/community/import sections already exist; added an "Open Glyph Museum" link from the Import section.
 - [x] **Live community e2e** — verified `/api/library?type=glyph`, `/api/item`, and `/api/preview` respond with approved glyph items on the live deployment. `CommunityApi` and `GlyphEditorScreen` already consume these endpoints.
 
+## Completed in this follow-up pass (2026-09-08)
+
+### Notification branding
+- [x] Added `ic_notification.xml` (Nothing dot-grid logo) to `automation-android`.
+- [x] `ModeNotificationHelper`, `AutomationService` foreground, and `PersistentMonitorService` use `R.drawable.ic_notification` as small icon and the app logo as large icon.
+- [x] `RealActionExecutor.showNotification()` also uses `ic_notification` and the app logo via runtime resource lookup.
+- [x] Verified on device: the persistent monitor notification and deep-link import toast show the Nothing Modes dot-grid icon.
+
+### Website-to-app one-tap import
+- [x] `MainActivity` handles `nothingmodes://import?type=<template|glyph>&id=<uuid>` deep links.
+- [x] `AndroidManifest.xml` declares the `nothingmodes` scheme with `BROWSABLE` + `DEFAULT` categories.
+- [x] Deep link path fetches the item through `CommunityApi.fetchItem()`, then uses `ImportExportService.import(..., overwrite = true)` so the community copy always installs/updates.
+- [x] Verified on Nothing Phone 3: `adb shell am start -a VIEW -d nothingmodes://import?...` opens the app, fetches the live item, and the toast "Imported 1 mode(s)" appears. The routine is listed immediately.
+- [x] `landing/library.html` now renders an **OPEN IN APP** button on Android user agents; desktop/unknown agents keep **DOWNLOAD JSON**.
+- [x] `landing/library.html` card click opens the detail modal; the modal action button switches by user agent too.
+- [x] `landing/index.html` cache-busting (`?v=2`) and `/seed.json` fallback now render the home-page library preview correctly instead of "LIBRARY UNAVAILABLE".
+- [x] Website copy updated to explain: "On Android, tap OPEN IN APP to install directly into Nothing Modes. Elsewhere, download the JSON and import it in the app."
+
+### Website visual review
+- [x] `index.html`, `library.html`, `submit.html`, `privacy.html`, and `admin.html` loaded in Playwright; no console errors beyond the expected local `/api/library` 404 (handled silently by `/seed.json` fallback).
+- [x] `library.html` modal displays the icon, trigger/condition/action summary, required capabilities, and download/open actions.
+- [x] `submit.html` icon picker is visible and populated with real Material symbols.
+- [x] Dark theme is the default render for the site in the test harness; light mode is supported through the existing toggle.
+
+### Privacy / security
+- [x] Repository re-scanned for the user's phone number; no matches in working tree. `docs/DEVICE-TEST-MATRIX.md` and `docs/ROADMAP-NEXT.md` use `[user-approved number]` placeholders.
+- [x] Test screenshots and pulled device files (`/tmp/nm3.db`, `/tmp/notif*.png`, `/tmp/deeplink*.png`) deleted.
+
+### Messaging-channel monitoring — assessed
+- [x] Documented assessment: modern Android blocks direct access to third-party messaging content. The viable path is a generic **notification received from app** trigger using `NotificationListenerService` with package + title/body text matching (e.g. Telegram, WhatsApp, Instagram when they post notifications). Accessibility scraping and unofficial API hooks are not appropriate.
+- [ ] Implement the generic "notification from app" trigger in the app catalog and document supported/unsupported cases.
+
+### SMS/call tests — confirmed
+- [x] SMS send to `[user-approved number]` delivered; the user received the test messages.
+- [x] `SMS_RECEIVED` trigger matched on the user-approved number and posted the notification.
+- [x] `INCOMING_CALL` trigger matched through the service-path simulation (`phone_state` debug broadcast).
+- [ ] Real carrier-delivered incoming call still pending a second endpoint or call-forwarding; service-path simulation is the best verification available from a single device.
+
 ---
 
 ## 0. Verified on-device findings (bugs & intel)

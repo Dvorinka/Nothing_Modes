@@ -5,9 +5,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.data.prefs.NotificationPreferences
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
@@ -97,13 +100,20 @@ class ModeNotificationHelper(
             NotificationCompat.Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
-                .setSmallIcon(android.R.drawable.ic_menu_manage)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setLargeIcon(appIcon())
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setContentIntent(contentIntent)
                 .build()
 
         notificationManager.notify(notificationId(automation), notification)
+    }
+
+    private fun appIcon(): Bitmap? {
+        val id = context.resources.getIdentifier("ic_launcher", "mipmap", context.packageName)
+        if (id == 0) return null
+        return runCatching { BitmapFactory.decodeResource(context.resources, id) }.getOrNull()
     }
 
     private fun notificationId(automation: Automation): Int {

@@ -61,6 +61,13 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
             </intent-filter>
+            <!-- Accept one-tap community imports from the website. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nothingmodes" android:host="import" />
+            </intent-filter>
         </activity>
 
         <receiver

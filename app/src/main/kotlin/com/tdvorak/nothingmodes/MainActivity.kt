@@ -17,16 +17,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import com.tdvorak.nothingmodes.data.community.CommunityApi
+import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.nav.NothingModesNavHost
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val updateViewModel: UpdateViewModel by viewModels()
+
+    @Inject
+    lateinit var automationStore: AutomationStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,9 +96,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Import a glyph design shared to / opened with this app. Accepts the
-     * Glyph Museum / GlyphMatrixEditor open JSON format (application/json)
-     * from ACTION_VIEW (data uri) or ACTION_SEND (EXTRA_STREAM uri).
+     * Handles:
+     * - Glyph design JSON shared to or opened with this app (application/json).
+     * - One-tap community imports from the website (nothingmodes://import?type=...&id=...).
      */
     private fun importDesignIntent(intent: Intent?) {
         val uri: Uri? =
@@ -101,6 +110,14 @@ class MainActivity : ComponentActivity() {
                 else -> null
             }
         uri ?: return
+
+        if (uri.scheme == "nothingmodes" && uri.host == "import") {
+            val type = uri.getQueryParameter("type") ?: "template"
+            val id = uri.getQueryParameter("id") ?: return
+            importCommunityItem(type, id)
+            return
+        }
+
         runCatching {
             contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
         }.getOrNull()?.let { json ->
@@ -111,6 +128,37 @@ class MainActivity : ComponentActivity() {
                 if (name != null) "Glyph design imported as $name" else "Not a glyph design file",
                 Toast.LENGTH_LONG,
             ).show()
+        }
+    }
+
+    private fun importCommunityItem(type: String, id: String) {
+        lifecycleScope.launch {
+            val result =
+                runCatching {
+                    val payload = CommunityApi.fetchItem(id)
+                    when (type) {
+                        "glyph" -> {
+                            val store = CustomGlyphStore(this@MainActivity)
+                            val name = store.import(payload.toString(), null)
+                            if (name != null) "Glyph design imported as $name" else "Invalid glyph design"
+                        }
+                        else -> {
+                            val version =
+                                runCatching {
+                                    packageManager.getPackageInfo(packageName, 0).versionName
+                                }.getOrNull().orEmpty()
+                            val service = ImportExportService(automationStore, version)
+                            val importResult = service.import(payload.toString(), overwrite = true)
+                            if (importResult.imported > 0) {
+                                "Imported ${importResult.imported} mode(s)"
+                            } else {
+                                "Import failed: ${importResult.errors.firstOrNull() ?: "unknown"}"
+                            }
+                        }
+                    }
+                }.getOrNull() ?: "Could not fetch item from the community library"
+
+            Toast.makeText(this@MainActivity, result, Toast.LENGTH_LONG).show()
         }
     }
 }
