@@ -311,7 +311,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 - [ ] In the **play** build: a dismissible banner/notice in Settings (and on the capability warning sheet when a github-only feature is tapped): "This action isn't available in the Play version. The GitHub build unlocks device admin, full app discovery, and in-app updates — same app, free." → link to the GitHub releases page. Never nag — once per feature area, dismissible, persisted.
 
 - [ ] Central `PermissionGate` helper: when a user selects a trigger/action requiring a runtime permission (calendar, contacts, SMS, location, notifications, camera/mic, exact alarm, accessibility, device admin, Shizuku), show an inline explainer row + "Grant" → system dialog **at that moment**, not buried in settings.
-- [ ] A permission status section in Settings showing granted/missing with deep links.
+- [x] A permission status section in Settings showing granted/missing with deep links.
 - [ ] Already granted on debug device: calendar, SMS, location, notifications, camera, mic, WRITE_SETTINGS, notification listener, device admin. Nothing critical missing; exact alarm falls back to inexact (SCHEDULE_EXACT_ALARM denied by default on A13+ — prompt to grant for punctual triggers).
 
 ---
