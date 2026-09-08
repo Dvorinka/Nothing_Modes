@@ -143,6 +143,10 @@ class CustomBuilderViewModel
             _saveError.value = null
         }
 
+        fun clearSaved() {
+            _saved.value = false
+        }
+
         fun loadForEdit(automationId: String) {
             viewModelScope.launch {
                 val automation = store.get(AutomationId(automationId)) ?: return@launch
@@ -477,17 +481,20 @@ fun CustomAutomationBuilderScreen(
     // goes through the same Save / Discard / Cancel prompt.
     BackHandler { showDiscardDialog = true }
 
-    if (saved) {
-        onSaved()
-        return
-    }
-
     val saveError by viewModel.saveError.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     androidx.compose.runtime.LaunchedEffect(saveError) {
         saveError?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearSaveError()
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(saved) {
+        if (saved) {
+            snackbarHostState.showSnackbar(if (automationId != null) "Mode updated" else "Mode saved")
+            viewModel.clearSaved()
+            onSaved()
         }
     }
 
