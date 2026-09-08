@@ -117,6 +117,11 @@ sealed interface TriggerEvent {
     data class DeviceLockedEvent(
         override val eventId: String,
     ) : TriggerEvent
+
+    data class TorchStateChanged(
+        override val eventId: String,
+        val on: Boolean,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

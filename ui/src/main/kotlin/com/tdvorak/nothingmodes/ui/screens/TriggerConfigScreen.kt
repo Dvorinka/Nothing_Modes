@@ -94,6 +94,7 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Charger", "Device", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
         TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
         TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
+        TriggerType("Torch", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -373,6 +374,12 @@ private fun TriggerConfigContent(
             )
         }
 
+        is Trigger.TorchState ->
+            TorchStateContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
+
         is Trigger.ScreenStateTrigger ->
             ScreenStateContent(
                 state = t.state,
@@ -540,6 +547,26 @@ private fun ChargerConnectedContent(
                     ),
                 )
             },
+        )
+    }
+}
+
+@Composable
+private fun TorchStateContent(
+    trigger: Trigger.TorchState,
+    onUpdate: (Trigger.TorchState) -> Unit,
+) {
+    Column {
+        BooleanRow(
+            label = "When torch turns on",
+            checked = trigger.on,
+            onChange = { onUpdate(trigger.copy(on = it)) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "Fires when the camera flashlight turns ${if (trigger.on) "on" else "off"}. No camera permission is needed to read the state.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

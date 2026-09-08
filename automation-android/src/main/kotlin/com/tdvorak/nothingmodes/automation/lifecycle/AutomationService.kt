@@ -80,6 +80,7 @@ class AutomationService : Service() {
             ACTION_GEOFENCE -> handleGeofence(intent)
             ACTION_BT_DEVICE -> handleBtDevice(intent)
             ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
+            ACTION_TORCH_STATE -> handleTorchState(intent)
             ACTION_MANUAL -> handleManual(intent)
             ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
         }
@@ -385,6 +386,16 @@ class AutomationService : Service() {
         )
     }
 
+    private fun handleTorchState(intent: Intent) {
+        val on = intent.getBooleanExtra(PersistentMonitorService.EXTRA_TORCH_STATE, false)
+        dispatchEvent(
+            TriggerEvent.TorchStateChanged(
+                eventId = "torch:${System.currentTimeMillis()}",
+                on = on,
+            ),
+        )
+    }
+
     private fun handleManual(intent: Intent) {
         val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
         val automationId = AutomationId(idStr)
@@ -486,6 +497,7 @@ class AutomationService : Service() {
         const val ACTION_GEOFENCE = "com.tdvorak.nothingmodes.GEOFENCE"
         const val ACTION_BT_DEVICE = "com.tdvorak.nothingmodes.BT_DEVICE"
         const val ACTION_WIFI_CONNECTED = "com.tdvorak.nothingmodes.WIFI_CONNECTED"
+        const val ACTION_TORCH_STATE = "com.tdvorak.nothingmodes.TORCH_STATE"
         const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
         const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
         const val EXTRA_MANUAL_ID = "manual_automation_id"

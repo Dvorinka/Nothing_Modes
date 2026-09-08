@@ -94,6 +94,7 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.ChargerConnected -> "${if (trigger.connected) "Charger connected" else "Charger unplugged"}${trigger.source?.let { " (${it.name.lowercase()})" } ?: ""}"
             is Trigger.DeviceUnlocked -> "Device unlocked"
             is Trigger.DeviceLocked -> "Device locked"
+            is Trigger.TorchState -> "Torch ${if (trigger.on) "on" else "off"}"
         }
     ).uppercase()
 

@@ -46,6 +46,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_CONNECTIVITY_POWER -> true
             CapabilityIds.TRIGGER_BATTERY_LEVEL -> true
             CapabilityIds.TRIGGER_SCREEN_STATE -> true
+            CapabilityIds.TRIGGER_TORCH_STATE -> capabilities.hasFlashlight
             CapabilityIds.TRIGGER_APP_OPENED -> capabilities.hasUsageAccess
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
             CapabilityIds.TRIGGER_MANUAL -> true

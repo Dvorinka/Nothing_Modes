@@ -22,6 +22,7 @@ object CapabilityIds {
     const val TRIGGER_BT_DEVICE = "trigger_bt_device"
     const val TRIGGER_WIFI_CONNECTED = "trigger_wifi_connected"
     const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
+    const val TRIGGER_TORCH_STATE = "trigger_torch_state"
 
     // State readers
     const val STATE_READER_BUILTIN = "state_reader_builtin"
@@ -124,6 +125,7 @@ object CapabilityLabels {
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
+            CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
             CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -177,6 +179,7 @@ object CapabilityRequirements {
             is Trigger.ChargerConnected -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)
             is Trigger.DeviceUnlocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
+            is Trigger.TorchState -> setOf(CapabilityIds.TRIGGER_TORCH_STATE)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =

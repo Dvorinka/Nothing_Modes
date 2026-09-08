@@ -86,6 +86,10 @@ class TriggerMatcher {
 
             is Trigger.DeviceUnlocked -> event is TriggerEvent.DeviceUnlockedEvent
             is Trigger.DeviceLocked -> event is TriggerEvent.DeviceLockedEvent
+
+            is Trigger.TorchState ->
+                event is TriggerEvent.TorchStateChanged &&
+                    event.on == trigger.on
         }
 
     /** Checks if a time trigger should fire on the given day. */

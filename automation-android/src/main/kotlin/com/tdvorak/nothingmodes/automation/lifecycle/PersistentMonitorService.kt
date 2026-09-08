@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -27,6 +28,7 @@ class PersistentMonitorService : Service() {
     private var screenReceiver: BroadcastReceiver? = null
     private var connectivityReceiver: BroadcastReceiver? = null
     private var phoneStateReceiver: BroadcastReceiver? = null
+    private var torchCallback: android.hardware.camera2.CameraManager.TorchCallback? = null
     private var usageStatsMonitor: UsageStatsMonitor? = null
     private var calendarObserver: CalendarObserver? = null
 
@@ -39,6 +41,7 @@ class PersistentMonitorService : Service() {
         super.onCreate()
         createNotificationChannel()
         registerReceivers()
+        registerTorchCallback()
         startCalendarObserver()
         Log.i(TAG, "Persistent monitor started")
     }
@@ -56,6 +59,7 @@ class PersistentMonitorService : Service() {
 
     override fun onDestroy() {
         unregisterReceivers()
+        unregisterTorchCallback()
         usageStatsMonitor?.stop()
         usageStatsMonitor = null
         calendarObserver?.stop()
@@ -221,6 +225,39 @@ class PersistentMonitorService : Service() {
         phoneStateReceiver = null
     }
 
+    private var lastTorchState: Boolean? = null
+
+    private fun registerTorchCallback() {
+        val cm = getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
+        val cb =
+            object : CameraManager.TorchCallback() {
+                override fun onTorchModeChanged(
+                    cameraId: String,
+                    enabled: Boolean,
+                ) {
+                    if (lastTorchState != null && lastTorchState == enabled) return
+                    lastTorchState = enabled
+                    val intent =
+                        Intent(this@PersistentMonitorService, AutomationService::class.java).apply {
+                            action = AutomationService.ACTION_TORCH_STATE
+                            putExtra(EXTRA_TORCH_STATE, enabled)
+                        }
+                    ContextCompat.startForegroundService(this@PersistentMonitorService, intent)
+                }
+            }
+        torchCallback = cb
+        runCatching { cm.registerTorchCallback(ContextCompat.getMainExecutor(this), cb) }
+    }
+
+    private fun unregisterTorchCallback() {
+        val cm = getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+        torchCallback?.let { cb ->
+            runCatching { cm?.unregisterTorchCallback(cb) }
+        }
+        torchCallback = null
+        lastTorchState = null
+    }
+
     private fun startCalendarObserver() {
         calendarObserver =
             CalendarObserver(this) { event ->
@@ -271,5 +308,6 @@ class PersistentMonitorService : Service() {
         const val EXTRA_CAL_DIRECTION = "cal_direction"
         const val EXTRA_CAL_TITLE = "cal_title"
         const val EXTRA_CAL_ID = "cal_id"
+        const val EXTRA_TORCH_STATE = "torch_state"
     }
 }

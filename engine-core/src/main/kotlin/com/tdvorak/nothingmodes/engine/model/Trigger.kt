@@ -192,6 +192,13 @@ sealed interface Trigger {
     @Serializable
     @SerialName("device_locked")
     data object DeviceLocked : Trigger
+
+    /** Flashlight turned on or off. Requires `CameraManager.registerTorchCallback`. */
+    @Serializable
+    @SerialName("torch_state")
+    data class TorchState(
+        val on: Boolean = true,
+    ) : Trigger
 }
 
 @Serializable
