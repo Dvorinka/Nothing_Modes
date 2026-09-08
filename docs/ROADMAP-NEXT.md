@@ -127,7 +127,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Toggle actions**: label = feature name only ("Wi-Fi", not "Wi-Fi enabled"); toggle styled Nothing-red with **ON/OFF text** next to it. `BooleanRow` now strips the `enabled` suffix and shows ON/OFF.
 - [x] **Add Condition parity**: condition catalog now behaves like action catalog — tapping a condition opens `ConditionConfigSheet`, configured conditions appear in a "Selected" list, and each can be edited or removed before returning.
 - [x] **Screen timeout**: dropdown of presets (15s/30s/1m/2m/5m/10m/30m/never), not free input.
-- [ ] **Always-On Display**: expose modes — off / tap-to-show / always / schedule (map to Nothing OS `aod` settings where they exist).
+- [x] **Always-On Display**: off / tap-to-show / always / schedule modes mapped to `doze_always_on`, `doze_tap_gesture`, and `doze_*_hour/minute` secure settings.
 - [ ] **Volume**: show all streams at once (media, ring, alarm, notification) as labeled sliders — no dropdown.
 - [x] **Vibrate**: dropdown with duration presets (Short/Medium/Long/1 second).
 - [x] **Ringer mode**: explanation added below the radio options.
