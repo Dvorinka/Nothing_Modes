@@ -1223,6 +1223,7 @@ fun NothingBottomActionBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    subtitle: String = "",
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -1238,6 +1239,18 @@ fun NothingBottomActionBar(
                     .padding(horizontal = NothingSpacing.md)
                     .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
         ) {
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = NothingFonts.mono(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = NothingSpacing.sm),
+                )
+            }
             NothingPillButton(
                 text = text,
                 onClick = onClick,

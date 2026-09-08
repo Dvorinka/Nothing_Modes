@@ -29,6 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -129,8 +131,15 @@ class CustomBuilderViewModel
         private val _saved = MutableStateFlow(false)
         val saved: StateFlow<Boolean> = _saved.asStateFlow()
 
+        private val _saveError = MutableStateFlow<String?>(null)
+        val saveError: StateFlow<String?> = _saveError.asStateFlow()
+
         private val _editingId = MutableStateFlow<String?>(null)
         val editingId: StateFlow<String?> = _editingId.asStateFlow()
+
+        fun clearSaveError() {
+            _saveError.value = null
+        }
 
         fun loadForEdit(automationId: String) {
             viewModelScope.launch {
@@ -316,9 +325,11 @@ class CustomBuilderViewModel
                         iconBackground = s.iconBackground,
                         iconTint = s.iconTint,
                     )
-                store.save(automation)
-                WidgetRefreshHelper.refresh(context)
-                _saved.value = true
+                runCatching {
+                    store.save(automation)
+                    WidgetRefreshHelper.refresh(context)
+                    _saved.value = true
+                }.onFailure { _saveError.value = it.message ?: "Save failed" }
             }
         }
 
@@ -364,9 +375,11 @@ class CustomBuilderViewModel
                         iconBackground = s.iconBackground,
                         iconTint = s.iconTint,
                     )
-                store.save(automation)
-                WidgetRefreshHelper.refresh(context)
-                _saved.value = true
+                runCatching {
+                    store.save(automation)
+                    WidgetRefreshHelper.refresh(context)
+                    _saved.value = true
+                }.onFailure { _saveError.value = it.message ?: "Save failed" }
             }
         }
     }
@@ -467,8 +480,18 @@ fun CustomAutomationBuilderScreen(
         return
     }
 
+    val saveError by viewModel.saveError.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    androidx.compose.runtime.LaunchedEffect(saveError) {
+        saveError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSaveError()
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             NothingTopBar(
                 title = if (automationId != null) "EDIT MODE" else "NEW MODE",
@@ -481,6 +504,7 @@ fun CustomAutomationBuilderScreen(
                 text = if (automationId != null) "Save Changes" else "Create Mode",
                 onClick = { viewModel.save() },
                 enabled = state.actions.isNotEmpty(),
+                subtitle = if (state.actions.isEmpty()) "Add at least one action to save." else "",
             )
         },
     ) { padding ->
