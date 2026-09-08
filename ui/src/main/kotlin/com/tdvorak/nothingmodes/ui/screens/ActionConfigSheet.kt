@@ -762,6 +762,12 @@ private fun BooleanRow(
     checked: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
+    val displayLabel =
+        if (label.endsWith(" enabled", ignoreCase = true)) {
+            label.removeSuffix(" enabled")
+        } else {
+            label
+        }
     Row(
         modifier =
             Modifier
@@ -769,17 +775,29 @@ private fun BooleanRow(
                 .clickable { onChange(!checked) }
                 .padding(vertical = NothingSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = label,
+            text = displayLabel,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontFamily = NothingFonts.mono(),
         )
-        NothingToggle(
-            checked = checked,
-            onCheckedChange = onChange,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            Text(
+                text = if (checked) "ON" else "OFF",
+                style = MaterialTheme.typography.labelSmall,
+                color = NothingColors.accent,
+                fontFamily = NothingFonts.mono(),
+            )
+            NothingToggle(
+                checked = checked,
+                onCheckedChange = onChange,
+            )
+        }
     }
 }
 
