@@ -254,7 +254,7 @@ Still open in this feature:
   - Wiring: each BEFORE rule = an AlarmManager alarm at `eventAtMillis − leadMs` → receiver → notification. ON_TRIGGER/ON_END = post from `AutomationAlarmReceiver`/engine completion path. Tap notification → opens the mode. Notification text explains what happens and when: mode name, "fires in 5 min — will set Wi-Fi on, glyph…" / "just ran — 2 actions applied" / "mode ended — 2 settings restored".
 - [x] **Bottom bar gap** (confirmed visually): `NothingBottomActionBar` floating pill shows content beneath it — wrap in an opaque `Surface` with `navigationBarsPadding` (it already does — but the catalog screens draw it in a `Box` overlay; ensure the container under the button is `background`-colored, not transparent) and push the button lower/solid. Done for `ActionConfigSheet` and `ConditionConfigSheet` "Done" bars.
 - [x] Toggle styling: Nothing-red track + ON/OFF text labels, app-wide.
-- [ ] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
+- [x] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
 - [ ] **Classic theme restyle** — user dislikes it on app AND website. Full redesign pass; **do not touch the Nothing theme** (it stays as-is). Website has a "DOTS" style-toggle — restyle the non-dot variant.
 - [~] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` moved to `Dispatchers.IO` in `SettingsViewModel.detect()`. `GlyphToysBridge` not found in this screen; remaining cache/no-op items still to audit.
 - [ ] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam.
