@@ -67,12 +67,14 @@ android {
             buildConfigField("String", "DISTRIBUTION", "\"github\"")
             buildConfigField("boolean", "ENABLE_IN_APP_UPDATES", "true")
             buildConfigField("boolean", "ENABLE_LOCK_SCREEN", "true")
+            manifestPlaceholders["distribution"] = "github"
         }
         create("play") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"play\"")
             buildConfigField("boolean", "ENABLE_IN_APP_UPDATES", "false")
             buildConfigField("boolean", "ENABLE_LOCK_SCREEN", "false")
+            manifestPlaceholders["distribution"] = "play"
         }
     }
 

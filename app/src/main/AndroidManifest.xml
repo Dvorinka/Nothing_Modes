@@ -34,6 +34,9 @@
         android:label="Nothing Modes"
         android:supportsRtl="true"
         android:theme="@style/Theme.NothingModes.Splash">
+        <meta-data
+            android:name="com.tdvorak.nothingmodes.distribution"
+            android:value="${distribution}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -277,6 +277,21 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
+                val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
+                val isPlay = remember { context.distributionFlavor() == "play" }
+                var playBannerDismissed by remember {
+                    mutableStateOf(prefs.getBoolean("play_build_banner_dismissed", false))
+                }
+                if (isPlay && !playBannerDismissed) {
+                    PlayBuildBanner(
+                        onDismiss = {
+                            playBannerDismissed = true
+                            prefs.edit().putBoolean("play_build_banner_dismissed", true).apply()
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                }
+
                 caps?.let { capabilities ->
                     // ── Device ────────────────────────────────────────────────
                     NothingSectionHeader(text = "Device")
@@ -1435,5 +1450,40 @@ private fun DeviceAdminSection(context: android.content.Context) {
                     .fillMaxWidth()
                     .padding(vertical = NothingSpacing.sm),
         )
+    }
+}
+
+private fun android.content.Context.distributionFlavor(): String {
+    val info = packageManager.getApplicationInfo(packageName, android.content.pm.PackageManager.GET_META_DATA)
+    return info.metaData?.getString("com.tdvorak.nothingmodes.distribution") ?: "github"
+}
+
+@Composable
+private fun PlayBuildBanner(onDismiss: () -> Unit) {
+    NothingCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(NothingSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Play build",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Some features (lock screen, in-app updates) are disabled in the Play build. Use the GitHub build for full automation.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = "DISMISS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+                modifier = Modifier.clickable(onClick = onDismiss).padding(NothingSpacing.sm),
+            )
+        }
     }
 }
