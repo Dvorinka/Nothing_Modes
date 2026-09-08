@@ -719,15 +719,40 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphTurnOff,
-        is Action.LockScreen,
         is Action.ClearNotifications,
-        is Action.TakeScreenshot,
         -> {
             Text(
                 text = actionDescription(action),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
+            )
+        }
+
+        is Action.LockScreen -> {
+            Text(
+                text = "Turns the screen off and locks the device, like pressing the power button. Verified on Phone 3 via Device Admin. The next unlock requires your PIN once (Android security rule).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+        }
+
+        is Action.TakeScreenshot -> {
+            Text(
+                text = "Not supported on most devices yet. The executor currently returns Unsupported, so the action does nothing.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+        }
+
+        is Action.Wait -> {
+            NothingInput(
+                value = a.durationMs.toString(),
+                onValueChange = { onActionChange(a.copy(durationMs = it.toLongOrNull() ?: a.durationMs)) },
+                label = "Duration (ms)",
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 

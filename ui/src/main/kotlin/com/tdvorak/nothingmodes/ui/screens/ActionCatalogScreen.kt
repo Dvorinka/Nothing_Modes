@@ -103,7 +103,6 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Screenshot", "System", Icons.AutoMirrored.Outlined.MobileScreenShare, Action.TakeScreenshot),
                 ActionItem("Clear notifications", "System", Icons.Outlined.Notifications, Action.ClearNotifications),
                 ActionItem("Show notification", "Apps", Icons.Outlined.Campaign, Action.ShowNotification("", "")),
-                ActionItem("Copy text", "Apps", Icons.Outlined.ContentCopy, Action.CopyText("")),
                 ActionItem("Open URL", "Apps", Icons.Outlined.Link, Action.OpenUrl("")),
                 ActionItem("Launch app", "Apps", Icons.Outlined.OpenInBrowser, Action.LaunchApp("")),
                 ActionItem("Open settings", "Apps", Icons.Outlined.Settings, Action.OpenSettingsScreen(SettingsScreen.SETTINGS, null)),
