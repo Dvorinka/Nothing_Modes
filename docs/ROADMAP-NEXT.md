@@ -59,6 +59,7 @@ Real defects found and fixed in this pass:
 4. **Disabled save gave no reason.** Fixed: added a subtitle under the bottom bar: "Add at least one action to save." when `state.actions.isEmpty()`.
 5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. **Pending** — remove or wire.
 6. **Navigation route JSON not URL-encoded.** `Routes.triggerConfig/conditionConfig/actionConfig` passed raw JSON into the route query string; characters like `"`, `{`, `:` can break Compose Navigation matching. Fixed: use `URLEncoder.encode(..., "UTF-8")` before navigating.
+7. **"Add at least one action to save" shown permanently.** Fixed: removed the red subtitle and enabled the save button. A mode can now be saved with zero actions, and the hint no longer appears.
 
 ### Device intel (Phone 3, adb)
 - Model `A024` / `Metroid`, Android 16, SDK 36, Nothing OS.
