@@ -272,7 +272,7 @@ fun NothingDotRow(
     }
 }
 
-enum class ModeDotState { ACTIVE, ENABLED, DISABLED }
+enum class ModeDotState { ACTIVE, FIRING_SOON, ENABLED, DISABLED }
 
 @Composable
 fun ModeDotRow(
@@ -300,6 +300,7 @@ fun ModeDotRow(
             val color =
                 when (state) {
                     ModeDotState.ACTIVE -> activeColor.copy(alpha = pulseAlpha)
+                    ModeDotState.FIRING_SOON -> Color.Transparent
                     ModeDotState.ENABLED -> enabledColor
                     ModeDotState.DISABLED -> disabledColor
                 }
@@ -308,7 +309,14 @@ fun ModeDotRow(
                     Modifier
                         .size(dotSize.dp)
                         .clip(CircleShape)
-                        .background(color),
+                        .background(color)
+                        .then(
+                            if (state == ModeDotState.FIRING_SOON) {
+                                Modifier.border(1.5.dp, activeColor, CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        ),
             )
         }
     }

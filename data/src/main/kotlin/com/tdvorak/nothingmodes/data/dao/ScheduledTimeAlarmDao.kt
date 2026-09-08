@@ -14,6 +14,9 @@ interface ScheduledTimeAlarmDao {
     @Query("SELECT * FROM scheduled_time_alarms WHERE automationId = :automationId")
     suspend fun get(automationId: String): ScheduledTimeAlarmEntity?
 
+    @Query("SELECT * FROM scheduled_time_alarms WHERE automationId = :automationId AND scheduledMode = 'START' ORDER BY wakeAtMillis ASC LIMIT 1")
+    suspend fun getNextStart(automationId: String): ScheduledTimeAlarmEntity?
+
     @Query("SELECT * FROM scheduled_time_alarms WHERE wakeAtMillis <= :atMillis AND scheduledMode = :mode")
     suspend fun dueBefore(
         atMillis: Long,

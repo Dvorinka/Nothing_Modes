@@ -52,6 +52,10 @@ object AutomationModule {
 
     @Provides
     @Singleton
+    fun provideScheduledTimeAlarmDao(db: NothingModesDatabase): com.tdvorak.nothingmodes.data.dao.ScheduledTimeAlarmDao = db.scheduledTimeAlarmDao()
+
+    @Provides
+    @Singleton
     fun provideAuditSink(db: NothingModesDatabase): AuditSink = RoomAuditSink(db.auditDao())
 
     @Provides

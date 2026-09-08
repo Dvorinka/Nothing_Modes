@@ -64,6 +64,7 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.data.dao.ScheduledTimeAlarmDao
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
@@ -107,6 +108,7 @@ class AutomationListViewModel
         @ApplicationContext private val context: android.content.Context,
         private val store: AutomationStore,
         private val modeActivationProvider: ModeActivationProvider,
+        private val scheduledTimeAlarmDao: ScheduledTimeAlarmDao,
     ) : ViewModel() {
         private val _items = MutableStateFlow<List<Automation>>(emptyList())
         val items: StateFlow<List<Automation>> = _items.asStateFlow()
@@ -119,6 +121,9 @@ class AutomationListViewModel
 
         private val _activeIds = MutableStateFlow<Set<String>>(emptySet())
         val activeIds: StateFlow<Set<String>> = _activeIds.asStateFlow()
+
+        private val _nextFires = MutableStateFlow<Map<String, Long>>(emptyMap())
+        val nextFires: StateFlow<Map<String, Long>> = _nextFires.asStateFlow()
 
         private val _importResult = MutableStateFlow<ImportResult?>(null)
         val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
@@ -142,8 +147,15 @@ class AutomationListViewModel
         fun load() {
             viewModelScope.launch {
                 try {
-                    _items.value = store.all().sortedBy { it.priority }
+                    val all = store.all().sortedBy { it.priority }
+                    _items.value = all
                     _activeIds.value = modeActivationProvider.activeModeIds().toSet()
+                    _nextFires.value =
+                        all
+                            .mapNotNull { automation ->
+                                val next = scheduledTimeAlarmDao.getNextStart(automation.id.value)
+                                next?.let { automation.id.value to it.wakeAtMillis }
+                            }.toMap()
                 } finally {
                     _loading.value = false
                 }
@@ -307,6 +319,7 @@ fun AutomationListScreen(
     val items by viewModel.items.collectAsState()
     val selected by viewModel.selected.collectAsState()
     val activeIds by viewModel.activeIds.collectAsState()
+    val nextFires by viewModel.nextFires.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
     val importWarnings by viewModel.importWarnings.collectAsState()
@@ -476,11 +489,13 @@ fun AutomationListScreen(
                             }
                             Spacer(modifier = Modifier.height(NothingSpacing.lg))
                             val dotStates =
-                                remember(visibleItems, activeIds) {
-                                    visibleItems.map {
+                                remember(visibleItems, activeIds, nextFires) {
+                                    val now = System.currentTimeMillis()
+                                    visibleItems.map { automation ->
                                         when {
-                                            activeIds.contains(it.id.value) -> ModeDotState.ACTIVE
-                                            it.enabled -> ModeDotState.ENABLED
+                                            activeIds.contains(automation.id.value) -> ModeDotState.ACTIVE
+                                            isFiringSoon(automation, nextFires[automation.id.value], now) -> ModeDotState.FIRING_SOON
+                                            automation.enabled -> ModeDotState.ENABLED
                                             else -> ModeDotState.DISABLED
                                         }
                                     }
@@ -495,10 +510,13 @@ fun AutomationListScreen(
 
                     items(visibleItems, key = { it.id.value }) { automation ->
                         val isActive = activeIds.contains(automation.id.value)
+                        val nextFireAt = nextFires[automation.id.value]
                         RoutineTile(
                             automation = automation,
                             isSelected = selected.contains(automation.id),
                             isActive = isActive,
+                            isFiringSoon = !isActive && isFiringSoon(automation, nextFireAt, System.currentTimeMillis()),
+                            nextFireAt = nextFireAt,
                             inSelectionMode = inSelection,
                             onClick = { onAutomationClick(automation.id.value) },
                             onToggleSelection = { viewModel.toggleSelected(automation.id) },
@@ -587,6 +605,8 @@ private fun RoutineTile(
     automation: Automation,
     isSelected: Boolean,
     isActive: Boolean,
+    isFiringSoon: Boolean,
+    nextFireAt: Long?,
     inSelectionMode: Boolean,
     onClick: () -> Unit,
     onToggleSelection: () -> Unit,
@@ -597,6 +617,7 @@ private fun RoutineTile(
     val borderColor =
         when {
             isActive -> MaterialTheme.colorScheme.primary
+            isFiringSoon -> MaterialTheme.colorScheme.primary
             isSelected -> NothingColors.accent
             else -> MaterialTheme.colorScheme.outlineVariant
         }
@@ -643,6 +664,16 @@ private fun RoutineTile(
                 if (isActive) {
                     Text(
                         text = "ACTIVE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.mono(),
+                        letterSpacing = 1.0.sp,
+                        modifier = Modifier.padding(end = NothingSpacing.sm),
+                    )
+                } else if (isFiringSoon && nextFireAt != null) {
+                    val minutes = ((nextFireAt - System.currentTimeMillis()) / 60_000).toInt().coerceAtLeast(1)
+                    Text(
+                        text = "IN $minutes MIN",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.mono(),
@@ -714,6 +745,18 @@ private fun RoutineTile(
             )
         }
     }
+}
+
+private const val FIRING_SOON_THRESHOLD_MS = 30 * 60 * 1000L
+
+private fun isFiringSoon(
+    automation: Automation,
+    nextFireAt: Long?,
+    now: Long,
+): Boolean {
+    if (nextFireAt == null || nextFireAt <= now) return false
+    if (automation.trigger !is Trigger.Time && automation.trigger !is Trigger.TimeWindow) return false
+    return nextFireAt - now <= FIRING_SOON_THRESHOLD_MS
 }
 
 @Composable
