@@ -102,13 +102,84 @@
   .modal-detail .item { display:flex; gap:.5rem; align-items:flex-start; margin:.35rem 0; }
   .modal-detail .item::before { content:""; display:inline-block; width:.35rem; height:.35rem; background:var(--red); border-radius:50%; margin-top:.45rem; flex-shrink:0; }
   .modal-detail .empty-list { color:var(--dim); font-size:.85rem; }
+
+  /* Nav right cluster + toggles */
+  .nav-right { display:flex; align-items:center; gap:.9rem; }
+  .nav-toggles { display:inline-flex; align-items:center; gap:.5rem; }
+  .tgl { font-family:"Geist Mono",monospace; font-size:11px; letter-spacing:.1em;
+    padding:7px 12px; background:transparent; color:var(--dim); border:1px solid var(--line);
+    border-radius:999px; cursor:pointer; transition:color .12s, border-color .12s; }
+  .tgl:hover { color:var(--fg); border-color:#444; }
+  .tgl[aria-pressed="true"] { color:var(--fg); border-color:var(--red); }
+
+  /* ===== Theme: light (Nothing palette, light variant) ===== */
+  :root[data-theme="light"] {
+    --bg:#F4F4F2; --panel:#FFFFFF; --panel2:#FAFAFA; --line:#E2E2DE; --fg:#1A1A1A;
+    --dim:#6a6a6a; --red:#D71921;
+  }
+  :root[data-theme="light"] .nav { background:rgba(244,244,242,.88); }
+  :root[data-theme="light"] .item .icon,
+  :root[data-theme="light"] .modal-icon-wrap { border-color:rgba(0,0,0,0.08); }
+  :root[data-theme="light"] .modal canvas { background:#fff; }
+
+  /* ===== Style: normal — premium SaaS (indigo accent, neutral canvas) =====
+     Remaps the shared variables so the whole page restyles without touching
+     the Nothing look. Matches the app's CLASSIC palette. */
+  :root[data-style="normal"] {
+    --bg:#121316; --panel:#1A1C21; --panel2:#22252B; --line:#2D3038; --fg:#E6E6E4;
+    --dim:#A8ABBA; --red:#8E97E8;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 8px 24px rgba(0,0,0,.32);
+  }
+  :root[data-style="normal"][data-theme="light"] {
+    --bg:#FAFAF8; --panel:#FFFFFF; --panel2:#F0F0EE; --line:#D8D8D4; --fg:#1A1C21;
+    --dim:#5B6071; --red:#3F4DBF;
+    --shadow-sm:0 1px 2px rgba(26,23,20,.06); --shadow-md:0 8px 24px rgba(26,23,20,.08);
+  }
+  :root[data-style="normal"] .nav { background:rgba(18,19,22,.88); backdrop-filter:blur(10px); }
+  :root[data-style="normal"][data-theme="light"] .nav { background:rgba(250,250,248,.88); }
+  /* Wordmark dot becomes a soft accent disc, not a hard Nothing-red square */
+  :root[data-style="normal"] .wordmark { font-family:"Geist Sans",sans-serif; font-weight:600; letter-spacing:-.01em; }
+  :root[data-style="normal"] .wordmark::before { border-radius:50%; }
+  :root[data-style="normal"] .back { font-family:"Geist Sans",sans-serif; letter-spacing:0; text-transform:none; font-size:.85rem; }
+  /* Hero title + section titles: Geist Sans, normal case */
+  :root[data-style="normal"] h1 { font-family:"Geist Sans",sans-serif; font-weight:700; letter-spacing:-.025em; }
+  :root[data-style="normal"] .section-title { font-family:"Geist Sans",sans-serif; font-weight:600; letter-spacing:0; text-transform:none; font-size:1rem; }
+  /* Eyebrow labels: muted, not red-dot prefixed */
+  :root[data-style="normal"] .lbl { font-family:"Geist Sans",sans-serif; letter-spacing:.04em; }
+  :root[data-style="normal"] .lbl .dot { background:var(--red); }
+  /* Tabs/chips: rounded, soft accent border */
+  :root[data-style="normal"] .tab,
+  :root[data-style="normal"] .chip { border-radius:10px; text-transform:none; letter-spacing:0; font-size:.85rem; }
+  :root[data-style="normal"] .tab.on,
+  :root[data-style="normal"] .chip.on { border-color:var(--red); }
+  /* Items: rounded cards with soft shadow */
+  :root[data-style="normal"] .item { border-radius:14px; box-shadow:var(--shadow-sm); }
+  :root[data-style="normal"] .item:hover { border-color:var(--line); box-shadow:var(--shadow-md); }
+  :root[data-style="normal"] .thumb { border-radius:10px; }
+  :root[data-style="normal"] .item .icon { border-radius:50%; }
+  /* Download button: solid accent, rounded */
+  :root[data-style="normal"] .dl { border-radius:10px; letter-spacing:0; }
+  /* Modal: rounded, soft shadow */
+  :root[data-style="normal"] .modal-card { border-radius:16px; box-shadow:var(--shadow-md); }
+  :root[data-style="normal"] .modal canvas { border-radius:10px; }
+  :root[data-style="normal"] .modal-detail .item::before { background:var(--red); border-radius:50%; }
+  /* Inputs: rounded, neutral */
+  :root[data-style="normal"] .toolbar input,
+  :root[data-style="normal"] .toolbar select { border-radius:10px; }
+  :root[data-style="normal"] .submit { border-radius:10px; font-family:"Geist Sans",sans-serif; letter-spacing:0; text-transform:none; font-size:.85rem; }
 </style>
 </head>
 <body>
 
 <header class="nav">
   <a class="wordmark" href="/">NOTHING_MODES</a>
-  <a class="back" href="/">← BACK TO SITE</a>
+  <div class="nav-right">
+    <a class="back" href="/">← BACK TO SITE</a>
+    <span class="nav-toggles">
+      <button class="tgl" id="theme-toggle" type="button" aria-pressed="false" aria-label="Toggle light theme" title="Dark / light">◐</button>
+      <button class="tgl" id="style-toggle" type="button" aria-pressed="false" aria-label="Toggle interface style" title="Nothing style / normal style">DOTS</button>
+    </span>
+  </div>
 </header>
 
 <main>
@@ -170,6 +241,44 @@
 </div>
 
 <script>
+// ---- Theme (dark/light) and style (nothing/normal) toggles ----
+// Mirrors landing/script.js so the preference persists across pages.
+(function () {
+  const root = document.documentElement;
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  const applyTheme = (t) => {
+    root.setAttribute("data-theme", t);
+    if (metaTheme) metaTheme.setAttribute("content", t === "light" ? "#F4F4F2" : "#000000");
+    const btn = document.getElementById("theme-toggle");
+    if (btn) btn.setAttribute("aria-pressed", String(t === "light"));
+  };
+  const applyStyle = (s) => {
+    root.setAttribute("data-style", s);
+    const btn = document.getElementById("style-toggle");
+    if (btn) {
+      btn.setAttribute("aria-pressed", String(s === "normal"));
+      btn.textContent = s === "normal" ? "PLAIN" : "DOTS";
+    }
+  };
+  applyTheme(
+    localStorage.getItem("nm-theme") ||
+      (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+  );
+  applyStyle(localStorage.getItem("nm-style") || "nothing");
+  const themeBtn = document.getElementById("theme-toggle");
+  if (themeBtn) themeBtn.addEventListener("click", () => {
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    localStorage.setItem("nm-theme", next);
+    applyTheme(next);
+  });
+  const styleBtn = document.getElementById("style-toggle");
+  if (styleBtn) styleBtn.addEventListener("click", () => {
+    const next = root.getAttribute("data-style") === "normal" ? "nothing" : "normal";
+    localStorage.setItem("nm-style", next);
+    applyStyle(next);
+  });
+})();
+
 const qEl = document.getElementById('q');
 const sortEl = document.getElementById('sort');
 const capsEl = document.getElementById('caps');

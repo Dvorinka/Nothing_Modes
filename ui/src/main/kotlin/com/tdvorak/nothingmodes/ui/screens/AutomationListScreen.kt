@@ -78,6 +78,7 @@ import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.LocalUiStyle
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.ModeDotRow
 import com.tdvorak.nothingmodes.ui.theme.ModeDotState
@@ -93,6 +94,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -406,9 +408,12 @@ fun AutomationListScreen(
                     .fillMaxSize()
                     .padding(padding),
         ) {
-            NothingDotGrid(
-                modifier = Modifier.fillMaxSize(),
-            )
+            // Dot-matrix texture is Nothing-only; classic uses a plain canvas.
+            if (LocalUiStyle.current == ThemeManager.UiStyle.NOTHING) {
+                NothingDotGrid(
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
             if (loading) {
                 // Blank while the first load is in flight — prevents the
