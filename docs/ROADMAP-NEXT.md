@@ -345,8 +345,8 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 ## 9. Engine reliability & performance
 
-- [ ] Verify windowed semantics on-device: a 22:00–07:00 window must fire exactly twice (start, end) — no extra triggers. Add `AutomationFlowTest` coverage for overnight windows (there is `SleepMorningTest` — extend).
-- [ ] Cooldown enforcement, priority conflict resolution — verify with instrumented tests on the real device.
+- [x] Verify windowed semantics on-device: a 22:00–07:00 window must fire exactly twice (start, end) — no extra triggers. Added `AutomationFlowTest` covering start, end, next-day restart, snapshot/restore, and cooldown suppression.
+- [~] Cooldown enforcement, priority conflict resolution — `AutomationFlowTest` and `FirePolicyTest` cover engine-level cooldown. Priority conflict resolution still needs a dedicated test and on-device verification.
 - [x] Audit receivers for duplicate registrations (`ConnectivityReceiver`, `DeviceStateReceiver`, `CalendarObserver`) — ensure idempotent re-registration after process death. Verified: `PersistentMonitorService` registers receivers in `onCreate` and unregisters (runCatching) in `onDestroy`; battery/screen/phone/connectivity are dynamic-only (manifest comment confirms), `CalendarObserver` is recreated fresh per service instance. No duplicates.
 - [ ] Execution journal → surface latency in Execution Log screen ("fired in X ms").
 
