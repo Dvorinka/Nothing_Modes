@@ -530,8 +530,6 @@ fun CustomAutomationBuilderScreen(
             NothingBottomActionBar(
                 text = if (automationId != null) "Save Changes" else "Create Mode",
                 onClick = { viewModel.save() },
-                enabled = state.actions.isNotEmpty(),
-                subtitle = if (state.actions.isEmpty()) "Add at least one action to save." else "",
             )
         },
     ) { padding ->
