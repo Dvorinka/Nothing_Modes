@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
+import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
@@ -419,11 +420,9 @@ fun ActionConfigScreen(
                         )
 
                     is Action.SetRefreshRate ->
-                        NothingInput(
-                            value = a.hz.toString(),
-                            onValueChange = { action = a.copy(hz = it.toIntOrNull() ?: a.hz) },
-                            label = "Hz",
-                            modifier = Modifier.fillMaxWidth(),
+                        RefreshRateSelector(
+                            hz = a.hz,
+                            onChange = { action = a.copy(hz = it) },
                         )
 
                     is Action.SetScreenRotation ->

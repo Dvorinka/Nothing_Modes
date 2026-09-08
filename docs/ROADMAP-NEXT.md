@@ -112,9 +112,9 @@ User is right: asking for a `calendarId` string is backwards.
 
 ### New triggers requested
 - [x] **Torch/flashlight active** — `CameraManager.registerTorchCallback` (no permission needed for state). `Trigger.TorchState(on: Boolean)` is modeled, in the trigger catalog, and verified on-device.
-- [ ] **Device connects** — `Trigger.BluetoothDevice` exists; surface it clearly ("When this device connects") with bonded-device picker.
-- [ ] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` exists; add SSID picker from `WifiManager.connectionInfo`/`configured` networks + "any network".
-- [~] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` already modeled. The in-app UI has phone/SMS event, number, and text-match fields. `PhoneStateReceiver` and `AutomationService` are wired end-to-end and verified on-device. Contact picker (`READ_CONTACTS`) not yet implemented.
+- [x] **Device connects** — `Trigger.BluetoothDevice` has a bonded-device picker (`BondedDevicePickerDialog`) in the trigger config.
+- [x] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` has an SSID picker: "Use current network" (from `WifiManager`/`ConnectivityManager`), manual entry, and blank = any network.
+- [x] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` is modeled; the in-app UI has phone/SMS event, number, text-match fields, and a `READ_CONTACTS`-gated contact picker.
 - [x] Template: **"Locate my phone"** — SMS "LOCATE" keyword → flashlight on, mobile data on, high-accuracy location on, reply SMS. Shipped as a built-in template with description.
 - [~] **Condition parity pass** — Added generic `Condition.BooleanState`, `Condition.NumericState`, `Condition.AtLocation`, `Condition.EventActive`, and `Condition.NotificationPresent` with a closed `StateKeys` registry. Covered: device locked, Wi-Fi/Bluetooth/mobile data/hotspot/AOD/DND/torch radios, brightness, refresh rate, screen timeout, at-location radius, calendar event active, notification present. Done.
 
@@ -145,7 +145,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **NFC**: use an NFC glyph/icon (`Icons.Outlined.Nfc`), not Bluetooth.
 - [x] **Location mode**: in-app description added.
 - [x] **Group related items**: hotspot now in Connections, Auto-rotate and Screen rotation grouped.
-- [~] **Refresh rate**: preset dropdown (60/90/120/144 Hz) + custom Hz input. Device-supported rate query not yet implemented.
+- [x] **Refresh rate**: preset dropdown populated from `Display.getSupportedModes()` (API 23+), with custom Hz input fallback. Used in `ActionConfigSheet` and `ActionConfigScreen`.
 - [x] **Auto-sync**: description added.
 - [x] **Lock screen**: description added in the action config sheet.
 - [x] **Screenshot + experimental actions**: `CapabilityDetector` now reads active device admin + MediaProjection; `CapabilityResolver` gates `ACTION_LOCK_SCREEN` and `ACTION_TAKE_SCREENSHOT`. Catalog rows for lock screen and screenshot show "Detected: may not work on this device" with an "Override: try anyway" toggle. Both actions are now data classes with a `force` flag; the executor refuses to run unless `force = true` or the capability is satisfied.

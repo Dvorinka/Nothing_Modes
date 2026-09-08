@@ -41,6 +41,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
+import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -599,33 +600,10 @@ fun ActionConfigContent(
         }
 
         is Action.SetRefreshRate -> {
-            val customLabel = "Custom"
-            val selected = refreshRatePresets.firstOrNull { it.second == a.hz }?.first ?: customLabel
-            var customHz by remember(a.hz) { mutableStateOf(a.hz.toString()) }
-            Column {
-                NothingEnumSelector(
-                    label = "Refresh rate",
-                    value = selected,
-                    options = refreshRatePresets.map { it.first } + customLabel,
-                    onSelect = { label ->
-                        refreshRatePresets.firstOrNull { it.first == label }?.let {
-                            onActionChange(a.copy(hz = it.second))
-                        }
-                    },
-                )
-                if (selected == customLabel) {
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    NothingInput(
-                        value = customHz,
-                        onValueChange = {
-                            customHz = it
-                            it.toIntOrNull()?.let { hz -> onActionChange(a.copy(hz = hz)) }
-                        },
-                        label = "Custom Hz",
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
+            RefreshRateSelector(
+                hz = a.hz,
+                onChange = { onActionChange(a.copy(hz = it)) },
+            )
         }
 
         is Action.SetScreenRotation -> {
