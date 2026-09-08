@@ -186,7 +186,7 @@ fun actionRequirementHint(action: Action): String? =
         is Action.LockScreen -> "Needs device admin — enable it in Settings."
         is Action.WriteSetting -> "Advanced. Secure and global keys need Shizuku."
         is Action.TakeScreenshot -> "Not supported on most devices yet."
-        is Action.SetFlashlight -> "Camera flashlight. Restore may be unreliable on some devices."
+        is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."
         is Action.LaunchApp -> "Opens the selected app."
