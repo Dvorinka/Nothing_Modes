@@ -884,6 +884,23 @@ fun GlyphEditorScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { importRawJson() },
                             )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            GlyphPill(
+                                label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    val museum =
+                                        context.packageManager
+                                            .getLaunchIntentForPackage("com.pauwma.glyphmuseum")
+                                    if (museum != null) {
+                                        context.startActivity(museum)
+                                    } else {
+                                        Toast
+                                            .makeText(context, "Glyph Museum is not installed", Toast.LENGTH_SHORT)
+                                            .show()
+                                    }
+                                },
+                            )
                         }
                     }
                 }
