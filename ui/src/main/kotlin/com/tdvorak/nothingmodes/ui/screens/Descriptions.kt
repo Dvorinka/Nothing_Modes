@@ -9,29 +9,40 @@ fun cronToSummary(cron: String): String {
 
     val minute = parts[0]
     val hour = parts[1]
+    val dayOfMonth = parts[2]
+    val month = parts[3]
     val dayOfWeek = parts[4]
 
     if (hour == "*" || minute == "*") return "Every minute"
 
     val time = "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}"
     val dayLabel =
-        when (dayOfWeek) {
-            "*" -> "Daily"
-            "1-5" -> "Weekdays"
-            "0,6", "6,0" -> "Weekend"
-            "5,6" -> "Fri, Sat"
-            else ->
-                if (dayOfWeek.contains(",")) {
-                    dayOfWeek.split(",").map { dayName(it.trim()) }.joinToString(", ")
-                } else if (dayOfWeek.contains("-")) {
-                    val range = dayOfWeek.split("-")
-                    "${dayName(range[0])}-${dayName(range[1])}"
-                } else {
-                    dayName(dayOfWeek)
-                }
+        when {
+            dayOfMonth != "*" && month != "*" -> {
+                val months = month.split(",").map { monthName(it) }.joinToString(", ")
+                val days = dayOfMonth.split(",").joinToString(", ") { "${it.trim()}.$months" }
+                days
+            }
+            dayOfMonth != "*" -> {
+                "Monthly on ${dayOfMonth.split(",").map { it.trim() }.joinToString(", ")}"
+            }
+            dayOfWeek == "*" -> "Daily"
+            dayOfWeek == "1-5" -> "Weekdays"
+            dayOfWeek == "0,6" || dayOfWeek == "6,0" -> "Weekend"
+            dayOfWeek == "5,6" -> "Fri, Sat"
+            dayOfWeek.contains(",") -> dayOfWeek.split(",").map { dayName(it.trim()) }.joinToString(", ")
+            dayOfWeek.contains("-") -> {
+                val range = dayOfWeek.split("-")
+                "${dayName(range[0])}-${dayName(range[1])}"
+            }
+            else -> dayName(dayOfWeek)
         }
     return "$dayLabel at $time"
 }
+
+private fun monthName(month: String): String =
+    java.time.Month.of(month.trim().toIntOrNull()?.coerceIn(1, 12) ?: 1)
+        .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
 
 /** Human label for enum-style names: INCOMING_CALL_ENDED -> "Incoming call ended". */
 internal fun String.enumLabel(): String =

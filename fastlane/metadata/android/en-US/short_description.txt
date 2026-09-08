@@ -1,1 +1,1 @@
-Automation and mode manager for Nothing Phone with Glyph Interface support.
+Open-source automation for Nothing phones. Modes, routines, Glyph, Shizuku.

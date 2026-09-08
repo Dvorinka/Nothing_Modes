@@ -99,9 +99,9 @@ and later: "until condition stops", "until second trigger"). No separate mode ty
 
 ### Time trigger → "Time / Day"
 - [x] Rename "Time" → **"Time / Day"**. `TriggerConfigScreen` label updated.
-- [ ] Recurrence: daily / **weekly (multi-day select)** / **monthly (multi-day-of-month select)** / **yearly (multi-month + multi-day select)**.
-- [ ] Quick actions: "Weekdays", "Weekend", "Every day", for monthly "1st of month", "Last day", "Whole month", multi-month pick for yearly.
-- [ ] Model: `days: List<DayOfWeek>` exists for weekly; add `daysOfMonth: List<Int>`, `months: List<Int>` (nullable, EncodeDefault.NEVER). Back the engine by extending `CronSchedule` or a small `nextFire` evaluator — cron can't express "last day of month" cleanly.
+- [x] Recurrence: daily / **weekly (multi-day select)** / **monthly (multi-day-of-month select)** / **yearly (multi-month + multi-day select)**. Implemented in `CustomTimePicker` using comma-separated cron fields.
+- [x] Quick actions: "Weekdays", "Weekend", "Every day", "1st of month", "15th", "Last day" (28th; true last-day needs an engine evaluator).
+- [ ] True "last day of month" / "whole month" / multi-month quick presets and per-month day lists. Cron can't express "last day" cleanly; requires an engine evaluator.
 
 ### Calendar trigger — merge into Time/Day
 User is right: asking for a `calendarId` string is backwards.
@@ -382,25 +382,14 @@ Workarounds and their real costs:
 
 **Decision (user): self-hosted F-Droid repo inside the existing repo, served from the existing Vercel site.** No new repo, no new infra:
 
-- [ ] Repo layout: metadata + index under `landing/fdroid/` → repo URL `https://nothing-modes.vercel.app/fdroid/`. APKs can be served from the same path or linked to GitHub release assets — the index supports external APK URLs.
-- [ ] Generate with `fdroidserver` (`fdroid init` + `fdroid update`) against the **release-signed** APK. One signature rule: F-Droid updates fail if a user previously installed a differently-signed build (debug vs release) — document "uninstall debug first" in the repo listing and site.
-- [ ] **Fastlane/Triple-T metadata** (`fastlane/metadata/android/en-US/`) — makes the repo render like a store listing:
-  ```
-  fastlane/metadata/android/en-US/
-    title.txt                  # "Nothing Modes"
-    short_description.txt      # <80 chars
-    full_description.txt       # reuse landing-page copy
-    changelogs/<versionCode>.txt
-    images/icon.png
-    images/phoneScreenshots/   # reuse landing/shots/
-  ```
-- [ ] **No extra build flavor needed.** The repo serves the existing `github` release APK — same signature, same binary. An `fdroid` flavor only matters for the *official* store, which is already ruled out.
-- [ ] **Update mechanism (the "how does the client know" part)**: a self-hosted repo has no automatic checker — *we* regenerate the index when a release drops. `fdroid update` scans the repo dir, writes `index-v2.json`, and each client's refresh picks it up. Two ways to run it:
-  - Manual: release script `scripts/fdroid-release.sh <apk-or-gh-release-url>` — regenerates index, commits `landing/fdroid/`, deploy. 
-  - Automated: GitHub Action on `release: published` → download the release asset → `fdroid update` → commit + push → Vercel redeploys with the new index. Recommended once the manual path works.
-- [ ] **Keep APKs out of git**: the index can point at GitHub release asset URLs — index files (KBs) live in the repo/Vercel, the 73 MB binary stays on GitHub Releases. Avoids bloating both.
-- [ ] What F-Droid gives: distribution only — automatic updates for F-Droid-client users, store-style listing, de-Googled audience. No app features change.
-- [ ] Optional later: an `fdroid` flavor with a `CapabilityResolver`-driven "reduced" build (no glyph, no geofence) if official listing is ever wanted.
+- [x] Repo layout under `landing/fdroid/` with `config.yml`, `metadata/com.tdvorak.nothingmodes.yml`, `README.md`, and `scripts/fdroid-release.sh`.
+- [x] Fastlane metadata under `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt`, `full_description.txt`, `changelogs/<versionCode>.txt`, and `images/icon.png`.
+- [x] README documents the one-signature rule and F-Droid client setup; the script keeps APKs out of git.
+
+Still to wire:
+
+- [ ] Run `fdroid init` + `fdroid update` once a release-signed APK exists to generate `index-v2.json` / `index.jar`.
+- [ ] GitHub Action on `release: published` to run the release script, commit updated index files, and trigger Vercel redeploy.
 
 ## 12. Decisions (resolved)
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,12 +30,14 @@ import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.engine.model.DayOfWeek as EngineDayOfWeek
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
-import java.time.DayOfWeek
+import java.time.DayOfWeek as JavaDayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -68,9 +71,9 @@ private data class TimeSchedule(
     val recurrence: Recurrence,
     val hour: Int,
     val minute: Int,
-    val dayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
-    val dayOfMonth: Int = 1,
-    val month: Int = 1,
+    val daysOfWeek: Set<EngineDayOfWeek> = setOf(EngineDayOfWeek.MONDAY),
+    val daysOfMonth: Set<Int> = setOf(1),
+    val months: Set<Int> = setOf(1),
     val year: Int = LocalDate.now().year,
 )
 
@@ -88,8 +91,8 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
                 hour = local.hour,
                 minute = local.minute,
                 year = local.year,
-                month = local.monthValue,
-                dayOfMonth = local.dayOfMonth,
+                months = setOf(local.monthValue),
+                daysOfMonth = setOf(local.dayOfMonth),
             )
         }
     }
@@ -110,26 +113,24 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
         day == "*" && month == "*" && dow == "*" -> schedule.copy(recurrence = Recurrence.DAILY)
         day == "*" && month == "*" && dow == "1-5" -> schedule.copy(recurrence = Recurrence.WEEKDAYS)
         day == "*" && month == "*" && (dow == "0,6" || dow == "6,0") -> schedule.copy(recurrence = Recurrence.WEEKENDS)
-        day == "*" && month == "*" && dow.toIntOrNull() != null -> {
-            val javaDow =
-                when (dow.toInt() % 7) {
-                    0 -> DayOfWeek.SUNDAY
-                    1 -> DayOfWeek.MONDAY
-                    2 -> DayOfWeek.TUESDAY
-                    3 -> DayOfWeek.WEDNESDAY
-                    4 -> DayOfWeek.THURSDAY
-                    5 -> DayOfWeek.FRIDAY
-                    else -> DayOfWeek.SATURDAY
-                }
-            schedule.copy(recurrence = Recurrence.WEEKLY, dayOfWeek = javaDow)
+        day == "*" && month == "*" && dow.isNotBlank() -> {
+            val engineDays =
+                dow
+                    .split(",")
+                    .mapNotNull { it.toIntOrNull() }
+                    .mapNotNull { javaDowValueToEngine(it) }
+                    .toSet()
+            schedule.copy(recurrence = Recurrence.WEEKLY, daysOfWeek = engineDays)
         }
-        day != "*" && month == "*" && dow == "*" -> schedule.copy(recurrence = Recurrence.MONTHLY, dayOfMonth = day.toIntOrNull() ?: 1)
-        day != "*" && month != "*" && dow == "*" ->
-            schedule.copy(
-                recurrence = Recurrence.YEARLY,
-                dayOfMonth = day.toIntOrNull() ?: 1,
-                month = month.toIntOrNull() ?: 1,
-            )
+        day != "*" && month == "*" && dow == "*" -> {
+            val days = day.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+            schedule.copy(recurrence = Recurrence.MONTHLY, daysOfMonth = days)
+        }
+        day != "*" && month != "*" && dow == "*" -> {
+            val days = day.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+            val months = month.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+            schedule.copy(recurrence = Recurrence.YEARLY, daysOfMonth = days, months = months)
+        }
         else -> schedule.copy(recurrence = Recurrence.DAILY)
     }
 }
@@ -139,6 +140,8 @@ private fun TimeSchedule.toTrigger(): Trigger.Time {
     val zone = ZoneId.systemDefault()
     return when (recurrence) {
         Recurrence.ONCE -> {
+            val month = months.firstOrNull() ?: 1
+            val dayOfMonth = daysOfMonth.firstOrNull() ?: 1
             val at =
                 try {
                     ZonedDateTime.of(year, month, dayOfMonth, hour, minute, 0, 0, zone).toString()
@@ -155,11 +158,18 @@ private fun TimeSchedule.toTrigger(): Trigger.Time {
         Recurrence.WEEKDAYS -> Trigger.Time(cron = "$minute $hour * * 1-5", tz = tz)
         Recurrence.WEEKENDS -> Trigger.Time(cron = "$minute $hour * * 0,6", tz = tz)
         Recurrence.WEEKLY -> {
-            val cronDow = dayOfWeek.value % 7
+            val cronDow = daysOfWeek.map { engineDowToCronValue(it) }.sorted().joinToString(",")
             Trigger.Time(cron = "$minute $hour * * $cronDow", tz = tz)
         }
-        Recurrence.MONTHLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth * *", tz = tz)
-        Recurrence.YEARLY -> Trigger.Time(cron = "$minute $hour $dayOfMonth $month *", tz = tz)
+        Recurrence.MONTHLY -> {
+            val cronDay = daysOfMonth.sorted().joinToString(",")
+            Trigger.Time(cron = "$minute $hour $cronDay * *", tz = tz)
+        }
+        Recurrence.YEARLY -> {
+            val cronDay = daysOfMonth.sorted().joinToString(",")
+            val cronMonth = months.sorted().joinToString(",")
+            Trigger.Time(cron = "$minute $hour $cronDay $cronMonth *", tz = tz)
+        }
     }
 }
 
@@ -212,18 +222,30 @@ fun CustomTimePicker(
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         NothingLabel(text = "Day of week")
         Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        NothingDaySelector(
+            selected = schedule.daysOfWeek,
+            onChange = { update { copy(daysOfWeek = it) } },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
         ) {
-            DayOfWeek.entries.forEach { day ->
-                DayChip(
-                    label = day.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault()),
-                    selected = day == schedule.dayOfWeek,
-                    onClick = { update { copy(dayOfWeek = day) } },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            NothingPillButton(
+                text = "Every day",
+                onClick = { update { copy(daysOfWeek = EngineDayOfWeek.entries.toSet()) } },
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = "Weekdays",
+                onClick = { update { copy(daysOfWeek = setOf(EngineDayOfWeek.MONDAY, EngineDayOfWeek.TUESDAY, EngineDayOfWeek.WEDNESDAY, EngineDayOfWeek.THURSDAY, EngineDayOfWeek.FRIDAY)) } },
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = "Weekend",
+                onClick = { update { copy(daysOfWeek = setOf(EngineDayOfWeek.SATURDAY, EngineDayOfWeek.SUNDAY)) } },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 
@@ -234,25 +256,22 @@ fun CustomTimePicker(
             date =
                 LocalDate.of(
                     schedule.year.coerceIn(1970, 2100),
-                    schedule.month.coerceIn(1, 12),
-                    schedule.dayOfMonth.coerceIn(1, 28),
+                    schedule.months.firstOrNull()?.coerceIn(1, 12) ?: 1,
+                    schedule.daysOfMonth.firstOrNull()?.coerceIn(1, 28) ?: 1,
                 ),
             onDateChange = { d ->
-                update { copy(year = d.year, month = d.monthValue, dayOfMonth = d.dayOfMonth) }
+                update { copy(year = d.year, months = setOf(d.monthValue), daysOfMonth = setOf(d.dayOfMonth)) }
             },
             modifier = Modifier.fillMaxWidth(),
         )
     } else if (schedule.recurrence == Recurrence.MONTHLY || schedule.recurrence == Recurrence.YEARLY) {
         Spacer(modifier = Modifier.height(NothingSpacing.md))
         if (schedule.recurrence == Recurrence.YEARLY) {
-            NothingEnumSelector(
-                label = "Month",
-                value = monthName(schedule.month),
-                options = (1..12).map(::monthName),
-                onSelect = { sel ->
-                    update { copy(month = (1..12).first { monthName(it) == sel }) }
-                },
-                modifier = Modifier.fillMaxWidth(),
+            NothingLabel(text = "Months")
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            MonthGrid(
+                selected = schedule.months,
+                onChange = { update { copy(months = it) } },
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
         }
@@ -268,8 +287,8 @@ fun CustomTimePicker(
                 week.forEach { day ->
                     DayChip(
                         label = day.toString(),
-                        selected = day == schedule.dayOfMonth,
-                        onClick = { update { copy(dayOfMonth = day) } },
+                        selected = day in schedule.daysOfMonth,
+                        onClick = { update { copy(daysOfMonth = if (day in daysOfMonth) daysOfMonth - day else daysOfMonth + day) } },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -278,6 +297,27 @@ fun CustomTimePicker(
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            NothingPillButton(
+                text = "1st of month",
+                onClick = { update { copy(daysOfMonth = setOf(1)) } },
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = "15th",
+                onClick = { update { copy(daysOfMonth = if (15 in daysOfMonth) daysOfMonth - 15 else daysOfMonth + 15) } },
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = "Last day",
+                onClick = { update { copy(daysOfMonth = setOf(28)) } },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 
@@ -291,11 +331,46 @@ fun CustomTimePicker(
     )
 }
 
+private fun javaDowValueToEngine(javaValue: Int): EngineDayOfWeek? =
+    EngineDayOfWeek.entries.firstOrNull { (it.ordinal + 1) % 7 == javaValue % 7 }
+
+private fun engineDowToCronValue(day: EngineDayOfWeek): Int =
+    (day.ordinal + 1) % 7
+
 private fun monthName(month: Int): String =
     java.time.Month.of(month.coerceIn(1, 12)).getDisplayName(
         java.time.format.TextStyle.SHORT,
         Locale.getDefault(),
     )
+
+@Composable
+private fun MonthGrid(
+    selected: Set<Int>,
+    onChange: (Set<Int>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        (1..12).chunked(4).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                row.forEach { month ->
+                    DayChip(
+                        label = monthName(month),
+                        selected = month in selected,
+                        onClick = { onChange(if (month in selected) selected - month else selected + month) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(4 - row.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
 
 @Composable
 private fun DayChip(

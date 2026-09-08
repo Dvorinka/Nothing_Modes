@@ -1,0 +1,1 @@
+Per-mode notification rules, multi-day recurrence, and F-Droid self-hosted repo support.
