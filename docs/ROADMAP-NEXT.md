@@ -58,6 +58,7 @@ Real defects found and fixed in this pass:
 3. **`save()` had zero error handling.** Fixed: wrapped `store.save()` and widget refresh in `runCatching`, exposed `saveError`, and showed a `Snackbar` on failure.
 4. **Disabled save gave no reason.** Fixed: added a subtitle under the bottom bar: "Add at least one action to save." when `state.actions.isEmpty()`.
 5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. **Pending** — remove or wire.
+6. **Navigation route JSON not URL-encoded.** `Routes.triggerConfig/conditionConfig/actionConfig` passed raw JSON into the route query string; characters like `"`, `{`, `:` can break Compose Navigation matching. Fixed: use `URLEncoder.encode(..., "UTF-8")` before navigating.
 
 ### Device intel (Phone 3, adb)
 - Model `A024` / `Metroid`, Android 16, SDK 36, Nothing OS.
@@ -71,6 +72,7 @@ Real defects found and fixed in this pass:
 - Glyph stack present: `com.nothing.glyphmatrix`, `com.nothing.communitywidgets`, `com.nothinglondon.toys`, plus third-party: **Glyph Museum** (`com.pauwma.glyphmuseum`), **GlyphBeat** (`com.pauwma.glyphbeat`), **SmartGlyph** (`com.voidtechstudios.smartglyph`), **GlyphEyes** (`com.example.glypheyes`).
 - `com.nothing.glyphmatrix` itself crashes in logcat (WaterfallToyService unbind bug) — Nothing's bug, not ours; note for support noise.
 - Crash reporting: opted in on debug install, queue dir empty, endpoint live (405 on GET = route exists).
+- Builder IF row → `TriggerConfigScreen` and discard-dialog DISCARD button could not be activated with `adb input tap` in this pass. May be a coordinate/click-target issue on the test harness; needs manual verification or scrcpy to confirm.
 
 ### Modes vs Routines — answer
 In code they are already the same object. `type` is derived at save:
