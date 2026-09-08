@@ -364,6 +364,13 @@ class DeviceTools(
             SettingsScreen.BATTERY -> "android.intent.action.POWER_USAGE_SUMMARY"
             SettingsScreen.DATE -> "android.settings.DATE_SETTINGS"
             SettingsScreen.APP_DETAILS -> "android.settings.APPLICATION_DETAILS_SETTINGS"
+            SettingsScreen.STORAGE -> "android.settings.INTERNAL_STORAGE_SETTINGS"
+            SettingsScreen.SECURITY -> "android.settings.SECURITY_SETTINGS"
+            SettingsScreen.ACCESSIBILITY -> "android.settings.ACCESSIBILITY_SETTINGS"
+            SettingsScreen.NOTIFICATION -> "android.settings.ALL_APPS_NOTIFICATION_SETTINGS"
+            SettingsScreen.APPS -> "android.settings.MANAGE_APPLICATIONS_SETTINGS"
+            SettingsScreen.NETWORK -> "android.settings.WIRELESS_SETTINGS"
+            SettingsScreen.ACCOUNTS -> "android.settings.SYNC_SETTINGS"
             SettingsScreen.SETTINGS -> "android.settings.SETTINGS"
         }
 

@@ -664,6 +664,13 @@ class RealActionExecutor(
                     SettingsScreen.BATTERY -> Intent.ACTION_POWER_USAGE_SUMMARY
                     SettingsScreen.DATE -> android.provider.Settings.ACTION_DATE_SETTINGS
                     SettingsScreen.APP_DETAILS -> android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    SettingsScreen.STORAGE -> android.provider.Settings.ACTION_INTERNAL_STORAGE_SETTINGS
+                    SettingsScreen.SECURITY -> android.provider.Settings.ACTION_SECURITY_SETTINGS
+                    SettingsScreen.ACCESSIBILITY -> android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+                    SettingsScreen.NOTIFICATION -> android.provider.Settings.ACTION_ALL_APPS_NOTIFICATION_SETTINGS
+                    SettingsScreen.APPS -> android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS
+                    SettingsScreen.NETWORK -> android.provider.Settings.ACTION_WIRELESS_SETTINGS
+                    SettingsScreen.ACCOUNTS -> android.provider.Settings.ACTION_SYNC_SETTINGS
                     SettingsScreen.SETTINGS -> android.provider.Settings.ACTION_SETTINGS
                 }
             val intent = Intent(action).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }

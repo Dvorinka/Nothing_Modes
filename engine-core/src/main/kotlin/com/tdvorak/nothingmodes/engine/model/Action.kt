@@ -12,7 +12,7 @@ enum class NightMode { OFF, ON, AUTO }
 
 enum class VolumeStream { MEDIA, RING, ALARM, NOTIFICATION }
 
-enum class SettingsScreen { WIFI, BLUETOOTH, DISPLAY, SOUND, LOCATION, BATTERY, DATE, APP_DETAILS, SETTINGS }
+enum class SettingsScreen { WIFI, BLUETOOTH, DISPLAY, SOUND, LOCATION, BATTERY, DATE, APP_DETAILS, STORAGE, SECURITY, ACCESSIBILITY, NOTIFICATION, APPS, NETWORK, ACCOUNTS, SETTINGS }
 
 /** Stable wire discriminators shared by JSON, manifest capability, and journal. */
 object ActionTypeIds {
