@@ -71,6 +71,7 @@ class ConditionEvaluator {
             is Condition.NumericState -> evaluateNumericState(condition, state)
             is Condition.AtLocation -> evaluateAtLocation(condition, state)
             is Condition.EventActive -> evaluateEventActive(condition, state)
+            is Condition.NotificationPresent -> evaluateNotificationPresent(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -355,6 +356,29 @@ class ConditionEvaluator {
         if (raw.isBlank() || match.isBlank()) return Result.NOT_MET
         val titles = raw.split("|").map { it.trim() }.filter { it.isNotBlank() }
         return if (titles.any { it.lowercase().contains(match) }) Result.MET else Result.NOT_MET
+    }
+
+    private fun evaluateNotificationPresent(
+        condition: Condition.NotificationPresent,
+        state: DeviceState,
+    ): Result {
+        val raw = state.values[StateKeys.ACTIVE_NOTIFICATIONS] ?: return Result.STATE_UNAVAILABLE
+        if (raw.isBlank()) return Result.NOT_MET
+        val targetPkg = condition.pkg.trim().lowercase()
+        val targetTitle = condition.titleMatch.trim().lowercase()
+        return raw
+            .split(";")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .map { it.split("/", limit = 3) }
+            .filter { it.size == 3 }
+            .any {
+                val pkg = it[0].trim().lowercase()
+                val title = it[1].trim().lowercase()
+                val text = it[2].trim().lowercase()
+                pkg == targetPkg && (targetTitle.isBlank() || title.contains(targetTitle) || text.contains(targetTitle))
+            }
+            .let { if (it) Result.MET else Result.NOT_MET }
     }
 
     // ponytail: AlarmRinging only works if a RingingAlarmProvider is wired; otherwise the value is absent

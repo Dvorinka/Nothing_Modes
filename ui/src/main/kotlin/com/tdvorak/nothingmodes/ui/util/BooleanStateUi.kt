@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.util
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.DoNotDisturbOn
+import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.ScreenLockPortrait
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.WbSunny
@@ -61,6 +62,12 @@ internal val BOOLEAN_STATE_ITEMS: List<BooleanStateItem> =
             "Hotspot on",
             "Connections",
             Icons.Outlined.WifiTethering,
+        ),
+        BooleanStateItem(
+            StateKeys.TORCH,
+            "Torch on",
+            "Device status",
+            Icons.Outlined.FlashlightOn,
         ),
     )
 

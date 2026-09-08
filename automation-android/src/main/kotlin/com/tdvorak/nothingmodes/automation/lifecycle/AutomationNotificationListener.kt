@@ -2,10 +2,12 @@ package com.tdvorak.nothingmodes.automation.lifecycle
 
 import android.app.Notification
 import android.content.Intent
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 
 /**
  * NotificationListenerService that dispatches notification trigger events.
@@ -43,10 +45,30 @@ class AutomationNotificationListener : NotificationListenerService() {
                 putExtra(EXTRA_SENDER, sender)
             }
         ContextCompat.startForegroundService(this, intent)
+        refreshActiveNotifications()
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        // Could dispatch a "notification dismissed" event if needed
+        refreshActiveNotifications()
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        refreshActiveNotifications()
+    }
+
+    private fun refreshActiveNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val notifications = runCatching { activeNotifications?.toList() ?: emptyList() }.getOrDefault(emptyList())
+        ActiveNotifications.update(notifications.map { it.toSnapshot() })
+    }
+
+    private fun StatusBarNotification.toSnapshot(): ActiveNotifications.NotificationSnapshot {
+        val notification = this.notification ?: return ActiveNotifications.NotificationSnapshot(packageName ?: "", "", "")
+        val extras = notification.extras
+        val title = extras?.getString(Notification.EXTRA_TITLE, "") ?: ""
+        val text = extras?.getString(Notification.EXTRA_TEXT, "") ?: ""
+        return ActiveNotifications.NotificationSnapshot(packageName ?: "", title, text)
     }
 
     companion object {

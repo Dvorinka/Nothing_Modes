@@ -25,6 +25,9 @@ object StateKeys {
     // Hotspot boolean state (Condition.BooleanState)
     const val HOTSPOT_ENABLED = "hotspot_enabled"
 
+    // Torch/flashlight boolean state (Condition.BooleanState)
+    const val TORCH = "torch"
+
     // Numeric state keys (Condition.NumericState)
     const val BRIGHTNESS = "brightness"
     const val REFRESH_RATE = "refresh_rate"
@@ -36,6 +39,9 @@ object StateKeys {
 
     // Calendar state key (Condition.EventActive)
     const val ACTIVE_EVENTS = "active_events"
+
+    // Notification state key (Condition.NotificationPresent)
+    const val ACTIVE_NOTIFICATIONS = "active_notifications"
 
     /** chiave -> valori ammessi (usato nel render del manifest e in doc) */
     val ALL: Map<String, String> =
@@ -55,11 +61,13 @@ object StateKeys {
             AOD_ENABLED to "true|false",
             DND_ACTIVE to "true|false",
             HOTSPOT_ENABLED to "true|false",
+            TORCH to "true|false",
             BRIGHTNESS to "0-255",
             REFRESH_RATE to "0-144",
             SCREEN_TIMEOUT to "0-",
             LAT to "-90..90",
             LNG to "-180..180",
             ACTIVE_EVENTS to "title1|title2|...",
+            ACTIVE_NOTIFICATIONS to "pkg1/title1/text1;pkg2/title2/text2",
         )
 }

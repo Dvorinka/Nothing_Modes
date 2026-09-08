@@ -265,6 +265,7 @@ object CapabilityRequirements {
             is Condition.NumericState -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.AtLocation -> setOf(CapabilityIds.STATE_LOCATION)
             is Condition.EventActive -> setOf(CapabilityIds.TRIGGER_CALENDAR_EVENT)
+            is Condition.NotificationPresent -> setOf(CapabilityIds.TRIGGER_NOTIFICATION)
             is Condition.And -> condition.all.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Or -> condition.any.flatMap { conditionCapabilities(it) }.toSet()
             is Condition.Not -> conditionCapabilities(condition.cond)

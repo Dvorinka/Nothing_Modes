@@ -251,6 +251,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.Event,
                     condition = Condition.EventActive("meeting"),
                 ),
+                ConditionItem(
+                    label = "Notification present",
+                    category = "Notifications",
+                    icon = Icons.Outlined.NotificationsActive,
+                    condition = Condition.NotificationPresent(pkg = "com.example", titleMatch = ""),
+                ),
             ) + BOOLEAN_STATE_ITEMS.map {
                 ConditionItem(
                     label = it.label,

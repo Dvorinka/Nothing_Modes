@@ -6,6 +6,9 @@ import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
+import android.hardware.camera2.CameraManager
+import android.os.Handler
+import android.os.HandlerThread
 import android.provider.CalendarContract
 import android.content.Context
 import android.content.Intent
@@ -27,11 +30,13 @@ import android.provider.Settings
 import android.telephony.TelephonyManager
 import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 import com.tdvorak.nothingmodes.engine.runtime.StateProvider
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
@@ -146,6 +151,7 @@ class AndroidStateProvider(
         readAodEnabled()?.let { values[StateKeys.AOD_ENABLED] = it.toString() }
         values[StateKeys.DND_ACTIVE] = readDndActive().toString()
         values[StateKeys.HOTSPOT_ENABLED] = readHotspotEnabled().toString()
+        values[StateKeys.TORCH] = readTorchState().toString()
 
         readBrightness()?.let { values[StateKeys.BRIGHTNESS] = it.toString() }
         readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
@@ -158,6 +164,7 @@ class AndroidStateProvider(
         }
 
         readActiveEvents().let { values[StateKeys.ACTIVE_EVENTS] = it }
+        values[StateKeys.ACTIVE_NOTIFICATIONS] = readActiveNotifications()
 
         batteryIntent?.let { intent ->
             val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
@@ -262,6 +269,32 @@ class AndroidStateProvider(
             false
         }
 
+    private fun readTorchState(): Boolean =
+        try {
+            val cameraManager = context.getSystemService(CameraManager::class.java) ?: return false
+            val latch = CountDownLatch(1)
+            var enabled = false
+            val thread = HandlerThread("torch-state").apply { start() }
+            val handler = Handler(thread.looper)
+            val callback =
+                object : CameraManager.TorchCallback() {
+                    override fun onTorchModeChanged(
+                        cameraId: String,
+                        torchEnabled: Boolean,
+                    ) {
+                        enabled = torchEnabled
+                        latch.countDown()
+                    }
+                }
+            cameraManager.registerTorchCallback(callback, handler)
+            latch.await(300, TimeUnit.MILLISECONDS)
+            cameraManager.unregisterTorchCallback(callback)
+            thread.quitSafely()
+            enabled
+        } catch (_: Exception) {
+            false
+        }
+
     private fun readDndActive(): Boolean =
         try {
             val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -269,6 +302,10 @@ class AndroidStateProvider(
         } catch (e: SecurityException) {
             false
         }
+
+    private fun readActiveNotifications(): String =
+        ActiveNotifications.snapshots.value
+            .joinToString(";") { "${it.pkg}/${it.title}/${it.text}" }
 
     private fun readActiveEvents(): String =
         try {

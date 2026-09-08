@@ -252,6 +252,17 @@ sealed interface Condition {
         val titleMatch: String,
     ) : Condition
 
+    /**
+     * An app currently has a visible notification. The state provider populates
+     * values["active_notifications"] as semicolon-separated "pkg/title/text" entries.
+     */
+    @Serializable
+    @SerialName("notification_present")
+    data class NotificationPresent(
+        val pkg: String,
+        val titleMatch: String,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

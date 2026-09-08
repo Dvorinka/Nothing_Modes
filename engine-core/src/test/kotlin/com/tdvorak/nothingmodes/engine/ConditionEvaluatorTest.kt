@@ -943,6 +943,15 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `booleanState torchOn met when enabled`() {
+        val state = DeviceState(values = mapOf(StateKeys.TORCH to "true"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.BooleanState(StateKeys.TORCH, true), state),
+        )
+    }
+
+    @Test
     fun `booleanState hotspotOn met when enabled`() {
         val state = DeviceState(values = mapOf(StateKeys.HOTSPOT_ENABLED to "true"))
         assertEquals(
@@ -984,6 +993,32 @@ class ConditionEvaluatorTest {
         assertEquals(
             ConditionEvaluator.Result.NOT_MET,
             evaluator.result(Condition.EventActive("meeting"), state),
+        )
+    }
+
+    @Test
+    fun `notificationPresent met when pkg and title match`() {
+        val state = DeviceState(values = mapOf(StateKeys.ACTIVE_NOTIFICATIONS to "com.foo/Hello there/world"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.NotificationPresent("com.foo", "hello"), state),
+        )
+    }
+
+    @Test
+    fun `notificationPresent notMet when pkg differs`() {
+        val state = DeviceState(values = mapOf(StateKeys.ACTIVE_NOTIFICATIONS to "com.foo/Hello there/world"))
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.NotificationPresent("com.bar", "hello"), state),
+        )
+    }
+
+    @Test
+    fun `notificationPresent unavailable when state missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.NotificationPresent("com.foo", "hello"), DeviceState()),
         )
     }
 

@@ -492,6 +492,13 @@ fun ConditionConfigScreen(
                         )
                     }
 
+                    is Condition.NotificationPresent -> {
+                        NotificationPresentScreenContent(
+                            condition = c,
+                            onChange = { condition = it },
+                        )
+                    }
+
                     is Condition.ThermalLevel -> {
                         Text(
                             text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
@@ -660,4 +667,26 @@ private fun EventActiveScreenContent(
         label = "Title contains",
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+@Composable
+private fun NotificationPresentScreenContent(
+    condition: Condition.NotificationPresent,
+    onChange: (Condition.NotificationPresent) -> Unit,
+) {
+    Column {
+        NothingInput(
+            value = condition.pkg,
+            onValueChange = { onChange(condition.copy(pkg = it)) },
+            label = "App package",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = condition.titleMatch,
+            onValueChange = { onChange(condition.copy(titleMatch = it)) },
+            label = "Title contains (optional)",
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
