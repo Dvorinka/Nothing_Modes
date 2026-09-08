@@ -137,14 +137,14 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Group related items**: hotspot now in Connections, Auto-rotate and Screen rotation grouped.
 - [~] **Refresh rate**: preset dropdown (60/90/120/144 Hz) + custom Hz input. Device-supported rate query not yet implemented.
 - [x] **Auto-sync**: description added.
-- [ ] **Lock screen**: description — "Turns the screen off and locks the device, like pressing the power button. Verified working on Phone 3 via Device Admin. Note: after it fires, the next unlock needs your PIN once (Android security rule)." Keep the permission gate for devices without admin enabled; surface the activation flow in context.
+- [x] **Lock screen**: description added in the action config sheet.
 - [ ] **Screenshot + experimental actions**: capability-detect at runtime (`CapabilityDetector`); show disabled with "Detected: may not work on this device" + an override toggle. Apply to screenshot, lock screen, and anything MediaProjection/device-admin dependent.
-- [ ] **Copy text**: remove from catalog.
-- [ ] **Open URL**: description + optional browser/app picker (`queryIntentActivities` for VIEW).
+- [x] **Copy text**: removed from catalog.
+- [~] **Open URL**: description and URL input wired. Optional browser/app picker not yet implemented.
 - [ ] **Launch app**: real discovery already exists? Verify `AppPicker` queries installed launchable apps (not hardcoded); add **multi-select** + app icons via `PackageManager.getApplicationIcon`.
 - [ ] **Open settings**: keep, add description, expand `SettingsScreen` enum (battery, storage, security, accessibility, notification, sound, display, apps, network, location, date, accounts).
-- [ ] **Wait**: duration dropdown (1s/5s/10s/30s/1m/5m) + "Custom" option — normal, not buried.
-- [ ] **Send SMS**: contact picker (`READ_CONTACTS`, asked in context) + custom-number field. **Test on-device by sending to the user's own number [redacted phone number] — pending: verify SMS can actually be sent from this device (dual SIM? default SMS role?).**
+- [~] **Wait**: duration input wired. Preset dropdown (1s/5s/10s/30s/1m/5m) + Custom not yet implemented.
+- [~] **Send SMS**: number and message inputs wired. Contact picker and on-device send test not yet done.
 - [ ] **Write setting**: hide behind "Advanced" by default; add plain-English explanation + a few safe presets (e.g., animation scale, font scale) instead of raw key/value.
 
 ### New actions requested — feasibility triage
