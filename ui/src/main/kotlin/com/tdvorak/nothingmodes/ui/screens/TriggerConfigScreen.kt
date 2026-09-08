@@ -58,6 +58,7 @@ import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
@@ -643,6 +644,11 @@ private fun PhoneStateContent(
             value = trigger.number ?: "",
             onValueChange = { onUpdate(trigger.copy(number = it.ifBlank { null })) },
             label = if (isSms) "Sender number (optional)" else "Caller number (optional)",
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        ContactNumberPickerButton(
+            onNumber = { onUpdate(trigger.copy(number = it)) },
+            text = "Pick contact",
         )
         if (isSms) {
             Spacer(modifier = Modifier.height(NothingSpacing.sm))

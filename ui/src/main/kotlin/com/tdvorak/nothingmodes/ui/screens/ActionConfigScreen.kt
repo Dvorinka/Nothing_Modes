@@ -37,6 +37,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
@@ -447,6 +448,11 @@ fun ActionConfigScreen(
                             onValueChange = { action = a.copy(number = it) },
                             label = "Number",
                             modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        ContactNumberPickerButton(
+                            onNumber = { action = a.copy(number = it) },
+                            text = "Pick contact",
                         )
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
                         NothingInput(

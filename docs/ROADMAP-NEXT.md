@@ -154,7 +154,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Launch app**: `AppPicker` queries installed launchable apps; `LaunchApp` now takes a package list and `MultiAppPicker` shows icons, package names, search, and checkboxes.
 - [x] **Open settings**: `SettingsScreen` enum expanded; app-details package input and description note added.
 - [x] **Wait**: preset dropdown (1s/5s/10s/30s/1m/5m) + Custom.
-- [~] **Send SMS**: number and message inputs wired. Contact picker and on-device send test not yet done.
+- [x] **Send SMS**: number and message inputs wired; contact picker uses READ_CONTACTS in context; on-device send test completed.
 - [~] **Write setting**: preset dropdown with animation scale, font scale, and show taps. Custom key/value still available. Hiding behind "Advanced" by default not yet enforced.
 
 ### New actions requested — feasibility triage
