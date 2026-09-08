@@ -186,5 +186,16 @@ fun actionRequirementHint(action: Action): String? =
         is Action.LockScreen -> "Needs device admin — enable it in Settings."
         is Action.WriteSetting -> "Advanced. Secure and global keys need Shizuku."
         is Action.TakeScreenshot -> "Not supported on most devices yet."
+        is Action.SetFlashlight -> "Camera flashlight. Restore may be unreliable on some devices."
+        is Action.SetRinger -> "Changes how calls and notifications ring."
+        is Action.SetVolume -> "Adjusts the selected volume stream."
+        is Action.LaunchApp -> "Opens the selected app."
+        is Action.OpenUrl -> "Opens a URL in the default browser."
+        is Action.OpenSettingsScreen -> "Opens a specific Settings screen."
+        is Action.CopyText -> "Copies text to the clipboard."
+        is Action.Wait -> "Waits the given duration before the next action runs."
+        is Action.Vibrate -> "Vibrates the phone for the selected duration."
+        is Action.MediaControl -> "Sends a media playback command."
+        is Action.ClearNotifications -> "Clears all status bar notifications."
         else -> null
     }

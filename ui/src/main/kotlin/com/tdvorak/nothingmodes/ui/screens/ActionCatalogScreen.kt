@@ -78,6 +78,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Wi-Fi", "Connections", Icons.Outlined.Wifi, Action.SetWifi(true)),
                 ActionItem("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Action.SetBluetooth(true)),
                 ActionItem("Mobile data", "Connections", Icons.Outlined.SignalCellular4Bar, Action.SetMobileData(true)),
+                ActionItem("Mobile hotspot", "Connections", Icons.Outlined.Wifi, Action.SetHotspot(true)),
                 ActionItem("Airplane mode", "Connections", Icons.Outlined.Flight, Action.SetAirplaneMode(true)),
                 ActionItem("Dark mode", "Display", Icons.Outlined.DarkMode, Action.SetDarkMode(NightMode.OFF)),
                 ActionItem("Brightness", "Display", Icons.Outlined.Brightness6, Action.SetBrightness(128, restore = true)),
@@ -91,12 +92,11 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Ringer mode", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetRinger("normal")),
                 ActionItem("Flashlight", "Sound", Icons.Outlined.FlashlightOn, Action.SetFlashlight(true)),
                 ActionItem("Auto-rotate", "System", Icons.Outlined.ScreenRotation, Action.SetAutoRotate(true)),
+                ActionItem("Screen rotation", "System", Icons.Outlined.ScreenRotation, Action.SetScreenRotation(ScreenOrientation.AUTO)),
                 ActionItem("Battery saver", "System", Icons.Outlined.PowerSettingsNew, Action.SetBatterySaver(true)),
                 ActionItem("Data saver", "System", Icons.Outlined.SignalCellular4Bar, Action.SetDataSaver(true)),
-                ActionItem("Mobile hotspot", "System", Icons.Outlined.Wifi, Action.SetHotspot(true)),
                 ActionItem("NFC", "System", Icons.Outlined.Nfc, Action.SetNfc(true)),
                 ActionItem("Location mode", "System", Icons.Outlined.LocationOn, Action.SetLocationMode(LocationMode.HIGH_ACCURACY)),
-                ActionItem("Screen rotation", "System", Icons.Outlined.ScreenRotation, Action.SetScreenRotation(ScreenOrientation.AUTO)),
                 ActionItem("Refresh rate", "System", Icons.Outlined.Settings, Action.SetRefreshRate(60)),
                 ActionItem("Auto-sync", "System", Icons.Outlined.Snooze, Action.SetAutoSync(true)),
                 ActionItem("Lock screen", "System", Icons.Outlined.Lock, Action.LockScreen),
@@ -229,6 +229,7 @@ fun ActionCatalogScreen(navController: NavController) {
                                 CatalogListItem(
                                     label = actionItem.label,
                                     icon = actionItem.icon,
+                                    subtitle = actionRequirementHint(actionItem.action) ?: actionDescription(actionItem.action),
                                     onClick = {
                                         editingIndex = null
                                         configAction = actionItem.action
@@ -291,10 +292,12 @@ fun ActionCatalogScreen(navController: NavController) {
 private fun CatalogListItem(
     label: String,
     icon: ImageVector,
+    subtitle: String,
     onClick: () -> Unit,
 ) {
     NothingListRow(
         title = label,
+        subtitle = subtitle,
         onClick = onClick,
         leading = {
             NothingIconCircle(size = 44f) {
