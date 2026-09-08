@@ -155,7 +155,7 @@ fun ConditionCatalogScreen(navController: NavController) {
                 ConditionItem(
                     label = "NFC",
                     category = "Connections",
-                    icon = Icons.Outlined.Bluetooth,
+                    icon = Icons.Outlined.Nfc,
                     condition = Condition.NfcEnabled(true),
                 ),
                 ConditionItem(

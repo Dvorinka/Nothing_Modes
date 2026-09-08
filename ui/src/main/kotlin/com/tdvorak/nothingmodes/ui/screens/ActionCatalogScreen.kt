@@ -94,7 +94,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Battery saver", "System", Icons.Outlined.PowerSettingsNew, Action.SetBatterySaver(true)),
                 ActionItem("Data saver", "System", Icons.Outlined.SignalCellular4Bar, Action.SetDataSaver(true)),
                 ActionItem("Mobile hotspot", "System", Icons.Outlined.Wifi, Action.SetHotspot(true)),
-                ActionItem("NFC", "System", Icons.Outlined.Bluetooth, Action.SetNfc(true)),
+                ActionItem("NFC", "System", Icons.Outlined.Nfc, Action.SetNfc(true)),
                 ActionItem("Location mode", "System", Icons.Outlined.LocationOn, Action.SetLocationMode(LocationMode.HIGH_ACCURACY)),
                 ActionItem("Screen rotation", "System", Icons.Outlined.ScreenRotation, Action.SetScreenRotation(ScreenOrientation.AUTO)),
                 ActionItem("Refresh rate", "System", Icons.Outlined.Settings, Action.SetRefreshRate(60)),
