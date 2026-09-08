@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -57,8 +58,10 @@ private data class ConditionItem(
 @Composable
 fun ConditionCatalogScreen(navController: NavController) {
     var search by remember { mutableStateOf("") }
-    // Multi-select: tapping toggles a condition instead of closing the catalog.
+    // Conditions are configured in a bottom sheet before being added.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
+    var configCondition by remember { mutableStateOf<Condition?>(null) }
+    var editingIndex by remember { mutableStateOf<Int?>(null) }
 
     val items =
         remember {
@@ -283,24 +286,61 @@ fun ConditionCatalogScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
 
+                if (selected.isNotEmpty()) {
+                    item {
+                        NothingSectionHeader(text = "Selected")
+                        NothingCard {
+                            selected.forEachIndexed { index, condition ->
+                                if (index > 0) NothingDivider()
+                                val item = items.find { it.condition::class == condition::class }
+                                NothingListRow(
+                                    title = item?.label ?: "Condition",
+                                    subtitle = conditionDescription(condition),
+                                    onClick = {
+                                        editingIndex = index
+                                        configCondition = condition
+                                    },
+                                    leading = {
+                                        NothingIconCircle(size = 44f) {
+                                            Icon(
+                                                imageVector = item?.icon ?: Icons.AutoMirrored.Outlined.HelpOutline,
+                                                contentDescription = item?.label,
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+                                    },
+                                    trailing = {
+                                        Text(
+                                            text = "[X]",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = NothingColors.accent,
+                                            fontFamily = NothingFonts.mono(),
+                                            modifier =
+                                                Modifier.clickable {
+                                                    selected = selected.filterIndexed { i, _ -> i != index }
+                                                },
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                    }
+                }
+
                 grouped.forEach { (category, conditions) ->
                     item {
                         NothingSectionHeader(text = category)
                         NothingCard {
                             conditions.forEachIndexed { index, conditionItem ->
                                 if (index > 0) NothingDivider()
-                                val isPicked = conditionItem.condition in selected
                                 CatalogListItem(
                                     label = conditionItem.label,
                                     icon = conditionItem.icon,
-                                    picked = isPicked,
                                     onClick = {
-                                        selected =
-                                            if (isPicked) {
-                                                selected - conditionItem.condition
-                                            } else {
-                                                selected + conditionItem.condition
-                                            }
+                                        editingIndex = null
+                                        configCondition = conditionItem.condition
                                     },
                                 )
                             }
@@ -315,7 +355,7 @@ fun ConditionCatalogScreen(navController: NavController) {
                 }
             }
 
-            // Sticky bottom bar — confirms every picked condition in one shot.
+            // Sticky bottom bar — confirms every configured condition in one shot.
             NothingBottomActionBar(
                 text =
                     if (selected.isEmpty()) {
@@ -337,21 +377,38 @@ fun ConditionCatalogScreen(navController: NavController) {
             )
         }
     }
+
+    configCondition?.let { condition ->
+        ConditionConfigSheet(
+            condition = condition,
+            onDone = { updated ->
+                if (editingIndex != null) {
+                    selected = selected.toMutableList().also { it[editingIndex!!] = updated }
+                } else {
+                    selected = selected + updated
+                }
+                configCondition = null
+                editingIndex = null
+            },
+            onDismiss = {
+                configCondition = null
+                editingIndex = null
+            },
+        )
+    }
 }
 
 @Composable
 private fun CatalogListItem(
     label: String,
     icon: ImageVector,
-    picked: Boolean,
     onClick: () -> Unit,
 ) {
     NothingListRow(
         title = label,
-        selected = picked,
         onClick = onClick,
         leading = {
-            NothingIconCircle(size = 44f, accent = picked) {
+            NothingIconCircle(size = 44f) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
@@ -359,14 +416,6 @@ private fun CatalogListItem(
                     modifier = Modifier.size(24.dp),
                 )
             }
-        },
-        trailing = {
-            Text(
-                text = if (picked) "ADDED" else "",
-                style = MaterialTheme.typography.labelSmall,
-                color = NothingColors.accent,
-                fontFamily = NothingFonts.mono(),
-            )
         },
     )
 }
