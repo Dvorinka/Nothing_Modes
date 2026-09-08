@@ -19,6 +19,9 @@ object StateKeys {
     const val MOBILE_DATA = "mobile_data"
     const val AOD_ENABLED = "aod_enabled"
 
+    // DND active boolean state (Condition.BooleanState)
+    const val DND_ACTIVE = "dnd_active"
+
     // Numeric state keys (Condition.NumericState)
     const val BRIGHTNESS = "brightness"
     const val REFRESH_RATE = "refresh_rate"
@@ -40,6 +43,7 @@ object StateKeys {
             BLUETOOTH_RADIO to "true|false",
             MOBILE_DATA to "true|false",
             AOD_ENABLED to "true|false",
+            DND_ACTIVE to "true|false",
             BRIGHTNESS to "0-255",
             REFRESH_RATE to "0-144",
             SCREEN_TIMEOUT to "0-",

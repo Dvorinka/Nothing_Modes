@@ -2,6 +2,7 @@ package com.tdvorak.nothingmodes.capabilities.controllers
 
 import android.annotation.SuppressLint
 import android.app.KeyguardManager
+import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
@@ -142,6 +143,7 @@ class AndroidStateProvider(
         values[StateKeys.BLUETOOTH_RADIO] = readBluetoothRadio().toString()
         values[StateKeys.MOBILE_DATA] = readMobileData().toString()
         readAodEnabled()?.let { values[StateKeys.AOD_ENABLED] = it.toString() }
+        values[StateKeys.DND_ACTIVE] = readDndActive().toString()
 
         readBrightness()?.let { values[StateKeys.BRIGHTNESS] = it.toString() }
         readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
@@ -240,6 +242,14 @@ class AndroidStateProvider(
         runCatching {
             Settings.Secure.getInt(context.contentResolver, "doze_always_on", 0) == 1
         }.getOrNull()
+
+    private fun readDndActive(): Boolean =
+        try {
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+        } catch (e: SecurityException) {
+            false
+        }
 
     private fun readBrightness(): Int? =
         runCatching {

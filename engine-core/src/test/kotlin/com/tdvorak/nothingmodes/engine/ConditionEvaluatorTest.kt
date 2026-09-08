@@ -908,6 +908,15 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `booleanState dndActive met when active`() {
+        val state = DeviceState(values = mapOf(StateKeys.DND_ACTIVE to "true"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.BooleanState(StateKeys.DND_ACTIVE, true), state),
+        )
+    }
+
+    @Test
     fun `numericState met when comparison matches`() {
         val state = DeviceState(values = mapOf(StateKeys.BRIGHTNESS to "200"))
         assertEquals(
