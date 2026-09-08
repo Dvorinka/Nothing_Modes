@@ -573,7 +573,7 @@ fun CustomAutomationBuilderScreen(
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
                     Text(
                         text = "IF",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
@@ -594,7 +594,7 @@ fun CustomAutomationBuilderScreen(
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
                         text = "ONLY IF",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
@@ -649,7 +649,7 @@ fun CustomAutomationBuilderScreen(
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                     Text(
                         text = "THEN",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
@@ -706,7 +706,7 @@ fun CustomAutomationBuilderScreen(
                     NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                         Text(
                             text = "AFTER IT ENDS ($endLocal)",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontFamily = NothingFonts.doto(),
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
