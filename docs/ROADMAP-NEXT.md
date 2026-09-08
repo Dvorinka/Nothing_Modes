@@ -221,7 +221,7 @@ Still open in this feature:
 - [x] `POST /api/delete` — admin delete for submissions / crash reports.
 - [x] `GET /api/preview` — public item payload without bumping downloads.
 - [x] Email notify on new submission (Resend, same as crash notify).
-- [ ] Auto-generated description fallback: derive "what it does" from the automation JSON when the author leaves it blank.
+- [x] Auto-generated description fallback: derive "what it does" from the automation JSON when the author leaves it blank.
 
 ### Security review pipeline (user's requirement — non-negotiable)
 - [x] **Static analysis on ingest** (server-side, in `share.ts` / `analyze.ts`): reject payloads containing `send_sms` to non-e.164 numbers, `open_url` to non-https, `write_setting` to non-allowlisted keys, `launch_app` to known-bad packages, unbounded `wait`, scripts/`content://`/`file://` URIs. Maintain an allowlist of action types for shared content; anything else → auto-reject.
