@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -234,9 +235,19 @@ fun NothingModesThemeDynamic(content: @Composable () -> Unit) {
             ThemeManager.ThemeMode.DARK -> true
             ThemeManager.ThemeMode.LIGHT -> false
         }
+    val resolvedStyle =
+        when (uiStyle) {
+            ThemeManager.UiStyle.AUTO ->
+                if (Build.MANUFACTURER.equals("nothing", ignoreCase = true)) {
+                    ThemeManager.UiStyle.NOTHING
+                } else {
+                    ThemeManager.UiStyle.CLASSIC
+                }
+            else -> uiStyle
+        }
     NothingModesTheme(
         darkTheme = isDark,
-        uiStyle = themeManager.resolvedUiStyle(),
+        uiStyle = resolvedStyle,
         content = content,
     )
 }
