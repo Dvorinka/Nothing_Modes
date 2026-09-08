@@ -70,6 +70,7 @@ class ConditionEvaluator {
             is Condition.BooleanState -> evaluateBooleanState(condition, state)
             is Condition.NumericState -> evaluateNumericState(condition, state)
             is Condition.AtLocation -> evaluateAtLocation(condition, state)
+            is Condition.EventActive -> evaluateEventActive(condition, state)
             is Condition.And -> {
                 val results = condition.all.map { result(it, state) }
                 when {
@@ -343,6 +344,17 @@ class ConditionEvaluator {
         } else {
             Result.NOT_MET
         }
+    }
+
+    private fun evaluateEventActive(
+        condition: Condition.EventActive,
+        state: DeviceState,
+    ): Result {
+        val raw = state.values[StateKeys.ACTIVE_EVENTS] ?: return Result.STATE_UNAVAILABLE
+        val match = condition.titleMatch.trim().lowercase()
+        if (raw.isBlank() || match.isBlank()) return Result.NOT_MET
+        val titles = raw.split("|").map { it.trim() }.filter { it.isNotBlank() }
+        return if (titles.any { it.lowercase().contains(match) }) Result.MET else Result.NOT_MET
     }
 
     // ponytail: AlarmRinging only works if a RingingAlarmProvider is wired; otherwise the value is absent

@@ -267,6 +267,12 @@ fun ConditionConfigSheet(
                         onChange = { current = it },
                     )
 
+                is Condition.EventActive ->
+                    EventActiveSheetContent(
+                        condition = c,
+                        onChange = { current = it },
+                    )
+
                 is Condition.BooleanState ->
                     BooleanConditionContent(
                         label = booleanStateLabel(c.key),
@@ -332,6 +338,7 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.BooleanState -> booleanStateLabel(condition.key)
         is Condition.NumericState -> numericStateLabel(condition.key)
         is Condition.AtLocation -> "At location"
+        is Condition.EventActive -> "Calendar event active"
         else -> "Condition"
     }
 
@@ -821,6 +828,19 @@ private fun AtLocationSheetContent(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@Composable
+private fun EventActiveSheetContent(
+    condition: Condition.EventActive,
+    onChange: (Condition.EventActive) -> Unit,
+) {
+    NothingInput(
+        value = condition.titleMatch,
+        onValueChange = { onChange(condition.copy(titleMatch = it)) },
+        label = "Title contains",
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 

@@ -241,6 +241,17 @@ sealed interface Condition {
         val radiusM: Double,
     ) : Condition
 
+    /**
+     * A calendar event is currently ongoing and its title contains titleMatch.
+     * The state provider populates values["active_events"] with a pipe-separated
+     * list of event titles.
+     */
+    @Serializable
+    @SerialName("event_active")
+    data class EventActive(
+        val titleMatch: String,
+    ) : Condition
+
     @Serializable
     @SerialName("and")
     data class And(

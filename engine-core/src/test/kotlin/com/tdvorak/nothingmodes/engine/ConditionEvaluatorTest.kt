@@ -970,6 +970,32 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `eventActive met when title matches`() {
+        val state = DeviceState(values = mapOf(StateKeys.ACTIVE_EVENTS to "Team meeting|Lunch"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.EventActive("meeting"), state),
+        )
+    }
+
+    @Test
+    fun `eventActive notMet when no match`() {
+        val state = DeviceState(values = mapOf(StateKeys.ACTIVE_EVENTS to "Lunch"))
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.EventActive("meeting"), state),
+        )
+    }
+
+    @Test
+    fun `eventActive unavailable when state missing`() {
+        assertEquals(
+            ConditionEvaluator.Result.STATE_UNAVAILABLE,
+            evaluator.result(Condition.EventActive("meeting"), DeviceState()),
+        )
+    }
+
+    @Test
     fun `atLocation unavailable when location missing`() {
         assertEquals(
             ConditionEvaluator.Result.STATE_UNAVAILABLE,

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
+import android.provider.CalendarContract
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -156,6 +157,8 @@ class AndroidStateProvider(
             values[StateKeys.LNG] = lng.toString()
         }
 
+        readActiveEvents().let { values[StateKeys.ACTIVE_EVENTS] = it }
+
         batteryIntent?.let { intent ->
             val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
             values["charging_source"] =
@@ -265,6 +268,33 @@ class AndroidStateProvider(
             notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
         } catch (e: SecurityException) {
             false
+        }
+
+    private fun readActiveEvents(): String =
+        try {
+            val now = System.currentTimeMillis()
+            val projection = arrayOf(CalendarContract.Instances.TITLE)
+            val cursor =
+                CalendarContract.Instances.query(
+                    context.contentResolver,
+                    projection,
+                    now,
+                    now + 60_000,
+                )
+            val titles = mutableListOf<String>()
+            cursor?.use {
+                val idx = it.getColumnIndex(CalendarContract.Instances.TITLE)
+                while (it.moveToNext()) {
+                    if (idx >= 0) {
+                        titles += it.getString(idx) ?: ""
+                    }
+                }
+            }
+            titles.joinToString("|")
+        } catch (e: SecurityException) {
+            ""
+        } catch (e: Exception) {
+            ""
         }
 
     @SuppressLint("MissingPermission")

@@ -245,6 +245,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.LocationOn,
                     condition = Condition.AtLocation(50.0755, 14.4378, 500.0),
                 ),
+                ConditionItem(
+                    label = "Calendar event active",
+                    category = "Time",
+                    icon = Icons.Outlined.Event,
+                    condition = Condition.EventActive("meeting"),
+                ),
             ) + BOOLEAN_STATE_ITEMS.map {
                 ConditionItem(
                     label = it.label,

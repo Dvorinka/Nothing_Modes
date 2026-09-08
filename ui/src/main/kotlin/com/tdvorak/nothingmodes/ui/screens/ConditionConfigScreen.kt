@@ -485,6 +485,13 @@ fun ConditionConfigScreen(
                         )
                     }
 
+                    is Condition.EventActive -> {
+                        EventActiveScreenContent(
+                            condition = c,
+                            onChange = { condition = it },
+                        )
+                    }
+
                     is Condition.ThermalLevel -> {
                         Text(
                             text = "Thermal level: 0 none · 1 light · 2 moderate · 3 severe · 4 critical · 5 emergency · 6 shutdown",
@@ -640,4 +647,17 @@ private fun AtLocationScreenContent(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@Composable
+private fun EventActiveScreenContent(
+    condition: Condition.EventActive,
+    onChange: (Condition.EventActive) -> Unit,
+) {
+    NothingInput(
+        value = condition.titleMatch,
+        onValueChange = { onChange(condition.copy(titleMatch = it)) },
+        label = "Title contains",
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

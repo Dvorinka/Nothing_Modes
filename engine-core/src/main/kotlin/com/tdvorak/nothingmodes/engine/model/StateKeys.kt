@@ -34,6 +34,9 @@ object StateKeys {
     const val LAT = "lat"
     const val LNG = "lng"
 
+    // Calendar state key (Condition.EventActive)
+    const val ACTIVE_EVENTS = "active_events"
+
     /** chiave -> valori ammessi (usato nel render del manifest e in doc) */
     val ALL: Map<String, String> =
         mapOf(
@@ -57,5 +60,6 @@ object StateKeys {
             SCREEN_TIMEOUT to "0-",
             LAT to "-90..90",
             LNG to "-180..180",
+            ACTIVE_EVENTS to "title1|title2|...",
         )
 }

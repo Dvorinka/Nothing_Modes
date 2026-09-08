@@ -1357,6 +1357,7 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.BooleanState -> "${booleanStateLabel(condition.key)} ${if (condition.on) "on" else "off"}"
         is Condition.NumericState -> "${numericStateLabel(condition.key)} ${condition.op.name} ${condition.value}"
         is Condition.AtLocation -> "Within ${condition.radiusM}m of ${condition.lat}, ${condition.lng}"
+        is Condition.EventActive -> "Calendar event contains \"${condition.titleMatch}\""
         is Condition.And -> "AND (${condition.all.size} conditions)"
         is Condition.Or -> "OR (${condition.any.size} conditions)"
         is Condition.Not -> "NOT"
