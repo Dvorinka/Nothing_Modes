@@ -44,6 +44,17 @@
       "tags": ["bluetooth", "music", "commute"],
       "minSchemaVersion": 1,
       "file": "commute-tunes.json"
+    },
+    {
+      "id": "locate-my-phone",
+      "name": "Locate my phone",
+      "description": "When an SMS with the text LOCATE arrives, turn on the flashlight, enable mobile data, switch to high-accuracy location, and reply with a preset message. Edit the SMS number before enabling.",
+      "creator": "TDvorak",
+      "emoji": "",
+      "icon": "location",
+      "tags": ["sms", "lost", "location", "safety"],
+      "minSchemaVersion": 1,
+      "file": "locate-my-phone.json"
     }
   ]
 }
