@@ -35,10 +35,9 @@ import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
-import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
-import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -296,23 +295,12 @@ fun ConditionConfigSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-            ) {
-                NothingSecondaryButton(
-                    text = "Cancel",
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                )
-                NothingPillButton(
-                    text = "Done",
-                    onClick = { onDone(current) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            NothingBottomActionBar(
+                primaryText = "Done",
+                onPrimaryClick = { onDone(current) },
+                secondaryText = "Cancel",
+                onSecondaryClick = onDismiss,
+            )
         }
     }
 }

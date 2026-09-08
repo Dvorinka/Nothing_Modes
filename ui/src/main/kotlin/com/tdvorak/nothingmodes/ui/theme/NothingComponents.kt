@@ -1260,3 +1260,43 @@ fun NothingBottomActionBar(
         }
     }
 }
+
+// ponytail: two-button bottom bar for config sheets; background color + nav bar padding fix the gap
+@Composable
+fun NothingBottomActionBar(
+    primaryText: String,
+    onPrimaryClick: () -> Unit,
+    secondaryText: String,
+    onSecondaryClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    primaryEnabled: Boolean = true,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = NothingSpacing.md)
+                    .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+        ) {
+            NothingSecondaryButton(
+                text = secondaryText,
+                onClick = onSecondaryClick,
+                modifier = Modifier.weight(1f),
+            )
+            NothingPillButton(
+                text = primaryText,
+                onClick = onPrimaryClick,
+                enabled = primaryEnabled,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
