@@ -243,7 +243,12 @@ fun ActionCatalogScreen(navController: NavController) {
 
             // Sticky bottom bar — drawn on top of the list so content never shows through.
             NothingBottomActionBar(
-                text = if (selected.isEmpty()) "Done" else "Add ${selected.size} action${if (selected.size > 1) "s" else ""}",
+                text =
+                    if (selected.isEmpty()) {
+                        "Select at least one action"
+                    } else {
+                        "Add ${selected.size} action${if (selected.size > 1) "s" else ""}"
+                    },
                 onClick = {
                     if (selected.isNotEmpty()) {
                         val json = Json.encodeToString(selected)
@@ -253,6 +258,7 @@ fun ActionCatalogScreen(navController: NavController) {
                     }
                     navController.popBackStack()
                 },
+                enabled = selected.isNotEmpty(),
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)

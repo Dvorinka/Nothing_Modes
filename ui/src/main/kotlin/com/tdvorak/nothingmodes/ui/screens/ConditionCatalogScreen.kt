@@ -317,7 +317,12 @@ fun ConditionCatalogScreen(navController: NavController) {
 
             // Sticky bottom bar — confirms every picked condition in one shot.
             NothingBottomActionBar(
-                text = if (selected.isEmpty()) "Done" else "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}",
+                text =
+                    if (selected.isEmpty()) {
+                        "Select at least one condition"
+                    } else {
+                        "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}"
+                    },
                 onClick = {
                     if (selected.isNotEmpty()) {
                         val json = Json.encodeToString(selected)
@@ -327,6 +332,7 @@ fun ConditionCatalogScreen(navController: NavController) {
                     }
                     navController.popBackStack()
                 },
+                enabled = selected.isNotEmpty(),
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
