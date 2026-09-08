@@ -587,25 +587,42 @@ private fun PhoneStateContent(
     trigger: Trigger.PhoneState,
     onUpdate: (Trigger.PhoneState) -> Unit,
 ) {
+    val isSms = trigger.event == PhoneEvent.SMS_RECEIVED
     Column {
         PhoneEvent.entries.forEach { event ->
             RadioOption(
                 text = event.name.enumLabel(),
                 selected = trigger.event == event,
-                onClick = { onUpdate(trigger.copy(event = event)) },
+                onClick = {
+                    val base = trigger.copy(event = event)
+                    onUpdate(if (event == PhoneEvent.SMS_RECEIVED) base else base.copy(textMatch = null))
+                },
             )
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.number ?: "",
             onValueChange = { onUpdate(trigger.copy(number = it.ifBlank { null })) },
-            label = "Number (optional)",
+            label = if (isSms) "Sender number (optional)" else "Caller number (optional)",
         )
+        if (isSms) {
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = trigger.textMatch ?: "",
+                onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
+                label = "SMS text contains",
+            )
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            value = trigger.textMatch ?: "",
-            onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
-            label = "SMS text contains",
+        Text(
+            text =
+                if (isSms) {
+                    "Matches when an SMS arrives with the given sender and text. Leave both empty to match every SMS."
+                } else {
+                    "Matches when a call changes to ${trigger.event.name.enumLabel().lowercase()}. Leave number empty to match any caller."
+                },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
