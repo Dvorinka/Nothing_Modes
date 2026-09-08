@@ -1,6 +1,11 @@
 package com.tdvorak.nothingmodes.ui.theme
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -262,6 +267,48 @@ fun NothingDotRow(
                                 MaterialTheme.colorScheme.surfaceVariant
                             },
                         ),
+            )
+        }
+    }
+}
+
+enum class ModeDotState { ACTIVE, ENABLED, DISABLED }
+
+@Composable
+fun ModeDotRow(
+    states: List<ModeDotState>,
+    modifier: Modifier = Modifier,
+    dotSize: Float = 6f,
+    spacing: Float = 4f,
+) {
+    val activeColor = MaterialTheme.colorScheme.primary
+    val enabledColor = NothingColors.accent
+    val disabledColor = MaterialTheme.colorScheme.surfaceVariant
+    val infiniteTransition = rememberInfiniteTransition(label = "dot-pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(tween(1000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "dot-pulse",
+    )
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing.dp),
+    ) {
+        states.forEach { state ->
+            val color =
+                when (state) {
+                    ModeDotState.ACTIVE -> activeColor.copy(alpha = pulseAlpha)
+                    ModeDotState.ENABLED -> enabledColor
+                    ModeDotState.DISABLED -> disabledColor
+                }
+            Box(
+                modifier =
+                    Modifier
+                        .size(dotSize.dp)
+                        .clip(CircleShape)
+                        .background(color),
             )
         }
     }

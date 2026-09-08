@@ -66,6 +66,7 @@ import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
+import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -74,6 +75,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
+import com.tdvorak.nothingmodes.ui.theme.ModeDotRow
+import com.tdvorak.nothingmodes.ui.theme.ModeDotState
 import com.tdvorak.nothingmodes.ui.theme.NothingDotRow
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
 import com.tdvorak.nothingmodes.ui.theme.NothingGhostButton
@@ -103,6 +106,7 @@ class AutomationListViewModel
     constructor(
         @ApplicationContext private val context: android.content.Context,
         private val store: AutomationStore,
+        private val modeActivationProvider: ModeActivationProvider,
     ) : ViewModel() {
         private val _items = MutableStateFlow<List<Automation>>(emptyList())
         val items: StateFlow<List<Automation>> = _items.asStateFlow()
@@ -112,6 +116,9 @@ class AutomationListViewModel
 
         private val _selected = MutableStateFlow<Set<AutomationId>>(emptySet())
         val selected: StateFlow<Set<AutomationId>> = _selected.asStateFlow()
+
+        private val _activeIds = MutableStateFlow<Set<String>>(emptySet())
+        val activeIds: StateFlow<Set<String>> = _activeIds.asStateFlow()
 
         private val _importResult = MutableStateFlow<ImportResult?>(null)
         val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
@@ -136,6 +143,7 @@ class AutomationListViewModel
             viewModelScope.launch {
                 try {
                     _items.value = store.all().sortedBy { it.priority }
+                    _activeIds.value = modeActivationProvider.activeModeIds().toSet()
                 } finally {
                     _loading.value = false
                 }
@@ -298,6 +306,7 @@ fun AutomationListScreen(
     val context = LocalContext.current
     val items by viewModel.items.collectAsState()
     val selected by viewModel.selected.collectAsState()
+    val activeIds by viewModel.activeIds.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
     val importWarnings by viewModel.importWarnings.collectAsState()
@@ -466,17 +475,30 @@ fun AutomationListScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                            val dotStates =
+                                remember(visibleItems, activeIds) {
+                                    visibleItems.map {
+                                        when {
+                                            activeIds.contains(it.id.value) -> ModeDotState.ACTIVE
+                                            it.enabled -> ModeDotState.ENABLED
+                                            else -> ModeDotState.DISABLED
+                                        }
+                                    }
+                                }
                             RoutineHeroCard(
                                 totalRoutines = visibleItems.size,
                                 totalActions = visibleItems.sumOf { it.actions.size },
+                                dotStates = dotStates,
                             )
                         }
                     }
 
                     items(visibleItems, key = { it.id.value }) { automation ->
+                        val isActive = activeIds.contains(automation.id.value)
                         RoutineTile(
                             automation = automation,
                             isSelected = selected.contains(automation.id),
+                            isActive = isActive,
                             inSelectionMode = inSelection,
                             onClick = { onAutomationClick(automation.id.value) },
                             onToggleSelection = { viewModel.toggleSelected(automation.id) },
@@ -515,6 +537,7 @@ fun AutomationListScreen(
 private fun RoutineHeroCard(
     totalRoutines: Int,
     totalActions: Int,
+    dotStates: List<ModeDotState>,
     modifier: Modifier = Modifier,
 ) {
     NothingCard(modifier = modifier) {
@@ -555,10 +578,7 @@ private fun RoutineHeroCard(
             }
         }
         Spacer(modifier = Modifier.height(NothingSpacing.md))
-        NothingDotRow(
-            total = 20,
-            filled = (totalRoutines.coerceAtLeast(0) * 20 / maxOf(totalRoutines + totalActions, 1)),
-        )
+        ModeDotRow(states = dotStates)
     }
 }
 
@@ -566,6 +586,7 @@ private fun RoutineHeroCard(
 private fun RoutineTile(
     automation: Automation,
     isSelected: Boolean,
+    isActive: Boolean,
     inSelectionMode: Boolean,
     onClick: () -> Unit,
     onToggleSelection: () -> Unit,
@@ -573,7 +594,12 @@ private fun RoutineTile(
     onRun: () -> Unit = {},
 ) {
     val iconTextColor = MaterialTheme.colorScheme.onSurface
-    val borderColor = if (isSelected) NothingColors.accent else MaterialTheme.colorScheme.outlineVariant
+    val borderColor =
+        when {
+            isActive -> MaterialTheme.colorScheme.primary
+            isSelected -> NothingColors.accent
+            else -> MaterialTheme.colorScheme.outlineVariant
+        }
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -612,6 +638,17 @@ private fun RoutineTile(
                             fontFamily = GeistSans,
                         )
                     }
+                }
+
+                if (isActive) {
+                    Text(
+                        text = "ACTIVE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.mono(),
+                        letterSpacing = 1.0.sp,
+                        modifier = Modifier.padding(end = NothingSpacing.sm),
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
