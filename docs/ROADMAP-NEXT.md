@@ -155,7 +155,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Open settings**: `SettingsScreen` enum expanded; app-details package input and description note added.
 - [x] **Wait**: preset dropdown (1s/5s/10s/30s/1m/5m) + Custom.
 - [x] **Send SMS**: number and message inputs wired; contact picker uses READ_CONTACTS in context; on-device send test completed.
-- [~] **Write setting**: preset dropdown with animation scale, font scale, and show taps. Custom key/value still available. Hiding behind "Advanced" by default not yet enforced.
+- [x] **Write setting**: presets (animation scale, font scale, show taps) and a shared `WriteSettingSelector`; custom key/value hidden behind the "Custom" preset.
 
 ### New actions requested — feasibility triage
 | Action | Path | Notes |

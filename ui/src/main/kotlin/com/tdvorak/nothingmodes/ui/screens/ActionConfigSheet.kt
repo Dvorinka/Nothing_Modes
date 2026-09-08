@@ -37,11 +37,12 @@ import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
-import com.tdvorak.nothingmodes.engine.model.SettingNamespace
+
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
+import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -647,42 +648,9 @@ fun ActionConfigContent(
         }
 
         is Action.WriteSetting -> {
-            val selected = writeSettingPresets.firstOrNull { it.second == a }?.first ?: "Custom"
-            NothingEnumSelector(
-                label = "Preset",
-                value = selected,
-                options = writeSettingPresets.map { it.first },
-                onSelect = { label ->
-                    writeSettingPresets.firstOrNull { it.first == label }?.second?.let { onActionChange(it) }
-                },
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            Text(
-                text = "Custom key/value. Global/secure writes need Shizuku; system writes need Write Settings permission.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingEnumSelector(
-                label = "Namespace",
-                value = a.namespace.name.enumLabel(),
-                options = enumLabelList<SettingNamespace>(),
-                onSelect = { onActionChange(a.copy(namespace = enumByLabel<SettingNamespace>(it))) },
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = a.key,
-                onValueChange = { onActionChange(a.copy(key = it)) },
-                label = "Key",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = a.value,
-                onValueChange = { onActionChange(a.copy(value = it)) },
-                label = "Value",
-                modifier = Modifier.fillMaxWidth(),
+            WriteSettingSelector(
+                action = a,
+                onChange = onActionChange,
             )
         }
 
@@ -956,16 +924,6 @@ internal val waitPresets =
         "5 minutes" to 300_000L,
     )
 
-internal val writeSettingPresets =
-    listOf(
-        "Custom" to null,
-        "Animation scale 0.5x" to Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "0.5"),
-        "Animation scale 1x" to Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0"),
-        "Font scale 1.0" to Action.WriteSetting(SettingNamespace.GLOBAL, "font_scale", "1.0"),
-        "Font scale 1.25" to Action.WriteSetting(SettingNamespace.GLOBAL, "font_scale", "1.25"),
-        "Show taps" to Action.WriteSetting(SettingNamespace.SYSTEM, "show_touches", "1"),
-        "Hide taps" to Action.WriteSetting(SettingNamespace.SYSTEM, "show_touches", "0"),
-    )
 
 private fun actionTitle(action: Action): String =
     when (action) {
