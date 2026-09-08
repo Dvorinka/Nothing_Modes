@@ -307,41 +307,61 @@ class Engine(
      * settings keys go through WriteSetting. Glyph keys are cleared separately.
      */
     private fun restoreActionFor(snapshot: StateSnapshot): Action? {
-        when {
+        val value = snapshot.previousValue
+        return when {
             snapshot.settingKey == "dnd_mode" ->
-                return Action.SetDnd(
+                Action.SetDnd(
                     mode =
                         runCatching {
-                            com.tdvorak.nothingmodes.engine.model.DndMode
-                                .valueOf(snapshot.previousValue)
+                            com.tdvorak.nothingmodes.engine.model.DndMode.valueOf(value)
                         }.getOrDefault(com.tdvorak.nothingmodes.engine.model.DndMode.OFF),
                     restore = false,
                 )
             snapshot.settingKey == "night_mode" ->
-                return Action.SetDarkMode(
+                Action.SetDarkMode(
                     mode =
                         runCatching {
-                            com.tdvorak.nothingmodes.engine.model.NightMode
-                                .valueOf(snapshot.previousValue)
+                            com.tdvorak.nothingmodes.engine.model.NightMode.valueOf(value)
                         }.getOrDefault(com.tdvorak.nothingmodes.engine.model.NightMode.OFF),
                     restore = false,
                 )
-            snapshot.settingKey.startsWith("volume_") -> {
+            snapshot.settingKey == "wifi_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetWifi(on = it, restore = false) }
+            snapshot.settingKey == "bluetooth_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetBluetooth(on = it, restore = false) }
+            snapshot.settingKey == "mobile_data_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetMobileData(on = it, restore = false) }
+            snapshot.settingKey == "flashlight_on" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetFlashlight(on = it, restore = false) }
+            snapshot.settingKey == "aod_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetAlwaysOnDisplay(on = it, restore = false) }
+            snapshot.settingKey == "nfc_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetNfc(on = it, restore = false) }
+            snapshot.settingKey == "hotspot_enabled" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetHotspot(on = it, restore = false) }
+            snapshot.settingKey == "location_mode" ->
+                runCatching {
+                    Action.SetLocationMode(
+                        mode = com.tdvorak.nothingmodes.engine.model.LocationMode.valueOf(value),
+                        restore = false,
+                    )
+                }.getOrNull()
+            snapshot.settingKey == "auto_sync" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetAutoSync(on = it, restore = false) }
+            snapshot.settingKey == "ringer_mode" ->
+                Action.SetRinger(mode = value, restore = false)
+            snapshot.settingKey.matches(volumeKeyRegex) -> {
                 val stream =
                     runCatching {
                         com.tdvorak.nothingmodes.engine.model.VolumeStream
-                            .valueOf(
-                                snapshot.settingKey
-                                    .removePrefix("volume_")
-                                    .uppercase(),
-                            )
+                            .valueOf(snapshot.settingKey.removePrefix("volume_").uppercase())
                     }.getOrNull() ?: return null
-                val level = snapshot.previousValue.toIntOrNull() ?: return null
-                return Action.SetVolume(stream = stream, level = level, restore = false)
+                val level = value.toIntOrNull() ?: return null
+                Action.SetVolume(stream = stream, level = level, restore = false)
             }
-            snapshot.settingKey.startsWith("glyph_") -> return null
+            snapshot.settingKey in setOf("glyph_state", "glyph_matrix_state") -> null
             else ->
-                return Action.WriteSetting(
+                Action.WriteSetting(
                     namespace =
                         when (snapshot.namespace) {
                             "secure" ->
@@ -352,16 +372,18 @@ class Engine(
                                 com.tdvorak.nothingmodes.engine.model.SettingNamespace.SYSTEM
                         },
                     key = snapshot.settingKey,
-                    value = snapshot.previousValue,
+                    value = value,
                 )
         }
     }
 
+    private val volumeKeyRegex = Regex("^volume_.*$")
+
     /** Maps a setting key to its Android Settings namespace. */
     private fun namespaceForKey(key: String): String =
         when (key) {
-            "reduce_bright_colors_activated" -> "secure"
-            "airplane_mode_on", "low_power", "data_saver" -> "global"
+            "reduce_bright_colors_activated", "aod_enabled", "location_mode" -> "secure"
+            "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled" -> "global"
             else -> "system"
         }
 

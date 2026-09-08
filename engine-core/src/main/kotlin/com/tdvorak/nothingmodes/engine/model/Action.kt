@@ -72,18 +72,24 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_WIFI)
     data class SetWifi(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
     @SerialName(ActionTypeIds.SET_BLUETOOTH)
     data class SetBluetooth(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
     @SerialName(ActionTypeIds.SET_MOBILE_DATA)
     data class SetMobileData(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -98,6 +104,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_RINGER)
     data class SetRinger(
         val mode: String,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -132,6 +140,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_FLASHLIGHT)
     data class SetFlashlight(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     @Serializable
@@ -350,6 +360,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_HOTSPOT)
     data class SetHotspot(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle NFC. Requires Shizuku. */
@@ -357,6 +369,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_NFC)
     data class SetNfc(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Set display refresh rate (Hz). Uses Settings.System. */
@@ -404,6 +418,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_LOCATION_MODE)
     data class SetLocationMode(
         val mode: LocationMode,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Toggle auto-sync (background data sync). Requires Shizuku. */
@@ -411,6 +427,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AUTO_SYNC)
     data class SetAutoSync(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Clear all notifications. Requires notification listener access. */
@@ -423,6 +441,8 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AOD)
     data class SetAlwaysOnDisplay(
         val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
     ) : Action
 
     /** Take a screenshot. Requires MediaProjection (user consent per capture). */
@@ -477,6 +497,16 @@ val Action.canRestore: Boolean
             is Action.SetDataSaver,
             is Action.SetRefreshRate,
             is Action.SetScreenRotation,
+            is Action.SetWifi,
+            is Action.SetBluetooth,
+            is Action.SetMobileData,
+            is Action.SetFlashlight,
+            is Action.SetAlwaysOnDisplay,
+            is Action.SetNfc,
+            is Action.SetHotspot,
+            is Action.SetLocationMode,
+            is Action.SetAutoSync,
+            is Action.SetRinger,
             -> true
             else -> false
         }
@@ -497,6 +527,16 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetDataSaver -> copy(restore = restore)
         is Action.SetRefreshRate -> copy(restore = restore)
         is Action.SetScreenRotation -> copy(restore = restore)
+        is Action.SetWifi -> copy(restore = restore)
+        is Action.SetBluetooth -> copy(restore = restore)
+        is Action.SetMobileData -> copy(restore = restore)
+        is Action.SetFlashlight -> copy(restore = restore)
+        is Action.SetAlwaysOnDisplay -> copy(restore = restore)
+        is Action.SetNfc -> copy(restore = restore)
+        is Action.SetHotspot -> copy(restore = restore)
+        is Action.SetLocationMode -> copy(restore = restore)
+        is Action.SetAutoSync -> copy(restore = restore)
+        is Action.SetRinger -> copy(restore = restore)
         else -> this
     }
 
@@ -519,6 +559,16 @@ val Action.supportsRestore: Boolean
             is Action.SetScreenRotation -> restore
             is Action.SetGlyph -> restore
             is Action.SetGlyphMatrix -> restore
+            is Action.SetWifi -> restore
+            is Action.SetBluetooth -> restore
+            is Action.SetMobileData -> restore
+            is Action.SetFlashlight -> restore
+            is Action.SetAlwaysOnDisplay -> restore
+            is Action.SetNfc -> restore
+            is Action.SetHotspot -> restore
+            is Action.SetLocationMode -> restore
+            is Action.SetAutoSync -> restore
+            is Action.SetRinger -> restore
             else -> false
         }
 
@@ -541,5 +591,15 @@ val Action.affectedSettings: Set<String>
             is Action.SetDataSaver -> setOf("data_saver")
             is Action.SetRefreshRate -> setOf("peak_refresh_rate", "min_refresh_rate")
             is Action.SetScreenRotation -> setOf("accelerometer_rotation", "user_rotation")
+            is Action.SetWifi -> setOf("wifi_enabled")
+            is Action.SetBluetooth -> setOf("bluetooth_enabled")
+            is Action.SetMobileData -> setOf("mobile_data_enabled")
+            is Action.SetFlashlight -> setOf("flashlight_on")
+            is Action.SetAlwaysOnDisplay -> setOf("aod_enabled")
+            is Action.SetNfc -> setOf("nfc_enabled")
+            is Action.SetHotspot -> setOf("hotspot_enabled")
+            is Action.SetLocationMode -> setOf("location_mode")
+            is Action.SetAutoSync -> setOf("auto_sync")
+            is Action.SetRinger -> setOf("ringer_mode")
             else -> emptySet()
         }
