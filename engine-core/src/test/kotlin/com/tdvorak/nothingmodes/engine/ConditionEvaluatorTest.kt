@@ -943,6 +943,15 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `booleanState hotspotOn met when enabled`() {
+        val state = DeviceState(values = mapOf(StateKeys.HOTSPOT_ENABLED to "true"))
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.BooleanState(StateKeys.HOTSPOT_ENABLED, true), state),
+        )
+    }
+
+    @Test
     fun `atLocation met when inside radius`() {
         val state = DeviceState(values = mapOf(StateKeys.LAT to "50.0755", StateKeys.LNG to "14.4378"))
         assertEquals(

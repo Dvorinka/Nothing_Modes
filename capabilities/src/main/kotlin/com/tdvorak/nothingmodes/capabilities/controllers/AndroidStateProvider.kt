@@ -144,6 +144,7 @@ class AndroidStateProvider(
         values[StateKeys.MOBILE_DATA] = readMobileData().toString()
         readAodEnabled()?.let { values[StateKeys.AOD_ENABLED] = it.toString() }
         values[StateKeys.DND_ACTIVE] = readDndActive().toString()
+        values[StateKeys.HOTSPOT_ENABLED] = readHotspotEnabled().toString()
 
         readBrightness()?.let { values[StateKeys.BRIGHTNESS] = it.toString() }
         readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
@@ -248,6 +249,15 @@ class AndroidStateProvider(
         runCatching {
             Settings.Secure.getInt(context.contentResolver, "doze_always_on", 0) == 1
         }.getOrNull()
+
+    private fun readHotspotEnabled(): Boolean =
+        try {
+            val wifiManager = context.getSystemService(WifiManager::class.java)
+            val method = wifiManager?.javaClass?.getMethod("isWifiApEnabled")
+            method?.invoke(wifiManager) as? Boolean ?: false
+        } catch (_: Exception) {
+            false
+        }
 
     private fun readDndActive(): Boolean =
         try {

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.ScreenLockPortrait
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.tdvorak.nothingmodes.engine.model.StateKeys
 
@@ -54,6 +55,12 @@ internal val BOOLEAN_STATE_ITEMS: List<BooleanStateItem> =
             "Do not disturb on",
             "Sound",
             Icons.Outlined.DoNotDisturbOn,
+        ),
+        BooleanStateItem(
+            StateKeys.HOTSPOT_ENABLED,
+            "Hotspot on",
+            "Connections",
+            Icons.Outlined.WifiTethering,
         ),
     )
 
