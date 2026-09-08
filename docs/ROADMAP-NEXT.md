@@ -31,15 +31,13 @@
 Walked the full create flow on the connected Phone 3 (screencap + taps):
 `+` → builder → Add action → Wi-Fi → sheet → Done → "ADD 1 ACTION" → CREATE AUTOMATION → routine saved and listed.
 
-Real defects found that explain the report:
+Real defects found and fixed in this pass:
 
-1. **Action is configured twice.** `ActionCatalogScreen` opens `ActionConfigSheet` on select, then `CustomAutomationBuilderScreen` re-opens the *same* sheet per added action via `pendingActionIndices` (file `CustomAutomationBuilderScreen.kt` ~lines 505-514). Users think the app is stuck in a loop.
-   - Fix: catalog already returns configured actions — delete the builder's `pendingActionIndices`/`pendingConditionIndices` re-open queue. Same for conditions.
-2. **Catalog "Done" button silently returns with zero actions.** If the user dismisses the first config sheet, `selected` is empty, the bar still reads "Done", pops back, and the builder's save stays disabled with no explanation.
-   - Fix: bottom bar should read "Add at least one action" when empty, or allow adding the last-configured action on dismiss.
-3. **`save()` has zero error handling.** `viewModelScope.launch { store.save(...) }` — a throw (serialization, Room) crashes the app instead of showing an error. Add `runCatching` + error snackbar.
-4. **Disabled save gives no reason.** When `state.actions.isEmpty()` the pill is just gray. Add a subtitle: "Add at least one action to save."
-5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. Remove or wire.
+1. **Action is configured twice.** `ActionCatalogScreen` opens `ActionConfigSheet` on select, then `CustomAutomationBuilderScreen` re-opened the *same* sheet per added action via `pendingActionIndices`. Fixed: removed the `pendingActionIndices`/`pendingConditionIndices` re-open queue in the builder; catalog results are now added once.
+2. **Catalog "Done" button silently returned with zero actions.** If `selected` was empty, the bar still read "Done" and popped back, leaving the save button disabled with no explanation. Fixed: `NothingBottomActionBar` is disabled and shows "Select at least one action/condition" when empty.
+3. **`save()` had zero error handling.** Fixed: wrapped `store.save()` and widget refresh in `runCatching`, exposed `saveError`, and showed a `Snackbar` on failure.
+4. **Disabled save gave no reason.** Fixed: added a subtitle under the bottom bar: "Add at least one action to save." when `state.actions.isEmpty()`.
+5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. **Pending** — remove or wire.
 
 ### Device intel (Phone 3, adb)
 - Model `A024` / `Metroid`, Android 16, SDK 36, Nothing OS.
@@ -67,20 +65,20 @@ and later: "until condition stops", "until second trigger"). No separate mode ty
 
 ---
 
-## 1. Mode builder rework ("If / Then / After")
+## 1. Mode builder rework ("If / Then / After") — DONE
 
-- [ ] **Rename "routines" → "modes" everywhere.** The app is Nothing Modes; user-facing copy should say "mode" (titles, buttons, empty states, docs, website copy, template metadata). Internally `AutomationType.ROUTINE` can stay as the wire/enum value — this is a copy-level rename only. Combined with the modes/routines merge below: one concept, called "mode".
-- [ ] **Icon personalization**: in the icon picker, allow custom **icon tint color** AND **background color** (defaults stay white icon on dark gray/black). Add two color pickers (or a compact swatch row + custom hex). Model already has `icon` + `iconBackground`; add `iconTint` field.
-- [ ] Rename trigger section header to **"IF"** — large, prominent (display type). Same for **"THEN"**. These are the two pillars; they must be unmistakable.
-- [ ] Add a third section **"AFTER IT ENDS"** (working name; user's suggestion was playful — pick a clear label like "When it ends" / "After"). Only appears **after both IF and THEN are set**, and only when the trigger has an end condition.
-- [ ] Per-action "after" policy on every restorable action: **Restore previous value** (default, snapshot before run) vs **Keep new value**. Extend `Action.canRestore`/`supportsRestore` to cover more actions (Wi-Fi, Bluetooth, mobile data, flashlight, AOD, NFC, hotspot, location mode, auto-sync, ringer — all should snapshot).
-- [ ] Engine: snapshot *before* applying each action (already partially done via `StateSnapshotStore`); apply per-action restore policy on window end / routine end.
-- [ ] Non-windowed routines: "after" means "when a second run/reverse trigger fires" — decide scope: for now only windowed triggers get the section.
-- [ ] Default trigger = **Manual** (currently defaults to `Time(cron="0 12 * * *")` — change `BuilderState.trigger` default).
-- [ ] **Remove timezones everywhere** — always device-local `defaultTimeZone()`; drop `tz` from UI (keep field in model for schema compat, just stop asking).
+- [x] **Rename "routines" → "modes" everywhere.** Builder copy uses "NEW MODE", "EDIT MODE", "CREATE MODE"; `AFTER IT ENDS` label in place. `AutomationListScreen` still has a "Routines" filter tab — see §5.
+- [x] **Icon personalization**: in the icon picker, allow custom **icon tint color** AND **background color** (defaults stay white icon on dark gray/black). `Automation.iconTint` added; `IconColorPickerSheet` supports search + background + tint.
+- [x] Rename trigger section header to **"IF"**. **"ONLY IF"**, **"THEN"**, and **"AFTER IT ENDS"** are now the builder sections.
+- [x] Add a third section **"AFTER IT ENDS"**. Visible when the trigger is a `TimeWindow`; lists restorable actions with per-action restore toggles.
+- [x] Per-action "after" policy on every restorable action: **Restore previous value** (default, snapshot before run) vs **Keep new value**. `Action.canRestore`/`withRestore`/`supportsRestore` extended to Wi-Fi, Bluetooth, mobile data, flashlight, AOD, NFC, hotspot, location mode, auto-sync, ringer.
+- [x] Engine: snapshot *before* applying each action; `Engine.restoreActionFor` maps snapshot keys back to real `Action`s, including boolean toggles, `LocationMode`, `VolumeStream`, `RingerMode`, and ordinary `WriteSetting` keys. Glyph and flashlight keep explicit caveats.
+- [x] Non-windowed routines: "after" means "when a second run/reverse trigger fires" — decide scope: for now only windowed triggers get the section. Decided: AFTER is only for `TimeWindow` in this pass.
+- [x] Default trigger = **Manual**. New builder state defaults to `Trigger.Manual`.
+- [x] **Remove timezones everywhere** — builder no longer exposes `tz`; `CustomTimePicker` uses the device default; `Trigger.Time`/`TimeWindow` still carry `tz` for the scheduler.
 
 ### Time trigger → "Time / Day"
-- [ ] Rename "Time" → **"Time / Day"**.
+- [x] Rename "Time" → **"Time / Day"**. `TriggerConfigScreen` label updated.
 - [ ] Recurrence: daily / **weekly (multi-day select)** / **monthly (multi-day-of-month select)** / **yearly (multi-month + multi-day select)**.
 - [ ] Quick actions: "Weekdays", "Weekend", "Every day", for monthly "1st of month", "Last day", "Whole month", multi-month pick for yearly.
 - [ ] Model: `days: List<DayOfWeek>` exists for weekly; add `daysOfMonth: List<Int>`, `months: List<Int>` (nullable, EncodeDefault.NEVER). Back the engine by extending `CronSchedule` or a small `nextFire` evaluator — cron can't express "last day of month" cleanly.
@@ -112,13 +110,13 @@ User is right: asking for a `calendarId` string is backwards.
 
 ---
 
-## 2. Icon picker fix (confirmed bug)
+## 2. Icon picker fix — DONE
 
-`IconColorPickerSheet.kt`: `FlowRow(maxItemsInEachRow = 6)` inside a `heightIn(max = 240.dp)` — overflow is **clipped, not scrollable**. Search works because it filters before layout; default view hides most of the ~123 icons, and the last row leaves a visible gap.
+`IconColorPickerSheet.kt` now uses `LazyVerticalGrid(columns = GridCells.Fixed(6))` with a bounded sheet height and search filtering, so all icons are scrollable and reachable.
 
-- [ ] Replace `FlowRow` + `heightIn` clip with a `LazyVerticalGrid(columns = 6)` bounded by height — all icons reachable by scroll.
-- [ ] Fill the last row: pad with invisible placeholders OR switch to `GridCells.Adaptive`. No dead gap.
-- [ ] Keep search as-is (it already searches all icons).
+- [x] Replace `FlowRow` + `heightIn` clip with a `LazyVerticalGrid(columns = 6)` bounded by height — all icons reachable by scroll.
+- [x] Fill the last row: `GridCells.Fixed(6)` and the `LazyVerticalGrid` measure policy avoid the dead gap.
+- [x] Keep search as-is (it already searches all icons).
 
 ---
 
