@@ -52,6 +52,7 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ExportBundle
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
+import com.tdvorak.nothingmodes.engine.canonicalJson
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -253,7 +254,8 @@ class TemplateCatalogViewModel
                 _error.value = null
                 try {
                     val payload = CommunityApi.fetchItem(item.id)
-                    val preview = importExportService.preview(payload.toString())
+                    val payloadText = payload.canonicalJson()
+                    val preview = importExportService.preview(payloadText, item.contentHash)
                     val summary =
                         TemplateSummary(
                             id = "lib:${item.id}",

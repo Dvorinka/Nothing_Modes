@@ -1,4 +1,4 @@
-import { ensureSharedTable, getSql, sha256Hex } from './lib/db';
+import { ensureSharedTable, getSql, sha256Hex, canonicalJson } from './lib/db';
 import { analyzeGlyph, analyzeTemplate } from './lib/analyze';
 import { notifyAdmin } from './lib/email';
 
@@ -68,7 +68,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '';
   const ipHash = ip ? await sha256Hex(ip) : '';
-  const contentHash = await sha256Hex(JSON.stringify(analysis.sanitized));
+  const contentHash = await sha256Hex(canonicalJson(analysis.sanitized));
 
   // ── rate limits ──────────────────────────────────────────────────────────
   const [recent] = await sql`

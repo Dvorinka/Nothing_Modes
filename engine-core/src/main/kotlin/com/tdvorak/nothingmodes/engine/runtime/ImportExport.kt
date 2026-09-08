@@ -99,8 +99,12 @@ class ImportExportService(
     /**
      * Parse and validate a bundle without persisting anything. Returns the
      * automations, the union of required capabilities, and blocking errors.
+     * @param expectedContentHash optional SHA-256 of canonical JSON for integrity checks.
      */
-    fun preview(json: String): ImportPreview {
+    fun preview(
+        json: String,
+        expectedContentHash: String? = null,
+    ): ImportPreview {
         val bundle =
             try {
                 EngineJson.json.decodeFromString(ExportBundle.serializer(), json)
@@ -133,6 +137,20 @@ class ImportExportService(
             )
         }
 
+        if (expectedContentHash != null) {
+            val actual = com.tdvorak.nothingmodes.engine.jsonSha256(json)
+            if (!actual.equals(expectedContentHash, ignoreCase = true)) {
+                return ImportPreview(
+                    automations = emptyList(),
+                    schemaVersion = bundle.schemaVersion,
+                    appVersion = bundle.appVersion,
+                    requiredCapabilities = emptySet(),
+                    errors = listOf("Content hash mismatch — the file may have been modified in transit."),
+                    creatorProfile = bundle.creatorProfile,
+                )
+            }
+        }
+
         return ImportPreview(
             automations = bundle.automations,
             schemaVersion = bundle.schemaVersion,
@@ -154,8 +172,9 @@ class ImportExportService(
     suspend fun import(
         json: String,
         overwrite: Boolean = false,
+        expectedContentHash: String? = null,
     ): ImportResult {
-        val preview = preview(json)
+        val preview = preview(json, expectedContentHash)
         if (!preview.isSupported) {
             return ImportResult(imported = 0, skipped = 0, errors = preview.errors)
         }
