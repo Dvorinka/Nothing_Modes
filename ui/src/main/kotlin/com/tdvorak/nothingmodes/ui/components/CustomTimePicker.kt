@@ -177,7 +177,7 @@ private fun TimeSchedule.toTrigger(): Trigger.Time {
 @Composable
 fun CustomTimePicker(
     trigger: Trigger.Time,
-    onUpdate: (Trigger.Time) -> Unit,
+    onUpdate: (Trigger) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val initial =
@@ -190,6 +190,15 @@ fun CustomTimePicker(
         schedule = schedule.updater()
         onUpdate(schedule.toTrigger())
     }
+
+    val sourceOptions = listOf("Clock", "Calendar event")
+    NothingEnumSelector(
+        label = "Source",
+        value = "Clock",
+        options = sourceOptions,
+        onSelect = { if (it == "Calendar event") onUpdate(Trigger.CalendarEvent()) },
+    )
+    Spacer(modifier = Modifier.height(NothingSpacing.md))
 
     val options = Recurrence.entries.map { it.label }
 

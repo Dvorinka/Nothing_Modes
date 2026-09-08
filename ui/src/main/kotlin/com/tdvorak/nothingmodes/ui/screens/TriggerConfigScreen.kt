@@ -1008,10 +1008,18 @@ private fun GeofenceContent(
 @Composable
 private fun CalendarEventContent(
     trigger: Trigger.CalendarEvent,
-    onUpdate: (Trigger.CalendarEvent) -> Unit,
+    onUpdate: (Trigger) -> Unit,
 ) {
     val context = LocalContext.current
     var showCalendarPicker by remember { mutableStateOf(false) }
+    val sourceOptions = listOf("Calendar event", "Clock")
+    NothingEnumSelector(
+        label = "Source",
+        value = "Calendar event",
+        options = sourceOptions,
+        onSelect = { if (it == "Clock") onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())) },
+    )
+    Spacer(modifier = Modifier.height(NothingSpacing.md))
     Column {
         NothingInput(
             value = trigger.titleMatch ?: "",
