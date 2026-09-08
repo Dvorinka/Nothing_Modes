@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.DndMode
@@ -247,7 +248,13 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_location_mode" -> Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.valueOf(mode.ifBlank { "OFF" }.uppercase()))
             "set_auto_sync" -> Action.SetAutoSync(on)
             "clear_notifications" -> Action.ClearNotifications
-            "set_aod" -> Action.SetAlwaysOnDisplay(on)
+            "set_aod" -> {
+                val aodMode =
+                    runCatching {
+                        AodMode.valueOf(mode.ifBlank { "OFF" }.uppercase())
+                    }.getOrDefault(AodMode.OFF)
+                Action.SetAlwaysOnDisplay(aodMode)
+            }
             "take_screenshot" -> Action.TakeScreenshot
             else -> null
         }

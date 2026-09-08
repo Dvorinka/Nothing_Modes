@@ -155,7 +155,7 @@ fun actionDescription(action: Action): String =
             is Action.SetLocationMode -> "Location: ${action.mode.name.enumLabel()}"
             is Action.SetAutoSync -> "Auto-sync: ${if (action.on) "On" else "Off"}"
             is Action.ClearNotifications -> "Clear notifications"
-            is Action.SetAlwaysOnDisplay -> "AOD: ${if (action.on) "On" else "Off"}"
+            is Action.SetAlwaysOnDisplay -> "AOD: ${action.mode.name.enumLabel()}"
             is Action.TakeScreenshot -> "Screenshot"
         }
     ).uppercase()

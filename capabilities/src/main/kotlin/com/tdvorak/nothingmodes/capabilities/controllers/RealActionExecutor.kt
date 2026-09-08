@@ -17,6 +17,8 @@ import android.os.VibratorManager
 import androidx.core.content.ContextCompat
 import android.provider.Settings
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
+import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
@@ -173,8 +175,8 @@ class RealActionExecutor(
                 )
             is Action.ClearNotifications -> clearNotifications()
             is Action.SetAlwaysOnDisplay ->
-                shellOrPanel(
-                    aodCommand(action.on),
+                shellAllOrPanel(
+                    aodCommands(action),
                     Settings.ACTION_DISPLAY_SETTINGS,
                 )
             is Action.TakeScreenshot -> ActionResult.Unsupported
@@ -210,6 +212,17 @@ class RealActionExecutor(
         return openPanel(panelAction)
     }
 
+    private suspend fun shellAllOrPanel(
+        commands: List<List<String>>,
+        panelAction: String,
+    ): ActionResult {
+        val results = commands.map { executeShell(it) }
+        if (results.all { it == ActionResult.Success }) return ActionResult.Success
+        if (results.any { it is ActionResult.ShizukuRequired }) return openPanel(panelAction)
+        return results.firstOrNull { it is ActionResult.Failure }
+            ?: ActionResult.Failure("shell command failed")
+    }
+
     /** Open a system settings page/panel; returns NeedsUserAction on success. */
     private fun openPanel(action: String): ActionResult =
         try {
@@ -237,7 +250,37 @@ class RealActionExecutor(
 
     private fun autoSyncCommand(on: Boolean) = listOf("settings", "put", "global", "auto_sync", if (on) "1" else "0")
 
-    private fun aodCommand(on: Boolean) = listOf("settings", "put", "secure", "doze_always_on", if (on) "1" else "0")
+    private fun aodCommands(action: Action.SetAlwaysOnDisplay): List<List<String>> {
+        val base = listOf("settings", "put", "secure")
+        return when (action.mode) {
+            AodMode.OFF ->
+                listOf(
+                    base + listOf("doze_always_on", "0"),
+                    base + listOf("doze_tap_gesture", "0"),
+                )
+            AodMode.TAP_TO_SHOW ->
+                listOf(
+                    base + listOf("doze_always_on", "0"),
+                    base + listOf("doze_tap_gesture", "1"),
+                )
+            AodMode.ALWAYS_ON ->
+                listOf(
+                    base + listOf("doze_always_on", "1"),
+                    base + listOf("doze_tap_gesture", "0"),
+                )
+            AodMode.SCHEDULE -> {
+                val s = action.schedule ?: AodSchedule()
+                listOf(
+                    base + listOf("doze_always_on", "0"),
+                    base + listOf("doze_tap_gesture", "0"),
+                    base + listOf("doze_start_hour", s.startHour.toString()),
+                    base + listOf("doze_start_minute", s.startMinute.toString()),
+                    base + listOf("doze_end_hour", s.endHour.toString()),
+                    base + listOf("doze_end_minute", s.endMinute.toString()),
+                )
+            }
+        }
+    }
 
     private fun writeSettingCommand(action: Action.WriteSetting): List<String> {
         val namespace =

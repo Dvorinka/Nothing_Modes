@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -85,7 +86,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Auto brightness", "Display", Icons.Outlined.Lightbulb, Action.SetAutoBrightness(true)),
                 ActionItem("Extra dim", "Display", Icons.Outlined.Brightness6, Action.SetExtraDim(true, restore = true)),
                 ActionItem("Screen timeout", "Display", Icons.Outlined.Timer, Action.SetScreenTimeout(30_000)),
-                ActionItem("Always-on display", "Display", Icons.Outlined.PhoneAndroid, Action.SetAlwaysOnDisplay(true)),
+                ActionItem("Always-on display", "Display", Icons.Outlined.PhoneAndroid, Action.SetAlwaysOnDisplay(AodMode.OFF)),
                 ActionItem("Do not disturb", "Sound", Icons.Outlined.Notifications, Action.SetDnd(DndMode.OFF)),
                 ActionItem("Volume", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetVolume(VolumeStream.MEDIA, 8)),
                 ActionItem("Vibrate", "Sound", Icons.Outlined.Vibration, Action.Vibrate(500)),

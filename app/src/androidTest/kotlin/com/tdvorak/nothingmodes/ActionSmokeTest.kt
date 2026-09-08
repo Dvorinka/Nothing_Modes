@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.tdvorak.nothingmodes.capabilities.controllers.RealActionExecutor
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
@@ -88,7 +89,7 @@ class ActionSmokeTest {
                     Action.SetLocationMode(LocationMode.OFF),
                     Action.SetAutoSync(false),
                     Action.ClearNotifications,
-                    Action.SetAlwaysOnDisplay(false),
+                    Action.SetAlwaysOnDisplay(AodMode.OFF),
                     Action.TakeScreenshot,
                 )
 

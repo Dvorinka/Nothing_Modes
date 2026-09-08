@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.engine.runtime
 
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
@@ -334,7 +335,12 @@ class Engine(
             snapshot.settingKey == "flashlight_on" ->
                 value.toBooleanStrictOrNull()?.let { Action.SetFlashlight(on = it, restore = false) }
             snapshot.settingKey == "aod_enabled" ->
-                value.toBooleanStrictOrNull()?.let { Action.SetAlwaysOnDisplay(on = it, restore = false) }
+                value.toBooleanStrictOrNull()?.let {
+                    Action.SetAlwaysOnDisplay(
+                        mode = if (it) AodMode.ALWAYS_ON else AodMode.OFF,
+                        restore = false,
+                    )
+                }
             snapshot.settingKey == "nfc_enabled" ->
                 value.toBooleanStrictOrNull()?.let { Action.SetNfc(on = it, restore = false) }
             snapshot.settingKey == "hotspot_enabled" ->

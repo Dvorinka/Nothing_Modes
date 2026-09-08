@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
+import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -237,17 +239,98 @@ fun ActionConfigContent(
 
         is Action.SetAlwaysOnDisplay -> {
             Column {
-                BooleanRow(
-                    label = "Always-on display",
-                    checked = a.on,
-                    onChange = { onActionChange(a.copy(on = it)) },
+                NothingEnumSelector(
+                    label = "AOD mode",
+                    value = a.mode.name.enumLabel(),
+                    options = enumLabelList<AodMode>(),
+                    onSelect = { onActionChange(a.copy(mode = enumByLabel<AodMode>(it))) },
                 )
                 Text(
-                    text = "Keeps the screen on while the mode is active. Tap-to-show and scheduled AOD modes are not yet supported.",
+                    text = when (a.mode) {
+                        AodMode.OFF -> "AOD is turned off."
+                        AodMode.TAP_TO_SHOW -> "Screen lights up when tapped while dozing."
+                        AodMode.ALWAYS_ON -> "Screen stays on at all times."
+                        AodMode.SCHEDULE -> "AOD is active only within the hours below."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.padding(top = NothingSpacing.sm),
                 )
+                if (a.mode == AodMode.SCHEDULE) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    Text(
+                        text = "Start",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        NothingInput(
+                            value = (a.schedule?.startHour ?: 0).toString(),
+                            onValueChange = {
+                                onActionChange(
+                                    a.copy(
+                                        schedule = (a.schedule ?: AodSchedule()).copy(
+                                            startHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                                        ),
+                                    ),
+                                )
+                            },
+                            label = "Hour",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                        NothingInput(
+                            value = (a.schedule?.startMinute ?: 0).toString(),
+                            onValueChange = {
+                                onActionChange(
+                                    a.copy(
+                                        schedule = (a.schedule ?: AodSchedule()).copy(
+                                            startMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                                        ),
+                                    ),
+                                )
+                            },
+                            label = "Minute",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    Text(
+                        text = "End",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        NothingInput(
+                            value = (a.schedule?.endHour ?: 0).toString(),
+                            onValueChange = {
+                                onActionChange(
+                                    a.copy(
+                                        schedule = (a.schedule ?: AodSchedule()).copy(
+                                            endHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                                        ),
+                                    ),
+                                )
+                            },
+                            label = "Hour",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                        NothingInput(
+                            value = (a.schedule?.endMinute ?: 0).toString(),
+                            onValueChange = {
+                                onActionChange(
+                                    a.copy(
+                                        schedule = (a.schedule ?: AodSchedule()).copy(
+                                            endMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                                        ),
+                                    ),
+                                )
+                            },
+                            label = "Minute",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
         }
 

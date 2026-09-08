@@ -440,7 +440,8 @@ sealed interface Action {
     @Serializable
     @SerialName(ActionTypeIds.SET_AOD)
     data class SetAlwaysOnDisplay(
-        val on: Boolean,
+        val mode: AodMode = AodMode.OFF,
+        val schedule: AodSchedule? = null,
         /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action

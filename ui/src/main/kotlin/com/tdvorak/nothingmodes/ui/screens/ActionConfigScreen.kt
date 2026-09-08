@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -183,10 +184,13 @@ fun ActionConfigScreen(
                     }
 
                     is Action.SetAlwaysOnDisplay -> {
-                        BooleanRow(
-                            label = "Always-on display enabled",
-                            checked = a.on,
-                            onChange = { action = a.copy(on = it) },
+                        NothingEnumSelector(
+                            label = "AOD mode",
+                            value = a.mode.name,
+                            options = AodMode.entries.map { it.name },
+                            onSelect = { sel ->
+                                action = a.copy(mode = AodMode.valueOf(sel))
+                            },
                         )
                     }
 
