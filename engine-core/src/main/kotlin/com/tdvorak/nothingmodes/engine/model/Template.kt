@@ -21,6 +21,8 @@ data class TemplateSummary(
     val description: String = "",
     val creator: String = "",
     val emoji: String = "",
+    /** Real icon name from the in-app/website icon catalog. Prefer this over emoji. */
+    val icon: String = "",
     val tags: List<String> = emptyList(),
     /** Minimum export schema version needed to consume this template. */
     val minSchemaVersion: Int = AUTOMATION_SCHEMA_VERSION_V1,

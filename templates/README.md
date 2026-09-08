@@ -18,7 +18,8 @@ a routine.
   "name": "My Template",
   "description": "One sentence on what it does and when it fires.",
   "creator": "your-github-username",
-  "emoji": "✨",
+  "icon": "star",
+  "emoji": "",
   "tags": ["tag-one", "tag-two"],
   "minSchemaVersion": 1,
   "file": "my-template.json"

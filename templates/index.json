@@ -6,7 +6,8 @@
       "name": "Night Owl",
       "description": "Dims the screen, switches to dark mode and silences notifications every night at 23:30.",
       "creator": "TDvorak",
-      "emoji": "🌙",
+      "emoji": "",
+      "icon": "dark_mode",
       "tags": ["sleep", "dnd", "display"],
       "minSchemaVersion": 1,
       "file": "night-owl.json"
@@ -16,7 +17,8 @@
       "name": "Glyph Bedside",
       "description": "Mode that shows a soft sleep preset on the Glyph interface while the phone charges overnight.",
       "creator": "TDvorak",
-      "emoji": "💡",
+      "emoji": "",
+      "icon": "lightbulb",
       "tags": ["glyph", "nothing", "night"],
       "minSchemaVersion": 1,
       "file": "glyph-bedside.json"
@@ -26,7 +28,8 @@
       "name": "Wireless Glyph",
       "description": "When the phone lands on a wireless charger, pulse a charging preset across the Glyph.",
       "creator": "TDvorak",
-      "emoji": "⚡",
+      "emoji": "",
+      "icon": "bolt",
       "tags": ["glyph", "nothing", "charging", "wireless"],
       "minSchemaVersion": 1,
       "file": "wireless-glyph.json"
@@ -36,7 +39,8 @@
       "name": "Commute Tunes",
       "description": "When headphones connect over Bluetooth, set media volume and open your music app.",
       "creator": "TDvorak",
-      "emoji": "🎧",
+      "emoji": "",
+      "icon": "music",
       "tags": ["bluetooth", "music", "commute"],
       "minSchemaVersion": 1,
       "file": "commute-tunes.json"

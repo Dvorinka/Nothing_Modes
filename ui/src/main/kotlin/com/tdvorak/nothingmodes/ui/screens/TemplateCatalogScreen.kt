@@ -734,7 +734,7 @@ private fun TemplateRow(
             leading = {
                 NothingIconCircle {
                     Icon(
-                        imageVector = iconForEmoji(template.emoji),
+                        imageVector = if (template.icon.isNotBlank()) iconForName(template.icon) else iconForEmoji(template.emoji),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
@@ -837,7 +837,7 @@ private fun TemplateInstallSheet(
         ) {
             NothingIconCircle {
                 Icon(
-                    imageVector = iconForEmoji(install.summary.emoji),
+                    imageVector = if (install.summary.icon.isNotBlank()) iconForName(install.summary.icon) else iconForEmoji(install.summary.emoji),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
