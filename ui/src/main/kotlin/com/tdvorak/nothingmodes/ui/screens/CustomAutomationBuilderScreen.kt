@@ -417,25 +417,8 @@ fun CustomAutomationBuilderScreen(
     // Handle condition result from catalog (all conditions use the bottom sheet).
     var editingConditionIndex by rememberSaveable { mutableStateOf(-1) }
     var conditionSheetCondition by remember { mutableStateOf<Condition?>(null) }
-    // Queue of newly added conditions waiting for their config sheet.
-    var pendingConditionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
-    val conditionResultFlow =
-        remember(backStackEntry) {
-            backStackEntry?.savedStateHandle?.getStateFlow("condition_result", "")
-                ?: MutableStateFlow("")
-        }
-    val conditionResult by conditionResultFlow.collectAsStateWithLifecycle()
-    androidx.compose.runtime.LaunchedEffect(conditionResult, backStackEntry) {
-        if (conditionResult.isNotEmpty()) {
-            runCatching { Json.decodeFromString<Condition>(conditionResult) }.getOrNull()?.let { condition ->
-                editingConditionIndex = -1
-                conditionSheetCondition = condition
-            }
-            backStackEntry?.savedStateHandle?.set("condition_result", "")
-        }
-    }
-    // Multi-select catalog result: a JSON array of conditions, added at once.
-    // Each new item then gets its config sheet, one after another.
+
+    // Multi-select catalog result: a JSON array of already-configured conditions, added at once.
     val conditionsResultFlow =
         remember(backStackEntry) {
             backStackEntry?.savedStateHandle?.getStateFlow("condition_results", "")
@@ -447,48 +430,17 @@ fun CustomAutomationBuilderScreen(
             runCatching { Json.decodeFromString<List<Condition>>(conditionsResult) }
                 .getOrNull()
                 ?.let { conditions ->
-                    if (conditions.isNotEmpty()) {
-                        val firstIndex = state.conditions.size
-                        conditions.forEach(viewModel::addCondition)
-                        pendingConditionIndices = (firstIndex until firstIndex + conditions.size).toList()
-                    }
+                    conditions.forEach(viewModel::addCondition)
                 }
             backStackEntry?.savedStateHandle?.set("condition_results", "")
         }
     }
-    // Pop the next queued condition into the config sheet whenever none is open.
-    androidx.compose.runtime.LaunchedEffect(conditionSheetCondition, pendingConditionIndices, state.conditions) {
-        if (conditionSheetCondition == null && editingConditionIndex < 0 && pendingConditionIndices.isNotEmpty()) {
-            val next = pendingConditionIndices.first()
-            pendingConditionIndices = pendingConditionIndices.drop(1)
-            state.conditions.getOrNull(next)?.let {
-                editingConditionIndex = next
-                conditionSheetCondition = it
-            }
-        }
-    }
 
-    // Handle action result from catalog (all actions use the bottom sheet).
+    // Handle action result from catalog (already configured by the catalog sheets).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
-    var pendingActionIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
-    val actionResultFlow =
-        remember(backStackEntry) {
-            backStackEntry?.savedStateHandle?.getStateFlow("action_result", "")
-                ?: MutableStateFlow("")
-        }
-    val actionResult by actionResultFlow.collectAsStateWithLifecycle()
-    androidx.compose.runtime.LaunchedEffect(actionResult, backStackEntry) {
-        if (actionResult.isNotEmpty()) {
-            runCatching { Json.decodeFromString<Action>(actionResult) }.getOrNull()?.let { action ->
-                editingActionIndex = -1
-                actionSheetAction = action
-            }
-            backStackEntry?.savedStateHandle?.set("action_result", "")
-        }
-    }
     val actionsResultFlow =
         remember(backStackEntry) {
             backStackEntry?.savedStateHandle?.getStateFlow("action_results", "")
@@ -500,23 +452,9 @@ fun CustomAutomationBuilderScreen(
             runCatching { Json.decodeFromString<List<Action>>(actionsResult) }
                 .getOrNull()
                 ?.let { actions ->
-                    if (actions.isNotEmpty()) {
-                        val firstIndex = state.actions.size
-                        actions.forEach(viewModel::addAction)
-                        pendingActionIndices = (firstIndex until firstIndex + actions.size).toList()
-                    }
+                    actions.forEach(viewModel::addAction)
                 }
             backStackEntry?.savedStateHandle?.set("action_results", "")
-        }
-    }
-    androidx.compose.runtime.LaunchedEffect(actionSheetAction, pendingActionIndices, state.actions) {
-        if (actionSheetAction == null && editingActionIndex < 0 && pendingActionIndices.isNotEmpty()) {
-            val next = pendingActionIndices.first()
-            pendingActionIndices = pendingActionIndices.drop(1)
-            state.actions.getOrNull(next)?.let {
-                editingActionIndex = next
-                actionSheetAction = it
-            }
         }
     }
 
