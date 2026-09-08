@@ -134,8 +134,10 @@ class SettingsViewModel
 
         fun detect(context: android.content.Context) {
             viewModelScope.launch {
-                _capabilities.value = CapabilityDetector(context).detect()
-                _shizukuStatus.value = shizukuGateway.status()
+                val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                val status = withContext(Dispatchers.IO) { shizukuGateway.status() }
+                _capabilities.value = caps
+                _shizukuStatus.value = status
             }
         }
 
