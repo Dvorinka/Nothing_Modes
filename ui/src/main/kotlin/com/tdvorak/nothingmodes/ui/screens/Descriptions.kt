@@ -104,19 +104,25 @@ fun actionDescription(action: Action): String =
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
             is Action.SetDnd -> "DND: ${action.mode.displayName()}"
-            is Action.SetRinger -> "Ringer: ${action.mode}"
-            is Action.LaunchApp -> "Launch: ${action.pkg}"
-            is Action.OpenUrl -> "Open URL: ${action.url}"
-            is Action.ShowNotification -> "Notification: ${action.title}"
+            is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"
+            is Action.LaunchApp -> if (action.pkg.isBlank()) "Launch app" else "Launch: ${action.pkg}"
+            is Action.OpenUrl -> if (action.url.isBlank()) "Open URL" else "Open URL: ${action.url}"
+            is Action.ShowNotification -> if (action.title.isBlank()) "Show notification" else "Notification: ${action.title}"
             is Action.SetVolume -> "Volume ${action.stream.name.enumLabel()}: ${action.level}"
             is Action.SetFlashlight -> "Flashlight: ${if (action.on) "On" else "Off"}"
-            is Action.SetDarkMode -> "Dark Mode: ${action.mode.name.lowercase()}"
-            is Action.OpenSettingsScreen -> "Open Settings: ${action.screen.name.lowercase()}"
-            is Action.Vibrate -> "Vibrate: ${action.durationMs}ms"
+            is Action.SetDarkMode -> "Dark Mode: ${action.mode.name.enumLabel()}"
+            is Action.OpenSettingsScreen -> "Open Settings: ${action.screen.name.enumLabel()}"
+            is Action.Vibrate -> {
+                val label = vibratePresets.firstOrNull { it.second == action.durationMs }?.first ?: "${action.durationMs}ms"
+                "Vibrate: $label"
+            }
             is Action.SetBrightness -> "Brightness: ${action.level}"
             is Action.SetAutoBrightness -> "Auto Brightness: ${if (action.on) "On" else "Off"}"
             is Action.SetExtraDim -> "Extra Dim: ${if (action.on) "On" else "Off"}"
-            is Action.SetScreenTimeout -> "Screen Timeout: ${action.timeoutMs}ms"
+            is Action.SetScreenTimeout -> {
+                val label = screenTimeoutPresets.firstOrNull { it.second == action.timeoutMs }?.first ?: "${action.timeoutMs}ms"
+                "Screen Timeout: $label"
+            }
             is Action.SetGlyph -> "Glyph: ${if (action.on) "On" else "Off"}"
             is Action.SetGlyphMatrix -> "Glyph Matrix: ${if (action.restore) "Restore" else "Set"}"
             is Action.GlyphAnimate -> "Glyph Animate: ${action.zone ?: "all"} ${action.periodMs}ms x${action.cycles}"
@@ -129,27 +135,38 @@ fun actionDescription(action: Action): String =
             is Action.GlyphCountdown -> "Glyph Countdown: ${action.seconds}s"
             is Action.GlyphMusic -> "Glyph Music: ${action.style}"
             is Action.GlyphTurnOff -> "Glyph Off"
-            is Action.CopyText -> "Copy: ${action.text.take(30)}"
-            is Action.Wait -> "Wait: ${action.durationMs}ms"
-            is Action.WriteSetting -> "Write: ${action.namespace.name.lowercase()}/${action.key}=${action.value}"
+            is Action.CopyText -> if (action.text.isBlank()) "Copy text" else "Copy: ${action.text.take(30)}"
+            is Action.Wait -> "Wait: ${formatDuration(action.durationMs)}"
+            is Action.WriteSetting -> "Write: ${action.namespace.name.enumLabel()}/${action.key}=${action.value}"
             is Action.SetAutoRotate -> "Auto-rotate: ${if (action.on) "On" else "Off"}"
             is Action.SetBatterySaver -> "Battery Saver: ${if (action.on) "On" else "Off"}"
             is Action.SetAirplaneMode -> "Airplane Mode: ${if (action.on) "On" else "Off"}"
             is Action.SetDataSaver -> "Data Saver: ${if (action.on) "On" else "Off"}"
             is Action.SetHotspot -> "Hotspot: ${if (action.on) "On" else "Off"}"
             is Action.SetNfc -> "NFC: ${if (action.on) "On" else "Off"}"
-            is Action.SetRefreshRate -> "Refresh Rate: ${action.hz}Hz"
-            is Action.SetScreenRotation -> "Rotation: ${action.orientation.name.lowercase()}"
-            is Action.MediaControl -> "Media: ${action.command.name.lowercase().replace("_", " ")}"
-            is Action.SendSms -> "SMS to ${action.number}"
+            is Action.SetRefreshRate -> {
+                val label = refreshRatePresets.firstOrNull { it.second == action.hz }?.first ?: "${action.hz}Hz"
+                "Refresh Rate: $label"
+            }
+            is Action.SetScreenRotation -> "Rotation: ${action.orientation.name.enumLabel()}"
+            is Action.MediaControl -> "Media: ${action.command.name.enumLabel()}"
+            is Action.SendSms -> if (action.number.isBlank()) "Send SMS" else "SMS to ${action.number}"
             is Action.LockScreen -> "Lock screen"
-            is Action.SetLocationMode -> "Location: ${action.mode.name.lowercase().replace("_", " ")}"
+            is Action.SetLocationMode -> "Location: ${action.mode.name.enumLabel()}"
             is Action.SetAutoSync -> "Auto-sync: ${if (action.on) "On" else "Off"}"
             is Action.ClearNotifications -> "Clear notifications"
             is Action.SetAlwaysOnDisplay -> "AOD: ${if (action.on) "On" else "Off"}"
             is Action.TakeScreenshot -> "Screenshot"
         }
     ).uppercase()
+
+private fun formatDuration(ms: Long): String =
+    when {
+        ms < 1_000 -> "${ms}ms"
+        ms % 60_000 == 0L -> "${ms / 60_000}m"
+        ms < 60_000 -> "${ms / 1_000}s"
+        else -> "${ms / 60_000}m ${(ms % 60_000) / 1_000}s"
+    }
 
 /**
  * One-line requirement/behavior note shown at the top of the action config

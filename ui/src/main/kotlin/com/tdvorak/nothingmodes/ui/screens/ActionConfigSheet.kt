@@ -748,12 +748,33 @@ fun ActionConfigContent(
         }
 
         is Action.Wait -> {
-            NothingInput(
-                value = a.durationMs.toString(),
-                onValueChange = { onActionChange(a.copy(durationMs = it.toLongOrNull() ?: a.durationMs)) },
-                label = "Duration (ms)",
-                modifier = Modifier.fillMaxWidth(),
-            )
+            val customLabel = "Custom"
+            val selected = waitPresets.firstOrNull { it.second == a.durationMs }?.first ?: customLabel
+            var customMs by remember(a.durationMs) { mutableStateOf(a.durationMs.toString()) }
+            Column {
+                NothingEnumSelector(
+                    label = "Wait for",
+                    value = selected,
+                    options = waitPresets.map { it.first } + customLabel,
+                    onSelect = { label ->
+                        waitPresets.firstOrNull { it.first == label }?.let {
+                            onActionChange(a.copy(durationMs = it.second))
+                        }
+                    },
+                )
+                if (selected == customLabel) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    NothingInput(
+                        value = customMs,
+                        onValueChange = {
+                            customMs = it
+                            it.toLongOrNull()?.let { ms -> onActionChange(a.copy(durationMs = ms)) }
+                        },
+                        label = "Custom ms",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
 
         else -> {
@@ -792,7 +813,7 @@ internal val GLYPH_PRESET_NAMES =
 
 
 
-private val screenTimeoutPresets =
+internal val screenTimeoutPresets =
     listOf(
         "15 seconds" to 15_000,
         "30 seconds" to 30_000,
@@ -804,7 +825,7 @@ private val screenTimeoutPresets =
         "Never" to Int.MAX_VALUE,
     )
 
-private val vibratePresets =
+internal val vibratePresets =
     listOf(
         "Short" to 100,
         "Medium" to 300,
@@ -812,12 +833,22 @@ private val vibratePresets =
         "1 second" to 1_000,
     )
 
-private val refreshRatePresets =
+internal val refreshRatePresets =
     listOf(
         "60 Hz" to 60,
         "90 Hz" to 90,
         "120 Hz" to 120,
         "144 Hz" to 144,
+    )
+
+internal val waitPresets =
+    listOf(
+        "1 second" to 1_000L,
+        "5 seconds" to 5_000L,
+        "10 seconds" to 10_000L,
+        "30 seconds" to 30_000L,
+        "1 minute" to 60_000L,
+        "5 minutes" to 300_000L,
     )
 
 private fun actionTitle(action: Action): String =
