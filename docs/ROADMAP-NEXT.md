@@ -143,7 +143,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [~] **Open URL**: description and URL input wired. Optional browser/app picker not yet implemented.
 - [ ] **Launch app**: real discovery already exists? Verify `AppPicker` queries installed launchable apps (not hardcoded); add **multi-select** + app icons via `PackageManager.getApplicationIcon`.
 - [ ] **Open settings**: keep, add description, expand `SettingsScreen` enum (battery, storage, security, accessibility, notification, sound, display, apps, network, location, date, accounts).
-- [~] **Wait**: duration input wired. Preset dropdown (1s/5s/10s/30s/1m/5m) + Custom not yet implemented.
+- [x] **Wait**: preset dropdown (1s/5s/10s/30s/1m/5m) + Custom.
 - [~] **Send SMS**: number and message inputs wired. Contact picker and on-device send test not yet done.
 - [ ] **Write setting**: hide behind "Advanced" by default; add plain-English explanation + a few safe presets (e.g., animation scale, font scale) instead of raw key/value.
 
