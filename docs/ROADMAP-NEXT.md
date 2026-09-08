@@ -132,7 +132,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [ ] **Vibrate**: replace ms input with duration presets (short/medium/long) or on/off pattern — the user's instinct is right, raw ms is meaningless.
 - [ ] **Ringer mode**: explain — "How the phone rings: Normal (sound), Vibrate, or Silent."
 - [ ] **Descriptions on every action** — one line under each: what it does, what it needs (Shizuku/permission/panel-open fallback).
-- [ ] **NFC**: use an NFC glyph/icon (e.g. `Icons.Outlined.Nfc`), not Bluetooth.
+- [x] **NFC**: use an NFC glyph/icon (`Icons.Outlined.Nfc`), not Bluetooth.
 - [ ] **Location mode**: add in-app description — "System-wide location switch + accuracy mode. Same as Settings → Location. High accuracy = GPS+network; Battery saving = network only; Device only = GPS only; Off = location disabled. Requires Shizuku."
 - [ ] **Group related items**: auto-rotate next to screen rotation; mobile data next to Wi-Fi; hotspot with connections. Order categories logically.
 - [ ] **Refresh rate**: dropdown of device-supported rates (query `Display.supportedModes`) + collapsed "Advanced: custom value".
