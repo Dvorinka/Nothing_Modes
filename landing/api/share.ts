@@ -1,6 +1,7 @@
 import { ensureSharedTable, getSql, sha256Hex, canonicalJson } from './lib/db';
 import { analyzeGlyph, analyzeTemplate } from './lib/analyze';
 import { notifyAdmin } from './lib/email';
+import { envCheck } from './lib/env';
 
 export const config = { runtime: 'edge' };
 
@@ -24,6 +25,11 @@ function clean(s: unknown, max: number): string {
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
+
+  const env = envCheck();
+  if (!env.ok) {
+    return new Response(`server misconfigured: missing ${env.missing.join(', ')}`, { status: 500 });
+  }
 
   const body = await req.text();
   if (body.length > MAX_BODY) return new Response('payload too large', { status: 413 });

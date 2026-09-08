@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { envCheck } from './lib/env';
 
 export const config = { runtime: 'edge' };
 
@@ -25,6 +26,11 @@ interface CrashReport {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response('method not allowed', { status: 405 });
+  }
+
+  const env = envCheck();
+  if (!env.ok) {
+    return new Response(`server misconfigured: missing ${env.missing.join(', ')}`, { status: 500 });
   }
 
   const body = await req.text();

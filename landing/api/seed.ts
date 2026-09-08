@@ -1,5 +1,6 @@
 import { ensureSharedTable, getSql, isAdmin } from './lib/db';
 import { seedDemos } from './lib/seed';
+import { envCheck } from './lib/env';
 
 export const config = { runtime: 'nodejs' };
 
@@ -12,6 +13,10 @@ export const config = { runtime: 'nodejs' };
  */
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
+
+  const env = envCheck();
+  if (!env.ok) return new Response(`server misconfigured: missing ${env.missing.join(', ')}`, { status: 500 });
+
   if (!isAdmin(req)) return new Response('unauthorized', { status: 401 });
 
   const sql = getSql();
