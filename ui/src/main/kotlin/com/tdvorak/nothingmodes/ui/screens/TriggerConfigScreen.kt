@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
@@ -232,6 +234,11 @@ private fun TriggerTypePickerDialog(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = NothingSpacing.md),
+        properties =
+            androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -266,39 +273,41 @@ private fun TriggerTypePickerDialog(
                 com.tdvorak.nothingmodes.ui.theme
                     .NothingDivider()
 
-                Column(
+                LazyColumn(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 480.dp)
-                            .verticalScroll(rememberScrollState()),
+                            .height(480.dp),
                 ) {
-                    grouped.forEach { (category, items) ->
-                        Text(
-                            text = category.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = NothingFonts.mono(),
-                            modifier =
-                                Modifier.padding(
-                                    start = NothingSpacing.md,
-                                    top = NothingSpacing.sm,
-                                    bottom = NothingSpacing.xs,
-                                ),
-                        )
-                        items.forEach { type ->
+                    grouped.forEach { (category, groupItems) ->
+                        item {
+                            Text(
+                                text = category.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                                modifier =
+                                    Modifier.padding(
+                                        start = NothingSpacing.md,
+                                        top = NothingSpacing.sm,
+                                        bottom = NothingSpacing.xs,
+                                    ),
+                            )
+                        }
+                        items(groupItems, key = { it.label }) { type ->
                             val isSelected = selected::class == type.trigger::class
                             Row(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
+                                        .padding(
+                                            horizontal = NothingSpacing.md,
+                                            vertical = NothingSpacing.sm,
+                                        )
                                         .clickable {
                                             onSelect(type.trigger)
                                             onDismiss()
-                                        }.padding(
-                                            horizontal = NothingSpacing.md,
-                                            vertical = NothingSpacing.sm,
-                                        ),
+                                        },
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                             ) {
@@ -336,7 +345,9 @@ private fun TriggerTypePickerDialog(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    item {
+                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    }
                 }
             }
         }
