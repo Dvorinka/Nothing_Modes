@@ -320,12 +320,31 @@ fun ActionConfigContent(
         }
 
         is Action.OpenSettingsScreen -> {
-            NothingEnumSelector(
-                label = "Settings screen",
-                value = a.screen.name.enumLabel(),
-                options = enumLabelList<SettingsScreen>(),
-                onSelect = { onActionChange(a.copy(screen = enumByLabel<SettingsScreen>(it))) },
-            )
+            Column {
+                NothingEnumSelector(
+                    label = "Settings screen",
+                    value = a.screen.name.enumLabel(),
+                    options = enumLabelList<SettingsScreen>(),
+                    onSelect = { onActionChange(a.copy(screen = enumByLabel<SettingsScreen>(it))) },
+                )
+                Text(
+                    text = "Opens the selected Android Settings page. App details requires a package name below.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.padding(top = NothingSpacing.sm),
+                )
+                if (a.screen == SettingsScreen.APP_DETAILS) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    NothingInput(
+                        value = a.pkg ?: "",
+                        onValueChange = { onActionChange(a.copy(pkg = it.takeIf { it.isNotBlank() })) },
+                        label = "Package name",
+                        placeholder = "com.android.vending",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
 
         is Action.SetFlashlight -> {
