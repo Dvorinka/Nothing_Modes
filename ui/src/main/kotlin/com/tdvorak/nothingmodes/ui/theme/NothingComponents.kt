@@ -307,6 +307,7 @@ fun NothingToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    showLabels: Boolean = true,
 ) {
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
@@ -314,7 +315,7 @@ fun NothingToggle(
         label = "toggle",
     )
 
-    val trackWidth = 44.dp
+    val trackWidth = if (showLabels) 64.dp else 44.dp
     val trackHeight = 24.dp
     val thumbSize = 18.dp
     val thumbPadding = 3.dp
@@ -334,6 +335,14 @@ fun NothingToggle(
                 ).clickable { onCheckedChange(!checked) },
         contentAlignment = Alignment.CenterStart,
     ) {
+        if (showLabels) {
+            Text(
+                text = if (checked) "ON" else "OFF",
+                modifier = Modifier.padding(horizontal = 8.dp).align(if (checked) Alignment.CenterStart else Alignment.CenterEnd),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (checked) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Box(
             modifier =
                 Modifier
