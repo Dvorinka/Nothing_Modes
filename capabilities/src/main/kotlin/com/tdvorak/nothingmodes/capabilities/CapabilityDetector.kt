@@ -79,6 +79,15 @@ class CapabilityDetector(
             hasUsageAccess = checkUsageAccess(),
             hasLocationPermission = checkLocationPermission(),
             hasActiveDeviceAdmin = checkActiveDeviceAdmin(),
+            hasReadCalendar = checkPermission(android.Manifest.permission.READ_CALENDAR),
+            hasSendSms = checkPermission(android.Manifest.permission.SEND_SMS),
+            hasReadPhoneState = checkPermission(android.Manifest.permission.READ_PHONE_STATE),
+            hasCamera = checkPermission(android.Manifest.permission.CAMERA),
+            hasRecordAudio = checkPermission(android.Manifest.permission.RECORD_AUDIO),
+            hasPostNotifications = checkPostNotifications(),
+            hasExactAlarm = checkExactAlarm(),
+            hasBluetoothConnect = checkBluetoothConnect(),
+            hasBluetoothScan = checkBluetoothScan(),
         )
     }
 
@@ -131,6 +140,43 @@ class CapabilityDetector(
             dpm.isAdminActive(comp)
         }.getOrDefault(false)
     }
+
+    private fun checkPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun checkPostNotifications(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+    private fun checkExactAlarm(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val am = context.getSystemService(android.content.Context.ALARM_SERVICE) as? android.app.AlarmManager
+            am?.canScheduleExactAlarms() == true
+        } else {
+            true
+        }
+
+    private fun checkBluetoothConnect(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH) ==
+                PackageManager.PERMISSION_GRANTED
+        }
+
+    private fun checkBluetoothScan(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_SCAN) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH) ==
+                PackageManager.PERMISSION_GRANTED
+        }
 
     private fun resolveDeviceName(model: String): String =
         when {

@@ -26,6 +26,15 @@ data class DeviceCapabilities(
     val hasUsageAccess: Boolean = false,
     val hasLocationPermission: Boolean = false,
     val hasActiveDeviceAdmin: Boolean = false,
+    val hasReadCalendar: Boolean = false,
+    val hasSendSms: Boolean = false,
+    val hasReadPhoneState: Boolean = false,
+    val hasCamera: Boolean = false,
+    val hasRecordAudio: Boolean = false,
+    val hasPostNotifications: Boolean = false,
+    val hasExactAlarm: Boolean = false,
+    val hasBluetoothConnect: Boolean = false,
+    val hasBluetoothScan: Boolean = false,
     // Shizuku
     val shizukuStatus: ShizukuCapabilityStatus = ShizukuCapabilityStatus.NOT_CHECKED,
     // Nothing SDK

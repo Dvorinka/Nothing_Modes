@@ -410,6 +410,88 @@ fun SettingsScreen(
                                 )
                             },
                         )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Calendar",
+                            granted = capabilities.hasReadCalendar,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "SMS",
+                            granted = capabilities.hasSendSms,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Phone state",
+                            granted = capabilities.hasReadPhoneState,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Camera",
+                            granted = capabilities.hasCamera,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Microphone",
+                            granted = capabilities.hasRecordAudio,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Post notifications",
+                            granted = capabilities.hasPostNotifications,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Exact alarm",
+                            granted = capabilities.hasExactAlarm,
+                            onOpenSettings = {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                    context.startActivity(
+                                        Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        },
+                                    )
+                                } else {
+                                    openAppInfo(context)
+                                }
+                            },
+                            onOpenAppInfo = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Bluetooth connect",
+                            granted = capabilities.hasBluetoothConnect,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
+                            label = "Bluetooth scan",
+                            granted = capabilities.hasBluetoothScan,
+                            isRuntime = true,
+                            onGrant = { openAppInfo(context) },
+                            onOpenSettings = { openAppInfo(context) },
+                        )
                     }
 
                     // ── Shizuku ───────────────────────────────────────────────
@@ -1090,6 +1172,15 @@ private fun UpdateSection(
             }
         }
     }
+}
+
+private fun openAppInfo(context: android.content.Context) {
+    context.startActivity(
+        Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${context.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        },
+    )
 }
 
 /** Launch the Shizuku manager app so the user can start or manage it. */
