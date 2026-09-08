@@ -85,6 +85,29 @@ class ImportExportTest {
         }
 
     @Test
+    fun `round trip export wipe import preserves behavior`() =
+        runTest {
+            val original = InMemoryAutomationStore()
+            val mode = makeAutomation("mode-sleep", "Sleep")
+            original.save(mode)
+            val export = ImportExportService(original) { 1000L }.export()
+
+            // Wipe and re-import.
+            val restored = InMemoryAutomationStore()
+            val import = ImportExportService(restored) { 2000L }.import(export.json)
+
+            assertEquals(1, import.imported)
+            assertEquals(0, import.skipped)
+            val imported = restored.get(AutomationId("mode-sleep"))
+            assertNotNull(imported)
+            assertEquals("Sleep", imported!!.name)
+            assertEquals(mode.trigger, imported.trigger)
+            assertEquals(mode.actions, imported.actions)
+            assertEquals(CreatedBy.IMPORT, imported.createdBy)
+            assertEquals(false, imported.enabled)
+        }
+
+    @Test
     fun `import skips existing automations when overwrite is false`() =
         runTest {
             val store = InMemoryAutomationStore()
