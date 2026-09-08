@@ -13,4 +13,5 @@ data class AuditEntity(
     val eventIdHash: String? = null,
     val eventId: String = "",
     val executionId: String? = null,
+    val latencyMillis: Long = 0,
 )

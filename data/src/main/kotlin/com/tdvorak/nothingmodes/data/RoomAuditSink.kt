@@ -17,6 +17,7 @@ class RoomAuditSink(
                 detail = event.detail,
                 eventId = event.eventId,
                 executionId = event.executionId,
+                latencyMillis = event.latencyMillis,
             ),
         )
     }

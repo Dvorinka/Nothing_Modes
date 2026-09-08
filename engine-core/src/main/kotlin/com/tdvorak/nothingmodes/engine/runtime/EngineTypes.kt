@@ -56,6 +56,7 @@ data class AuditEvent(
     val detail: String = "",
     val eventId: String = "",
     val executionId: String? = null,
+    val latencyMillis: Long = 0,
 )
 
 enum class AuditKind {

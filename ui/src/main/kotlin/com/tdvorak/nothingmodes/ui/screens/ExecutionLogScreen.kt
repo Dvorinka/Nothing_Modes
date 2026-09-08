@@ -49,6 +49,7 @@ data class AuditEntry(
     val kind: String,
     val timestamp: Long,
     val detail: String,
+    val latencyMillis: Long = 0,
 )
 
 data class ExecutionStats(
@@ -86,6 +87,7 @@ class ExecutionLogViewModel
                                 kind = entity.kind,
                                 timestamp = entity.atMillis,
                                 detail = entity.detail,
+                                latencyMillis = entity.latencyMillis,
                             )
                         }
                     _stats.value = computeStats(_entries.value)
@@ -228,9 +230,15 @@ fun ExecutionLogScreen(
                                         else -> MaterialTheme.colorScheme.onSurface
                                     }
                                 if (index > 0) NothingDivider()
+                                val latencySuffix =
+                                    if (entry.latencyMillis > 0) {
+                                        " · fired in ${entry.latencyMillis} ms"
+                                    } else {
+                                        ""
+                                    }
                                 NothingListRow(
                                     title = entry.kind.replace("_", " "),
-                                    subtitle = entry.automationId + if (entry.detail.isNotEmpty()) " · ${entry.detail}" else "",
+                                    subtitle = entry.automationId + if (entry.detail.isNotEmpty()) " · ${entry.detail}" else "" + latencySuffix,
                                     leading = {
                                         NothingIconCircle(size = 40f) {
                                             Text(

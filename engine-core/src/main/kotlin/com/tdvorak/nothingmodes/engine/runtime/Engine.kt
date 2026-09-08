@@ -55,6 +55,7 @@ class Engine(
         for (automation in candidates) {
             val executionId = executionIds.create(automation.id, envelope.id)
             val actionResults = mutableListOf<ActionResult>()
+            val startedAtNano = System.nanoTime()
 
             try {
                 if (event is TriggerEvent.ManualFired && event.automationId != automation.id) continue
@@ -150,11 +151,14 @@ class Engine(
                     }
                 }
 
+                val completedAt = now()
+                val latencyMillis = (System.nanoTime() - startedAtNano) / 1_000_000
+
                 journal.finish(
                     ExecutionCompletion(
                         executionId = executionId,
                         automationId = automation.id,
-                        atMillis = batchNow,
+                        atMillis = completedAt,
                         status =
                             if (actionResults.all {
                                     it is ActionResult.Success || it is ActionResult.NeedsUserAction
@@ -191,9 +195,10 @@ class Engine(
                             } else {
                                 AuditKind.FIRED
                             },
-                        atMillis = batchNow,
+                        atMillis = completedAt,
                         eventId = envelope.id,
                         executionId = executionId,
+                        latencyMillis = latencyMillis,
                     ),
                 )
 

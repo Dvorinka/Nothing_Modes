@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tdvorak.nothingmodes.data.dao.AuditDao
 import com.tdvorak.nothingmodes.data.dao.AutomationDao
 import com.tdvorak.nothingmodes.data.dao.DraftDao
@@ -33,7 +35,7 @@ import com.tdvorak.nothingmodes.data.entities.StateSnapshotEntity
         StateSnapshotEntity::class,
         ModeActivationEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -55,12 +57,19 @@ abstract class NothingModesDatabase : RoomDatabase() {
     abstract fun modeActivationDao(): ModeActivationDao
 
     companion object {
+        val MIGRATION_1_2: Migration =
+            object : Migration(1, 2) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE audit_log ADD COLUMN latencyMillis INTEGER NOT NULL DEFAULT 0")
+                }
+            }
         fun build(
             context: Context,
             name: String = "nothing_modes.db",
         ): NothingModesDatabase =
             Room
                 .databaseBuilder(context, NothingModesDatabase::class.java, name)
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
 
