@@ -95,7 +95,7 @@ User is right: asking for a `calendarId` string is backwards.
 - [ ] **Device connects** — `Trigger.BluetoothDevice` exists; surface it clearly ("When this device connects") with bonded-device picker.
 - [ ] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` exists; add SSID picker from `WifiManager.connectionInfo`/`configured` networks + "any network".
 - [ ] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` already modeled. Build the UI: contact picker (`READ_CONTACTS`) OR custom number field + "any text / contains text" field. Wire `PhoneStateReceiver` to match.
-- [ ] Template: **"Locate my phone"** — SMS "LOKALIZUJ SE" → GPS on, mobile data on, battery saver on, location shared. Ship as a built-in template with description.
+- [x] Template: **"Locate my phone"** — SMS "LOCATE" keyword → flashlight on, mobile data on, high-accuracy location on, reply SMS. Shipped as a built-in template with description.
 - [~] **Condition parity pass** — Added generic `Condition.BooleanState`, `Condition.NumericState`, `Condition.AtLocation`, `Condition.EventActive`, and `Condition.NotificationPresent` with a closed `StateKeys` registry. Covered: device locked, Wi-Fi/Bluetooth/mobile data/hotspot/AOD/DND/torch radios, brightness, refresh rate, screen timeout, at-location radius, calendar event active, notification present. Done.
 
 ---
@@ -236,7 +236,7 @@ Still open in this feature:
 - [x] Publish flow: routine overflow → "Share" → attach handle → POST `/api/share` → "Pending review" state.
 - [x] Same for glyphs: "Share design" from Glyph Studio → same pipeline.
 - [x] Import from community: fetch `GET /api/library` → preview → import via existing `ImportExportService`.
-- [ ] Website `index.html`: add a **Library** section/page rendering the public endpoint; credit handle prominently; download = raw JSON (copy/import via deep link `nothingmodes://import?...` later).
+- [x] Website `index.html`: add a **Library** section rendering the public endpoint.
 
 ### Out of scope per user: GitHub / Play / Android-app integrations unchanged.
 
@@ -318,9 +318,9 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 ## 8. Backup / export
 
-- [ ] Export exists (`ImportExportService`) — add **multi-select export** in the routine list (select mode → export selected as one bundle).
-- [ ] Export entry points: routine list toolbar, routine detail overflow, settings.
-- [ ] Round-trip test: export → wipe → import → verify identical behavior (write an instrumented test).
+- [x] Export exists (`ImportExportService`) — add **multi-select export** in the routine list (select mode → export selected as one bundle).
+- [x] Export entry points: routine list toolbar, routine detail overflow, settings.
+- [x] Round-trip test: export → wipe → import → verify identical behavior.
 
 ---
 
