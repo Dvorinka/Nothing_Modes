@@ -181,7 +181,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_mobile_data" -> Action.SetMobileData(on)
             "set_dnd" -> Action.SetDnd(DndMode.valueOf(mode.ifBlank { "TOTAL" }.uppercase()))
             "set_ringer" -> Action.SetRinger(mode.ifBlank { "NORMAL" })
-            "launch_app" -> Action.LaunchApp(pkg)
+            "launch_app" -> Action.LaunchApp(pkg.split(",").filter { it.isNotBlank() })
             "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes.vercel.app" })
             "show_notification" -> Action.ShowNotification("NmDebug", text.ifBlank { "test" })
             "set_volume" -> {

@@ -101,7 +101,15 @@ class RealActionExecutor(
             is Action.SetRinger -> ringer.setRinger(action.mode).toActionResult()
             is Action.Vibrate -> vibrate(action.durationMs)
             is Action.CopyText -> copyText(action.text)
-            is Action.LaunchApp -> launchApp(action.pkg)
+            is Action.LaunchApp -> {
+                val results = action.packages.map { launchApp(it) }
+                when {
+                    results.isEmpty() -> ActionResult.Success
+                    results.all { it == ActionResult.Success } -> ActionResult.Success
+                    else -> results.filterIsInstance<ActionResult.Failure>().firstOrNull()
+                        ?: ActionResult.Failure("launch app failed")
+                }
+            }
             is Action.OpenUrl -> openUrl(action.url)
             is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
             is Action.ShowNotification -> showNotification(action.title, action.text)

@@ -48,7 +48,7 @@ class ActionSmokeTest {
                     Action.SetMobileData(false),
                     Action.SetDnd(DndMode.OFF),
                     Action.SetRinger("normal"),
-                    Action.LaunchApp("com.android.settings"),
+                    Action.LaunchApp(listOf("com.android.settings")),
                     Action.OpenUrl("https://example.com"),
                     Action.ShowNotification("Smoke test", "Notification action works"),
                     Action.SetVolume(mapOf(VolumeStream.MEDIA to 8)),

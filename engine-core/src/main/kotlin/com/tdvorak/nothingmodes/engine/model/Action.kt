@@ -112,7 +112,7 @@ sealed interface Action {
     @Serializable
     @SerialName(ActionTypeIds.LAUNCH_APP)
     data class LaunchApp(
-        val pkg: String,
+        val packages: List<String> = emptyList(),
     ) : Action
 
     @Serializable

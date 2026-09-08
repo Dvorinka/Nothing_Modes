@@ -352,9 +352,9 @@ fun ActionConfigScreen(
                     }
 
                     is Action.LaunchApp -> {
-                        AppPicker(
-                            currentPackage = a.pkg,
-                            onPkgChange = { action = a.copy(pkg = it) },
+                        MultiAppPicker(
+                            currentPackages = a.packages,
+                            onChange = { action = a.copy(packages = it) },
                         )
                     }
 

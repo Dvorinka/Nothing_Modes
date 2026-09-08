@@ -539,9 +539,9 @@ fun ActionConfigContent(
         }
 
         is Action.LaunchApp -> {
-            AppPicker(
-                currentPackage = a.pkg,
-                onPkgChange = { onActionChange(a.copy(pkg = it)) },
+            MultiAppPicker(
+                currentPackages = a.packages,
+                onChange = { onActionChange(a.copy(packages = it)) },
             )
         }
 

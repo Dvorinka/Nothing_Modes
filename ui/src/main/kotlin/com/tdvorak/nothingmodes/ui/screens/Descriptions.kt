@@ -105,7 +105,7 @@ fun actionDescription(action: Action): String =
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
             is Action.SetDnd -> "DND: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"
-            is Action.LaunchApp -> if (action.pkg.isBlank()) "Launch app" else "Launch: ${action.pkg}"
+            is Action.LaunchApp -> if (action.packages.isEmpty()) "Launch app" else "Launch: ${action.packages.size} app(s)"
             is Action.OpenUrl -> if (action.url.isBlank()) "Open URL" else "Open URL: ${action.url}"
             is Action.ShowNotification -> if (action.title.isBlank()) "Show notification" else "Notification: ${action.title}"
             is Action.SetVolume -> {
@@ -215,7 +215,7 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."
-        is Action.LaunchApp -> "Opens the selected app."
+        is Action.LaunchApp -> "Opens the selected app(s)."
         is Action.OpenUrl -> "Opens a URL in the default browser."
         is Action.OpenSettingsScreen -> "Opens a specific Settings screen."
         is Action.CopyText -> "Copies text to the clipboard."

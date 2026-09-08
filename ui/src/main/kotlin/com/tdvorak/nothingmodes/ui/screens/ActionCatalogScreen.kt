@@ -105,7 +105,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Clear notifications", "System", Icons.Outlined.Notifications, Action.ClearNotifications),
                 ActionItem("Show notification", "Apps", Icons.Outlined.Campaign, Action.ShowNotification("", "")),
                 ActionItem("Open URL", "Apps", Icons.Outlined.Link, Action.OpenUrl("")),
-                ActionItem("Launch app", "Apps", Icons.Outlined.OpenInBrowser, Action.LaunchApp("")),
+                ActionItem("Launch app", "Apps", Icons.Outlined.OpenInBrowser, Action.LaunchApp(emptyList())),
                 ActionItem("Open settings", "Apps", Icons.Outlined.Settings, Action.OpenSettingsScreen(SettingsScreen.SETTINGS, null)),
                 ActionItem("Media control", "Apps", Icons.AutoMirrored.Outlined.VolumeUp, Action.MediaControl(MediaCommand.PLAY_PAUSE)),
                 ActionItem("Wait", "Apps", Icons.Outlined.Snooze, Action.Wait(1000)),
