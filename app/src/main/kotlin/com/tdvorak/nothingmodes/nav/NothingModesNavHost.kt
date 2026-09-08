@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
+import java.net.URLEncoder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -49,11 +50,14 @@ object Routes {
 
     fun builderEdit(id: String) = "builder/edit/$id"
 
-    fun triggerConfig(triggerJson: String) = "trigger_config?trigger=$triggerJson"
+    fun triggerConfig(triggerJson: String) =
+        "trigger_config?trigger=" + URLEncoder.encode(triggerJson, "UTF-8")
 
-    fun conditionConfig(conditionJson: String) = "condition_config?condition=$conditionJson"
+    fun conditionConfig(conditionJson: String) =
+        "condition_config?condition=" + URLEncoder.encode(conditionJson, "UTF-8")
 
-    fun actionConfig(actionJson: String) = "action_config?action=$actionJson"
+    fun actionConfig(actionJson: String) =
+        "action_config?action=" + URLEncoder.encode(actionJson, "UTF-8")
 }
 
 @Composable
