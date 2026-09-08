@@ -274,6 +274,23 @@ class AutomationListViewModel
             _selected.value = emptySet()
         }
 
+        fun exportSelected() {
+            viewModelScope.launch {
+                val ids = _selected.value.toList()
+                if (ids.isEmpty()) return@launch
+                val result = withContext(Dispatchers.IO) { importExportService.export(ids) }
+                val clipboard =
+                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText("Nothing Modes export", result.json),
+                )
+                android.widget.Toast
+                    .makeText(context, "Exported ${result.count} mode(s) to clipboard", android.widget.Toast.LENGTH_SHORT)
+                    .show()
+                _selected.value = emptySet()
+            }
+        }
+
         fun import(json: String) {
             viewModelScope.launch {
                 // Surface compatibility warnings before the write, not after.
@@ -530,6 +547,7 @@ fun AutomationListScreen(
             if (inSelection) {
                 MultiSelectBottomBar(
                     onSelectAll = viewModel::selectAll,
+                    onExport = viewModel::exportSelected,
                     onDelete = viewModel::deleteSelected,
                     onRun = viewModel::runSelected,
                     modifier =
@@ -783,6 +801,7 @@ private fun SelectionIndicator(isSelected: Boolean) {
 @Composable
 private fun MultiSelectBottomBar(
     onSelectAll: () -> Unit,
+    onExport: () -> Unit,
     onDelete: () -> Unit,
     onRun: () -> Unit,
     modifier: Modifier = Modifier,
@@ -824,6 +843,17 @@ private fun MultiSelectBottomBar(
                 modifier =
                     Modifier
                         .clickable(onClick = onDelete)
+                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+            )
+            Text(
+                text = "EXPORT",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+                letterSpacing = 1.0.sp,
+                modifier =
+                    Modifier
+                        .clickable(onClick = onExport)
                         .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             )
             Text(
