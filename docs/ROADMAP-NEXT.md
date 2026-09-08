@@ -252,13 +252,13 @@ Still open in this feature:
   - **Settings → "Mode notifications"**: NOT a kill switch — it is only the **default for modes that haven't chosen**. An explicit per-mode setting always wins, even against global off (user decision: "if they specifically request this mode to always send notifications, settings should not override it").
   - **Blocked-permission detection (confirmed feasible)**: `NotificationManagerCompat.areNotificationsEnabled()` for the app switch, `NotificationChannel.getImportance() == IMPORTANCE_NONE` per channel (API 26+). When a user enables any notify rule while notifications are blocked → inline warning in the mode's Notify section: "Notifications are off for Nothing Modes — heads-ups can't reach you. [Enable]" → deep-link `Settings.ACTION_APP_NOTIFICATION_SETTINGS` (per-channel variant `ACTION_CHANNEL_NOTIFICATION_SETTINGS` when only the channel is blocked). Same warning surfaced in Settings → Mode notifications. Permission state re-checked on resume, not just once.
   - Wiring: each BEFORE rule = an AlarmManager alarm at `eventAtMillis − leadMs` → receiver → notification. ON_TRIGGER/ON_END = post from `AutomationAlarmReceiver`/engine completion path. Tap notification → opens the mode. Notification text explains what happens and when: mode name, "fires in 5 min — will set Wi-Fi on, glyph…" / "just ran — 2 actions applied" / "mode ended — 2 settings restored".
-- [ ] **Bottom bar gap** (confirmed visually): `NothingBottomActionBar` floating pill shows content beneath it — wrap in an opaque `Surface` with `navigationBarsPadding` (it already does — but the catalog screens draw it in a `Box` overlay; ensure the container under the button is `background`-colored, not transparent) and push the button lower/solid. Check `ActionConfigSheet`/`ConditionConfigSheet` "Done" bars specifically.
+- [x] **Bottom bar gap** (confirmed visually): `NothingBottomActionBar` floating pill shows content beneath it — wrap in an opaque `Surface` with `navigationBarsPadding` (it already does — but the catalog screens draw it in a `Box` overlay; ensure the container under the button is `background`-colored, not transparent) and push the button lower/solid. Done for `ActionConfigSheet` and `ConditionConfigSheet` "Done" bars.
 - [ ] Toggle styling: Nothing-red track + ON/OFF text labels, app-wide.
 - [ ] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
 - [ ] **Classic theme restyle** — user dislikes it on app AND website. Full redesign pass; **do not touch the Nothing theme** (it stays as-is). Website has a "DOTS" style-toggle — restyle the non-dot variant.
-- [ ] Settings load performance — audit `SettingsScreen` init (capability probes, `GlyphToysBridge` queries run on main thread? move to IO + cache).
+- [~] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` moved to `Dispatchers.IO` in `SettingsViewModel.detect()`. `GlyphToysBridge` not found in this screen; remaining cache/no-op items still to audit.
 - [ ] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam.
-- [ ] Save/schedule feedback: confirm "Routine saved" on successful save.
+- [x] Save/schedule feedback: confirm "Routine saved" on successful save.
 
 ---
 
@@ -288,7 +288,7 @@ The model marks **12 actions as Shizuku-required**: Wi-Fi, Bluetooth, mobile dat
 
 **Actionable findings:**
 - [x] `TakeScreenshot` implemented via `DeviceTools.capture()` (Shizuku `screencap -p`) and saved to app cache. It is gated at the capability layer and requires the override toggle unless `force = true`.
-- [ ] `SetLocationMode` capability flag is wrong — model omits `SHIZUKU_REQUIRED` but the executor needs shell/`WRITE_SECURE_SETTINGS` for silent operation (falls back to opening the location settings panel). Add the flag so warnings/filters are accurate.
+- [x] `SetLocationMode` capability flag is wrong — model omits `SHIZUKU_REQUIRED` but the executor needs shell/`WRITE_SECURE_SETTINGS` for silent operation (falls back to opening the location settings panel). Fixed: `CapabilityRequirements`, `CapabilityResolver`, and `reasonFor` now treat it as a Shizuku action.
 - [ ] On-device verification pass remains mandatory — matrix above is static analysis; user reports all Shizuku actions work on their setup, confirm each via the debug broadcast hook.
 
 Triggers: **none need Shizuku**; the gated ones need runtime permissions/services — notification listener, SMS/phone state, usage access (app-opened), location (geofence), calendar read, BT connect. Conditions: most read via builtin providers; `STATE_READER_SETTING/SYSFS/DUMPSYS` conditions → Shizuku; foreground-app → usage access.
