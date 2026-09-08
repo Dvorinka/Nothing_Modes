@@ -223,12 +223,12 @@ object CapabilityRequirements {
             is Action.SetScreenRotation -> setOf(CapabilityIds.ACTION_SET_SCREEN_ROTATION)
             is Action.MediaControl -> setOf(CapabilityIds.ACTION_MEDIA_CONTROL)
             is Action.SendSms -> setOf(CapabilityIds.ACTION_SEND_SMS)
-            is Action.LockScreen -> setOf(CapabilityIds.ACTION_LOCK_SCREEN)
+            is Action.LockScreen -> if (action.force) emptySet() else setOf(CapabilityIds.ACTION_LOCK_SCREEN)
             is Action.SetLocationMode -> setOf(CapabilityIds.ACTION_SET_LOCATION_MODE)
             is Action.SetAutoSync -> setOf(CapabilityIds.ACTION_SET_AUTO_SYNC, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
             is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
-            is Action.TakeScreenshot -> setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT)
+            is Action.TakeScreenshot -> if (action.force) emptySet() else setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT, CapabilityIds.SHIZUKU_REQUIRED)
         }
 
     private fun conditionCapabilities(condition: Condition): Set<String> =

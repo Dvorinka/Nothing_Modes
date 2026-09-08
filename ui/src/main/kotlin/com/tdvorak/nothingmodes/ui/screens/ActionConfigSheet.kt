@@ -849,21 +849,35 @@ fun ActionConfigContent(
         }
 
         is Action.LockScreen -> {
-            Text(
-                text = "Turns the screen off and locks the device, like pressing the power button. Verified on Phone 3 via Device Admin. The next unlock requires your PIN once (Android security rule).",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                Text(
+                    text = "Turns the screen off and locks the device, like pressing the power button. Verified on Phone 3 via Device Admin. The next unlock requires your PIN once (Android security rule).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                BooleanRow(
+                    label = "Override: try anyway",
+                    checked = a.force,
+                    onChange = { onActionChange(a.copy(force = it)) },
+                )
+            }
         }
 
         is Action.TakeScreenshot -> {
-            Text(
-                text = "Not supported on most devices yet. The executor currently returns Unsupported, so the action does nothing.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                Text(
+                    text = "Captures the screen and saves it to app cache. Requires Shizuku and may not work on every device.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                BooleanRow(
+                    label = "Override: try anyway",
+                    checked = a.force,
+                    onChange = { onActionChange(a.copy(force = it)) },
+                )
+            }
         }
 
         is Action.Wait -> {

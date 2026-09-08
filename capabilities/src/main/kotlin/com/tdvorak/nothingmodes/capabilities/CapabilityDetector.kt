@@ -2,8 +2,10 @@ package com.tdvorak.nothingmodes.capabilities
 
 import android.app.AppOpsManager
 import android.app.NotificationManager
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.pm.PackageManager
+
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.nothing.GlyphHardware
@@ -76,6 +78,7 @@ class CapabilityDetector(
             hasNotificationListenerAccess = checkNotificationListenerAccess(),
             hasUsageAccess = checkUsageAccess(),
             hasLocationPermission = checkLocationPermission(),
+            hasActiveDeviceAdmin = checkActiveDeviceAdmin(),
         )
     }
 
@@ -116,6 +119,18 @@ class CapabilityDetector(
     private fun checkLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
+
+    private fun checkActiveDeviceAdmin(): Boolean {
+        return runCatching {
+            val dpm = context.getSystemService(DevicePolicyManager::class.java) ?: return@runCatching false
+            val comp =
+                android.content.ComponentName(
+                    context.packageName,
+                    "com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver",
+                )
+            dpm.isAdminActive(comp)
+        }.getOrDefault(false)
+    }
 
     private fun resolveDeviceName(model: String): String =
         when {

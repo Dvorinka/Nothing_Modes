@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -578,9 +579,7 @@ fun ActionConfigScreen(
                     }
 
                     is Action.GlyphTurnOff,
-                    is Action.LockScreen,
                     is Action.ClearNotifications,
-                    is Action.TakeScreenshot,
                     -> {
                         Text(
                             text = actionDescription(action),
@@ -588,6 +587,38 @@ fun ActionConfigScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
                         )
+                    }
+
+                    is Action.LockScreen -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                            Text(
+                                text = actionDescription(action),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                            BooleanRow(
+                                label = "Override: try anyway",
+                                checked = a.force,
+                                onChange = { action = a.copy(force = it) },
+                            )
+                        }
+                    }
+
+                    is Action.TakeScreenshot -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                            Text(
+                                text = actionDescription(action),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                            BooleanRow(
+                                label = "Override: try anyway",
+                                checked = a.force,
+                                onChange = { action = a.copy(force = it) },
+                            )
+                        }
                     }
 
                     else -> {

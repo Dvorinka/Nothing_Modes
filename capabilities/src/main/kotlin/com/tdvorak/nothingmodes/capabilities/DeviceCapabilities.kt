@@ -25,6 +25,7 @@ data class DeviceCapabilities(
     val hasNotificationListenerAccess: Boolean = false,
     val hasUsageAccess: Boolean = false,
     val hasLocationPermission: Boolean = false,
+    val hasActiveDeviceAdmin: Boolean = false,
     // Shizuku
     val shizukuStatus: ShizukuCapabilityStatus = ShizukuCapabilityStatus.NOT_CHECKED,
     // Nothing SDK

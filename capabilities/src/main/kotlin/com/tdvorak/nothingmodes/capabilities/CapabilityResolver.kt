@@ -110,8 +110,8 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_LOCATION_MODE,
             -> capabilities.hasTelephony
             CapabilityIds.ACTION_MEDIA_CONTROL -> true
-            CapabilityIds.ACTION_TAKE_SCREENSHOT -> true
-            CapabilityIds.ACTION_LOCK_SCREEN -> true
+            CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
 
             // Shizuku
@@ -163,6 +163,8 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_LOCATION_MODE,
             -> "Telephony not available on this device"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
+            CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Detected: may not work on this device"
+            CapabilityIds.ACTION_LOCK_SCREEN -> "Detected: may not work on this device"
             CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware unavailable"
             CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware unavailable"
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "Flashlight unavailable"

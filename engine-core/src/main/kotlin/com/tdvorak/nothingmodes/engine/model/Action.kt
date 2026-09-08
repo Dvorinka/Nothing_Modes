@@ -411,7 +411,10 @@ sealed interface Action {
     /** Lock the screen. Requires Device Admin or accessibility service. */
     @Serializable
     @SerialName(ActionTypeIds.LOCK_SCREEN)
-    data object LockScreen : Action
+    data class LockScreen(
+        /** Force-run even if device-admin capability is not detected. */
+        val force: Boolean = false,
+    ) : Action
 
     /** Set location mode (high accuracy, battery saving, device only, off). Requires Shizuku. */
     @Serializable
@@ -449,7 +452,10 @@ sealed interface Action {
     /** Take a screenshot. Requires MediaProjection (user consent per capture). */
     @Serializable
     @SerialName(ActionTypeIds.TAKE_SCREENSHOT)
-    data object TakeScreenshot : Action
+    data class TakeScreenshot(
+        /** Force-run even if MediaProjection is not detected. */
+        val force: Boolean = false,
+    ) : Action
 }
 
 @Serializable

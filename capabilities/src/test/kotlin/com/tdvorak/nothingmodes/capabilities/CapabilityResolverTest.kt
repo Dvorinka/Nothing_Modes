@@ -98,6 +98,7 @@ class CapabilityResolverTest {
             hasGlyphMatrix = true,
             shizukuStatus = ShizukuCapabilityStatus.AUTHORIZED,
             hasTelephony = true,
+            hasActiveDeviceAdmin = true,
         )
 
     @Test
@@ -156,5 +157,28 @@ class CapabilityResolverTest {
 
         assertFalse(resolution.canRun)
         assertEquals("Capability not available: unknown_cap", resolution.missingReasons["unknown_cap"])
+    }
+
+    @Test
+    fun lockScreenMissingWhenDeviceAdminNotActive() {
+        val caps = everything().copy(hasActiveDeviceAdmin = false)
+        val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.ACTION_LOCK_SCREEN))
+
+        assertFalse(resolution.canRun)
+        assertEquals("Detected: may not work on this device", resolution.missingReasons[CapabilityIds.ACTION_LOCK_SCREEN])
+    }
+
+    @Test
+    fun screenshotMissingWhenShizukuNotAuthorized() {
+        val caps = everything().copy(shizukuStatus = ShizukuCapabilityStatus.NOT_INSTALLED)
+        val resolution =
+            CapabilityResolver(caps).resolve(
+                "test",
+                setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT, CapabilityIds.SHIZUKU_REQUIRED),
+            )
+
+        assertFalse(resolution.canRun)
+        assertTrue(CapabilityIds.SHIZUKU_REQUIRED in resolution.missing)
+        assertEquals("Detected: may not work on this device", resolution.missingReasons[CapabilityIds.ACTION_TAKE_SCREENSHOT])
     }
 }

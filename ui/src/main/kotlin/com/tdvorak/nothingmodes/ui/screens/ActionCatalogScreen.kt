@@ -21,14 +21,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
@@ -38,6 +42,9 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -50,6 +57,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -65,6 +74,11 @@ private data class ActionItem(
  *  the bottom bar adds the whole configured selection at once. */
 @Composable
 fun ActionCatalogScreen(navController: NavController) {
+    val context = LocalContext.current
+    var caps by remember { mutableStateOf(DeviceCapabilities()) }
+    LaunchedEffect(Unit) {
+        withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
+    }
     var search by remember { mutableStateOf("") }
     // Actions the user has configured and wants to add.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
@@ -100,8 +114,8 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Location mode", "System", Icons.Outlined.LocationOn, Action.SetLocationMode(LocationMode.HIGH_ACCURACY)),
                 ActionItem("Refresh rate", "System", Icons.Outlined.Settings, Action.SetRefreshRate(60)),
                 ActionItem("Auto-sync", "System", Icons.Outlined.Snooze, Action.SetAutoSync(true)),
-                ActionItem("Lock screen", "System", Icons.Outlined.Lock, Action.LockScreen),
-                ActionItem("Screenshot", "System", Icons.AutoMirrored.Outlined.MobileScreenShare, Action.TakeScreenshot),
+                ActionItem("Lock screen", "System", Icons.Outlined.Lock, Action.LockScreen()),
+                ActionItem("Screenshot", "System", Icons.AutoMirrored.Outlined.MobileScreenShare, Action.TakeScreenshot()),
                 ActionItem("Clear notifications", "System", Icons.Outlined.Notifications, Action.ClearNotifications),
                 ActionItem("Show notification", "Apps", Icons.Outlined.Campaign, Action.ShowNotification("", "")),
                 ActionItem("Open URL", "Apps", Icons.Outlined.Link, Action.OpenUrl("")),
@@ -229,7 +243,7 @@ fun ActionCatalogScreen(navController: NavController) {
                                 CatalogListItem(
                                     label = actionItem.label,
                                     icon = actionItem.icon,
-                                    subtitle = actionRequirementHint(actionItem.action) ?: actionDescription(actionItem.action),
+                                    subtitle = actionCapabilityHint(actionItem.action, caps),
                                     onClick = {
                                         editingIndex = null
                                         configAction = actionItem.action
@@ -310,6 +324,22 @@ private fun CatalogListItem(
             }
         },
     )
+}
+
+private fun actionCapabilityHint(
+    action: Action,
+    caps: DeviceCapabilities,
+): String {
+    val static = actionRequirementHint(action) ?: actionDescription(action)
+    if (action !is Action.TakeScreenshot && action !is Action.LockScreen) return static
+
+    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+    val resolution = CapabilityResolver(caps).resolve("", required)
+    return if (!resolution.canRun) {
+        resolution.missingReasons.values.firstOrNull() ?: static
+    } else {
+        static
+    }
 }
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =

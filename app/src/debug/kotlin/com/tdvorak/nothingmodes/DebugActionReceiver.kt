@@ -243,7 +243,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                 Action.SetScreenRotation(ScreenOrientation.valueOf(mode.ifBlank { "AUTO" }.uppercase()))
             "media_control" -> Action.MediaControl(MediaCommand.valueOf(mode.ifBlank { "PLAY_PAUSE" }.uppercase()))
             "send_sms" -> Action.SendSms(intent.getStringExtra("number").orEmpty(), text)
-            "lock_screen" -> Action.LockScreen
+            "lock_screen" -> Action.LockScreen(true)
             "set_location_mode" -> Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.valueOf(mode.ifBlank { "OFF" }.uppercase()))
             "set_auto_sync" -> Action.SetAutoSync(on)
             "clear_notifications" -> Action.ClearNotifications
@@ -254,7 +254,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                     }.getOrDefault(AodMode.OFF)
                 Action.SetAlwaysOnDisplay(aodMode)
             }
-            "take_screenshot" -> Action.TakeScreenshot
+            "take_screenshot" -> Action.TakeScreenshot(true)
             else -> null
         }
     }

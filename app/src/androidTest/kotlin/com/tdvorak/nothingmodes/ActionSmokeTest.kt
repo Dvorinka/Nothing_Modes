@@ -85,12 +85,12 @@ class ActionSmokeTest {
                     Action.SetScreenRotation(ScreenOrientation.AUTO),
                     Action.MediaControl(MediaCommand.PLAY_PAUSE),
                     Action.SendSms("12345", "test"),
-                    Action.LockScreen,
+                    Action.LockScreen(force = true),
                     Action.SetLocationMode(LocationMode.OFF),
                     Action.SetAutoSync(false),
                     Action.ClearNotifications,
                     Action.SetAlwaysOnDisplay(AodMode.OFF),
-                    Action.TakeScreenshot,
+                    Action.TakeScreenshot(force = true),
                 )
 
             for ((index, action) in actions.withIndex()) {

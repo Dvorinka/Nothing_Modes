@@ -13,6 +13,7 @@ import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
+import java.io.File
 import android.os.VibratorManager
 import androidx.core.content.ContextCompat
 import android.provider.Settings
@@ -24,6 +25,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
+import com.tdvorak.nothingmodes.device.DeviceTools
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
@@ -184,7 +186,7 @@ class RealActionExecutor(
 
             // Extended actions (Phase 5)
             is Action.SendSms -> sendSms(action.number, action.text)
-            is Action.LockScreen -> lockScreen()
+            is Action.LockScreen -> if (action.force) lockScreen() else ActionResult.Failure("Detected: may not work on this device")
             is Action.SetLocationMode -> setLocationMode(action.mode)
             is Action.SetAutoSync ->
                 shellOrPanel(
@@ -197,7 +199,7 @@ class RealActionExecutor(
                     aodCommands(action),
                     Settings.ACTION_DISPLAY_SETTINGS,
                 )
-            is Action.TakeScreenshot -> ActionResult.Unsupported
+            is Action.TakeScreenshot -> if (action.force) takeScreenshot() else ActionResult.Failure("Detected: may not work on this device")
         }
 
     // --- Shizuku shell actions ---
@@ -1041,6 +1043,18 @@ class RealActionExecutor(
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "sendSms failed")
         }
+
+    private suspend fun takeScreenshot(): ActionResult {
+        val sh = shellFactory?.resolve() ?: return ActionResult.ShizukuRequired
+        return try {
+            val bytes = DeviceTools(context, sh).capture()
+            val file = File(context.cacheDir, "nothingmodes_screenshot.png")
+            file.writeBytes(bytes)
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "screenshot failed")
+        }
+    }
 
     private fun lockScreen(): ActionResult {
         if (!FeatureFlags.enableLockScreen) {

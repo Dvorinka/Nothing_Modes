@@ -12,6 +12,7 @@ import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -37,8 +38,14 @@ class CapabilityRequirementsTest {
 
     @Test
     fun `lock screen action emits lock screen capability`() {
-        val caps = CapabilityRequirements.derive(Trigger.Immediate, listOf(Action.LockScreen))
+        val caps = CapabilityRequirements.derive(Trigger.Immediate, listOf(Action.LockScreen()))
         assertTrue(CapabilityIds.ACTION_LOCK_SCREEN in caps)
+    }
+
+    @Test
+    fun `forced lock screen action emits no lock screen capability`() {
+        val caps = CapabilityRequirements.derive(Trigger.Immediate, listOf(Action.LockScreen(force = true)))
+        assertFalse(CapabilityIds.ACTION_LOCK_SCREEN in caps)
     }
 
     @Test

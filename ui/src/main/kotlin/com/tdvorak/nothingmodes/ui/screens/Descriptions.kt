@@ -160,12 +160,12 @@ fun actionDescription(action: Action): String =
             is Action.SetScreenRotation -> "Rotation: ${action.orientation.name.enumLabel()}"
             is Action.MediaControl -> "Media: ${action.command.name.enumLabel()}"
             is Action.SendSms -> if (action.number.isBlank()) "Send SMS" else "SMS to ${action.number}"
-            is Action.LockScreen -> "Lock screen"
+            is Action.LockScreen -> "Lock screen" + if (action.force) " (override)" else ""
             is Action.SetLocationMode -> "Location: ${action.mode.name.enumLabel()}"
             is Action.SetAutoSync -> "Auto-sync: ${if (action.on) "On" else "Off"}"
             is Action.ClearNotifications -> "Clear notifications"
             is Action.SetAlwaysOnDisplay -> "AOD: ${action.mode.name.enumLabel()}"
-            is Action.TakeScreenshot -> "Screenshot"
+            is Action.TakeScreenshot -> "Screenshot" + if (action.force) " (override)" else ""
         }
     ).uppercase()
 
@@ -209,9 +209,9 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetDnd -> "Needs Do-Not-Disturb access (Settings → Permissions)."
         is Action.ShowNotification -> "Needs the notification permission."
         is Action.SendSms -> "Needs the SMS permission."
-        is Action.LockScreen -> "Needs device admin — enable it in Settings."
+        is Action.LockScreen -> "Needs device admin — enable it in Settings. Toggle override to try anyway."
         is Action.WriteSetting -> "Advanced. Secure and global keys need Shizuku."
-        is Action.TakeScreenshot -> "Not supported on most devices yet."
+        is Action.TakeScreenshot -> "Detected: may not work on this device. Toggle override to try anyway."
         is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."

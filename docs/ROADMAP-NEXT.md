@@ -138,7 +138,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [~] **Refresh rate**: preset dropdown (60/90/120/144 Hz) + custom Hz input. Device-supported rate query not yet implemented.
 - [x] **Auto-sync**: description added.
 - [x] **Lock screen**: description added in the action config sheet.
-- [ ] **Screenshot + experimental actions**: capability-detect at runtime (`CapabilityDetector`); show disabled with "Detected: may not work on this device" + an override toggle. Apply to screenshot, lock screen, and anything MediaProjection/device-admin dependent.
+- [x] **Screenshot + experimental actions**: `CapabilityDetector` now reads active device admin + MediaProjection; `CapabilityResolver` gates `ACTION_LOCK_SCREEN` and `ACTION_TAKE_SCREENSHOT`. Catalog rows for lock screen and screenshot show "Detected: may not work on this device" with an "Override: try anyway" toggle. Both actions are now data classes with a `force` flag; the executor refuses to run unless `force = true` or the capability is satisfied.
 - [x] **Copy text**: removed from catalog.
 - [~] **Open URL**: description and URL input wired. Optional browser/app picker not yet implemented.
 - [x] **Launch app**: `AppPicker` queries installed launchable apps; `LaunchApp` now takes a package list and `MultiAppPicker` shows icons, package names, search, and checkboxes.
@@ -292,12 +292,12 @@ The model marks **12 actions as Shizuku-required**: Wi-Fi, Bluetooth, mobile dat
 | **Standalone** (no Shizuku) | ~24 | DND*, ringer, volume, brightness*, auto-brightness*, screen timeout*, dark mode*, auto-rotate*, refresh rate*, screen rotation*, flashlight, vibrate, media control, launch app, open URL, open settings, show notification, clear notifications†, send SMS‡, lock screen§, wait, copy text, all 11 glyph actions (need Nothing hardware) |
 | **Shizuku or degrades to system panel** | ~6 | Wi-Fi, Bluetooth, mobile data, location mode, + others with `openPanel` fallback |
 | **Shizuku hard-required** | ~8 | battery saver, airplane, data saver, hotspot, NFC, auto-sync, AOD, write-setting, extra dim |
-| **Broken today** | 1 | `TakeScreenshot` — returns `Unsupported` unconditionally (dead code; needs MediaProjection consent flow) |
+| **Gated / needs override** | 2 | `TakeScreenshot` (Shizuku + override), `LockScreen` (active device admin + override) |
 
 *needs WRITE_SETTINGS (granted on test device) · †needs notification listener (enabled) · ‡needs SEND_SMS (granted) · §needs device admin (active)
 
 **Actionable findings:**
-- [ ] `TakeScreenshot` is dead code — `RealActionExecutor` returns `Unsupported` unconditionally. Either implement via MediaProjection (per-capture consent makes it poor for automation — likely remove) or drop it from the catalog/model. **Decision needed: implement or remove.**
+- [x] `TakeScreenshot` implemented via `DeviceTools.capture()` (Shizuku `screencap -p`) and saved to app cache. It is gated at the capability layer and requires the override toggle unless `force = true`.
 - [ ] `SetLocationMode` capability flag is wrong — model omits `SHIZUKU_REQUIRED` but the executor needs shell/`WRITE_SECURE_SETTINGS` for silent operation (falls back to opening the location settings panel). Add the flag so warnings/filters are accurate.
 - [ ] On-device verification pass remains mandatory — matrix above is static analysis; user reports all Shizuku actions work on their setup, confirm each via the debug broadcast hook.
 
@@ -350,7 +350,7 @@ Every item above gets tested **on the real Phone 3** before being marked done:
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
 - [ ] Create `docs/DEVICE-TEST-MATRIX.md`: table of feature × status (works / needs-Shizuku / broken / impossible-on-this-device) — the "scratch list" the user asked for.
 - [ ] SMS send test to [redacted phone number] (user's own number) — confirm SEND_SMS actually delivers.
-- [ ] Screenshot/capability gating verified on-device.
+- [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and the manual routine runs (Shizuku shell captured).
 
 ---
 
