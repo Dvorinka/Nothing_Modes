@@ -141,7 +141,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [ ] **Screenshot + experimental actions**: capability-detect at runtime (`CapabilityDetector`); show disabled with "Detected: may not work on this device" + an override toggle. Apply to screenshot, lock screen, and anything MediaProjection/device-admin dependent.
 - [x] **Copy text**: removed from catalog.
 - [~] **Open URL**: description and URL input wired. Optional browser/app picker not yet implemented.
-- [ ] **Launch app**: real discovery already exists? Verify `AppPicker` queries installed launchable apps (not hardcoded); add **multi-select** + app icons via `PackageManager.getApplicationIcon`.
+- [x] **Launch app**: `AppPicker` queries installed launchable apps; `LaunchApp` now takes a package list and `MultiAppPicker` shows icons, package names, search, and checkboxes.
 - [x] **Open settings**: `SettingsScreen` enum expanded; app-details package input and description note added.
 - [x] **Wait**: preset dropdown (1s/5s/10s/30s/1m/5m) + Custom.
 - [~] **Send SMS**: number and message inputs wired. Contact picker and on-device send test not yet done.
