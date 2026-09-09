@@ -829,6 +829,23 @@ fun ActionConfigContent(
             }
         }
 
+        is Action.Group -> {
+            Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                NothingInput(
+                    value = a.name,
+                    onValueChange = { onActionChange(a.copy(name = it)) },
+                    label = "Group name",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = "Contains ${a.actions.size} action${if (a.actions.size == 1) "" else "s"}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
+
         is Action.Wait -> {
             val customLabel = "Custom"
             val selected = waitPresets.firstOrNull { it.second == a.durationMs }?.first ?: customLabel
@@ -984,6 +1001,7 @@ private fun actionTitle(action: Action): String =
         is Action.GlyphProgress -> "Glyph progress"
         is Action.GlyphAnimate -> "Glyph animate"
         is Action.GlyphTurnOff -> "Glyph off"
+        is Action.Group -> action.name
         else -> "Action"
     }
 

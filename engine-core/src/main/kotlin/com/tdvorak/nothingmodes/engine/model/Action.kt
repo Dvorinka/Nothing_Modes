@@ -65,6 +65,7 @@ object ActionTypeIds {
     const val CLEAR_NOTIFICATIONS = "clear_notifications"
     const val SET_AOD = "set_aod"
     const val TAKE_SCREENSHOT = "take_screenshot"
+    const val GROUP = "group"
 }
 
 @Serializable
@@ -457,6 +458,16 @@ sealed interface Action {
         /** Force-run even if MediaProjection is not detected. */
         val force: Boolean = false,
     ) : Action
+
+    /** A named group of actions that are run together and can be collapsed. */
+    @Serializable
+    @SerialName(ActionTypeIds.GROUP)
+    data class Group(
+        val name: String = "Group",
+        val actions: List<Action> = emptyList(),
+        /** Whether the group should appear collapsed in the builder. */
+        val collapsed: Boolean = false,
+    ) : Action
 }
 
 @Serializable
@@ -485,6 +496,7 @@ val Action.isGlyphAction: Boolean
             is Action.GlyphMusic,
             -> true
             is Action.GlyphTurnOff -> false
+            is Action.Group -> actions.any { it.isGlyphAction }
             else -> false
         }
 
@@ -516,6 +528,7 @@ val Action.canRestore: Boolean
             is Action.SetAutoSync,
             is Action.SetRinger,
             -> true
+            is Action.Group -> actions.any { it.canRestore }
             else -> false
         }
 
@@ -545,6 +558,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetLocationMode -> copy(restore = restore)
         is Action.SetAutoSync -> copy(restore = restore)
         is Action.SetRinger -> copy(restore = restore)
+        is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
 
@@ -577,6 +591,7 @@ val Action.supportsRestore: Boolean
             is Action.SetLocationMode -> restore
             is Action.SetAutoSync -> restore
             is Action.SetRinger -> restore
+            is Action.Group -> actions.any { it.supportsRestore }
             else -> false
         }
 
@@ -609,5 +624,6 @@ val Action.affectedSettings: Set<String>
             is Action.SetLocationMode -> setOf("location_mode")
             is Action.SetAutoSync -> setOf("auto_sync")
             is Action.SetRinger -> setOf("ringer_mode")
+            is Action.Group -> actions.flatMap { it.affectedSettings }.toSet()
             else -> emptySet()
         }

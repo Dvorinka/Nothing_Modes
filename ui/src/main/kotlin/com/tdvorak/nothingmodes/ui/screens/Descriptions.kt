@@ -181,6 +181,7 @@ fun actionDescription(action: Action): String =
             is Action.ClearNotifications -> "Clear notifications"
             is Action.SetAlwaysOnDisplay -> "AOD: ${action.mode.name.enumLabel()}"
             is Action.TakeScreenshot -> "Screenshot" + if (action.force) " (override)" else ""
+            is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()
 

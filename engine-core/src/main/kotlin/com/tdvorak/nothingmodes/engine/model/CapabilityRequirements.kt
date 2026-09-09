@@ -232,6 +232,7 @@ object CapabilityRequirements {
             is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
             is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.TakeScreenshot -> if (action.force) emptySet() else setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 
     private fun conditionCapabilities(condition: Condition): Set<String> =

@@ -202,6 +202,15 @@ class RealActionExecutor(
                     Settings.ACTION_DISPLAY_SETTINGS,
                 )
             is Action.TakeScreenshot -> if (action.force) takeScreenshot() else ActionResult.Failure("Detected: may not work on this device")
+            is Action.Group -> {
+                val results = action.actions.map { execute(it, context) }
+                when {
+                    results.isEmpty() -> ActionResult.Success
+                    results.all { it is ActionResult.Success } -> ActionResult.Success
+                    else -> results.filterIsInstance<ActionResult.Failure>().firstOrNull()
+                        ?: ActionResult.Failure("group failed")
+                }
+            }
         }
 
     // --- Shizuku shell actions ---
