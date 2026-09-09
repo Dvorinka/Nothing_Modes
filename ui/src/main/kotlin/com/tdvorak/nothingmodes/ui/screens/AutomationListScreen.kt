@@ -853,16 +853,11 @@ private fun MultiSelectBottomBar(
                         .clickable(onClick = onExport)
                         .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
             )
-            Text(
+            NothingCompactPillButton(
                 text = "RUN",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.mono(),
-                letterSpacing = 1.0.sp,
-                modifier =
-                    Modifier
-                        .clickable(onClick = onRun)
-                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                onClick = onRun,
+                enabled = true,
+                modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
     }
