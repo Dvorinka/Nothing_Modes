@@ -88,7 +88,7 @@
 - [x] SMS send to `[user-approved number]` delivered; the user received the test messages.
 - [x] `SMS_RECEIVED` trigger matched on the user-approved number and posted the notification.
 - [x] `INCOMING_CALL` trigger matched through the service-path simulation (`phone_state` debug broadcast).
-- [~] Real carrier-delivered incoming call — same-device dual-SIM test attempted (both directions); no `RINGING`/`INCOMING_CALL` state was delivered, only `IDLE`. A second endpoint or call-forwarding is still required. Added `READ_CALL_LOG` so the incoming number is available when a real call does arrive.
+- [~] Real carrier-delivered incoming call — same-device dual-SIM test attempted (both original and new target numbers); only source-side `OFFHOOK`/`IDLE` states were reported, no `RINGING`/`INCOMING_CALL` state on the device. A second endpoint or call-forwarding is still required. Added `READ_CALL_LOG` so the incoming number is available when a real call does arrive.
 
 ---
 
@@ -410,7 +410,7 @@ Every item above gets tested **on the real Phone 3** before being marked done:
 
 - [x] SMS send test to the user-approved number — `SEND_SMS` delivered to `[user-approved number]`; `SmsManager` returned `Success`; carrier-formatted number `[user-approved number]` observed in `SMS_RECEIVED` broadcast.
 - [x] SMS/call trigger matching on the user-approved number — engine matched `Trigger.PhoneState` for `SMS_RECEIVED` and `INCOMING_CALL` on `[user-approved number]`; resulting `show_notification` actions posted on device.
-- [~] Real carrier-delivered incoming call — same-device dual-SIM test attempted (both directions); no `RINGING`/`INCOMING_CALL` state was delivered, only `IDLE`. Requires a second endpoint or call-forwarding. Added `READ_CALL_LOG` so the caller number is available when a real call arrives; debug `phone_state` simulation verified the trigger pipeline with the supplied number.
+- [~] Real carrier-delivered incoming call — same-device dual-SIM test attempted (both original and new target numbers); only source-side `OFFHOOK`/`IDLE` states were reported, no `RINGING`/`INCOMING_CALL` state on the device. Requires a second endpoint or call-forwarding. Added `READ_CALL_LOG` so the caller number is available when a real call arrives; debug `phone_state` simulation verified the trigger pipeline with the supplied number.
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
 - [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and a manual mode run captures via Shizuku shell.
 
