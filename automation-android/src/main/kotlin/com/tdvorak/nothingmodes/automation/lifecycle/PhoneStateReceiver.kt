@@ -4,23 +4,17 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 
 /**
- * Receives phone state changes (incoming call, offhook, idle) and SMS.
- * Dispatches PhoneState and SMS trigger events to AutomationService.
+ * Receives SMS and dispatches SMS trigger events to AutomationService.
  *
- * Manifest:
- * <receiver android:name=".automation.lifecycle.PhoneStateReceiver" android:exported="true">
- *     <intent-filter>
- *         <action android:name="android.intent.action.PHONE_STATE"/>
- *         <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
- *     </intent-filter>
- * </receiver>
+ * Call state is tracked via TelephonyCallback / PhoneStateListener in
+ * PersistentMonitorService because the ACTION_PHONE_STATE broadcast is not
+ * reliably delivered on modern Android.
  *
- * Requires READ_PHONE_STATE and RECEIVE_SMS permissions.
+ * Requires RECEIVE_SMS permission.
  */
 class PhoneStateReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -28,35 +22,8 @@ class PhoneStateReceiver : BroadcastReceiver() {
         intent: Intent,
     ) {
         when (intent.action) {
-            ACTION_PHONE_STATE -> handlePhoneState(context, intent)
             SMS_RECEIVED -> handleSms(context, intent)
         }
-    }
-
-    private fun handlePhoneState(
-        context: Context,
-        intent: Intent,
-    ) {
-        val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
-        val incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER) ?: ""
-
-        Log.d(TAG, "Phone state: $state")
-
-        val phoneEvent =
-            when (state) {
-                TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
-                TelephonyManager.EXTRA_STATE_OFFHOOK -> "offhook"
-                TelephonyManager.EXTRA_STATE_IDLE -> "idle"
-                else -> return
-            }
-
-        val serviceIntent =
-            Intent(context, AutomationService::class.java).apply {
-                action = AutomationService.ACTION_PHONE_STATE
-                putExtra(EXTRA_PHONE_STATE, phoneEvent)
-                putExtra(EXTRA_PHONE_NUMBER, incomingNumber)
-            }
-        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleSms(
@@ -85,7 +52,6 @@ class PhoneStateReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "PhoneStateReceiver"
         private const val SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED"
-        private const val ACTION_PHONE_STATE = "android.intent.action.PHONE_STATE"
         const val EXTRA_PHONE_STATE = "phone_state"
         const val EXTRA_PHONE_NUMBER = "phone_number"
         const val EXTRA_SMS_SENDER = "sms_sender"

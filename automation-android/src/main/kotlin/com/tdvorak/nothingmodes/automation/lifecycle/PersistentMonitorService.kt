@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.os.IBinder
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -61,6 +63,7 @@ class PersistentMonitorService : Service() {
     override fun onDestroy() {
         unregisterReceivers()
         unregisterTorchCallback()
+        unregisterCallStateListener()
         usageStatsMonitor?.stop()
         usageStatsMonitor = null
         calendarObserver?.stop()
@@ -180,15 +183,18 @@ class PersistentMonitorService : Service() {
         runCatching { registerReceiver(connectivityReceiver, connFilter) }
             .onFailure { Log.e(TAG, "Failed to register connectivity receiver", it) }
 
-        // Phone state + SMS — same implicit-broadcast restriction applies.
+        // SMS_RECEIVED is still delivered via broadcast.
         phoneStateReceiver = PhoneStateReceiver()
-        val phoneFilter =
+        val smsFilter =
             IntentFilter().apply {
-                addAction("android.intent.action.PHONE_STATE")
                 addAction("android.provider.Telephony.SMS_RECEIVED")
             }
-        runCatching { registerReceiver(phoneStateReceiver, phoneFilter) }
-            .onFailure { Log.e(TAG, "Failed to register phone state receiver", it) }
+        runCatching { registerReceiver(phoneStateReceiver, smsFilter) }
+            .onFailure { Log.e(TAG, "Failed to register SMS receiver", it) }
+
+        // Call state via TelephonyCallback/PhoneStateListener — more reliable than the
+        // ACTION_PHONE_STATE broadcast on modern Android.
+        registerCallStateListener()
 
         // App-foreground polling via UsageStats (no-ops without Usage Access).
         usageStatsMonitor = UsageStatsMonitor(this).also { it.start() }
@@ -224,6 +230,80 @@ class PersistentMonitorService : Service() {
         screenReceiver = null
         connectivityReceiver = null
         phoneStateReceiver = null
+    }
+
+    private val phoneStateListeners = mutableMapOf<Int, PhoneStateListener>()
+
+    @Suppress("DEPRECATION")
+    private fun registerCallStateListener() {
+        val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? android.telephony.SubscriptionManager
+        val activeSubs =
+            runCatching {
+                subscriptionManager?.activeSubscriptionInfoList?.map { it.subscriptionId } ?: emptyList()
+            }.getOrElse { emptyList() }
+
+        val subIds = activeSubs.ifEmpty { listOf(-1) }
+
+        for (subId in subIds) {
+            val tm =
+                if (subId != -1) {
+                    (getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager)
+                        ?.createForSubscriptionId(subId)
+                } else {
+                    getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                } ?: continue
+
+            val listener =
+                object : PhoneStateListener() {
+                    override fun onCallStateChanged(
+                        state: Int,
+                        incomingNumber: String?,
+                    ) {
+                        when (state) {
+                            TelephonyManager.CALL_STATE_RINGING ->
+                                dispatchPhoneState("ringing", incomingNumber)
+                            TelephonyManager.CALL_STATE_IDLE ->
+                                dispatchPhoneState("idle", null)
+                            TelephonyManager.CALL_STATE_OFFHOOK ->
+                                dispatchPhoneState("offhook", incomingNumber)
+                        }
+                    }
+                }
+            phoneStateListeners[subId] = listener
+            runCatching {
+                tm.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+            }.onFailure { Log.e(TAG, "Failed to register PhoneStateListener for sub $subId", it) }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun unregisterCallStateListener() {
+        val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? android.telephony.SubscriptionManager
+        for ((subId, listener) in phoneStateListeners) {
+            val tm =
+                if (subId != -1) {
+                    (getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager)
+                        ?.createForSubscriptionId(subId)
+                } else {
+                    getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                } ?: continue
+            runCatching { tm.listen(listener, PhoneStateListener.LISTEN_NONE) }
+        }
+        phoneStateListeners.clear()
+    }
+
+    private fun dispatchPhoneState(
+        state: String,
+        number: String?,
+    ) {
+        Log.d(TAG, "Call state callback: $state number=$number")
+        val serviceIntent =
+            Intent(this, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_PHONE_STATE
+                putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, state)
+                putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, number ?: "")
+            }
+        ContextCompat.startForegroundService(this, serviceIntent)
     }
 
     private var lastTorchState: Boolean? = null
