@@ -375,7 +375,6 @@ private fun actionCapabilityHint(
     caps: DeviceCapabilities,
 ): String {
     val static = actionRequirementHint(action) ?: actionDescription(action)
-    if (action !is Action.TakeScreenshot && action !is Action.LockScreen) return static
 
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)

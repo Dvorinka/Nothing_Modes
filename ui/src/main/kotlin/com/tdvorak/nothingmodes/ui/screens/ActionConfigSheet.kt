@@ -527,6 +527,14 @@ fun ActionConfigContent(
                 label = "URL",
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            AppPicker(
+                currentPackage = a.packageName ?: "",
+                onPkgChange = { pkg ->
+                    onActionChange(a.copy(packageName = pkg.takeIf { it.isNotBlank() }))
+                },
+                browserOnly = true,
+            )
         }
 
         is Action.LaunchApp -> {

@@ -35,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
@@ -113,6 +120,7 @@ fun TriggerConfigScreen(
     triggerJson: String,
     navController: NavController,
 ) {
+    val context = LocalContext.current
     val initial =
         remember(triggerJson) {
             runCatching { Json.decodeFromString<Trigger>(triggerJson) }.getOrNull()
@@ -120,6 +128,10 @@ fun TriggerConfigScreen(
         }
     var trigger by remember { mutableStateOf(initial) }
     var showTypePicker by remember { mutableStateOf(false) }
+    var caps by remember { mutableStateOf(DeviceCapabilities()) }
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -208,6 +220,7 @@ fun TriggerConfigScreen(
                     selected = trigger,
                     onSelect = { trigger = it },
                     onDismiss = { showTypePicker = false },
+                    caps = caps,
                 )
             }
         }
@@ -225,6 +238,7 @@ private fun TriggerTypePickerDialog(
     selected: Trigger,
     onSelect: (Trigger) -> Unit,
     onDismiss: () -> Unit,
+    caps: DeviceCapabilities,
 ) {
     val types = remember { triggerTypes() }
     val grouped = types.groupBy { it.category }
@@ -297,6 +311,7 @@ private fun TriggerTypePickerDialog(
                         }
                         items(groupItems, key = { it.label }) { type ->
                             val isSelected = selected::class == type.trigger::class
+                            val hint = triggerCapabilityHint(type.trigger, caps)
                             Row(
                                 modifier =
                                     Modifier
@@ -323,18 +338,34 @@ private fun TriggerTypePickerDialog(
                                         },
                                     modifier = Modifier.size(20.dp),
                                 )
-                                Text(
-                                    text = type.label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                    fontFamily = NothingFonts.mono(),
-                                    modifier = Modifier.weight(1f),
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = type.label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color =
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            },
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                    if (hint.isNotEmpty()) {
+                                        Text(
+                                            text = hint,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color =
+                                                if (isSelected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                            fontFamily = NothingFonts.mono(),
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
                                 if (isSelected) {
                                     Text(
                                         text = "•",
@@ -831,6 +862,20 @@ private fun WifiConnectedContent(
             onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
             label = "Network name / SSID (blank = any)",
         )
+    }
+}
+
+private fun triggerCapabilityHint(
+    trigger: Trigger,
+    caps: DeviceCapabilities,
+): String {
+    val static = triggerDescription(trigger)
+    val required = CapabilityRequirements.derive(trigger, emptyList())
+    val resolution = CapabilityResolver(caps).resolve("", required)
+    return if (!resolution.canRun) {
+        resolution.missingReasons.values.firstOrNull() ?: static
+    } else {
+        ""
     }
 }
 

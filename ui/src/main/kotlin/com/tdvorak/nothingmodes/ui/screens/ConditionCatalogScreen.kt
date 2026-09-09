@@ -16,21 +16,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.CallState
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -47,6 +54,8 @@ import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -59,11 +68,16 @@ private data class ConditionItem(
 
 @Composable
 fun ConditionCatalogScreen(navController: NavController) {
+    val context = LocalContext.current
     var search by remember { mutableStateOf("") }
     // Conditions are configured in a bottom sheet before being added.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
     var configCondition by remember { mutableStateOf<Condition?>(null) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
+    var caps by remember { mutableStateOf(DeviceCapabilities()) }
+    LaunchedEffect(Unit) {
+        withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
+    }
 
     val items =
         remember {
@@ -372,6 +386,7 @@ fun ConditionCatalogScreen(navController: NavController) {
                                 CatalogListItem(
                                     label = conditionItem.label,
                                     icon = conditionItem.icon,
+                                    subtitle = conditionCapabilityHint(conditionItem.condition, caps),
                                     onClick = {
                                         editingIndex = null
                                         configCondition = conditionItem.condition
@@ -436,10 +451,12 @@ fun ConditionCatalogScreen(navController: NavController) {
 private fun CatalogListItem(
     label: String,
     icon: ImageVector,
+    subtitle: String,
     onClick: () -> Unit,
 ) {
     NothingListRow(
         title = label,
+        subtitle = subtitle,
         onClick = onClick,
         leading = {
             NothingIconCircle(size = 44f) {
@@ -452,4 +469,18 @@ private fun CatalogListItem(
             }
         },
     )
+}
+
+private fun conditionCapabilityHint(
+    condition: Condition,
+    caps: DeviceCapabilities,
+): String {
+    val static = conditionDescription(condition)
+    val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
+    val resolution = CapabilityResolver(caps).resolve("", required)
+    return if (!resolution.canRun) {
+        resolution.missingReasons.values.firstOrNull() ?: static
+    } else {
+        static
+    }
 }

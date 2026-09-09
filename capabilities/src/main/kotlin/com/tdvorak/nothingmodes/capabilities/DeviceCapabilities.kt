@@ -27,6 +27,7 @@ data class DeviceCapabilities(
     val hasLocationPermission: Boolean = false,
     val hasActiveDeviceAdmin: Boolean = false,
     val hasReadCalendar: Boolean = false,
+    val hasReceiveSms: Boolean = false,
     val hasSendSms: Boolean = false,
     val hasReadPhoneState: Boolean = false,
     val hasCamera: Boolean = false,

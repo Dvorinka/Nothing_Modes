@@ -80,6 +80,7 @@ class CapabilityDetector(
             hasLocationPermission = checkLocationPermission(),
             hasActiveDeviceAdmin = checkActiveDeviceAdmin(),
             hasReadCalendar = checkPermission(android.Manifest.permission.READ_CALENDAR),
+            hasReceiveSms = checkPermission(android.Manifest.permission.RECEIVE_SMS),
             hasSendSms = checkPermission(android.Manifest.permission.SEND_SMS),
             hasReadPhoneState = checkPermission(android.Manifest.permission.READ_PHONE_STATE),
             hasCamera = checkPermission(android.Manifest.permission.CAMERA),

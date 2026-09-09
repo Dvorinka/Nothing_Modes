@@ -32,9 +32,8 @@ class CapabilityResolver(
             -> true
 
             CapabilityIds.TRIGGER_NOTIFICATION -> capabilities.hasNotificationListenerAccess
-            CapabilityIds.TRIGGER_PHONE_SMS,
-            CapabilityIds.TRIGGER_PHONE_CALL,
-            -> capabilities.hasTelephony
+            CapabilityIds.TRIGGER_PHONE_SMS -> capabilities.hasReceiveSms
+            CapabilityIds.TRIGGER_PHONE_CALL -> capabilities.hasReadPhoneState
 
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
@@ -50,7 +49,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_APP_OPENED -> capabilities.hasUsageAccess
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
             CapabilityIds.TRIGGER_MANUAL -> true
-            CapabilityIds.TRIGGER_CALENDAR_EVENT -> true
+            CapabilityIds.TRIGGER_CALENDAR_EVENT -> capabilities.hasReadCalendar
 
             // State readers
             CapabilityIds.STATE_READER_BUILTIN -> true
@@ -107,9 +106,9 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
-            CapabilityIds.ACTION_SEND_SMS -> capabilities.hasTelephony
             CapabilityIds.ACTION_SET_LOCATION_MODE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_MEDIA_CONTROL -> true
+            CapabilityIds.ACTION_SEND_SMS -> capabilities.hasSendSms
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
@@ -160,7 +159,10 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"
             CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
             CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
-            CapabilityIds.ACTION_SEND_SMS -> "Telephony not available on this device"
+            CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
+            CapabilityIds.TRIGGER_PHONE_CALL -> "READ_PHONE_STATE permission required"
+            CapabilityIds.TRIGGER_CALENDAR_EVENT -> "READ_CALENDAR permission required"
+            CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Detected: may not work on this device"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Detected: may not work on this device"
