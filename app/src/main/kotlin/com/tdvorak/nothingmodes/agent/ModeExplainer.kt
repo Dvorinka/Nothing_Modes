@@ -214,6 +214,7 @@ object ModeExplainer {
             is Action.SetAutoSync -> "set auto sync ${if (action.on) "on" else "off"}"
             Action.ClearNotifications -> "clear all notifications"
             is Action.SetAlwaysOnDisplay -> "set AOD to ${action.mode.name.lowercase()}"
+            is Action.SetStayAwake -> "set stay-awake-while-charging ${if (action.on) "on" else "off"}"
             is Action.TakeScreenshot -> "take a screenshot" + if (action.force) " (forced)" else ""
             is Action.Group -> "group '${action.name}': " + action.actions.joinToString(", ") { explainAction(it) }
         }

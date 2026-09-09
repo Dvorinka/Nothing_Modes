@@ -224,6 +224,14 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.SetStayAwake -> {
+            BooleanRow(
+                label = "Stay awake while charging",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+        }
+
         is Action.SetWallpaper -> {
             WallpaperActionEditor(
                 action = a,
@@ -1029,6 +1037,7 @@ private fun actionTitle(action: Action): String =
         is Action.SetRinger -> "Ringer mode"
         is Action.SetNfc -> "NFC"
         is Action.SetDataSaver -> "Data saver"
+        is Action.SetStayAwake -> "Stay awake"
         is Action.SetHotspot -> "Hotspot"
         is Action.SetAutoSync -> "Auto-sync"
         is Action.SetRefreshRate -> "Refresh rate"

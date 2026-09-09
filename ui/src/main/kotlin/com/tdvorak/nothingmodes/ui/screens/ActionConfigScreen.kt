@@ -185,6 +185,14 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.SetStayAwake -> {
+                        BooleanRow(
+                            label = "Stay awake while charging",
+                            checked = a.on,
+                            onChange = { action = a.copy(on = it) },
+                        )
+                    }
+
                     is Action.SetWallpaper -> {
                         WallpaperActionEditor(
                             action = a,

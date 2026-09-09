@@ -129,6 +129,7 @@ The response is written to the app's cache as `mcp-response.json` and printed to
 | `set_volume` | `volumes` map (`media`, `ring`, `alarm`, `notification`) | Stream-level only; no per-app volume. |
 | `set_brightness` / `set_auto_brightness` / `set_extra_dim` / `set_screen_timeout` | `level`/`on`/`timeoutMs` | Requires `WRITE_SETTINGS` or Shizuku. |
 | `set_wallpaper` | `uri`, `which` (`home`/`lock`) | Uses system photo picker URI. No storage permission needed if URI is persisted. |
+| `set_stay_awake` | `on` | Sets `Settings.Global.STAY_ON_WHILE_PLUGGED_IN`. Requires Shizuku. |
 | `set_airplane_mode` / `set_data_saver` / `set_hotspot` / `set_nfc` / `set_battery_saver` / `set_location_mode` / `set_auto_sync` / `set_aod` | `on` or `mode` | Requires Shizuku. |
 | `set_refresh_rate` | `hz` | Requires `WRITE_SETTINGS`. |
 | `set_screen_rotation` | `orientation` (`auto`, `portrait`, `landscape`) | Requires `WRITE_SETTINGS` or Shizuku. |

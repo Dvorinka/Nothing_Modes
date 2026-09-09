@@ -112,6 +112,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_SET_LOCATION_MODE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_SET_STAY_AWAKE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_MEDIA_CONTROL -> true
             CapabilityIds.ACTION_SEND_SMS -> capabilities.hasSendSms
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -139,6 +140,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_HOTSPOT,
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
+            CapabilityIds.ACTION_SET_STAY_AWAKE,
             -> "Shizuku required but not authorized"
 
             CapabilityIds.ACTION_SET_DND -> "Notification policy access required"

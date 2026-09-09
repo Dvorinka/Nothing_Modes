@@ -171,6 +171,7 @@ fun actionDescription(action: Action): String =
             is Action.SetDataSaver -> "Data Saver: ${if (action.on) "On" else "Off"}"
             is Action.SetHotspot -> "Hotspot: ${if (action.on) "On" else "Off"}"
             is Action.SetNfc -> "NFC: ${if (action.on) "On" else "Off"}"
+            is Action.SetStayAwake -> "Stay Awake: ${if (action.on) "On" else "Off"}"
             is Action.SetRefreshRate -> {
                 val label = refreshRatePresets.firstOrNull { it.second == action.hz }?.first ?: "${action.hz}Hz"
                 "Refresh Rate: $label"
@@ -244,6 +245,9 @@ fun actionRequirementHint(action: Action): String? =
 
         is Action.SetLocationMode ->
             "Changes the device location mode. Silent toggling needs Shizuku; without it the system location panel opens for one tap."
+
+        is Action.SetStayAwake ->
+            "Keeps the screen on while the device is charging. Needs Shizuku."
 
         is Action.SetBrightness, is Action.SetAutoBrightness, is Action.SetExtraDim,
         is Action.SetScreenTimeout, is Action.SetAutoRotate, is Action.SetScreenRotation,

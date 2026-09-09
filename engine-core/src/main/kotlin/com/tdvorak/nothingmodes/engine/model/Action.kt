@@ -66,6 +66,7 @@ object ActionTypeIds {
     const val CLEAR_NOTIFICATIONS = "clear_notifications"
     const val SET_AOD = "set_aod"
     const val TAKE_SCREENSHOT = "take_screenshot"
+    const val SET_STAY_AWAKE = "set_stay_awake"
     const val GROUP = "group"
 }
 
@@ -465,6 +466,15 @@ sealed interface Action {
         val restore: Boolean = true,
     ) : Action
 
+    /** Keep the screen on while plugged in. Requires Shizuku (Settings.Global stay_on_while_plugged_in). */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_STAY_AWAKE)
+    data class SetStayAwake(
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
     /** Take a screenshot. Requires MediaProjection (user consent per capture). */
     @Serializable
     @SerialName(ActionTypeIds.TAKE_SCREENSHOT)
@@ -541,6 +551,7 @@ val Action.canRestore: Boolean
             is Action.SetLocationMode,
             is Action.SetAutoSync,
             is Action.SetRinger,
+            is Action.SetStayAwake,
             -> true
             is Action.Group -> actions.any { it.canRestore }
             else -> false
@@ -572,6 +583,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetLocationMode -> copy(restore = restore)
         is Action.SetAutoSync -> copy(restore = restore)
         is Action.SetRinger -> copy(restore = restore)
+        is Action.SetStayAwake -> copy(restore = restore)
         is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
@@ -605,6 +617,7 @@ val Action.supportsRestore: Boolean
             is Action.SetLocationMode -> restore
             is Action.SetAutoSync -> restore
             is Action.SetRinger -> restore
+            is Action.SetStayAwake -> restore
             is Action.Group -> actions.any { it.supportsRestore }
             else -> false
         }
@@ -639,6 +652,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetLocationMode -> setOf("location_mode")
             is Action.SetAutoSync -> setOf("auto_sync")
             is Action.SetRinger -> setOf("ringer_mode")
+            is Action.SetStayAwake -> setOf("stay_on_while_plugged_in")
             is Action.Group -> actions.flatMap { it.affectedSettings }.toSet()
             else -> emptySet()
         }

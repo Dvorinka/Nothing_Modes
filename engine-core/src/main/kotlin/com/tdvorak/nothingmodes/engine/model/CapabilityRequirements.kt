@@ -85,6 +85,7 @@ object CapabilityIds {
     const val ACTION_CLEAR_NOTIFICATIONS = "action_clear_notifications"
     const val ACTION_SET_AOD = "action_set_aod"
     const val ACTION_TAKE_SCREENSHOT = "action_take_screenshot"
+    const val ACTION_SET_STAY_AWAKE = "action_set_stay_awake"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -126,6 +127,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             CapabilityIds.ACTION_GLYPH_MUSIC,
             -> "Nothing Glyph Matrix"
+            CapabilityIds.ACTION_SET_STAY_AWAKE -> "Stay awake while charging"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
@@ -240,6 +242,7 @@ object CapabilityRequirements {
             is Action.ClearNotifications -> setOf(CapabilityIds.ACTION_CLEAR_NOTIFICATIONS)
             is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.TakeScreenshot -> if (action.force) emptySet() else setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetStayAwake -> setOf(CapabilityIds.ACTION_SET_STAY_AWAKE, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

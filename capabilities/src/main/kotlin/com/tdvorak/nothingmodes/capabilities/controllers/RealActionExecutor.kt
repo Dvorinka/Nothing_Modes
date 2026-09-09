@@ -208,6 +208,11 @@ class RealActionExecutor(
                     aodCommands(action),
                     Settings.ACTION_DISPLAY_SETTINGS,
                 )
+            is Action.SetStayAwake ->
+                shellOrPanel(
+                    stayAwakeCommand(action.on),
+                    Settings.ACTION_DISPLAY_SETTINGS,
+                )
             is Action.TakeScreenshot -> if (action.force) takeScreenshot() else ActionResult.Failure("Detected: may not work on this device")
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
@@ -974,6 +979,15 @@ class RealActionExecutor(
             "global",
             "data_saver",
             if (on) "1" else "0",
+        )
+
+    private fun stayAwakeCommand(on: Boolean) =
+        listOf(
+            "settings",
+            "put",
+            "global",
+            "stay_on_while_plugged_in",
+            if (on) "2" else "0",
         )
 
     private fun hotspotCommand(on: Boolean) =
