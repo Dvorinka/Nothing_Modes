@@ -1484,29 +1484,46 @@ private fun android.content.Context.distributionFlavor(): String {
 
 @Composable
 private fun PlayBuildBanner(onDismiss: () -> Unit) {
+    val context = LocalContext.current
     NothingCard {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(NothingSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Play build",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Some features (lock screen, in-app updates) are disabled in the Play build. Use the GitHub build for full automation.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    text = "Play build",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "Some features (lock screen, in-app updates) are disabled in the Play build. Use the GitHub build for full automation.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "DISMISS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.clickable(onClick = onDismiss).padding(NothingSpacing.sm),
                 )
             }
-            Text(
-                text = "DISMISS",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.mono(),
-                modifier = Modifier.clickable(onClick = onDismiss).padding(NothingSpacing.sm),
+            NothingGhostButton(
+                text = "Get GitHub build",
+                onClick = {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/tdvorak/Nothing_Modes/releases"),
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                },
             )
         }
     }

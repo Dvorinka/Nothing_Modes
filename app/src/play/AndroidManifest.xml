@@ -3,11 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application>
-        <receiver
-            android:name="com.tdvorak.nothingmodes.automation.lifecycle.NothingDeviceAdminReceiver"
-            android:exported="true"
-            android:permission="android.permission.BIND_DEVICE_ADMIN"
-            tools:node="remove" />
     </application>
 
 </manifest>

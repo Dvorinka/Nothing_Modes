@@ -372,12 +372,12 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 **Play build loses** (per flavor flags + compliance doc):
 | Feature | GitHub | Play |
 |---|---|---|
-| Lock screen (device admin) | works | `Unsupported` — admin receiver must also move out of shared manifest (currently leaks into play builds — fix) |
+| Lock screen (device admin) | works | `Unsupported` — admin receiver moved out of shared manifest and declared only in the GitHub flavor |
 | In-app updates | works | becomes "open Play listing" |
 | Launch-app full discovery | QUERY_ALL_PACKAGES | degraded to `<queries>` allowlist — picker may not see all apps |
 | Play-policy exposure | free | Shizuku-adjacent settings writes invite review scrutiny |
 
-- [ ] In the **play** build: a dismissible banner/notice in Settings (and on the capability warning sheet when a github-only feature is tapped): "This action isn't available in the Play version. The GitHub build unlocks device admin, full app discovery, and in-app updates — same app, free." → link to the GitHub releases page. Never nag — once per feature area, dismissible, persisted.
+- [x] In the **play** build: a dismissible banner/notice in Settings (and on the capability warning sheet when a github-only feature is tapped): "This action isn't available in the Play version. The GitHub build unlocks device admin, full app discovery, and in-app updates — same app, free." → link to the GitHub releases page. Never nag — once per feature area, dismissible, persisted.
 
 - [x] Central `PermissionGate` helper: when a user selects a trigger/action requiring a runtime permission (calendar, contacts, SMS, location, notifications, camera/mic, exact alarm, accessibility, device admin, Shizuku), show an inline explainer row + "Grant" → system dialog **at that moment**, not buried in settings.
 - [x] A permission status section in Settings showing granted/missing with deep links.
