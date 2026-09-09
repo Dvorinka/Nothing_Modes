@@ -38,6 +38,14 @@ class GlyphPresetsTest {
     }
 
     @Test
+    fun `now playing returns scrolling text matrix`() {
+        val visual = GlyphPresets.nowPlaying("Artist", "Title")
+        assertNotNull(visual)
+        val matrix = visual as GlyphPresets.GlyphVisual.Matrix
+        assertEquals("Artist - Title", matrix.scrollingText)
+    }
+
+    @Test
     fun `existing presets remain defined`() {
         assertNotNull(GlyphPresets.chargingStart)
         assertNotNull(GlyphPresets.incomingCall)

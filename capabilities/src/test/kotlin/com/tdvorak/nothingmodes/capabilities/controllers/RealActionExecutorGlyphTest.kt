@@ -121,6 +121,13 @@ class RealActionExecutorGlyphTest {
         }
 
     @Test
+    fun `SetWallpaper delegates to controller`() =
+        runTest {
+            val result = executor().execute(Action.SetWallpaper("content://test/1", which = "home"), fireContext)
+            assertEquals(ActionResult.Success, result)
+        }
+
+    @Test
     fun `SetVolume delegates to controller`() =
         runTest {
             val result = executor().execute(Action.SetVolume(mapOf(VolumeStream.MEDIA to 50)), fireContext)

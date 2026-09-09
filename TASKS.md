@@ -210,12 +210,12 @@ All items verified complete. See TODO.md for historical record.
 - [x] Engine: fire policy (cooldown, thread safety)
 - [x] Engine: edge cases (empty actions, all-fail, mixed, exceptions)
 - [~] Engine: duplicate automation — UI duplicate and import duplicate-ID handling exist; dedicated engine test not present
-- [ ] Android: boot, alarms, battery, screen tests
+- [~] Android: boot, alarms, battery, screen tests — broadcast intent tests added; full lifecycle tests require dedicated suite
 - [x] Nothing: Glyph, Glyph Matrix, unsupported devices
 - [x] Shizuku: unavailable, denied, restart
 - [x] Data: migrations, import, export, corrupted input
-- [ ] UI: creation, editing, enabling, deleting, duplicating
-- [ ] E2E: full Sleep → trigger → execute → restore cycle
+- [~] UI: creation, editing, enabling, deleting, duplicating — covered by unit tests and manual smoke; Compose UI tests not yet written
+- [~] E2E: full Sleep → trigger → execute → restore cycle — manual smoke on device; automated E2E not yet written
 
 ### Documentation
 - [x] README (features, architecture, device matrix, build, setup)
@@ -224,17 +224,17 @@ All items verified complete. See TODO.md for historical record.
 - [x] Privacy policy
 - [x] Contributing guide
 - [x] TASKS.md, TODO.md
-- [ ] Architecture document
-- [ ] Module guide
-- [ ] Shizuku integration guide
-- [ ] Nothing SDK reference
-- [ ] Supported device matrix
+- [x] Architecture document
+- [x] Module guide (covered in Architecture document)
+- [x] Shizuku integration guide (docs/shizuku.md)
+- [x] Nothing SDK reference (docs/nothing-sdk.md)
+- [x] Supported device matrix (docs/DEVICE-TEST-MATRIX.md)
 
 ### Security & Review
 - [x] Security review (receivers, WriteSettingPolicy, URL/package validation, allowBackup)
 - [x] Exported component permissions (FlipReceiver, ToyService)
 - [x] Hardcoded secrets removed (NothingKey=test removed)
-- [ ] Dependency review (abandoned, duplicate, vulnerabilities)
+- [x] Dependency review (docs/DEPENDENCY_REVIEW.md)
 - [x] Final repository audit (TODO/FIXME/placeholder/mock/dummy)
 - [x] Clean build verification
 - [x] Release build verification

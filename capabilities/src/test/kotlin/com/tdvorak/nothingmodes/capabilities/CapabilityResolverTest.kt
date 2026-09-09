@@ -29,6 +29,7 @@ class CapabilityResolverTest {
             CapabilityIds.TRIGGER_WIFI_CONNECTED,
             CapabilityIds.TRIGGER_CALENDAR_EVENT,
             CapabilityIds.TRIGGER_TORCH_STATE,
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
             CapabilityIds.STATE_READER_BUILTIN,
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -83,6 +84,7 @@ class CapabilityResolverTest {
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
             CapabilityIds.ACTION_SET_AOD,
+            CapabilityIds.ACTION_SET_WALLPAPER,
             CapabilityIds.ACTION_TAKE_SCREENSHOT,
             CapabilityIds.SHIZUKU_REQUIRED,
         )
@@ -177,6 +179,23 @@ class CapabilityResolverTest {
 
         assertFalse(resolution.canRun)
         assertEquals("Detected: may not work on this device", resolution.missingReasons[CapabilityIds.ACTION_LOCK_SCREEN])
+    }
+
+    @Test
+    fun mediaPlaybackRequiresNotificationListener() {
+        val caps = everything().copy(hasNotificationListenerAccess = false)
+        val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK))
+
+        assertFalse(resolution.canRun)
+        assertEquals("Notification listener access required", resolution.missingReasons[CapabilityIds.TRIGGER_MEDIA_PLAYBACK])
+    }
+
+    @Test
+    fun setWallpaperAlwaysSatisfied() {
+        val resolution = CapabilityResolver(everything()).resolve("test", setOf(CapabilityIds.ACTION_SET_WALLPAPER))
+
+        assertTrue(resolution.canRun)
+        assertTrue(resolution.missing.isEmpty())
     }
 
     @Test

@@ -537,4 +537,50 @@ class TriggerMatcherTest {
             matcher.matches(Trigger.DeviceUnlocked, TriggerEvent.ScreenStateChanged("e1", ScreenState.OFF)),
         )
     }
+
+    // --- MediaPlayback ---
+
+    @Test
+    fun `MediaPlayback trigger matches playing event`() {
+        val trigger = Trigger.MediaPlayback(playing = true)
+        val event = TriggerEvent.MediaPlaybackChanged("e1", playing = true, packageName = null, artist = null, title = null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `MediaPlayback trigger does not match playing when stopped is expected`() {
+        val trigger = Trigger.MediaPlayback(playing = false)
+        val event = TriggerEvent.MediaPlaybackChanged("e1", playing = true, packageName = null, artist = null, title = null)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `MediaPlayback trigger matches package name filter`() {
+        val trigger = Trigger.MediaPlayback(playing = true, packageName = "com.spotify.music")
+        val event = TriggerEvent.MediaPlaybackChanged("e1", playing = true, packageName = "com.spotify.music", artist = null, title = null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `MediaPlayback trigger does not match different package`() {
+        val trigger = Trigger.MediaPlayback(playing = true, packageName = "com.spotify.music")
+        val event = TriggerEvent.MediaPlaybackChanged("e1", playing = true, packageName = "com.apple.android.music", artist = null, title = null)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- Airplane ---
+
+    @Test
+    fun `Connectivity trigger matches airplane mode on`() {
+        val trigger = Trigger.Connectivity(medium = ConnMedium.AIRPLANE, state = ConnState.CONNECTED)
+        val event = TriggerEvent.ConnectivityChanged("e1", ConnMedium.AIRPLANE, ConnState.CONNECTED, null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `Connectivity trigger matches airplane mode off`() {
+        val trigger = Trigger.Connectivity(medium = ConnMedium.AIRPLANE, state = ConnState.DISCONNECTED)
+        val event = TriggerEvent.ConnectivityChanged("e1", ConnMedium.AIRPLANE, ConnState.DISCONNECTED, null)
+        assertTrue(matcher.matches(trigger, event))
+    }
 }

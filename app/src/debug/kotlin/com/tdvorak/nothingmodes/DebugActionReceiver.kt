@@ -58,6 +58,22 @@ class DebugActionReceiver : BroadcastReceiver() {
         intent: Intent,
     ) {
         if (intent.action != ACTION) return
+        if (intent.getStringExtra("type") == "reset_wallpaper") {
+            runCatching {
+                val wm = android.app.WallpaperManager.getInstance(context)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    wm.clear(android.app.WallpaperManager.FLAG_SYSTEM)
+                    wm.clear(android.app.WallpaperManager.FLAG_LOCK)
+                } else {
+                    @Suppress("DEPRECATION")
+                    wm.clear()
+                }
+                Log.i(TAG, "reset_wallpaper -> Success")
+            }.onFailure {
+                Log.i(TAG, "reset_wallpaper -> Failure(${it.message})")
+            }
+            return
+        }
         if (intent.getStringExtra("type") == "profile") {
             // Recognition-layer probe: dump the full device snapshot.
             val p =
