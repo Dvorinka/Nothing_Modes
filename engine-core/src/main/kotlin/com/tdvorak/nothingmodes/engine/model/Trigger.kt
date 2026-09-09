@@ -10,7 +10,7 @@ enum class Transition { ENTER, EXIT, DWELL }
 
 enum class PhoneEvent { INCOMING_CALL, CALL_ENDED, SMS_RECEIVED }
 
-enum class ConnMedium { WIFI, BT, POWER }
+enum class ConnMedium { WIFI, BT, POWER, AIRPLANE }
 
 enum class ConnState { CONNECTED, DISCONNECTED }
 

@@ -181,6 +181,7 @@ class PersistentMonitorService : Service() {
                 addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED)
                 addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
                 addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED)
+                addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
             }
         runCatching { registerReceiver(connectivityReceiver, connFilter) }
             .onFailure { Log.e(TAG, "Failed to register connectivity receiver", it) }

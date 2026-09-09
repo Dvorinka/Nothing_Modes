@@ -329,12 +329,13 @@ class AutomationService : Service() {
             when (type) {
                 "wifi" -> ConnMedium.WIFI
                 "bluetooth" -> ConnMedium.BT
+                "airplane" -> ConnMedium.AIRPLANE
                 else -> return
             }
         val state =
             when (stateStr) {
-                "wifi_enabled", "bt_enabled" -> ConnState.CONNECTED
-                "wifi_disabled", "bt_disabled" -> ConnState.DISCONNECTED
+                "wifi_enabled", "bt_enabled", "airplane_enabled" -> ConnState.CONNECTED
+                "wifi_disabled", "bt_disabled", "airplane_disabled" -> ConnState.DISCONNECTED
                 else -> return
             }
         dispatchEvent(

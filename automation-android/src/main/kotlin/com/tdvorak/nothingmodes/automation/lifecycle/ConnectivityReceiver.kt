@@ -41,7 +41,26 @@ class ConnectivityReceiver : BroadcastReceiver() {
             BluetoothAdapter.ACTION_STATE_CHANGED -> handleBtState(context, intent)
             BluetoothDevice.ACTION_ACL_CONNECTED -> handleBtDevice(context, intent, true)
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> handleBtDevice(context, intent, false)
+            Intent.ACTION_AIRPLANE_MODE_CHANGED -> handleAirplaneState(context)
         }
+    }
+
+    private fun handleAirplaneState(context: Context) {
+        val enabled =
+            runCatching {
+                android.provider.Settings.Global
+                    .getInt(context.contentResolver, android.provider.Settings.Global.AIRPLANE_MODE_ON, 0) == 1
+            }.getOrDefault(false)
+        val event = if (enabled) "airplane_enabled" else "airplane_disabled"
+        Log.d(TAG, "Airplane mode: $event")
+
+        val serviceIntent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_CONNECTIVITY
+                putExtra(EXTRA_CONNECTIVITY_TYPE, "airplane")
+                putExtra(EXTRA_CONNECTIVITY_STATE, event)
+            }
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 
     private fun handleWifiConnected(context: Context) {

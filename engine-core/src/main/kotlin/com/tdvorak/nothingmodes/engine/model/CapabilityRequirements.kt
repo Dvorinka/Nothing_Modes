@@ -13,6 +13,7 @@ object CapabilityIds {
     const val TRIGGER_CONNECTIVITY_WIFI_IDENTITY = "trigger_connectivity_wifi_identity"
     const val TRIGGER_CONNECTIVITY_BT = "trigger_connectivity_bt"
     const val TRIGGER_CONNECTIVITY_POWER = "trigger_connectivity_power"
+    const val TRIGGER_CONNECTIVITY_AIRPLANE = "trigger_connectivity_airplane"
     const val TRIGGER_BOOT = "trigger_boot"
     const val TRIGGER_BATTERY_LEVEL = "trigger_battery_level"
     const val TRIGGER_SCREEN_STATE = "trigger_screen_state"
@@ -166,6 +167,7 @@ object CapabilityRequirements {
                     ConnMedium.WIFI -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_WIFI)
                     ConnMedium.BT -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_BT)
                     ConnMedium.POWER -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_POWER)
+                    ConnMedium.AIRPLANE -> setOf(CapabilityIds.TRIGGER_CONNECTIVITY_AIRPLANE)
                 }
             is Trigger.Boot -> setOf(CapabilityIds.TRIGGER_BOOT)
             is Trigger.BatteryLevel -> setOf(CapabilityIds.TRIGGER_BATTERY_LEVEL)

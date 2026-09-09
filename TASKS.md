@@ -63,9 +63,9 @@ All items verified complete. See TODO.md for historical record.
 - [x] Animate with period/cycles/interval
 - [~] Notification glyph patterns (charging, alarm, timer, countdown) — presets exist; not auto-wired to incoming notifications
 - [x] Charging animation preset
-- [ ] Alarm visual preset
+- [x] Alarm visual preset
 - [x] Timer countdown preset
-- [ ] Volume indicator preset
+- [x] Volume indicator preset
 
 ### Glyph Matrix
 - [x] GlyphMatrixObject.Builder (image, text, position, rotation, scale, brightness)
