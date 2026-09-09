@@ -97,7 +97,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DND)
     data class SetDnd(
         val mode: DndMode,
-        /** Revert to the pre-run value when a windowed routine ends. */
+        /** Revert to the pre-run value when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -132,7 +132,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_VOLUME)
     data class SetVolume(
         val volumes: Map<VolumeStream, Int> = emptyMap(),
-        /** Revert to the pre-run level when a windowed routine ends. */
+        /** Revert to the pre-run level when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -148,7 +148,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DARK_MODE)
     data class SetDarkMode(
         val mode: NightMode,
-        /** Revert to the pre-run mode when a windowed routine ends. */
+        /** Revert to the pre-run mode when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -178,7 +178,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AUTO_BRIGHTNESS)
     data class SetAutoBrightness(
         val on: Boolean,
-        /** Revert to the pre-run state when a windowed routine ends. */
+        /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -324,7 +324,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AUTO_ROTATE)
     data class SetAutoRotate(
         val on: Boolean,
-        /** Revert to the pre-run state when a windowed routine ends. */
+        /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -333,7 +333,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_BATTERY_SAVER)
     data class SetBatterySaver(
         val on: Boolean,
-        /** Revert to the pre-run state when a windowed routine ends. */
+        /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -342,7 +342,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_AIRPLANE_MODE)
     data class SetAirplaneMode(
         val on: Boolean,
-        /** Revert to the pre-run state when a windowed routine ends. */
+        /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -351,7 +351,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_DATA_SAVER)
     data class SetDataSaver(
         val on: Boolean,
-        /** Revert to the pre-run state when a windowed routine ends. */
+        /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -378,7 +378,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_REFRESH_RATE)
     data class SetRefreshRate(
         val hz: Int,
-        /** Revert to the pre-run rate when a windowed routine ends. */
+        /** Revert to the pre-run rate when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 
@@ -387,7 +387,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_SCREEN_ROTATION)
     data class SetScreenRotation(
         val orientation: ScreenOrientation,
-        /** Revert to the pre-run rotation when a windowed routine ends. */
+        /** Revert to the pre-run rotation when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
 

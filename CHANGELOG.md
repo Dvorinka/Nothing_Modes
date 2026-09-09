@@ -16,7 +16,7 @@
 - New `NothingPickers` components: wheel time picker, calendar date picker, timezone field (device default + searchable list + raw-id advanced input), large neutral day selector
 - Settings: Manage button on every permission row so access can be granted and revoked from the app; restricted-settings guidance for sideloaded installs (App Info → Allow restricted settings)
 - Settings: full Shizuku flow — Get Shizuku (Play/GitHub), Open Shizuku, Authorize, per-status guidance
-- Builder: Save / Discard / Cancel exit dialog, Advanced section with Enabled toggle + Priority, Enabled is now persisted per routine
+- Builder: Save / Discard / Cancel exit dialog, Advanced section with Enabled toggle + Priority, Enabled is now persisted per mode
 - Catalogs: multi-select with ADDED state and sticky Done bar (no auto-close after one pick)
 - Trigger config: trigger-type picker dialog (grouped list) replaces the inline chip grid
 

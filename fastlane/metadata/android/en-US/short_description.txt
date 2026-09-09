@@ -1,1 +1,1 @@
-Open-source automation for Nothing phones. Modes, routines, Glyph, Shizuku.
+Open-source automation for Nothing phones. Modes, automations, Glyph, Shizuku.

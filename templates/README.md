@@ -1,13 +1,13 @@
 # Community Templates
 
-Pre-built routines and modes that install directly into Nothing Modes.
+Pre-built modes that install directly into Nothing Modes.
 The app reads `index.json` in this directory; each entry points to an
 `ExportBundle` JSON file - the same format the app produces when you share
-a routine.
+a mode.
 
 ## Adding a template
 
-1. Build the routine in the app, then use **Share** on the routine detail
+1. Build the mode in the app, then use **Share** on the mode detail
    screen to export its JSON bundle.
 2. Copy the bundle here as `<your-template-id>.json`.
 3. Add an entry to `index.json`:

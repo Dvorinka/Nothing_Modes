@@ -8,11 +8,11 @@ Summary: Automation for Nothing phones
 Description: |
   Nothing Modes is an open-source Android automation app for Nothing phones.
 
-  Modes persist and restore. Routines fire on real events. Glyph lights respond.
+  Modes persist and restore, and fire on real events. Glyph lights respond.
   No cloud, no telemetry.
 
   - Modes: Sleep, Work, Gaming. A mode holds a set of toggles and reverts them when it ends.
-  - Routines: triggers for time, battery, screen, notifications, connectivity, geofences, and more.
+  - Modes can also fire on triggers for time, battery, screen, notifications, connectivity, geofences, and more.
   - Conditions: gate execution with AND logic.
   - Actions: 37+ types, including Glyph patterns and Shizuku-backed system toggles.
 

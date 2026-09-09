@@ -79,7 +79,7 @@ function buildPreview(r: Record<string, unknown>) {
     0,
   );
   return {
-    icon: first?.icon || 'routine',
+    icon: first?.icon || 'star',
     iconBackground: first?.iconBackground || 'transparent',
     automationCount: automations.length,
     actionCount,

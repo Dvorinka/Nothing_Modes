@@ -319,9 +319,9 @@ function normalizeSeed(rawItems) {
       const automations = Array.isArray(payload.automations) ? payload.automations : [];
       const first = automations[0];
       const actionCount = automations.reduce((n, a) => n + (Array.isArray(a.actions) ? a.actions.length : 0), 0);
-      preview = first ? { icon: first.icon || 'routine', iconBackground: first.iconBackground || 'transparent', automationCount: automations.length, actionCount } : null;
+      preview = first ? { icon: first.icon || 'star', iconBackground: first.iconBackground || 'transparent', automationCount: automations.length, actionCount } : null;
       capabilities = Array.isArray(payload.requiredCapabilities) ? payload.requiredCapabilities : [];
-      summary = first?.trigger?.type ? first.trigger.type.replace(/_/g, ' ') : 'routine';
+      summary = first?.trigger?.type ? first.trigger.type.replace(/_/g, ' ') : 'mode';
     }
     out.push({
       id,

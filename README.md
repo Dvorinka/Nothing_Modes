@@ -13,14 +13,13 @@ Built like a premium system app: OLED-black surfaces, monoline iconography, dot-
 <p align="center">
   <img src="art/screenshots/home.png" width="24%" alt="Automation list" />
   <img src="art/screenshots/detail.png" width="24%" alt="Mode detail" />
-  <img src="art/screenshots/builder.png" width="24%" alt="Routine builder" />
+  <img src="art/screenshots/builder.png" width="24%" alt="Mode builder" />
   <img src="art/screenshots/catalog.png" width="24%" alt="Action catalog" />
 </p>
 
 ## What it does
 
-- **Modes** — persistent state configurations (Sleep, Work, Gaming) with automatic state restoration.
-- **Routines** — event-based automations: trigger, optional conditions, actions.
+- **Modes** — persistent or event-based automations (Sleep, Work, Gaming, or event triggers) with optional conditions, actions, and automatic state restoration.
 - **WHEN / ONLY IF / THEN builder** — explicit, no confusion about what runs when.
 - **Nothing Glyph / Glyph Matrix** — light stripe and matrix on supported devices.
 - **Shizuku** — optional, graceful degradation everywhere else.
@@ -112,14 +111,14 @@ The engine resolves each action through: Public Android API → Nothing API → 
 
 1. Install on Android 9+.
 2. Follow the in-app onboarding for restricted settings and optional Shizuku.
-3. Create a mode or routine from the builder, a template, or a shared JSON link.
+3. Create a mode from the builder, a template, or a shared JSON link.
 4. Automations fire on triggers, check conditions, then execute actions in order.
 
 ## Templates and sharing
 
 Community templates live in [`templates/`](templates/) — browse them in-app via the grid icon on the Modes screen. To contribute one, see [`templates/README.md`](templates/README.md).
 
-Share any routine from the detail screen as a JSON bundle. Bundles carry `schemaVersion`, `appVersion`, and `requiredCapabilities`, so imports across users and app versions show compatibility warnings before anything is written.
+Share any mode from the detail screen as a JSON bundle. Bundles carry `schemaVersion`, `appVersion`, and `requiredCapabilities`, so imports across users and app versions show compatibility warnings before anything is written.
 
 ## Shizuku
 
