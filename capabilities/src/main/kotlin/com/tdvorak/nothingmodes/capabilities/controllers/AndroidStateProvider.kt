@@ -241,6 +241,7 @@ class AndroidStateProvider(
             false
         }
 
+    @SuppressLint("MissingPermission")
     private fun readMobileData(): Boolean =
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -410,6 +411,7 @@ class AndroidStateProvider(
             Pair(false, null)
         }
 
+    @SuppressLint("MissingPermission")
     private fun ssidFromConnectivity(): Pair<Boolean, String?>? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return null

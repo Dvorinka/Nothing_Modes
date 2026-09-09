@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.nothing.GlyphHardware
 import com.tdvorak.nothingmodes.nothing.NothingDeviceDetector
@@ -19,6 +20,14 @@ class CapabilityDetector(
     private val shizukuGateway: ShizukuGateway? = null,
 ) {
     fun detect(): DeviceCapabilities {
+        val packageName = context.packageName
+        synchronized(cache) {
+            val now = SystemClock.elapsedRealtime()
+            cache[packageName]?.let { (caps, at) ->
+                if (now - at < CACHE_TTL_MS) return caps
+            }
+        }
+
         val pm = context.packageManager
         val isNothing = Build.MANUFACTURER.equals("nothing", ignoreCase = true)
         val model = Build.MODEL ?: ""
@@ -50,46 +59,53 @@ class CapabilityDetector(
                 null -> ShizukuCapabilityStatus.NOT_CHECKED
             }
 
-        return DeviceCapabilities(
-            isNothingDevice = isNothing,
-            deviceModel = model,
-            deviceName = deviceName,
-            androidVersion = Build.VERSION.SDK_INT,
-            hasFlashlight = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH),
-            hasTelephony = pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY),
-            hasWifi = pm.hasSystemFeature(PackageManager.FEATURE_WIFI),
-            hasBluetooth = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH),
-            hasLocation = pm.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
-            hasVibrator = context.getSystemService(Context.VIBRATOR_SERVICE) != null,
-            // Glyph detection from NothingDeviceDetector
-            hasGlyphLightStripe = hasLightStripe,
-            hasGlyphMatrix = hasMatrix,
-            glyphMatrixSize = matrixSize,
-            hasGlyphTouch = hasGlyphTouch,
-            nothingSdkAvailable = nothingSdkAvailable,
-            nothingSdkConnected = false, // Updated at runtime after GlyphManager.init
-            // Shizuku
-            shizukuStatus = shizukuStatus,
-            // Permissions
-            hasNotificationPolicyAccess = checkNotificationPolicyAccess(),
-            hasWriteSettings =
-                android.provider.Settings.System
-                    .canWrite(context),
-            hasNotificationListenerAccess = checkNotificationListenerAccess(),
-            hasUsageAccess = checkUsageAccess(),
-            hasLocationPermission = checkLocationPermission(),
-            hasActiveDeviceAdmin = checkActiveDeviceAdmin(),
-            hasReadCalendar = checkPermission(android.Manifest.permission.READ_CALENDAR),
-            hasReceiveSms = checkPermission(android.Manifest.permission.RECEIVE_SMS),
-            hasSendSms = checkPermission(android.Manifest.permission.SEND_SMS),
-            hasReadPhoneState = checkPermission(android.Manifest.permission.READ_PHONE_STATE),
-            hasCamera = checkPermission(android.Manifest.permission.CAMERA),
-            hasRecordAudio = checkPermission(android.Manifest.permission.RECORD_AUDIO),
-            hasPostNotifications = checkPostNotifications(),
-            hasExactAlarm = checkExactAlarm(),
-            hasBluetoothConnect = checkBluetoothConnect(),
-            hasBluetoothScan = checkBluetoothScan(),
-        )
+        val result =
+            DeviceCapabilities(
+                isNothingDevice = isNothing,
+                deviceModel = model,
+                deviceName = deviceName,
+                androidVersion = Build.VERSION.SDK_INT,
+                hasFlashlight = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH),
+                hasTelephony = pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY),
+                hasWifi = pm.hasSystemFeature(PackageManager.FEATURE_WIFI),
+                hasBluetooth = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH),
+                hasLocation = pm.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
+                hasVibrator = context.getSystemService(Context.VIBRATOR_SERVICE) != null,
+                // Glyph detection from NothingDeviceDetector
+                hasGlyphLightStripe = hasLightStripe,
+                hasGlyphMatrix = hasMatrix,
+                glyphMatrixSize = matrixSize,
+                hasGlyphTouch = hasGlyphTouch,
+                nothingSdkAvailable = nothingSdkAvailable,
+                nothingSdkConnected = false, // Updated at runtime after GlyphManager.init
+                // Shizuku
+                shizukuStatus = shizukuStatus,
+                // Permissions
+                hasNotificationPolicyAccess = checkNotificationPolicyAccess(),
+                hasWriteSettings =
+                    android.provider.Settings.System
+                        .canWrite(context),
+                hasNotificationListenerAccess = checkNotificationListenerAccess(),
+                hasUsageAccess = checkUsageAccess(),
+                hasLocationPermission = checkLocationPermission(),
+                hasActiveDeviceAdmin = checkActiveDeviceAdmin(),
+                hasReadCalendar = checkPermission(android.Manifest.permission.READ_CALENDAR),
+                hasReceiveSms = checkPermission(android.Manifest.permission.RECEIVE_SMS),
+                hasSendSms = checkPermission(android.Manifest.permission.SEND_SMS),
+                hasReadPhoneState = checkPermission(android.Manifest.permission.READ_PHONE_STATE),
+                hasCamera = checkPermission(android.Manifest.permission.CAMERA),
+                hasRecordAudio = checkPermission(android.Manifest.permission.RECORD_AUDIO),
+                hasPostNotifications = checkPostNotifications(),
+                hasExactAlarm = checkExactAlarm(),
+                hasBluetoothConnect = checkBluetoothConnect(),
+                hasBluetoothScan = checkBluetoothScan(),
+            )
+
+        synchronized(cache) {
+            cache[packageName] = result to SystemClock.elapsedRealtime()
+        }
+
+        return result
     }
 
     private fun checkNotificationPolicyAccess(): Boolean {
@@ -193,4 +209,12 @@ class CapabilityDetector(
             model.startsWith("A172P") -> "Phone (4b)"
             else -> model
         }
+
+    companion object {
+        private const val CACHE_TTL_MS = 2_000L
+        private val cache = mutableMapOf<String, Pair<DeviceCapabilities, Long>>()
+
+        /** Invalidates cached capabilities for all packages. */
+        fun clearCache() = synchronized(cache) { cache.clear() }
+    }
 }
