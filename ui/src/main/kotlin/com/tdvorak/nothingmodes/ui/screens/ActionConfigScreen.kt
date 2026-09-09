@@ -37,6 +37,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
+import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
@@ -185,18 +186,10 @@ fun ActionConfigScreen(
                     }
 
                     is Action.SetWallpaper -> {
-                        NothingInput(
-                            value = a.uri,
-                            onValueChange = { action = a.copy(uri = it) },
-                            label = "Image URI",
+                        WallpaperActionEditor(
+                            action = a,
+                            onActionChange = { action = it },
                             modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        NothingEnumSelector(
-                            label = "Which",
-                            value = a.which,
-                            options = listOf("home", "lock"),
-                            onSelect = { action = a.copy(which = it) },
                         )
                     }
 
