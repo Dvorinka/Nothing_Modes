@@ -61,10 +61,10 @@ All items verified complete. See TODO.md for historical record.
 - [x] displayProgress
 - [x] Zone-based toggle (buildChannelA/B/C/D/E)
 - [x] Animate with period/cycles/interval
-- [ ] Notification glyph patterns (charging, alarm, timer, countdown)
-- [ ] Charging animation preset
+- [~] Notification glyph patterns (charging, alarm, timer, countdown) — presets exist; not auto-wired to incoming notifications
+- [x] Charging animation preset
 - [ ] Alarm visual preset
-- [ ] Timer countdown preset
+- [x] Timer countdown preset
 - [ ] Volume indicator preset
 
 ### Glyph Matrix
@@ -78,7 +78,7 @@ All items verified complete. See TODO.md for historical record.
 - [x] Fill matrix
 - [x] Percent fill
 - [x] Display number
-- [ ] Notification count display on matrix
+- [x] Notification count display on matrix
 
 ### Glyph Toy
 - [x] GlyphToy service implementation
@@ -87,8 +87,8 @@ All items verified complete. See TODO.md for historical record.
 - [x] EVENT_CHANGE handler (long press)
 - [x] EVENT_AOD handler
 - [x] action_down / action_up handlers
-- [ ] Toy preview image (drawable)
-- [ ] Guide users to Toys Manager activity
+- [x] Toy preview image (drawable)
+- [x] Guide users to Toys Manager activity
 
 ### Glyph Visual Presets
 - [x] Mode activation visual (sleep, morning, work, DND, etc.)
@@ -103,10 +103,10 @@ All items verified complete. See TODO.md for historical record.
 - [ ] Notification glyph timeout (auto-off after N seconds)
 
 ### Glyph Progress & Countdown
-- [ ] Timer countdown on light stripe (D1 progress)
-- [ ] Timer countdown on matrix (circular progress)
-- [ ] Battery level display on matrix
-- [ ] Charging progress animation
+- [x] Timer countdown on light stripe (D1 progress)
+- [x] Timer countdown on matrix (circular progress)
+- [x] Battery level display on matrix
+- [x] Charging progress animation
 - [ ] Volume level indicator on light stripe
 - [ ] Brightness level indicator on light stripe
 
@@ -116,15 +116,15 @@ All items verified complete. See TODO.md for historical record.
 
 ### Notifications
 - [x] NotificationListenerService
-- [ ] Notification glyph patterns on incoming notifications
+- [~] Notification glyph patterns on incoming notifications — presets exist; not auto-wired
 - [ ] Notification filtering (per-app, per-priority)
 - [ ] Notification history/log
 
 ### Phone State
 - [x] PhoneStateReceiver (incoming call, offhook, idle)
 - [x] SMS content reading (null-safe PDU handling)
-- [ ] Call glyph pattern (pulsing during ring)
-- [ ] SMS glyph pattern (brief flash)
+- [x] Call glyph pattern (pulsing during ring)
+- [x] SMS glyph pattern (brief flash)
 
 ### Connectivity
 - [x] ConnectivityManager broadcast receivers
@@ -136,8 +136,8 @@ All items verified complete. See TODO.md for historical record.
 ### Location
 - [x] GeofencingClient integration
 - [x] Geofence enter/exit trigger dispatch
-- [ ] Location permission request flow (in-app prompt)
-- [ ] Location-based mode activation (home/work)
+- [x] Location permission request flow (in-app prompt)
+- [x] Location-based mode activation (home/work)
 
 ### Usage Stats
 - [x] UsageStatsManager polling for foreground app (IO dispatcher)
@@ -209,11 +209,11 @@ All items verified complete. See TODO.md for historical record.
 - [x] Engine: trigger matcher (all trigger types)
 - [x] Engine: fire policy (cooldown, thread safety)
 - [x] Engine: edge cases (empty actions, all-fail, mixed, exceptions)
-- [ ] Engine: duplicate automation
+- [~] Engine: duplicate automation — UI duplicate and import duplicate-ID handling exist; dedicated engine test not present
 - [ ] Android: boot, alarms, battery, screen tests
-- [ ] Nothing: Glyph, Glyph Matrix, unsupported devices
-- [ ] Shizuku: unavailable, denied, restart
-- [ ] Data: migrations, import, export, corrupted input
+- [x] Nothing: Glyph, Glyph Matrix, unsupported devices
+- [x] Shizuku: unavailable, denied, restart
+- [x] Data: migrations, import, export, corrupted input
 - [ ] UI: creation, editing, enabling, deleting, duplicating
 - [ ] E2E: full Sleep → trigger → execute → restore cycle
 
@@ -235,9 +235,9 @@ All items verified complete. See TODO.md for historical record.
 - [x] Exported component permissions (FlipReceiver, ToyService)
 - [x] Hardcoded secrets removed (NothingKey=test removed)
 - [ ] Dependency review (abandoned, duplicate, vulnerabilities)
-- [ ] Final repository audit (TODO/FIXME/placeholder/mock/dummy)
+- [x] Final repository audit (TODO/FIXME/placeholder/mock/dummy)
 - [x] Clean build verification
-- [ ] Release build verification
+- [x] Release build verification
 
 ### Open Source Preparation
 - [x] LICENSE (GPL-3.0)

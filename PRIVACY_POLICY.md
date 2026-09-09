@@ -48,7 +48,7 @@ The app uses the following permissions to function. Some are required at all tim
 | `CAMERA` | Toggle flashlight | Yes |
 | `VIBRATE` | Vibration feedback | Yes |
 | `WAKE_LOCK` | Keep the device awake during automation execution | Yes |
-| `QUERY_ALL_PACKAGES` | Show the list of installed apps for the "Launch app" action | Yes |
+| `<queries>` allowlist | Show the list of installed apps for the "Launch app" action | Yes |
 | `REQUEST_INSTALL_PACKAGES` | Install downloaded app updates (used only for GitHub builds) | Yes |
 | `ACCESS_NETWORK_STATE` / `ACCESS_WIFI_STATE` | Detect Wi-Fi connect/disconnect triggers | Optional |
 | `BLUETOOTH` / `BLUETOOTH_CONNECT` | Detect Bluetooth connect/disconnect triggers | Optional |

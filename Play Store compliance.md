@@ -179,13 +179,13 @@ if (BuildConfig.ENABLE_LOCK_SCREEN) { /* show lock screen action */ }
 
 ## 8. Action checklist before first Play upload
 
-- [ ] Create `github` and `play` product flavors with `BuildConfig` feature flags.
-- [ ] Remove `QUERY_ALL_PACKAGES` and add `<queries>` block.
-- [ ] Move `REQUEST_INSTALL_PACKAGES` and in-app update receiver to `github` flavor only.
-- [ ] Move `DeviceAdmin` receiver and `LOCK_SCREEN` action to `github` flavor only.
-- [ ] Build and test both `:app:assembleGithubRelease` and `:app:bundlePlayRelease`.
-- [ ] Install `ktlint`, run format, fix remaining issues.
-- [ ] Add engine-core and ViewModel unit tests.
+- [x] Create `github` and `play` product flavors with `BuildConfig` feature flags.
+- [x] Remove `QUERY_ALL_PACKAGES` and add `<queries>` block.
+- [x] Move `REQUEST_INSTALL_PACKAGES` and in-app update receiver to `github` flavor only.
+- [x] Move `DeviceAdmin` receiver and `LOCK_SCREEN` action to `github` flavor only.
+- [x] Build and test both `:app:assembleGithubRelease` and `:app:bundlePlayRelease`.
+- [x] Install `ktlint`, run format, fix remaining issues.
+- [~] Add engine-core and ViewModel unit tests — engine-core tests present; ViewModel tests still missing.
 - [ ] Generate 512×512 icon and 1024×500 feature graphic.
 - [ ] Re-capture phone screenshots at Play-safe sizes.
 - [ ] Write short and full Play Store descriptions.
