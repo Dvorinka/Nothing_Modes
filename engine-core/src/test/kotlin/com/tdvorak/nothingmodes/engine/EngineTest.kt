@@ -277,4 +277,20 @@ class EngineTest {
         assertNotNull(next)
         assertEquals(15, next!!.minute)
     }
+
+    @Test
+    fun `cron last day of month matches and computes next fire`() {
+        val cron = CronSchedule("0 9 L * *", java.time.ZoneId.of("UTC"))
+        val jan31 = java.time.ZonedDateTime.of(2026, 1, 31, 9, 0, 0, 0, java.time.ZoneId.of("UTC"))
+        val feb28 = java.time.ZonedDateTime.of(2026, 2, 28, 9, 0, 0, 0, java.time.ZoneId.of("UTC"))
+        val feb1 = java.time.ZonedDateTime.of(2026, 2, 1, 9, 0, 0, 0, java.time.ZoneId.of("UTC"))
+
+        assertTrue(cron.matches(jan31))
+        assertTrue(cron.matches(feb28))
+
+        val next = cron.nextFire(feb1)
+        assertNotNull(next)
+        assertEquals(28, next!!.dayOfMonth)
+        assertEquals(2, next.monthValue)
+    }
 }

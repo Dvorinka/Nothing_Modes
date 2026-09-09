@@ -123,11 +123,11 @@ private fun parseTrigger(trigger: Trigger.Time): TimeSchedule? {
             schedule.copy(recurrence = Recurrence.WEEKLY, daysOfWeek = engineDays)
         }
         day != "*" && month == "*" && dow == "*" -> {
-            val days = day.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+            val days = day.split(",").mapNotNull { if (it == "L") -1 else it.toIntOrNull() }.toSet()
             schedule.copy(recurrence = Recurrence.MONTHLY, daysOfMonth = days)
         }
         day != "*" && month != "*" && dow == "*" -> {
-            val days = day.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+            val days = day.split(",").mapNotNull { if (it == "L") -1 else it.toIntOrNull() }.toSet()
             val months = month.split(",").mapNotNull { it.toIntOrNull() }.toSet()
             schedule.copy(recurrence = Recurrence.YEARLY, daysOfMonth = days, months = months)
         }
@@ -162,15 +162,22 @@ private fun TimeSchedule.toTrigger(): Trigger.Time {
             Trigger.Time(cron = "$minute $hour * * $cronDow", tz = tz)
         }
         Recurrence.MONTHLY -> {
-            val cronDay = daysOfMonth.sorted().joinToString(",")
+            val cronDay = formatCronDays(daysOfMonth)
             Trigger.Time(cron = "$minute $hour $cronDay * *", tz = tz)
         }
         Recurrence.YEARLY -> {
-            val cronDay = daysOfMonth.sorted().joinToString(",")
+            val cronDay = formatCronDays(daysOfMonth)
             val cronMonth = months.sorted().joinToString(",")
             Trigger.Time(cron = "$minute $hour $cronDay $cronMonth *", tz = tz)
         }
     }
+}
+
+private fun formatCronDays(daysOfMonth: Set<Int>): String {
+    val parts = mutableListOf<String>()
+    if (-1 in daysOfMonth) parts.add("L")
+    parts.addAll(daysOfMonth.filter { it != -1 }.sorted().map { it.toString() })
+    return parts.joinToString(",")
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -324,7 +331,7 @@ fun CustomTimePicker(
             )
             NothingPillButton(
                 text = "Last day",
-                onClick = { update { copy(daysOfMonth = setOf(28)) } },
+                onClick = { update { copy(daysOfMonth = setOf(-1)) } },
                 modifier = Modifier.weight(1f),
             )
         }

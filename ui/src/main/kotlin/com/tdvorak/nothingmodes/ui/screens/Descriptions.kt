@@ -20,11 +20,13 @@ fun cronToSummary(cron: String): String {
         when {
             dayOfMonth != "*" && month != "*" -> {
                 val months = month.split(",").map { monthName(it) }.joinToString(", ")
-                val days = dayOfMonth.split(",").joinToString(", ") { "${it.trim()}.$months" }
+                val days = dayOfMonth.split(",").joinToString(", ") { if (it.trim() == "L") "last day of $months" else "${it.trim()}.$months" }
                 days
             }
             dayOfMonth != "*" -> {
-                "Monthly on ${dayOfMonth.split(",").map { it.trim() }.joinToString(", ")}"
+                val tokens = dayOfMonth.split(",").map { it.trim() }
+                val labels = tokens.map { if (it == "L") "last day" else it }
+                "Monthly on ${labels.joinToString(", ")}"
             }
             dayOfWeek == "*" -> "Daily"
             dayOfWeek == "1-5" -> "Weekdays"

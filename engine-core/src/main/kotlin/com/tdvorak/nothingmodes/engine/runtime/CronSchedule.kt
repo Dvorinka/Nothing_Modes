@@ -37,7 +37,7 @@ class CronSchedule(
                 candidate = candidate.plusHours(1).withMinute(0).truncatedTo(ChronoUnit.HOURS)
                 continue
             }
-            if (local.dayOfMonth !in fields[2] || local.monthValue !in fields[3] || local.dayOfWeek.value % 7 !in fields[4]) {
+            if (!isDayOfMonthAllowed(local) || local.monthValue !in fields[3] || local.dayOfWeek.value % 7 !in fields[4]) {
                 candidate =
                     candidate
                         .plusDays(1)
@@ -55,9 +55,16 @@ class CronSchedule(
         val local = dt.withZoneSameInstant(zone)
         return local.minute in fields[0] &&
             local.hour in fields[1] &&
-            local.dayOfMonth in fields[2] &&
+            isDayOfMonthAllowed(local) &&
             local.monthValue in fields[3] &&
             local.dayOfWeek.value % 7 in fields[4]
+    }
+
+    /** True when the day-of-month field matches the concrete day, including the `L` last-day marker. */
+    private fun isDayOfMonthAllowed(local: ZonedDateTime): Boolean {
+        val lastDayMarker = -1
+        if (lastDayMarker in fields[2] && local.dayOfMonth == local.toLocalDate().lengthOfMonth()) return true
+        return local.dayOfMonth in fields[2]
     }
 
     companion object {
@@ -108,6 +115,7 @@ class CronSchedule(
                         }
                         result.addAll(start..end)
                     }
+                    part == "L" && index == 2 -> result.add(-1)
                     else -> {
                         val v =
                             part.toIntOrNull()
