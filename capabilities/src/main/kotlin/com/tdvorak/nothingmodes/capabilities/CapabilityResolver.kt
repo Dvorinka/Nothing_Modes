@@ -50,6 +50,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
             CapabilityIds.TRIGGER_MANUAL -> true
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> capabilities.hasReadCalendar
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> capabilities.hasNotificationListenerAccess
 
             // State readers
             CapabilityIds.STATE_READER_BUILTIN -> true
@@ -116,6 +117,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
+            CapabilityIds.ACTION_SET_WALLPAPER -> true
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -170,8 +172,10 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
             CapabilityIds.TRIGGER_PHONE_CALL -> "READ_PHONE_STATE and READ_CALL_LOG permissions required"
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> "READ_CALENDAR permission required"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification listener access required"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
+            CapabilityIds.ACTION_SET_WALLPAPER -> "SET_WALLPAPER permission required"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Detected: may not work on this device"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Detected: may not work on this device"
             CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware unavailable"
