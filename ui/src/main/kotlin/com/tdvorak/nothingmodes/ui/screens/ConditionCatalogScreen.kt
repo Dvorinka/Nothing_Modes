@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,18 +11,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -51,6 +59,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingRequirementBadge
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -74,7 +83,8 @@ private data class ConditionItem(
 @Composable
 fun ConditionCatalogScreen(navController: NavController) {
     val context = LocalContext.current
-    var search by remember { mutableStateOf("") }
+    var search by rememberSaveable { mutableStateOf("") }
+    var activeCategories by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet<String>()) }
     // Conditions are configured in a bottom sheet before being added.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
     var configCondition by remember { mutableStateOf<Condition?>(null) }
@@ -295,15 +305,17 @@ fun ConditionCatalogScreen(navController: NavController) {
             }
         }
 
+    val categories = remember(items) { items.map { it.category }.distinct().sorted() }
+
     val filtered =
-        remember(search, items) {
-            if (search.isBlank()) {
-                items
-            } else {
-                items.filter {
-                    it.label.contains(search, ignoreCase = true) ||
+        remember(search, activeCategories, items) {
+            items.filter {
+                val matchesSearch =
+                    search.isBlank() ||
+                        it.label.contains(search, ignoreCase = true) ||
                         it.category.contains(search, ignoreCase = true)
-                }
+                val matchesCategory = activeCategories.isEmpty() || it.category in activeCategories
+                matchesSearch && matchesCategory
             }
         }
 
@@ -338,6 +350,48 @@ fun ConditionCatalogScreen(navController: NavController) {
                         label = "Search",
                         placeholder = "Find a condition",
                     )
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    LazyRow(
+                        contentPadding = PaddingValues(vertical = NothingSpacing.sm),
+                    ) {
+                        items(categories) { category ->
+                            val selected = category in activeCategories
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    activeCategories =
+                                        if (selected) activeCategories - category else activeCategories + category
+                                },
+                                label = {
+                                    Text(
+                                        text = category,
+                                        fontFamily = NothingFonts.mono(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                },
+                                shape = NothingShapes.pill,
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        labelColor = MaterialTheme.colorScheme.onSurface,
+                                        selectedContainerColor = NothingColors.accent,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                border = FilterChipDefaults.filterChipBorder(false, selected),
+                                modifier = Modifier.padding(end = NothingSpacing.sm),
+                            )
+                        }
+                        if (activeCategories.isNotEmpty() || search.isNotBlank()) {
+                            item {
+                                TextButton(
+                                    onClick = { activeCategories = emptySet(); search = "" },
+                                    modifier = Modifier.padding(start = NothingSpacing.sm),
+                                ) {
+                                    Text("Clear", fontFamily = NothingFonts.mono())
+                                }
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(NothingSpacing.lg))
                 }
 
@@ -509,6 +563,12 @@ private fun CatalogListItem(
         },
     )
 }
+
+private val StringSetSaver: Saver<Set<String>, String> =
+    Saver(
+        save = { it.joinToString(",") },
+        restore = { if (it.isEmpty()) emptySet() else it.split(",").toSet() },
+    )
 
 private fun conditionCatalogMeta(
     condition: Condition,

@@ -46,12 +46,12 @@ The app ships with two sample automations: **Sleep** and **Morning**.
 - **Edit**: Tap a card to open details, then tap "Edit"
 - **Duplicate**: Tap the detail screen's duplicate button
 - **Delete**: Tap the trash icon on a card
-- **Reorder**: Use the up/down arrows to change priority (higher priority executes last, overwriting lower)
+- **Reorder**: Use the up/down arrows to change priority (higher priority executes first; when two modes would change the same setting, the higher-priority one wins and the lower one is suppressed)
 
-## Modes vs Routines
+## Mode Types
 
-- **Mode**: Activates at a start time and deactivates at an end time, restoring previous settings
-- **Routine**: Fires once, executes actions, does not restore
+- **Windowed mode**: Activates at a start time and deactivates at an end time, restoring previous settings
+- **One-shot mode / rule**: Fires once, executes actions, does not restore
 
 ## Glyph Interface
 

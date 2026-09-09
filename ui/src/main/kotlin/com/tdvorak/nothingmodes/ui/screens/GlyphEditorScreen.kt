@@ -1211,7 +1211,7 @@ private fun CanvasCard(
             Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth(0.7f)
+                        .fillMaxWidth(0.55f)
                         .aspectRatio(1f)
                         .clip(NothingShapes.input)
                     .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)

@@ -23,7 +23,7 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 | `model/Action.kt` | 428 | Sealed interface with 25+ action types (SetWifi, SetBluetooth, SetDnd, SetVolume, SetDarkMode, LaunchApp, OpenUrl, etc.) | **Adapt** — keep core actions, add Nothing-specific (SetExtraDim, SetBrightness, SetGlyph, SetGlyphMatrix, SetScreenTimeout). Remove WhatsApp-specific (WhatsAppReply, InvokeLlm generative lane initially). |
 | `model/Trigger.kt` | 112 | Sealed interface: Geofence, Time, Immediate, Notification, PhoneState, Connectivity, Sensor | **Reuse** — all triggers map to our MVP trigger list. Add TimeTrigger variants (weekdays, weekends, sunrise/sunset). |
 | `model/Condition.kt` | 92 | Sealed interface: TimeWindow, StateEquals, StateCompare, AppInForeground, LocationIn, And, Or, Not, BooleanLiteral, VarCompare | **Reuse** — add BatteryCondition, ChargingCondition, WifiCondition, BluetoothCondition, ScreenStateCondition, CurrentModeCondition. |
-| `model/Automation.kt` | 118 | Automation + AutomationDraft data classes, AutomationSchema, schema versioning | **Adapt** — add `type: Mode/Routine` field, add `schedule` for mode time windows (start/end), add state snapshot reference. |
+| `model/Automation.kt` | 118 | Automation + AutomationDraft data classes, AutomationSchema, schema versioning | **Adapt** — add `type: Mode/One-shot` field, add `schedule` for mode time windows (start/end), add state snapshot reference. |
 | `model/ApprovalFingerprint.kt` | — | SHA-256 fingerprinting of executable data | **Reuse** — needed for import validation and AI draft approval. |
 | `model/CapabilityRequirements.kt` | 196 | Derives required capabilities from trigger/actions/conditions | **Adapt** — extend with Nothing Glyph/Glyph Matrix capability requirements. |
 | `model/StateQuery.kt` | 175 | Typed state query system (Builtin, Setting, SystemProperty, Sysfs, DumpsysField) | **Reuse** — needed for condition evaluation and state reading. |
@@ -93,8 +93,8 @@ Argus is GPL-3.0. Nothing Modes is also GPL-3.0. This is compatible — derivati
 
 | Component | Role | Reuse? |
 |---|---|---|
-| `ArgusDatabase.kt` | Room database, migrations | **Adapt** — new schema for Nothing Modes (add Mode/Routine type, state snapshots, remove WhatsApp-specific tables). Start at version 1. |
-| `entities/AutomationEntity.kt` | Automation row (flat columns + JSON blob) | **Adapt** — add `type` column (MODE/Routine), add `scheduleStart`/`scheduleEnd` for modes. |
+| `ArgusDatabase.kt` | Room database, migrations | **Adapt** — new schema for Nothing Modes (add mode type with windowed and one-shot variants, state snapshots, remove WhatsApp-specific tables). Start at version 1. |
+| `entities/AutomationEntity.kt` | Automation row (flat columns + JSON blob) | **Adapt** — add `type` column (MODE/ONE_SHOT), add `scheduleStart`/`scheduleEnd` for modes. |
 | `entities/AuditEntity.kt` | Audit log | **Reuse**. |
 | `entities/FireClaimEntity.kt` | Fire claim (dedup, cooldown) | **Reuse**. |
 | `entities/ActionResultEntity.kt` | Action result journal | **Reuse**. |
@@ -190,7 +190,7 @@ Nothing Modes: 12 modules (same 8 + capabilities, nothing-integrations, import-e
 | Add `import-export` module | Argus has no import/export. Nothing Modes needs portable JSON format. |
 | Add `widget` + `quicksettings` modules | Argus has no widgets or QS tiles. |
 | Replace `ui` module entirely | Nothing OS design language, not Material 3. |
-| Add Mode/Routine distinction | Argus has only "automations". Nothing Modes has Modes (persistent state) and Routines (event-based). |
+| Add mode type distinction | Argus has only "automations". Nothing Modes has modes: windowed (persistent state with restore) and one-shot (event-based). |
 | Add state snapshot system | Argus has no state restoration. Nothing Modes needs it for Mode deactivation. |
 | Remove WhatsApp-specific features | Not relevant to Nothing Modes. |
 | Defer P4 features (variables, control flow) | Not MVP. Port later if needed. |

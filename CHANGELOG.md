@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Added
+- Universal capability warning layer: catalog badges, pick-time warning with per-gap "Fix it" deep links, Shizuku-state-aware guidance, builder save summary, and fire-time heads-up notification for lost requirements
+- Priority conflict resolution in the engine: higher-priority modes claim settings and suppress lower-priority conflicts, with `SUPPRESS_CONFLICT` audit events
+- Exact-alarm runtime prompt in Time/TimeWindow trigger configuration
+- `ConflictAndRestoreTest` coverage for priority conflict suppression
 - Full Nothing OS visual overhaul merged from `proxmox-20260905-185035`:
   OLED black canvas, dark `#161616` cards, dot-matrix (Doto) hero type,
   red accent for toggles/FAB/selected dots, 24-28dp rounded cards and

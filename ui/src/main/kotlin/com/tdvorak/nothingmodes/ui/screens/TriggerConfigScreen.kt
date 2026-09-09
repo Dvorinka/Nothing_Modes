@@ -27,13 +27,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -46,6 +50,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -252,13 +258,22 @@ private fun TriggerTypePickerDialog(
 ) {
     val types = remember { triggerTypes() }
     val resolver = remember { CapabilityResolver(caps) }
-    var query by remember { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
+    var activeCategories by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet<String>()) }
     var pendingType by remember { mutableStateOf<TriggerType?>(null) }
 
+    val categories = remember(types) { types.map { it.category }.distinct().sorted() }
+
     val filtered =
-        remember(query, types) {
-            if (query.isBlank()) types
-            else types.filter { it.label.contains(query, ignoreCase = true) || triggerDescription(it.trigger).contains(query, ignoreCase = true) }
+        remember(query, activeCategories, types) {
+            types.filter {
+                val matchesQuery =
+                    query.isBlank() ||
+                        it.label.contains(query, ignoreCase = true) ||
+                        triggerDescription(it.trigger).contains(query, ignoreCase = true)
+                val matchesCategory = activeCategories.isEmpty() || it.category in activeCategories
+                matchesQuery && matchesCategory
+            }
         }
     val grouped = filtered.groupBy { it.category }
 
@@ -320,6 +335,48 @@ private fun TriggerTypePickerDialog(
                         label = "Search triggers",
                         placeholder = "Time, notification, battery...",
                     )
+                }
+
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
+                ) {
+                    items(categories) { category ->
+                        val selected = category in activeCategories
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                activeCategories =
+                                    if (selected) activeCategories - category else activeCategories + category
+                            },
+                            label = {
+                                Text(
+                                    text = category,
+                                    fontFamily = NothingFonts.mono(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                            shape = NothingShapes.pill,
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurface,
+                                    selectedContainerColor = NothingColors.accent,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            border = FilterChipDefaults.filterChipBorder(false, selected),
+                            modifier = Modifier.padding(end = NothingSpacing.sm),
+                        )
+                    }
+                    if (activeCategories.isNotEmpty() || query.isNotBlank()) {
+                        item {
+                            TextButton(
+                                onClick = { activeCategories = emptySet(); query = "" },
+                                modifier = Modifier.padding(start = NothingSpacing.sm),
+                            ) {
+                                Text("Clear", fontFamily = NothingFonts.mono())
+                            }
+                        }
+                    }
                 }
 
                 LazyColumn(
@@ -1273,6 +1330,12 @@ private fun CalendarEventContent(
         )
     }
 }
+
+private val StringSetSaver: Saver<Set<String>, String> =
+    Saver(
+        save = { it.joinToString(",") },
+        restore = { if (it.isEmpty()) emptySet() else it.split(",").toSet() },
+    )
 
 @Composable
 private fun BooleanRow(

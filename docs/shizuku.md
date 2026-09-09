@@ -56,7 +56,7 @@ Shizuku is used ONLY when:
 
 ## Permission Flow
 
-1. User enables a Mode/Routine that requires Shizuku
+1. User enables a Mode that requires Shizuku
 2. App checks `ShizukuGateway.status()`
 3. If `NOT_INSTALLED`: show "Install Shizuku" with link
 4. If `INSTALLED_NOT_RUNNING`: show "Start Shizuku" instructions

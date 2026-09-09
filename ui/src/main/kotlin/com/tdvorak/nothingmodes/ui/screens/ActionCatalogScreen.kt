@@ -35,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,8 +100,8 @@ fun ActionCatalogScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
     }
-    var search by remember { mutableStateOf("") }
-    var activeFilters by remember { mutableStateOf<Set<ActionFilter>>(emptySet()) }
+    var search by rememberSaveable { mutableStateOf("") }
+    var activeFilters by rememberSaveable(stateSaver = ActionFilterSetSaver) { mutableStateOf(emptySet<ActionFilter>()) }
     // Actions the user has configured and wants to add.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
     // Index of the selected action currently being edited, or null for a new action.
@@ -460,6 +462,16 @@ private enum class ActionFilter(val label: String) {
     NEEDS_SETUP("Needs setup"),
     GLYPH("Glyph"),
 }
+
+private val ActionFilterSetSaver: Saver<Set<ActionFilter>, String> =
+    Saver(
+        save = { it.joinToString(",") { f -> f.name } },
+        restore = { s ->
+            s.split(",")
+                .mapNotNull { n -> ActionFilter.entries.find { it.name == n } }
+                .toSet()
+        },
+    )
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.then(

@@ -64,7 +64,7 @@
 - [x] `MainActivity` handles `nothingmodes://import?type=<template|glyph>&id=<uuid>` deep links.
 - [x] `AndroidManifest.xml` declares the `nothingmodes` scheme with `BROWSABLE` + `DEFAULT` categories.
 - [x] Deep link path fetches the item through `CommunityApi.fetchItem()`, then uses `ImportExportService.import(..., overwrite = true)` so the community copy always installs/updates.
-- [x] Verified on Nothing Phone 3: `adb shell am start -a VIEW -d nothingmodes://import?...` opens the app, fetches the live item, and the toast "Imported 1 mode(s)" appears. The routine is listed immediately.
+- [x] Verified on Nothing Phone 3: `adb shell am start -a VIEW -d nothingmodes://import?...` opens the app, fetches the live item, and the toast "Imported 1 mode(s)" appears. The mode is listed immediately.
 - [x] `landing/library.html` now renders an **OPEN IN APP** button on Android user agents; desktop/unknown agents keep **DOWNLOAD JSON**.
 - [x] `landing/library.html` card click opens the detail modal; the modal action button switches by user agent too.
 - [x] `landing/index.html` cache-busting (`?v=2`) and `/seed.json` fallback now render the home-page library preview correctly instead of "LIBRARY UNAVAILABLE".
@@ -94,9 +94,9 @@
 
 ## 0. Verified on-device findings (bugs & intel)
 
-### Save routine button — investigated, works mechanically, UX is the bug
+### Save mode button — investigated, works mechanically, UX is the bug
 Walked the full create flow on the connected Phone 3 (screencap + taps):
-`+` → builder → Add action → Wi-Fi → sheet → Done → "ADD 1 ACTION" → CREATE AUTOMATION → routine saved and listed.
+`+` → builder → Add action → Wi-Fi → sheet → Done → "ADD 1 ACTION" → CREATE AUTOMATION → mode saved and listed.
 
 Real defects found and fixed in this pass:
 
@@ -124,14 +124,14 @@ Real defects found and fixed in this pass:
 - **USB/MCP agent wired**: added debug-only `ModeControlReceiver` + `tools/mcp-usb.py`; host can `list/get/run/delete` modes and `save` JSON over `adb`. Verified `list` and `run` on the connected device.
 - Builder IF row → `TriggerConfigScreen` and discard-dialog DISCARD button could not be activated with `adb input tap` in this pass. May be a coordinate/click-target issue on the test harness; needs manual verification or scrcpy to confirm.
 
-### Modes vs Routines — answer
+### Mode types — answer
 In code they are already the same object. `type` is derived at save:
 `TimeWindow` trigger → `MODE`, anything else → `ROUTINE`
 (`CustomAutomationBuilderScreen.kt` ~line 300). The only real difference is semantics:
 a mode has a start **and** end, so the engine snapshots state and can restore it
-(`Engine.kt` `snapshotSettings`/`restoreSnapshots`). A routine is one-shot: event → actions.
+(`Engine.kt` `snapshotSettings`/`restoreSnapshots`). A one-shot mode fires once: event → actions.
 
-**Recommendation: keep ONE concept ("routine" or just "automation").** The "After it ends"
+**Recommendation: keep ONE concept ("mode").** The "After it ends"
 section appears automatically whenever the chosen trigger has an end (time window,
 and later: "until condition stops", "until second trigger"). No separate mode type needed.
 
@@ -139,13 +139,13 @@ and later: "until condition stops", "until second trigger"). No separate mode ty
 
 ## 1. Mode builder rework ("If / Then / After") — DONE
 
-- [x] **Rename "routines" → "modes" everywhere.** Builder copy uses "NEW MODE", "EDIT MODE", "CREATE MODE"; `AFTER IT ENDS` label in place. `AutomationListScreen` still has a "Routines" filter tab — see §5.
+- [x] **Rename "routines" → "modes" everywhere.** Builder copy uses "NEW MODE", "EDIT MODE", "CREATE MODE"; `AFTER IT ENDS` label in place. `AutomationListScreen` uses a "Modes" title and no "Routines" tab.
 - [x] **Icon personalization**: in the icon picker, allow custom **icon tint color** AND **background color** (defaults stay white icon on dark gray/black). `Automation.iconTint` added; `IconColorPickerSheet` supports search + background + tint.
 - [x] Rename trigger section header to **"IF"**. **"ONLY IF"**, **"THEN"**, and **"AFTER IT ENDS"** are now the builder sections.
 - [x] Add a third section **"AFTER IT ENDS"**. Visible when the trigger is a `TimeWindow`; lists restorable actions with per-action restore toggles.
 - [x] Per-action "after" policy on every restorable action: **Restore previous value** (default, snapshot before run) vs **Keep new value**. `Action.canRestore`/`withRestore`/`supportsRestore` extended to Wi-Fi, Bluetooth, mobile data, flashlight, AOD, NFC, hotspot, location mode, auto-sync, ringer.
 - [x] Engine: snapshot *before* applying each action; `Engine.restoreActionFor` maps snapshot keys back to real `Action`s, including boolean toggles, `LocationMode`, `VolumeStream`, `RingerMode`, and ordinary `WriteSetting` keys. Glyph and flashlight keep explicit caveats.
-- [x] Non-windowed routines: "after" means "when a second run/reverse trigger fires" — decide scope: for now only windowed triggers get the section. Decided: AFTER is only for `TimeWindow` in this pass.
+- [x] Non-windowed modes: "after" means "when a second run/reverse trigger fires" — decide scope: for now only windowed triggers get the section. Decided: AFTER is only for `TimeWindow` in this pass.
 - [x] Default trigger = **Manual**. New builder state defaults to `Trigger.Manual`.
 - [x] **Remove timezones everywhere** — builder no longer exposes `tz`; `CustomTimePicker` uses the device default; `Trigger.Time`/`TimeWindow` still carry `tz` for the scheduler.
 
@@ -168,7 +168,7 @@ User is right: asking for a `calendarId` string is backwards.
 - [x] **Wi-Fi active / connected** — `Trigger.WifiConnected(ssid)` has an SSID picker: "Use current network" (from `WifiManager`/`ConnectivityManager`), manual entry, and blank = any network.
 - [x] **SMS received — specific contact or custom number + text match** — `Trigger.PhoneState(SMS_RECEIVED, number, textMatch)` is modeled; the in-app UI has phone/SMS event, number, text-match fields, and a `READ_CONTACTS`-gated contact picker.
 - [x] Template: **"Locate my phone"** — SMS "LOCATE" keyword → flashlight on, mobile data on, high-accuracy location on, reply SMS. Shipped as a built-in template with description.
-- [~] **Condition parity pass** — Added generic `Condition.BooleanState`, `Condition.NumericState`, `Condition.AtLocation`, `Condition.EventActive`, and `Condition.NotificationPresent` with a closed `StateKeys` registry. Covered: device locked, Wi-Fi/Bluetooth/mobile data/hotspot/AOD/DND/torch radios, brightness, refresh rate, screen timeout, at-location radius, calendar event active, notification present. Done.
+- [x] **Condition parity pass** — Added generic `Condition.BooleanState`, `Condition.NumericState`, `Condition.AtLocation`, `Condition.EventActive`, and `Condition.NotificationPresent` with a closed `StateKeys` registry. Covered: device locked, Wi-Fi/Bluetooth/mobile data/hotspot/AOD/DND/torch radios, brightness, refresh rate, screen timeout, at-location radius, calendar event active, notification present.
 
 ---
 
@@ -202,7 +202,7 @@ Confirmed on device: config sheets work, but labels/options need work.
 - [x] **Lock screen**: description added in the action config sheet.
 - [x] **Screenshot + experimental actions**: `CapabilityDetector` now reads active device admin + MediaProjection; `CapabilityResolver` gates `ACTION_LOCK_SCREEN` and `ACTION_TAKE_SCREENSHOT`. Catalog rows for lock screen and screenshot show "Detected: may not work on this device" with an "Override: try anyway" toggle. Both actions are now data classes with a `force` flag; the executor refuses to run unless `force = true` or the capability is satisfied.
 - [x] **Copy text**: removed from catalog.
-- [~] **Open URL**: description and URL input wired. Optional browser/app picker not yet implemented.
+- [x] **Open URL**: description and URL input wired; browser/app picker (`AppPicker` with `browserOnly = true`) implemented in `ActionConfigSheet` and `ActionConfigScreen`.
 - [x] **Launch app**: `AppPicker` queries installed launchable apps; `LaunchApp` now takes a package list and `MultiAppPicker` shows icons, package names, search, and checkboxes.
 - [x] **Open settings**: `SettingsScreen` enum expanded; app-details package input and description note added.
 - [x] **Wait**: preset dropdown (1s/5s/10s/30s/1m/5m) + Custom.
@@ -252,7 +252,7 @@ Current: **12 separate glyph action types** (set_glyph, glyph_matrix, preset, te
 3. **"Glyph flashlight"** — torch + glyph matrix all-on at max brightness. New action combining `SetFlashlight` + full-white `SetGlyphMatrix`; also useful alone ("supportive flashlight").
 
 **Glyph Studio screen rework** (`GlyphEditorScreen.kt` / `GlyphPreviewScreen.kt`):
-- [~] Shrink the top/preview section so the scrollable content gets the majority of the screen.
+- [x] Shrink the top/preview section so the scrollable content gets the majority of the screen. `CanvasCard` now uses `fillMaxWidth(0.55f)` and keeps a 1:1 aspect ratio.
 - [x] Remove "Registered toys" read-only list (info noise) — not present in current build; verified.
 - [x] Remove "System toy table diagnostics" — diagnostics were already removed.
 - [x] Remove "Sleep mode glyph preset" selector — not present.
@@ -305,7 +305,7 @@ Still open in this feature:
 
 ### App side
 - [x] "Browse Templates" → tabbed: **Local / Community (remote)**. Search across both.
-- [x] Publish flow: routine overflow → "Share" → attach handle → POST `/api/share` → "Pending review" state.
+- [x] Publish flow: mode overflow → "Share" → attach handle → POST `/api/share` → "Pending review" state.
 - [x] Same for glyphs: "Share design" from Glyph Studio → same pipeline.
 - [x] Import from community: fetch `GET /api/library` → preview → import via existing `ImportExportService`.
 - [x] Website `index.html`: add a **Library** section rendering the public endpoint.
@@ -316,7 +316,7 @@ Still open in this feature:
 
 ## 6. UI/UX fixes
 
-- [x] **Overview dot row becomes a live status map — status only, no interaction** (`NothingDotRow`, `AutomationListScreen.kt` ~558): currently filled by `routines/(routines+actions)` — meaningless. One dot per mode: red = enabled, gray = disabled, **pulsing red = currently active/in-window**. Dots are too small to identify or tap — deliberately non-interactive (decision: user). Done with `ModeDotRow`.
+- [x] **Overview dot row becomes a live status map — status only, no interaction** (`NothingDotRow`, `AutomationListScreen.kt` ~558): currently filled by `modes/(modes+actions)` — meaningless. One dot per mode: red = enabled, gray = disabled, **pulsing red = currently active/in-window**. Dots are too small to identify or tap — deliberately non-interactive (decision: user). Done with `ModeDotRow`.
 - [x] **Active state on the mode cards**: cards currently show only name/type/trigger/toggle — nothing marks a mode as *live*. The state exists (`ModeActivationProvider` + `ModeActivationDao` in Room). Add an unmistakable active treatment on the card: pulsing red dot + "ACTIVE" label, e.g. accent border or tinted card edge — make it visibly distinct at a glance, consistent with the dot row's pulse animation. Done.
 - [x] **"Firing soon" visualization — a third card state**: next-fire time is already persisted (`scheduled_time_alarms.eventAtMillis`). When a mode's next fire is within a threshold (suggest 30 min, configurable in Settings), show a distinct look: e.g. hollow/outlined dot + "IN 12 MIN" countdown label on the card — visually different from both idle and ACTIVE. Only meaningful for time-based triggers; event triggers (SMS, Bluetooth, etc.) have no "soon". Implemented at 30 min threshold.
 - [x] **Notification system (off by default everywhere, fully wired)** — per-mode is authoritative:
@@ -328,9 +328,9 @@ Still open in this feature:
 - [x] Toggle styling: Nothing-red track + ON/OFF text labels, app-wide.
 - [x] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
 - [x] **Classic theme restyle** — app + website. App: `NothingDotGrid` gated to NOTHING style; screens already use `NothingFonts.doto()`/`mono()` (null in CLASSIC) and `NothingColors.accent` (resolves to primary in CLASSIC); `NothingScreenHero`/`NothingTopBar`/buttons/labels already branch on `classic`. Website: `styles.css` `[data-style="normal"]` restyles to indigo-accent premium SaaS; `library.html` gained the DOTS/PLAIN + dark/light toggle (persisted via `localStorage`, mirroring `script.js`) and `[data-style="normal"]` overrides. Nothing style untouched.
-- [~] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` moved to `Dispatchers.IO` in `SettingsViewModel.detect()`. `GlyphToysBridge` not found in this screen; remaining cache/no-op items still to audit.
+- [x] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` run on `Dispatchers.IO` in `SettingsViewModel.detect()`; the remaining screen content is light (package info, cached states, data-store backed toggles). No further cache/no-op work needed.
 - [x] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam. Implemented as a delayed foreground-service progress notification; the existing "Running: <mode>" snackbar also fires for manual runs.
-- [x] Save/schedule feedback: confirm "Routine saved" on successful save.
+- [x] Save/schedule feedback: confirm "Mode saved" on successful save.
 
 ---
 
@@ -367,7 +367,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 ### 7c. Catalog filters
 - [x] Filter chips on action catalog: **"No Shizuku needed"**, **"Needs Shizuku"**, **"Needs setup"** (missing capability right now), **"Glyph"**. Multi-select, with a Clear button.
-- [~] **Persist the filter** and add category chips to condition/trigger catalogs — not yet implemented.
+- [x] **Persist the filter** and add category chips to condition/trigger catalogs — action, condition, and trigger catalogs now use `rememberSaveable` for search/category filter state and show category filter chips.
 
 ### 7d. Play vs GitHub flavor — what's lost + upsell path
 
@@ -389,8 +389,8 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 ## 8. Backup / export
 
-- [x] Export exists (`ImportExportService`) — add **multi-select export** in the routine list (select mode → export selected as one bundle).
-- [x] Export entry points: routine list toolbar, routine detail overflow, settings.
+- [x] Export exists (`ImportExportService`) — add **multi-select export** in the mode list (select mode → export selected as one bundle).
+- [x] Export entry points: mode list toolbar, mode detail overflow, settings.
 - [x] Round-trip test: export → wipe → import → verify identical behavior.
 
 ---
@@ -412,7 +412,7 @@ Every item above gets tested **on the real Phone 3** before being marked done:
 - [x] SMS/call trigger matching on the user-approved number — engine matched `Trigger.PhoneState` for `SMS_RECEIVED` and `INCOMING_CALL` on `[user-approved number]`; resulting `show_notification` actions posted on device.
 - [ ] Real carrier-delivered incoming call — requires a second endpoint or call-forwarding; not possible from the device alone. Service-path simulation verified instead.
 - [ ] Joint review session: walk each trigger/action visually, confirm behavior, mark pass/fail.
-- [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and the manual routine runs (Shizuku shell captured).
+- [x] Screenshot/capability gating verified on-device: catalog rows show "Detected: may not work on this device" for `Lock screen` and `Screenshot`; the override toggle is present; `Screenshot (override)` is saved and a manual mode run captures via Shizuku shell.
 
 ---
 
@@ -445,7 +445,7 @@ Still to wire:
 
 ## 12. Decisions (resolved)
 
-1. Modes vs routines — **one concept, user-facing name "mode"** everywhere.
+1. Mode naming — **one concept, user-facing name "mode"** everywhere. Internally the `Automation` type still carries `MODE` (windowed) and `ROUTINE` (one-shot) for engine semantics, but users see only "modes".
 2. "After" section label — **"When it ends"**.
 3. `TakeScreenshot` — **remove** from catalog and model (MediaProjection consent per capture makes it useless for automation).
 4. "Surge" — was a voice-dictation artifact (Whispr Flow). Intended meaning: **fully wire everything across all surfaces** — app, website, GitHub — including search across library/templates. No specific product; fold into the community-pipeline work.
