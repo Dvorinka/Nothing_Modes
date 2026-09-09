@@ -30,6 +30,7 @@ data class DeviceCapabilities(
     val hasReceiveSms: Boolean = false,
     val hasSendSms: Boolean = false,
     val hasReadPhoneState: Boolean = false,
+    val hasReadCallLog: Boolean = false,
     val hasCamera: Boolean = false,
     val hasRecordAudio: Boolean = false,
     val hasPostNotifications: Boolean = false,

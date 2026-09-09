@@ -3,6 +3,15 @@
     <!-- USB/MCP debug-only control surface. Not present in release builds. -->
     <application>
         <receiver
+            android:name=".DebugActionReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_STICKY">
+            <intent-filter>
+                <action android:name="com.tdvorak.nothingmodes.debug.TEST_ACTION" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".agent.ModeControlReceiver"
             android:exported="true"
             android:permission="android.permission.BROADCAST_STICKY">

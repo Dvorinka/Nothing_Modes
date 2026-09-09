@@ -73,7 +73,7 @@ This roadmap assumes option 2 is used: the same `applicationId` and the same rel
 
 These are requested only when the user creates a matching trigger or action and are declared as optional. They still need Play Console declarations with videos:
 
-- `READ_PHONE_STATE`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALENDAR`
+- `READ_PHONE_STATE`, `READ_CALL_LOG`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALENDAR`
 - `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`
 - `BLUETOOTH`, `BLUETOOTH_CONNECT`
 - `PACKAGE_USAGE_STATS`

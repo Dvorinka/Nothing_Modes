@@ -93,6 +93,7 @@ class CapabilityDetector(
                 hasReceiveSms = checkPermission(android.Manifest.permission.RECEIVE_SMS),
                 hasSendSms = checkPermission(android.Manifest.permission.SEND_SMS),
                 hasReadPhoneState = checkPermission(android.Manifest.permission.READ_PHONE_STATE),
+                hasReadCallLog = checkPermission(android.Manifest.permission.READ_CALL_LOG),
                 hasCamera = checkPermission(android.Manifest.permission.CAMERA),
                 hasRecordAudio = checkPermission(android.Manifest.permission.RECORD_AUDIO),
                 hasPostNotifications = checkPostNotifications(),

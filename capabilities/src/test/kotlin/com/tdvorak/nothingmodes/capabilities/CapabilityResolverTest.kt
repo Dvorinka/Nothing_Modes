@@ -109,6 +109,7 @@ class CapabilityResolverTest {
             hasReceiveSms = true,
             hasSendSms = true,
             hasReadPhoneState = true,
+            hasReadCallLog = true,
         )
 
     @Test

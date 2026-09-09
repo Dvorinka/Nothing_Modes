@@ -33,7 +33,7 @@ class CapabilityResolver(
 
             CapabilityIds.TRIGGER_NOTIFICATION -> capabilities.hasNotificationListenerAccess
             CapabilityIds.TRIGGER_PHONE_SMS -> capabilities.hasReceiveSms
-            CapabilityIds.TRIGGER_PHONE_CALL -> capabilities.hasReadPhoneState
+            CapabilityIds.TRIGGER_PHONE_CALL -> capabilities.hasReadPhoneState && capabilities.hasReadCallLog
 
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
@@ -166,7 +166,7 @@ class CapabilityResolver(
             CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
             CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
             CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
-            CapabilityIds.TRIGGER_PHONE_CALL -> "READ_PHONE_STATE permission required"
+            CapabilityIds.TRIGGER_PHONE_CALL -> "READ_PHONE_STATE and READ_CALL_LOG permissions required"
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> "READ_CALENDAR permission required"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
