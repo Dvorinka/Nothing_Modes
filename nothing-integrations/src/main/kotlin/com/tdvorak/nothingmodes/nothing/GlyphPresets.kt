@@ -133,6 +133,27 @@ object GlyphPresets {
     /** Mode name on matrix (scrolling text). */
     fun modeName(name: String) = GlyphVisual.Matrix(scrollingText = name)
 
+    // ── Connectivity visuals ──
+
+    /** WiFi connected: brief fill on zone C. */
+    val wifiConnected = GlyphVisual.Stripe(zone = "C", periodMs = 300, cycles = 2, intervalMs = 50)
+
+    /** WiFi disconnected: short dim pulse. */
+    val wifiDisconnected = GlyphVisual.Stripe(periodMs = 400, cycles = 1, intervalMs = 0)
+
+    /** Bluetooth connected: two short pulses. */
+    val bluetoothConnected = GlyphVisual.Stripe(periodMs = 150, cycles = 2, intervalMs = 150)
+
+    /** Bluetooth disconnected: single soft pulse. */
+    val bluetoothDisconnected = GlyphVisual.Stripe(periodMs = 500, cycles = 1, intervalMs = 0)
+
+    /** Airplane mode on: solid matrix / zone C on stripe. */
+    val airplaneOn = GlyphVisual.Stripe(zone = "C", periodMs = 0, cycles = 0, intervalMs = 0)
+    val airplaneOnMatrix = GlyphVisual.Matrix(color = Color.WHITE)
+
+    /** Airplane mode off: brief flash then off. */
+    val airplaneOff = GlyphVisual.Stripe(periodMs = 200, cycles = 1, intervalMs = 0)
+
     /** Turn everything off. */
     val off = GlyphVisual.Off
 }

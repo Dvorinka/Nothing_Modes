@@ -936,6 +936,12 @@ internal val GLYPH_PRESET_NAMES =
         "brightness_25",
         "brightness_50",
         "brightness_75",
+        "wifi",
+        "wifi_disconnected",
+        "bluetooth",
+        "bluetooth_disconnected",
+        "airplane",
+        "airplane_off",
         "off",
     )
 

@@ -596,6 +596,12 @@ class RealActionExecutor(
             "notification_low", "notif_low" -> GlyphPresets.notificationLow
             "notification_high", "notif_high" -> GlyphPresets.notificationHigh
             "notification_critical", "notif_critical" -> GlyphPresets.notificationCritical
+            "wifi", "wifi_connected" -> GlyphPresets.wifiConnected
+            "wifi_disconnected" -> GlyphPresets.wifiDisconnected
+            "bluetooth", "bluetooth_connected" -> GlyphPresets.bluetoothConnected
+            "bluetooth_disconnected" -> GlyphPresets.bluetoothDisconnected
+            "airplane", "airplane_on" -> GlyphPresets.airplaneOn
+            "airplane_off" -> GlyphPresets.airplaneOff
             "off" -> GlyphPresets.off
             else ->
                 Regex("^volume_(\\d+)$")

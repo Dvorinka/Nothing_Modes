@@ -130,8 +130,8 @@ All items verified complete. See TODO.md for historical record.
 - [x] ConnectivityManager broadcast receivers
 - [x] WiFi SSID detection (passed as match field)
 - [x] Bluetooth device name detection
-- [ ] Airplane mode detection
-- [ ] Connectivity glyph visual
+- [x] Airplane mode detection
+- [~] Connectivity glyph visual — presets exist; not auto-wired to connectivity triggers
 
 ### Location
 - [x] GeofencingClient integration
