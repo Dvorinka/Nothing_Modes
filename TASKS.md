@@ -98,17 +98,17 @@ All items verified complete. See TODO.md for historical record.
 - [ ] Custom visual editor (pick channels + period + cycles)
 
 ### Glyph Notification Integration
-- [ ] Notification glyph pattern on ShowNotification action
+- [x] Notification glyph pattern on ShowNotification action
 - [ ] Per-app notification patterns
-- [ ] Notification glyph timeout (auto-off after N seconds)
+- [x] Notification glyph timeout (auto-off after N seconds)
 
 ### Glyph Progress & Countdown
 - [x] Timer countdown on light stripe (D1 progress)
 - [x] Timer countdown on matrix (circular progress)
 - [x] Battery level display on matrix
 - [x] Charging progress animation
-- [ ] Volume level indicator on light stripe
-- [ ] Brightness level indicator on light stripe
+- [x] Volume level indicator on light stripe
+- [x] Brightness level indicator on light stripe
 
 ---
 
