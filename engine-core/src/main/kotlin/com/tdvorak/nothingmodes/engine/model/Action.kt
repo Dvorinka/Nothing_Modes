@@ -128,6 +128,10 @@ sealed interface Action {
     data class ShowNotification(
         val title: String,
         val text: String,
+        /** Optional Glyph preset to show while the notification is visible. */
+        val glyphPreset: String? = null,
+        /** How long to keep the Glyph on, in milliseconds. 0 = until the next Glyph action. */
+        val glyphTimeoutMs: Int = 0,
     ) : Action
 
     @Serializable

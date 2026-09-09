@@ -562,6 +562,26 @@ fun ActionConfigContent(
                 singleLine = false,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingEnumSelector(
+                label = "Glyph pattern (optional)",
+                value = a.glyphPreset.orEmpty(),
+                options = listOf("") + GLYPH_PRESET_NAMES,
+                onSelect = { onActionChange(a.copy(glyphPreset = it.ifBlank { null })) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.glyphTimeoutMs.toString(),
+                onValueChange = {
+                    onActionChange(
+                        a.copy(
+                            glyphTimeoutMs = it.toIntOrNull()?.coerceIn(0, 60_000) ?: a.glyphTimeoutMs,
+                        ),
+                    )
+                },
+                label = "Glyph timeout (ms, 0 = manual)",
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         is Action.SetRinger -> {
@@ -906,9 +926,16 @@ internal val GLYPH_PRESET_NAMES =
         "sms",
         "timer",
         "timer_done",
+        "alarm",
         "notification_low",
         "notification_high",
         "notification_critical",
+        "volume_25",
+        "volume_50",
+        "volume_75",
+        "brightness_25",
+        "brightness_50",
+        "brightness_75",
         "off",
     )
 

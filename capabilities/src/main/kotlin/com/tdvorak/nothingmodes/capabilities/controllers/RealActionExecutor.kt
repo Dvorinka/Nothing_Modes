@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 /**
@@ -120,7 +121,7 @@ class RealActionExecutor(
             }
             is Action.OpenUrl -> openUrl(action)
             is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
-            is Action.ShowNotification -> showNotification(action.title, action.text)
+            is Action.ShowNotification -> showNotification(action)
             is Action.Wait -> {
                 val capped = action.durationMs.coerceIn(0, 300_000)
                 if (capped <= 0) {
@@ -154,7 +155,7 @@ class RealActionExecutor(
             is Action.GlyphProgress -> glyphProgress(action.progress, action.reverse)
             is Action.GlyphText -> glyphText(action)
             is Action.GlyphScrollingText -> glyphScrollingText(action)
-            is Action.GlyphPreset -> glyphPreset(action.preset)
+            is Action.GlyphPreset -> runGlyphPreset(action.preset)
             is Action.GlyphIcon -> glyphIcon(action.name)
             is Action.GlyphNumber -> glyphNumber(action.number)
             is Action.GlyphCountdown -> glyphCountdown(action.seconds)
@@ -505,7 +506,7 @@ class RealActionExecutor(
         }
     }
 
-    private suspend fun glyphPreset(preset: String): ActionResult {
+    private suspend fun runGlyphPreset(preset: String): ActionResult {
         val visual = presetFor(preset) ?: return ActionResult.Failure("Unknown preset: $preset")
         return renderGlyphVisual(visual)
     }
@@ -591,11 +592,18 @@ class RealActionExecutor(
             "sms", "sms_received" -> GlyphPresets.smsReceived
             "timer", "timer_fired" -> GlyphPresets.timerFired
             "timer_done" -> GlyphPresets.timerDone
+            "alarm", "alarm_ringing" -> GlyphPresets.alarmRinging
             "notification_low", "notif_low" -> GlyphPresets.notificationLow
             "notification_high", "notif_high" -> GlyphPresets.notificationHigh
             "notification_critical", "notif_critical" -> GlyphPresets.notificationCritical
             "off" -> GlyphPresets.off
-            else -> null
+            else ->
+                Regex("^volume_(\\d+)$")
+                    .matchEntire(name.lowercase())
+                    ?.let { GlyphPresets.volumeLevel(it.groupValues[1].toInt()) }
+                    ?: Regex("^brightness_(\\d+)$")
+                        .matchEntire(name.lowercase())
+                        ?.let { GlyphPresets.brightnessLevel(it.groupValues[1].toInt()) }
         }
 
     private suspend fun renderGlyphVisual(visual: GlyphPresets.GlyphVisual): ActionResult {
@@ -767,10 +775,9 @@ class RealActionExecutor(
             ActionResult.Failure(e.message ?: "openSettings failed")
         }
 
-    private fun showNotification(
-        title: String,
-        text: String,
-    ): ActionResult {
+    private suspend fun showNotification(action: Action.ShowNotification): ActionResult {
+        val title = action.title
+        val text = action.text
         return try {
             val nm = context.getSystemService(NotificationManager::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -807,6 +814,20 @@ class RealActionExecutor(
                     .setAutoCancel(true)
                     .build()
             nm.notify(NOTIFICATION_ID_BASE + (title.hashCode() and 0xFFF), notification)
+
+            // Optional Glyph pattern for the notification.
+            if (!action.glyphPreset.isNullOrBlank()) {
+                runGlyphPreset(action.glyphPreset!!)
+                if (action.glyphTimeoutMs > 0) {
+                    coroutineScope {
+                        launch {
+                            delay(action.glyphTimeoutMs.toLong())
+                            glyphTurnOff()
+                        }
+                    }
+                }
+            }
+
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "showNotification failed")

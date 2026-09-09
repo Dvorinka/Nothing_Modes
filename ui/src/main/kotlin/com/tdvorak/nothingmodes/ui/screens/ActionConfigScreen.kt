@@ -383,6 +383,19 @@ fun ActionConfigScreen(
                             label = "Body",
                             singleLine = false,
                         )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingEnumSelector(
+                            label = "Glyph pattern (optional)",
+                            value = a.glyphPreset.orEmpty(),
+                            options = listOf("") + GLYPH_PRESET_NAMES,
+                            onSelect = { action = a.copy(glyphPreset = it.ifBlank { null }) },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingInput(
+                            value = a.glyphTimeoutMs.toString(),
+                            onValueChange = { action = a.copy(glyphTimeoutMs = it.toIntOrNull()?.coerceIn(0, 60_000) ?: a.glyphTimeoutMs) },
+                            label = "Glyph timeout (ms, 0 = manual)",
+                        )
                     }
 
                     is Action.Wait -> {

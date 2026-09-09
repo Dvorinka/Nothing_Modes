@@ -249,7 +249,16 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_ringer" -> Action.SetRinger(mode.ifBlank { "NORMAL" })
             "launch_app" -> Action.LaunchApp(pkg.split(",").filter { it.isNotBlank() })
             "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes.vercel.app" })
-            "show_notification" -> Action.ShowNotification("NmDebug", text.ifBlank { "test" })
+            "show_notification" -> {
+                val glyph = intent.getStringExtra("glyph").orEmpty().ifBlank { null }
+                val glyphTimeout = intent.getIntExtra("glyph_timeout", 0)
+                Action.ShowNotification(
+                    title = intent.getStringExtra("title").orEmpty().ifBlank { "NmDebug" },
+                    text = text.ifBlank { "test" },
+                    glyphPreset = glyph,
+                    glyphTimeoutMs = glyphTimeout,
+                )
+            }
             "set_volume" -> {
                 val stream =
                     VolumeStream.valueOf(

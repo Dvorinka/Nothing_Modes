@@ -4,8 +4,7 @@
     <application>
         <receiver
             android:name=".DebugActionReceiver"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_STICKY">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.tdvorak.nothingmodes.debug.TEST_ACTION" />
             </intent-filter>
@@ -13,8 +12,7 @@
 
         <receiver
             android:name=".agent.ModeControlReceiver"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_STICKY">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.tdvorak.nothingmodes.MCP_CONTROL" />
             </intent-filter>

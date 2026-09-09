@@ -95,6 +95,9 @@ object GlyphPresets {
     /** Timer done: long pulse. */
     val timerDone = GlyphVisual.Stripe(periodMs = 1000, cycles = 5, intervalMs = 100)
 
+    /** Alarm ringing: rapid pulse on all channels. */
+    val alarmRinging = GlyphVisual.Stripe(periodMs = 200, cycles = 20, intervalMs = 100)
+
     // ── Notification priority visuals ──
 
     /** Low priority notification: single soft pulse. */
@@ -111,6 +114,12 @@ object GlyphPresets {
 
     /** Battery level display on matrix. */
     fun batteryLevel(percent: Int) = GlyphVisual.Matrix(percentFill = percent, fillColor = if (percent < 20) Color.RED else Color.WHITE)
+
+    /** Volume level indicator on light stripe. */
+    fun volumeLevel(percent: Int) = GlyphVisual.Stripe(progress = percent.coerceIn(0, 100))
+
+    /** Brightness level indicator on light stripe. */
+    fun brightnessLevel(percent: Int) = GlyphVisual.Stripe(progress = percent.coerceIn(0, 100))
 
     /** Notification count on matrix. */
     fun notificationCount(count: Int) = GlyphVisual.Matrix(number = count)
