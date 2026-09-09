@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -1130,16 +1131,18 @@ private fun ReorderableListItemScope.ActionRow(
             }
         },
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier =
+                    Modifier
+                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                        .clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
                     text = "DEL",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
                     fontFamily = NothingFonts.mono(),
-                    modifier =
-                        Modifier
-                            .clickable(onClick = onRemove)
-                            .padding(horizontal = NothingSpacing.xs),
                 )
             }
         },
@@ -1175,16 +1178,20 @@ private fun ReorderableListItemScope.ConditionRow(
             }
         },
         trailing = {
-            Text(
-                text = "DEL",
-                style = MaterialTheme.typography.labelSmall,
-                color = NothingColors.accent,
-                fontFamily = NothingFonts.mono(),
+            Box(
                 modifier =
                     Modifier
-                        .clickable(onClick = onRemove)
-                        .padding(horizontal = NothingSpacing.xs),
-            )
+                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                        .clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "DEL",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
         },
     )
 }

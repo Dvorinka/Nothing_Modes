@@ -411,7 +411,7 @@ fun AutomationListScreen(
 
             if (loading) {
                 // Blank while the first load is in flight — prevents the
-                // "Automations" hero flashing before the empty state appears.
+                // "Modes" hero flashing before the empty state appears.
                 Box(modifier = Modifier.fillMaxSize())
             } else if (items.isEmpty()) {
                 Column(
@@ -487,7 +487,7 @@ fun AutomationListScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Column(modifier = Modifier.padding(bottom = NothingSpacing.sm)) {
                             NothingScreenHero(
-                                title = "Automations",
+                                title = "MODES",
                                 caption = "${visibleItems.size} items",
                             )
                             Spacer(modifier = Modifier.height(NothingSpacing.lg))

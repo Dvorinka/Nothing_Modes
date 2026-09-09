@@ -252,7 +252,7 @@ fun AutomationDetailScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Detail",
+                title = "MODE",
                 onBack = onBack,
                 actions =
                     listOf(

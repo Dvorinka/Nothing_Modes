@@ -753,7 +753,7 @@ fun SettingsScreen(
                     NothingSectionHeader(text = "Backup")
                     NothingCard {
                         Text(
-                            text = "Export automations to JSON or import from backup.",
+                            text = "Export modes to JSON or import from backup.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = NothingSpacing.md),
