@@ -65,6 +65,7 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.CapabilityIds
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
@@ -98,6 +99,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
+import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -492,12 +494,7 @@ fun CustomAutomationBuilderScreen(
         remember(state.trigger, state.actions, combinedCondition, caps) {
             CapabilityResolver(caps).resolve(automationId ?: "new", CapabilityRequirements.derive(state.trigger, state.actions, combinedCondition))
         }
-    val saveHint =
-        if (resolution.canRun) {
-            ""
-        } else {
-            resolution.missingReasons.values.distinct().joinToString(" · ")
-        }
+    val saveHint = saveSummary(resolution, state.actions)
 
     androidx.compose.runtime.LaunchedEffect(automationId) {
         if (automationId != null) viewModel.loadForEdit(automationId)
@@ -1634,3 +1631,32 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.Or -> "OR (${condition.any.size} conditions)"
         is Condition.Not -> "NOT"
     }
+
+private fun saveSummary(resolution: com.tdvorak.nothingmodes.capabilities.CapabilityResolution, actions: List<Action>): String {
+    if (resolution.canRun) return ""
+    val badges = requirementBadges(resolution.missing)
+    val needsShizuku = CapabilityIds.SHIZUKU_REQUIRED in resolution.missing
+    val fallbackCount =
+        if (needsShizuku) {
+            actions.count { it::class in PANEL_FALLBACK_ACTIONS }
+        } else {
+            0
+        }
+    val summary = "Needs: " + badges.joinToString(", ")
+    return if (fallbackCount > 0) "$summary · will open $fallbackCount system panel(s)" else summary
+}
+
+private val PANEL_FALLBACK_ACTIONS =
+    setOf(
+        Action.SetWifi::class,
+        Action.SetBluetooth::class,
+        Action.SetMobileData::class,
+        Action.SetBatterySaver::class,
+        Action.SetAirplaneMode::class,
+        Action.SetDataSaver::class,
+        Action.SetHotspot::class,
+        Action.SetNfc::class,
+        Action.SetAutoSync::class,
+        Action.SetAlwaysOnDisplay::class,
+        Action.SetLocationMode::class,
+    )

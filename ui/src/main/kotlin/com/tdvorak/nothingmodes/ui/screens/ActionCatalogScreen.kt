@@ -68,10 +68,13 @@ import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
+import com.tdvorak.nothingmodes.ui.theme.NothingRequirementBadge
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.capabilityGaps
+import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -315,10 +318,12 @@ fun ActionCatalogScreen(navController: NavController) {
                         NothingCard {
                             categoryItems.forEachIndexed { index, actionItem ->
                                 if (index > 0) NothingDivider()
+                                val (subtitle, badges) = actionCatalogMeta(actionItem.action, caps)
                                 CatalogListItem(
                                     label = actionItem.label,
                                     icon = actionItem.icon,
-                                    subtitle = actionCapabilityHint(actionItem.action, caps),
+                                    subtitle = subtitle,
+                                    badges = badges,
                                     onClick = {
                                         editingIndex = null
                                         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(actionItem.action))
@@ -366,7 +371,7 @@ fun ActionCatalogScreen(navController: NavController) {
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         val resolution = resolver.resolve(action::class.simpleName ?: "", required)
         CapabilityWarningDialog(
-            missingReasons = resolution.missingReasons.values.distinct(),
+            gaps = capabilityGaps(context, resolution.missingReasons, caps),
             onDismiss = { pendingAction = null },
             onConfirm = {
                 configAction = action
@@ -400,6 +405,7 @@ private fun CatalogListItem(
     label: String,
     icon: ImageVector,
     subtitle: String,
+    badges: List<String>,
     onClick: () -> Unit,
 ) {
     NothingListRow(
@@ -416,23 +422,37 @@ private fun CatalogListItem(
                 )
             }
         },
+        trailing = if (badges.isNotEmpty()) {
+            {
+                Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+                    badges.take(2).forEach {
+                        NothingRequirementBadge(text = it)
+                    }
+                }
+            }
+        } else {
+            null
+        },
     )
 }
 
-private fun actionCapabilityHint(
+private fun actionCatalogMeta(
     action: Action,
     caps: DeviceCapabilities,
-): String {
+): Pair<String, List<String>> {
     val static = actionRequirementHint(action) ?: actionDescription(action)
-
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
-    return if (!resolution.canRun) {
+    val subtitle = if (!resolution.canRun) {
         resolution.missingReasons.values.firstOrNull() ?: static
     } else {
         static
     }
+    val badges = requirementBadges(resolution.missing)
+    return subtitle to badges
 }
+
+
 
 private enum class ActionFilter(val label: String) {
     NO_SHIZUKU("No Shizuku"),

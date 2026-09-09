@@ -1,7 +1,11 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -86,6 +90,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
+import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -203,6 +208,7 @@ fun TriggerConfigScreen(
                 TriggerConfigContent(
                     trigger = trigger,
                     onUpdate = { trigger = it },
+                    caps = caps,
                 )
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
@@ -372,11 +378,12 @@ private fun TriggerTypePickerDialog(
         }
     }
 
+    val context = LocalContext.current
     pendingType?.let { type ->
         val required = CapabilityRequirements.derive(type.trigger, emptyList())
         val resolution = resolver.resolve(type.label, required)
         CapabilityWarningDialog(
-            missingReasons = resolution.missingReasons.values.distinct(),
+            gaps = capabilityGaps(context, resolution.missingReasons, caps),
             onDismiss = { pendingType = null },
             onConfirm = {
                 onSelect(type.trigger)
@@ -435,19 +442,26 @@ private fun TriggerTypeRow(
 private fun TriggerConfigContent(
     trigger: Trigger,
     onUpdate: (Trigger) -> Unit,
+    caps: DeviceCapabilities,
 ) {
     when (val t = trigger) {
         is Trigger.Time ->
-            CustomTimePicker(
-                trigger = t,
-                onUpdate = onUpdate,
-            )
+            Column {
+                ExactAlarmWarning(caps)
+                CustomTimePicker(
+                    trigger = t,
+                    onUpdate = onUpdate,
+                )
+            }
 
         is Trigger.TimeWindow ->
-            TimeWindowContent(
-                trigger = t,
-                onUpdate = onUpdate,
-            )
+            Column {
+                ExactAlarmWarning(caps)
+                TimeWindowContent(
+                    trigger = t,
+                    onUpdate = onUpdate,
+                )
+            }
 
         is Trigger.Immediate,
         is Trigger.Manual,
@@ -1301,6 +1315,32 @@ private fun HelpText(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontFamily = NothingFonts.mono(),
     )
+}
+
+@Composable
+private fun ExactAlarmWarning(caps: DeviceCapabilities) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || caps.hasExactAlarm) return
+    val context = LocalContext.current
+    Column {
+        HelpText(
+            text = "Exact alarm is not granted. Time triggers may be delayed by a few minutes; grant it for punctual triggers.",
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingPillButton(
+            text = "Grant exact alarm",
+            onClick = {
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        },
+                    )
+                }
+            },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+    }
 }
 
 

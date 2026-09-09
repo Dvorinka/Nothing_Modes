@@ -11,6 +11,9 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
+import com.tdvorak.nothingmodes.engine.runtime.AuditEvent
+import com.tdvorak.nothingmodes.engine.runtime.AuditKind
+import com.tdvorak.nothingmodes.engine.runtime.AuditSink
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.InMemoryAutomationStore
@@ -58,7 +61,7 @@ class ConflictAndRestoreTest {
                     "mode-low",
                     "Low",
                     priority = 1,
-                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                    actions = listOf(Action.SetBrightness(128)),
                     trigger = Trigger.Boot,
                 )
             val highPriority =
@@ -464,4 +467,49 @@ class ConflictAndRestoreTest {
 
             assertTrue(fired, "CurrentModeActive condition should be met when mode is in activeModeIds")
         }
+
+    @Test
+    fun `lower priority mode blocked when higher priority claimed same setting`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val lowPriority =
+                makeMode(
+                    "mode-low",
+                    "Low",
+                    priority = 1,
+                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                    trigger = Trigger.Boot,
+                )
+            val highPriority =
+                makeMode(
+                    "mode-high",
+                    "High",
+                    priority = 10,
+                    actions = listOf(Action.SetDnd(DndMode.TOTAL)),
+                    trigger = Trigger.Boot,
+                )
+            store.save(lowPriority)
+            store.save(highPriority)
+
+            val executionOrder = mutableListOf<String>()
+            val audit = RecordingAuditSink()
+            val executor =
+                ActionExecutor { _, context ->
+                    executionOrder.add(context.automationId.value)
+                    ActionResult.Success
+                }
+            val engine = Engine(store = store, executor = executor, audit = audit)
+            engine.onTrigger(envelope("evt1", TriggerEvent.BootCompleted("evt1")))
+
+            assertEquals(listOf("mode-high"), executionOrder)
+            assertTrue(audit.events.any { it.kind == AuditKind.SUPPRESSED_CONFLICT && it.automationId.value == "mode-low" })
+        }
+
+    private class RecordingAuditSink : AuditSink {
+        val events = mutableListOf<AuditEvent>()
+
+        override suspend fun record(event: AuditEvent) {
+            events += event
+        }
+    }
 }

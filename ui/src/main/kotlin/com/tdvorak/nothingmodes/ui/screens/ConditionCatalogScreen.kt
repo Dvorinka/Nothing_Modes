@@ -1,7 +1,9 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -47,13 +49,16 @@ import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
+import com.tdvorak.nothingmodes.ui.theme.NothingRequirementBadge
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
+import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -385,10 +390,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                         NothingCard {
                             conditions.forEachIndexed { index, conditionItem ->
                                 if (index > 0) NothingDivider()
+                                val (subtitle, badges) = conditionCatalogMeta(conditionItem.condition, caps)
                                 CatalogListItem(
                                     label = conditionItem.label,
                                     icon = conditionItem.icon,
-                                    subtitle = conditionCapabilityHint(conditionItem.condition, caps),
+                                    subtitle = subtitle,
+                                    badges = badges,
                                     onClick = {
                                         editingIndex = null
                                         val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), conditionItem.condition)
@@ -438,7 +445,7 @@ fun ConditionCatalogScreen(navController: NavController) {
         val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
         val resolution = resolver.resolve(condition::class.simpleName ?: "", required)
         CapabilityWarningDialog(
-            missingReasons = resolution.missingReasons.values.distinct(),
+            gaps = capabilityGaps(context, resolution.missingReasons, caps),
             onDismiss = { pendingCondition = null },
             onConfirm = {
                 configCondition = condition
@@ -472,6 +479,7 @@ private fun CatalogListItem(
     label: String,
     icon: ImageVector,
     subtitle: String,
+    badges: List<String>,
     onClick: () -> Unit,
 ) {
     NothingListRow(
@@ -488,19 +496,31 @@ private fun CatalogListItem(
                 )
             }
         },
+        trailing = if (badges.isNotEmpty()) {
+            {
+                Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+                    badges.take(2).forEach {
+                        NothingRequirementBadge(text = it)
+                    }
+                }
+            }
+        } else {
+            null
+        },
     )
 }
 
-private fun conditionCapabilityHint(
+private fun conditionCatalogMeta(
     condition: Condition,
     caps: DeviceCapabilities,
-): String {
+): Pair<String, List<String>> {
     val static = conditionDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
-    return if (!resolution.canRun) {
+    val subtitle = if (!resolution.canRun) {
         resolution.missingReasons.values.firstOrNull() ?: static
     } else {
         static
     }
+    return subtitle to requirementBadges(resolution.missing)
 }

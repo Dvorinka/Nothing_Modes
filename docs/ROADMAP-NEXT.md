@@ -339,11 +339,11 @@ Still open in this feature:
 ### 7a. Universal "won't work" interception — for ALL triggers/actions/conditions
 The capability model already exists: `CapabilityRequirements.derive()` maps every trigger, action, and condition to required capabilities (`SHIZUKU_REQUIRED`, hardware, permissions, services). Build the interception layer on it:
 
-- [ ] **At pick time**: selecting an item whose requirements aren't met → warning sheet explaining what's missing and why ("Wi-Fi can't toggle silently without Shizuku — without it, the system panel opens for one tap") + a **"Fix it" button** deep-linking to the exact remedy: install/launch Shizuku, system permission dialog, device-admin activation, notification-listener settings, accessibility settings, system panel page.
-- [ ] **Shizuku states distinguished**: not installed (→ install link), installed but not running (→ "Start Shizuku"), running but permission denied to us (→ grant in Shizuku app). `ShizukuGateway.status()` already exists for this — the debug receiver's `shizuku_probe` dumps it.
-- [ ] **At save time**: summary line on the mode — "Needs: Shizuku, device admin" or "Will open panels for 2 actions" so nothing fails silently at 7 AM.
-- [ ] **At fire time**: if a requirement was lost since save (permission revoked, Shizuku stopped), the execution result already distinguishes `ShizukuRequired`/`PermissionRequired`/`Unsupported` → post a heads-up notification "Mode X couldn't run — tap to fix" deep-linking into the mode.
-- [ ] Row badge in catalogs: small marker on items needing Shizuku/permissions — visible before the user even taps.
+- [x] **At pick time**: selecting an item whose requirements aren't met → warning sheet explaining what's missing and why ("Wi-Fi can't toggle silently without Shizuku — without it, the system panel opens for one tap") + a **"Fix it" button** deep-linking to the exact remedy: install/launch Shizuku, system permission dialog, device-admin activation, notification-listener settings, accessibility settings, system panel page.
+- [x] **Shizuku states distinguished**: not installed (→ install link), installed but not running (→ "Start Shizuku"), running but permission denied to us (→ grant in Shizuku app). `ShizukuGateway.status()` already exists for this — the debug receiver's `shizuku_probe` dumps it.
+- [x] **At save time**: summary line on the mode — "Needs: Shizuku, device admin" or "Will open panels for 2 actions" so nothing fails silently at 7 AM.
+- [x] **At fire time**: if a requirement was lost since save (permission revoked, Shizuku stopped), the execution result already distinguishes `ShizukuRequired`/`PermissionRequired`/`Unsupported` → post a heads-up notification "Mode X couldn't run — tap to fix" deep-linking into the mode.
+- [x] Row badge in catalogs: small marker on items needing Shizuku/permissions — visible before the user even taps.
 
 ### 7b. Capability matrix — static analysis from code (verify each on device)
 
@@ -383,7 +383,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 
 - [x] Central `PermissionGate` helper: when a user selects a trigger/action requiring a runtime permission (calendar, contacts, SMS, location, notifications, camera/mic, exact alarm, accessibility, device admin, Shizuku), show an inline explainer row + "Grant" → system dialog **at that moment**, not buried in settings.
 - [x] A permission status section in Settings showing granted/missing with deep links.
-- [ ] Already granted on debug device: calendar, SMS, location, notifications, camera, mic, WRITE_SETTINGS, notification listener, device admin. Nothing critical missing; exact alarm falls back to inexact (SCHEDULE_EXACT_ALARM denied by default on A13+ — prompt to grant for punctual triggers).
+- [x] Already granted on debug device: calendar, SMS, location, notifications, camera, mic, WRITE_SETTINGS, notification listener, device admin. Exact alarm: inexact fallback exists; the Time/TimeWindow trigger config now shows a prompt to grant `SCHEDULE_EXACT_ALARM` for punctual triggers.
 
 ---
 
@@ -398,7 +398,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 ## 9. Engine reliability & performance
 
 - [x] Verify windowed semantics on-device: a 22:00–07:00 window must fire exactly twice (start, end) — no extra triggers. Added `AutomationFlowTest` covering start, end, next-day restart, snapshot/restore, and cooldown suppression.
-- [~] Cooldown enforcement, priority conflict resolution — `AutomationFlowTest` and `FirePolicyTest` cover engine-level cooldown. Priority conflict resolution still needs a dedicated test and on-device verification.
+- [x] Cooldown enforcement, priority conflict resolution — `AutomationFlowTest` and `FirePolicyTest` cover engine-level cooldown. `ConflictAndRestoreTest` now verifies priority conflict suppression.
 - [x] Audit receivers for duplicate registrations (`ConnectivityReceiver`, `DeviceStateReceiver`, `CalendarObserver`) — ensure idempotent re-registration after process death. Verified: `PersistentMonitorService` registers receivers in `onCreate` and unregisters (runCatching) in `onDestroy`; battery/screen/phone/connectivity are dynamic-only (manifest comment confirms), `CalendarObserver` is recreated fresh per service instance. No duplicates.
 - [x] Execution journal → surface latency in Execution Log screen ("fired in X ms").
 

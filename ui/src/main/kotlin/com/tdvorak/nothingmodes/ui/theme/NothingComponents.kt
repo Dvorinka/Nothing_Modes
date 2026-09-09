@@ -1096,6 +1096,29 @@ fun NothingIconChip(
     }
 }
 
+@Composable
+fun NothingRequirementBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = NothingColors.accent,
+) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        shape = NothingShapes.pill,
+        border = BorderStroke(1.dp, color.copy(alpha = 0.5f)),
+        modifier = modifier,
+    ) {
+        Text(
+            text = if (classic) text else text.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
+    }
+}
+
 // ── List Row (icon chip + title + subtitle + chevron) ────────────────────────
 
 @Composable

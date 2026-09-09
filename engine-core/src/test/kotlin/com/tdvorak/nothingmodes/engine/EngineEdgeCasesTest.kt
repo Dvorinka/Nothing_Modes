@@ -266,7 +266,7 @@ class EngineEdgeCasesTest {
         runTest {
             val store = InMemoryAutomationStore()
             store.save(makeAutomation("a1", actions = listOf(Action.SetDnd(DndMode.OFF))))
-            store.save(makeAutomation("a2", actions = listOf(Action.SetDnd(DndMode.PRIORITY))))
+            store.save(makeAutomation("a2", actions = listOf(Action.SetBrightness(128))))
             val engine =
                 Engine(
                     store = store,

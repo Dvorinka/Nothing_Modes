@@ -51,6 +51,7 @@ class Engine(
 
         val batchNow = now()
         val outcomes = mutableListOf<FireOutcome>()
+        val claimedSettings = mutableSetOf<String>()
 
         for (automation in candidates) {
             val executionId = executionIds.create(automation.id, envelope.id)
@@ -98,6 +99,29 @@ class Engine(
                             continue
                         }
                     }
+                }
+
+                // Priority conflict resolution: a higher-priority candidate that
+                // already fired and claimed a setting blocks lower-priority
+                // candidates that would overwrite the same setting.
+                val affected =
+                    if (event is TriggerEvent.ModeWindowEnd) {
+                        emptySet()
+                    } else {
+                        automation.actions.flatMap { it.affectedSettings }.toSet()
+                    }
+                val overlap = affected intersect claimedSettings
+                if (overlap.isNotEmpty()) {
+                    audit.record(
+                        AuditEvent(
+                            automationId = automation.id,
+                            kind = AuditKind.SUPPRESSED_CONFLICT,
+                            atMillis = batchNow,
+                            detail = overlap.joinToString(","),
+                            eventId = envelope.id,
+                        ),
+                    )
+                    continue
                 }
 
                 // Window-end: restore snapshots and stop — the action list must
@@ -150,6 +174,8 @@ class Engine(
                         actionResults += result
                     }
                 }
+
+                claimedSettings += affected
 
                 val completedAt = now()
                 val latencyMillis = (System.nanoTime() - startedAtNano) / 1_000_000

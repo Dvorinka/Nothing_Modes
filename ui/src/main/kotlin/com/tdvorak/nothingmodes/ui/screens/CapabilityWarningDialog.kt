@@ -4,8 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -16,13 +19,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.util.CapabilityGap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CapabilityWarningDialog(
-    missingReasons: List<String>,
+    gaps: List<CapabilityGap>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -43,12 +48,27 @@ fun CapabilityWarningDialog(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = NothingFonts.doto(),
                 )
-                Text(
-                    text = missingReasons.joinToString("\n"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
+                    gaps.forEach { gap ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = gap.reason,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                            NothingPillButton(
+                                text = gap.fixLabel,
+                                onClick = gap.onFix,
+                            )
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
