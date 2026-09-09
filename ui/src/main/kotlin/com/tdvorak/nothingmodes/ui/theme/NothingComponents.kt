@@ -737,8 +737,8 @@ fun NothingTopBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
                 .height(88.dp)
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = NothingSpacing.lg),
         horizontalArrangement = Arrangement.SpaceBetween,

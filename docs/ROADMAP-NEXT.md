@@ -150,8 +150,8 @@ and later: "until condition stops", "until second trigger"). No separate mode ty
 ### Time trigger → "Time / Day"
 - [x] Rename "Time" → **"Time / Day"**. `TriggerConfigScreen` label updated.
 - [x] Recurrence: daily / **weekly (multi-day select)** / **monthly (multi-day-of-month select)** / **yearly (multi-month + multi-day select)**. Implemented in `CustomTimePicker` using comma-separated cron fields.
-- [x] Quick actions: "Weekdays", "Weekend", "Every day", "1st of month", "15th", "Last day" (28th; true last-day needs an engine evaluator).
-- [ ] True "last day of month" / "whole month" / multi-month quick presets and per-month day lists. Cron can't express "last day" cleanly; requires an engine evaluator.
+- [x] Quick actions: "Weekdays", "Weekend", "Every day", "1st of month", "15th", "Last day" (true `L` cron marker; engine matcher uses month length).
+- [x] True "last day of month" / "whole month" / multi-month quick presets and per-month day lists. Cron can't express "last day" cleanly; requires an engine evaluator.
 
 ### Calendar trigger — merge into Time/Day
 User is right: asking for a `calendarId` string is backwards.
