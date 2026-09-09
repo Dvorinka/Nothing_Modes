@@ -28,6 +28,7 @@ class CapabilityResolverTest {
             CapabilityIds.TRIGGER_BT_DEVICE,
             CapabilityIds.TRIGGER_WIFI_CONNECTED,
             CapabilityIds.TRIGGER_CALENDAR_EVENT,
+            CapabilityIds.TRIGGER_TORCH_STATE,
             CapabilityIds.STATE_READER_BUILTIN,
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -60,6 +61,10 @@ class CapabilityResolverTest {
             CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
             CapabilityIds.ACTION_GLYPH_PRESET,
             CapabilityIds.ACTION_GLYPH_TURNOFF,
+            CapabilityIds.ACTION_GLYPH_ICON,
+            CapabilityIds.ACTION_GLYPH_NUMBER,
+            CapabilityIds.ACTION_GLYPH_COUNTDOWN,
+            CapabilityIds.ACTION_GLYPH_MUSIC,
             CapabilityIds.ACTION_COPY_TEXT,
             CapabilityIds.ACTION_WAIT,
             CapabilityIds.ACTION_WRITE_SETTING,
@@ -100,6 +105,10 @@ class CapabilityResolverTest {
             shizukuStatus = ShizukuCapabilityStatus.AUTHORIZED,
             hasTelephony = true,
             hasActiveDeviceAdmin = true,
+            hasReadCalendar = true,
+            hasReceiveSms = true,
+            hasSendSms = true,
+            hasReadPhoneState = true,
         )
 
     @Test
