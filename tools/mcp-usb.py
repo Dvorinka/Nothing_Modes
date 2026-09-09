@@ -3,7 +3,8 @@
 
 This script sends control commands to the debug build of Nothing Modes over
 `adb` and reads JSON responses from the device's logcat. It lets an AI agent
-list, get, save, run and delete modes while the phone is USB-connected.
+list, get, save, validate, explain, run and delete modes while the phone is
+USB-connected.
 
 Usage:
     python3 tools/mcp-usb.py list
@@ -11,6 +12,10 @@ Usage:
     python3 tools/mcp-usb.py run <mode-id>
     python3 tools/mcp-usb.py delete <mode-id>
     python3 tools/mcp-usb.py save < mode.json
+    python3 tools/mcp-usb.py validate < mode.json
+    python3 tools/mcp-usb.py explain --id <mode-id>
+    python3 tools/mcp-usb.py explain < mode.json
+    python3 tools/mcp-usb.py guide
 """
 
 import argparse
@@ -37,7 +42,11 @@ def send_command(command: str, id_: str = "", json_payload: str = "") -> None:
         extras += ["--es", "id", id_]
     if json_payload:
         # Wrap JSON in single quotes so device shell preserves double quotes.
-        extras += ["--es", "json", f"'{json_payload.replace(chr(39), chr(39) + '\\' + chr(39) + chr(39))}'"]
+        extras += [
+            "--es",
+            "json",
+            f"'{json_payload.replace(chr(39), chr(39) + '\\' + chr(39) + chr(39))}'",
+        ]
     adb(["shell", "am", "broadcast", "-n", f"{PACKAGE}/{RECEIVER}", *extras])
 
 
@@ -68,22 +77,40 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("list", help="List all modes")
+    sub.add_parser("guide", help="Show protocol guide and schema")
+
     get = sub.add_parser("get", help="Get one mode")
     get.add_argument("id")
+
     run = sub.add_parser("run", help="Run a manual mode")
     run.add_argument("id")
+
     delete = sub.add_parser("delete", help="Delete a mode")
     delete.add_argument("id")
+
     save = sub.add_parser("save", help="Save a mode from JSON on stdin")
+    validate = sub.add_parser("validate", help="Validate a mode from JSON without saving")
+
+    explain = sub.add_parser("explain", help="Explain a mode by id or from JSON")
+    explain.add_argument("--id", dest="id", default="", help="Existing mode id")
 
     args = parser.parse_args()
 
     try:
         payload = ""
-        if args.command == "save":
+        id_ = ""
+
+        if args.command in ("save", "validate"):
             payload = sys.stdin.read()
 
-        send_command(args.command, getattr(args, "id", ""), payload)
+        if args.command == "explain":
+            payload = sys.stdin.read()
+            id_ = args.id
+
+        if args.command in ("get", "run", "delete"):
+            id_ = args.id
+
+        send_command(args.command, id_, payload)
         response = read_response()
         if response is None:
             print("No response from device. Is the debug build installed and USB debugging enabled?", file=sys.stderr)
