@@ -198,12 +198,12 @@ fun CustomTimePicker(
         onUpdate(schedule.toTrigger())
     }
 
-    val sourceOptions = listOf("Clock", "Calendar event")
+    val sourceOptions = listOf("Clock", "From calendar")
     NothingEnumSelector(
         label = "Source",
         value = "Clock",
         options = sourceOptions,
-        onSelect = { if (it == "Calendar event") onUpdate(Trigger.CalendarEvent()) },
+        onSelect = { if (it == "From calendar") onUpdate(Trigger.CalendarEvent()) },
     )
     Spacer(modifier = Modifier.height(NothingSpacing.md))
 

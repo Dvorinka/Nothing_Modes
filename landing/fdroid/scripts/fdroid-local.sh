@@ -5,8 +5,7 @@ set -euo pipefail
 # Usage: ./landing/fdroid/scripts/fdroid-local.sh
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-
-cd "$REPO_ROOT"
+PROJECT_ROOT="$(cd "$REPO_ROOT/../.." && pwd)"
 
 if ! command -v fdroid >/dev/null 2>&1; then
     echo "fdroidserver not found. Install it first:"
@@ -15,20 +14,24 @@ if ! command -v fdroid >/dev/null 2>&1; then
     exit 1
 fi
 
+cd "$REPO_ROOT"
+
 if [ ! -f keystore.p12 ]; then
     echo "Creating F-Droid repo signing key..."
     fdroid update --create-key
 fi
 
 echo "Building githubRelease APK..."
-"$REPO_ROOT/../../../gradlew" :app:assembleGithubRelease
+cd "$PROJECT_ROOT"
+./gradlew :app:assembleGithubRelease
 
 VERSION_CODE=$(
-    grep -E '^\s+versionCode\s*=' "$REPO_ROOT/../../../app/build.gradle.kts" |
+    grep -E '^\s+versionCode\s*=' "$PROJECT_ROOT/app/build.gradle.kts" |
         sed 's/.*=\s*//' | tr -d ' '
 )
+cd "$REPO_ROOT"
 mkdir -p "repo"
-cp "$REPO_ROOT/../../../app/build/outputs/apk/github/release/app-github-release.apk" \
+cp "$PROJECT_ROOT/app/build/outputs/apk/github/release/app-github-release.apk" \
     "repo/com.tdvorak.nothingmodes_${VERSION_CODE}.apk"
 
 echo "Updating F-Droid index..."

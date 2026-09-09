@@ -105,6 +105,7 @@ private enum class EditorSection {
     ACTIONS,
     IMPORT,
     SAVED,
+    LIBRARY,
 }
 
 private enum class ImportType { IMAGE, GIF, VIDEO }
@@ -264,7 +265,7 @@ fun GlyphEditorScreen(
     var savedNames by remember { mutableStateOf(viewModel.names()) }
     var opacity by remember { mutableStateOf(255) }
     var paintMode by remember { mutableStateOf(PaintMode.PAINT) }
-    var expanded by remember { mutableStateOf(EditorSection.values().toSet()) }
+    var expanded by remember { mutableStateOf(setOf(EditorSection.BRUSH, EditorSection.ACTIONS)) }
     var showTextDialog by remember { mutableStateOf(false) }
     var showEmojiDialog by remember { mutableStateOf(false) }
     var dialogText by remember { mutableStateOf("") }
@@ -537,9 +538,6 @@ fun GlyphEditorScreen(
         showEmojiDialog = false
     }
 
-    fun sectionHeader(label: String, section: EditorSection): String =
-        label + if (section in expanded) "" else ""
-
     fun toggleSection(section: EditorSection) {
         expanded =
             if (section in expanded) {
@@ -551,6 +549,12 @@ fun GlyphEditorScreen(
 
     @Composable
     fun SectionHeader(label: String, section: EditorSection) {
+        val arrow =
+            if (section in expanded) {
+                if (classic) "v" else "V"
+            } else {
+                ">"
+            }
         Row(
             modifier =
                 Modifier
@@ -561,7 +565,7 @@ fun GlyphEditorScreen(
         ) {
             NothingSectionHeader(text = label, modifier = Modifier)
             Text(
-                text = if (section in expanded) if (classic) "[close]" else "[CLOSE]" else if (classic) "[open]" else "[OPEN]",
+                text = arrow,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
@@ -888,18 +892,7 @@ fun GlyphEditorScreen(
                             GlyphPill(
                                 label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
                                 modifier = Modifier.fillMaxWidth(),
-                                onClick = {
-                                    val museum =
-                                        context.packageManager
-                                            .getLaunchIntentForPackage("com.pauwma.glyphmuseum")
-                                    if (museum != null) {
-                                        context.startActivity(museum)
-                                    } else {
-                                        Toast
-                                            .makeText(context, "Glyph Museum is not installed", Toast.LENGTH_SHORT)
-                                            .show()
-                                    }
-                                },
+                                onClick = { openGlyphMuseum(context) },
                             )
                         }
                     }
@@ -1004,68 +997,83 @@ fun GlyphEditorScreen(
                 }
             }
 
-            if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
-                item {
-                    NothingCard {
-                        NothingSectionHeader(text = "Community designs - reviewed", modifier = Modifier)
+            item {
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                NothingCard {
+                    SectionHeader(label = "Library", section = EditorSection.LIBRARY)
+                    AnimatedVisibility(visible = EditorSection.LIBRARY in expanded) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                         ) {
-                            com.tdvorak.nothingmodes.ui.theme.NothingInput(
-                                value = glyphSearch,
-                                onValueChange = { glyphSearch = it },
-                                label = "Search",
-                                placeholder = "Find a design",
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            GlyphPill(
+                                label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
                                 modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                listOf(
-                                    "newest" to "Newest",
-                                    "download" to "Most downloaded",
-                                    "alpha" to "A-Z",
-                                ).forEach { (key, label) ->
-                                    NothingTag(
-                                        text = label,
-                                        active = glyphSort == key,
-                                        onClick = { glyphSort = key },
-                                    )
-                                }
-                            }
-                            if (allGlyphCaps.isNotEmpty()) {
+                                onClick = { openGlyphMuseum(context) },
+                            )
+                            if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
+                                com.tdvorak.nothingmodes.ui.theme.NothingInput(
+                                    value = glyphSearch,
+                                    onValueChange = { glyphSearch = it },
+                                    label = "Search",
+                                    placeholder = "Find a design",
+                                )
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    allGlyphCaps.forEach { cap ->
+                                    listOf(
+                                        "newest" to "Newest",
+                                        "download" to "Most downloaded",
+                                        "alpha" to "A-Z",
+                                    ).forEach { (key, label) ->
                                         NothingTag(
-                                            text = cap.replace("_", " "),
-                                            active = glyphCaps.contains(cap),
-                                            onClick = {
-                                                glyphCaps =
-                                                    if (glyphCaps.contains(cap)) glyphCaps - cap else glyphCaps + cap
-                                            },
+                                            text = label,
+                                            active = glyphSort == key,
+                                            onClick = { glyphSort = key },
                                         )
                                     }
                                 }
-                            }
-                            if (visibleLibrary.isEmpty()) {
+                                if (allGlyphCaps.isNotEmpty()) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        allGlyphCaps.forEach { cap ->
+                                            NothingTag(
+                                                text = cap.replace("_", " "),
+                                                active = glyphCaps.contains(cap),
+                                                onClick = {
+                                                    glyphCaps =
+                                                        if (glyphCaps.contains(cap)) glyphCaps - cap else glyphCaps + cap
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                                if (visibleLibrary.isEmpty()) {
+                                    Text(
+                                        text = "No matching designs.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                } else {
+                                    visibleLibrary.forEachIndexed { index, item ->
+                                        if (index > 0) NothingDivider()
+                                        GlyphCommunityRow(
+                                            item = item,
+                                            onClick = { selectedLibraryItem = item },
+                                        )
+                                    }
+                                }
+                            } else {
                                 Text(
-                                    text = "No matching designs.",
+                                    text = "No designs downloaded. Open Glyph Museum to find more.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontFamily = NothingFonts.mono(),
                                 )
-                            } else {
-                                visibleLibrary.forEachIndexed { index, item ->
-                                    if (index > 0) NothingDivider()
-                                    GlyphCommunityRow(
-                                        item = item,
-                                        onClick = { selectedLibraryItem = item },
-                                    )
-                                }
                             }
                         }
                     }
@@ -1441,4 +1449,20 @@ private fun TextImportDialog(
             )
         },
     )
+}
+
+private const val GLYPH_MUSEUM_PKG = "com.pauwma.glyphmuseum"
+
+private fun openGlyphMuseum(context: Context) {
+    val launch = context.packageManager.getLaunchIntentForPackage(GLYPH_MUSEUM_PKG)
+    if (launch != null) {
+        context.startActivity(launch)
+    } else {
+        val store =
+            Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://play.google.com/store/apps/details?id=$GLYPH_MUSEUM_PKG")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        context.startActivity(store)
+    }
 }

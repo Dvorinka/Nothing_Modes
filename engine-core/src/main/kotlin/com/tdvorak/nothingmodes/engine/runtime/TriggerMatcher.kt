@@ -77,6 +77,7 @@ class TriggerMatcher {
             is Trigger.CalendarEvent ->
                 event is TriggerEvent.CalendarEventChanged &&
                     event.direction == trigger.direction &&
+                    (trigger.calendarId == null || event.calendarId == trigger.calendarId) &&
                     (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true)
 
             is Trigger.ChargerConnected ->

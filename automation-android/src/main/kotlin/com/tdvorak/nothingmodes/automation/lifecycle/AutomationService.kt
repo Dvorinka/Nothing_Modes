@@ -7,7 +7,9 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
@@ -47,6 +49,8 @@ class AutomationService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeJobs = mutableSetOf<Job>()
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private val pendingProgress = mutableSetOf<Runnable>()
 
     @Volatile private var lastStartId = 0
 
@@ -443,21 +447,26 @@ class AutomationService : Service() {
     private fun dispatchEvent(event: TriggerEvent) {
         val job =
             scope.launch {
-                val envelope =
-                    TriggerEnvelope(
-                        id = event.eventId,
-                        event = event,
-                        receivedAtMillis = System.currentTimeMillis(),
-                    )
-                val outcomes = engine.onTrigger(envelope)
-                val isEnd = event is TriggerEvent.ModeWindowEnd
-                val helper = ModeNotificationHelper(this@AutomationService)
-                outcomes.forEach { outcome ->
-                    if (isEnd) {
-                        helper.postOnEnd(outcome.automation)
-                    } else {
-                        helper.postOnTrigger(outcome.automation, outcome.results)
+                val progress = scheduleProgressNotification()
+                try {
+                    val envelope =
+                        TriggerEnvelope(
+                            id = event.eventId,
+                            event = event,
+                            receivedAtMillis = System.currentTimeMillis(),
+                        )
+                    val outcomes = engine.onTrigger(envelope)
+                    val isEnd = event is TriggerEvent.ModeWindowEnd
+                    val helper = ModeNotificationHelper(this@AutomationService)
+                    outcomes.forEach { outcome ->
+                        if (isEnd) {
+                            helper.postOnEnd(outcome.automation)
+                        } else {
+                            helper.postOnTrigger(outcome.automation, outcome.results)
+                        }
                     }
+                } finally {
+                    cancelProgressNotification(progress)
                 }
             }
         trackJob(job)
@@ -505,6 +514,37 @@ class AutomationService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+
+    private fun buildProgressNotification(): Notification =
+        NotificationCompat
+            .Builder(this, CHANNEL_ID)
+            .setContentTitle("Nothing Modes")
+            .setContentText("Running a mode...")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setProgress(0, 0, true)
+            .setOngoing(true)
+            .build()
+
+    private fun scheduleProgressNotification(): Runnable {
+        val runnable =
+            Runnable {
+                val notification = buildProgressNotification()
+                getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification)
+            }
+        synchronized(pendingProgress) {
+            pendingProgress.add(runnable)
+        }
+        progressHandler.postDelayed(runnable, 300)
+        return runnable
+    }
+
+    private fun cancelProgressNotification(runnable: Runnable) {
+        progressHandler.removeCallbacks(runnable)
+        synchronized(pendingProgress) {
+            pendingProgress.remove(runnable)
+        }
+    }
 
     companion object {
         const val ACTION_RESCHEDULE = "com.tdvorak.nothingmodes.RESCHEDULE"

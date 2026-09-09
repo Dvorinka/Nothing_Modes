@@ -1,8 +1,9 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.ContentUris
 import android.content.pm.PackageManager
-
+import android.provider.CalendarContract
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -1078,6 +1079,88 @@ private fun GeofenceContent(
     }
 }
 
+private data class UpcomingEvent(
+    val eventId: Long,
+    val title: String,
+    val startMillis: Long,
+    val endMillis: Long,
+    val calendarId: String,
+    val calendarName: String,
+)
+
+private fun loadCalendarName(context: android.content.Context, calendarId: String): String? {
+    if (context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return null
+    return runCatching {
+        context.contentResolver
+            .query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME),
+                "${CalendarContract.Calendars._ID} = ?",
+                arrayOf(calendarId),
+                null,
+            )?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            }
+    }.getOrNull()
+}
+
+private fun loadUpcomingEvents(context: android.content.Context, calendarId: String?, limit: Int = 20): List<UpcomingEvent> {
+    val granted = context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+    if (!granted) return emptyList()
+
+    val now = System.currentTimeMillis()
+    val windowEnd = now + 30L * 24 * 60 * 60 * 1000
+
+    val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
+    ContentUris.appendId(builder, now)
+    ContentUris.appendId(builder, windowEnd)
+
+    val projection =
+        arrayOf(
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.CALENDAR_ID,
+            CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
+        )
+
+    val selection = calendarId?.let { "${CalendarContract.Instances.CALENDAR_ID} = ?" }
+    val selectionArgs = calendarId?.let { arrayOf(it) }
+
+    return runCatching {
+        val out = mutableListOf<UpcomingEvent>()
+        context.contentResolver.query(
+            builder.build(),
+            projection,
+            selection,
+            selectionArgs,
+            "${CalendarContract.Instances.BEGIN} ASC",
+        )?.use { c ->
+            while (c.moveToNext() && out.size < limit) {
+                val id = c.getLong(0)
+                val title = c.getString(1) ?: "(no title)"
+                val begin = c.getLong(2)
+                val end = c.getLong(3)
+                val calId = c.getString(4) ?: "0"
+                val calName = c.getString(5) ?: "Calendar"
+                out += UpcomingEvent(id, title, begin, end, calId, calName)
+            }
+        }
+        out
+    }.getOrDefault(emptyList())
+}
+
+private fun formatEventTime(millis: Long): String {
+    val zdt = java.time.ZonedDateTime.ofInstant(
+        java.time.Instant.ofEpochMilli(millis),
+        java.time.ZoneId.systemDefault(),
+    )
+    return zdt.format(
+        java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"),
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CalendarEventContent(
@@ -1086,40 +1169,86 @@ private fun CalendarEventContent(
 ) {
     val context = LocalContext.current
     var showCalendarPicker by remember { mutableStateOf(false) }
-    val sourceOptions = listOf("Calendar event", "Clock")
+    var events by remember { mutableStateOf(emptyList<UpcomingEvent>()) }
+    var calendarName by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(trigger.calendarId) {
+        withContext(Dispatchers.IO) {
+            events = loadUpcomingEvents(context, trigger.calendarId)
+            calendarName = trigger.calendarId?.let { loadCalendarName(context, it) }
+        }
+    }
+
+    val sourceOptions = listOf("From calendar", "Clock")
     NothingEnumSelector(
         label = "Source",
-        value = "Calendar event",
+        value = "From calendar",
         options = sourceOptions,
         onSelect = { if (it == "Clock") onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())) },
     )
     Spacer(modifier = Modifier.height(NothingSpacing.md))
-    Column {
-        NothingInput(
-            value = trigger.titleMatch ?: "",
-            onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-            label = "Title contains (blank = any)",
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingPillButton(
-            text = "Pick calendar",
-            onClick = { showCalendarPicker = true },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            value = trigger.calendarId ?: "",
-            onValueChange = { onUpdate(trigger.copy(calendarId = it.ifBlank { null })) },
-            label = "Calendar ID (blank = any)",
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingEnumSelector(
-            label = "Direction",
-            value = trigger.direction.name.enumLabel(),
-            options = enumLabelList<CalendarDirection>(),
-            onSelect = { onUpdate(trigger.copy(direction = enumByLabel(it))) },
-        )
+
+    PermissionGate(
+        permissions = listOf(android.Manifest.permission.READ_CALENDAR),
+        rationale = "Calendar triggers need read access to your calendars.",
+    ) {
+        Column {
+            val pickerText =
+                when {
+                    trigger.calendarId == null -> "All calendars"
+                    calendarName != null -> "Calendar: $calendarName"
+                    else -> "Calendar: ${trigger.calendarId}"
+                }
+            NothingPillButton(
+                text = pickerText,
+                onClick = { showCalendarPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = trigger.titleMatch ?: "",
+                onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
+                label = "Title contains (blank = any)",
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingEnumSelector(
+                label = "Direction",
+                value = trigger.direction.name.enumLabel(),
+                options = enumLabelList<CalendarDirection>(),
+                onSelect = { onUpdate(trigger.copy(direction = enumByLabel(it))) },
+            )
+
+            if (events.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                NothingLabel(text = "Upcoming events (tap to use)")
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                events.forEach { event ->
+                    NothingListRow(
+                        title = event.title,
+                        subtitle = "${formatEventTime(event.startMillis)} · ${event.calendarName}",
+                        onClick = {
+                            onUpdate(
+                                trigger.copy(
+                                    titleMatch = event.title,
+                                    calendarId = event.calendarId,
+                                ),
+                            )
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                }
+            } else if (trigger.calendarId != null) {
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                Text(
+                    text = "No upcoming events for this calendar.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
     }
+
     if (showCalendarPicker) {
         CalendarPickerDialog(
             onSelect = { id ->

@@ -21,7 +21,7 @@ Description: |
 
 RepoType: git
 Repo: https://github.com/tdvorak/Nothing_Modes.git
-Binaries: https://github.com/tdvorak/Nothing_Modes/releases/download/v%v/NothingModes-github-release.apk
+Binaries: https://github.com/tdvorak/Nothing_Modes/releases/download/v%v/nothing-modes-v%v.apk
 
 Builds:
   - versionName: 0.12.0

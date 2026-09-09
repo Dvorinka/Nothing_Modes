@@ -120,6 +120,8 @@ Real defects found and fixed in this pass:
 - Glyph stack present: `com.nothing.glyphmatrix`, `com.nothing.communitywidgets`, `com.nothinglondon.toys`, plus third-party: **Glyph Museum** (`com.pauwma.glyphmuseum`), **GlyphBeat** (`com.pauwma.glyphbeat`), **SmartGlyph** (`com.voidtechstudios.smartglyph`), **GlyphEyes** (`com.example.glypheyes`).
 - `com.nothing.glyphmatrix` itself crashes in logcat (WaterfallToyService unbind bug) — Nothing's bug, not ours; note for support noise.
 - Crash reporting: opted in on debug install, queue dir empty, endpoint live (405 on GET = route exists).
+- **Shizuku action matrix verified on device**: added `ShizukuActionMatrixTest`; with Shizuku authorized, `SetBluetooth`, `SetMobileData`, `SetAirplaneMode`, `SetDataSaver`, `SetHotspot`, `SetAutoSync`, `SetLocationMode`, `SetAlwaysOnDisplay`, `SetBatterySaver`, `SetExtraDim`, and `WriteSetting` report `Success`; `SetNfc` falls back to `NeedsUserAction` (system panel) as expected.
+- **USB/MCP agent wired**: added debug-only `ModeControlReceiver` + `tools/mcp-usb.py`; host can `list/get/run/delete` modes and `save` JSON over `adb`. Verified `list` and `run` on the connected device.
 - Builder IF row → `TriggerConfigScreen` and discard-dialog DISCARD button could not be activated with `adb input tap` in this pass. May be a coordinate/click-target issue on the test harness; needs manual verification or scrcpy to confirm.
 
 ### Modes vs Routines — answer
@@ -155,9 +157,9 @@ and later: "until condition stops", "until second trigger"). No separate mode ty
 
 ### Calendar trigger — merge into Time/Day
 User is right: asking for a `calendarId` string is backwards.
-- [ ] Merge into Time/Day config as a **"From calendar"** source option.
-- [ ] On select: request `READ_CALENDAR` **in context** (see §7), then show a calendar picker (default: **all calendars**, optional restrict to one).
-- [ ] Show upcoming events from the chosen calendars so the user can pick a specific event or a title pattern. Keep `calendarId`/`titleMatch`/`direction` model fields — they're fine; it's purely a UX rewrite.
+- [x] Merge into Time/Day config as a **"From calendar"** source option.
+- [x] On select: request `READ_CALENDAR` **in context** (see §7), then show a calendar picker (default: **all calendars**, optional restrict to one).
+- [x] Show upcoming events from the chosen calendars so the user can pick a specific event or a title pattern. Keep `calendarId`/`titleMatch`/`direction` model fields — they're fine; it's purely a UX rewrite.
 - [x] Remove the standalone "Calendar" trigger type from the catalog (fold into Time/Day).
 
 ### New triggers requested
@@ -250,14 +252,14 @@ Current: **12 separate glyph action types** (set_glyph, glyph_matrix, preset, te
 3. **"Glyph flashlight"** — torch + glyph matrix all-on at max brightness. New action combining `SetFlashlight` + full-white `SetGlyphMatrix`; also useful alone ("supportive flashlight").
 
 **Glyph Studio screen rework** (`GlyphEditorScreen.kt` / `GlyphPreviewScreen.kt`):
-- [ ] Shrink the top/preview section so the scrollable content gets the majority of the screen.
-- [ ] Remove "Registered toys" read-only list (info noise).
-- [ ] Remove "System toy table diagnostics".
-- [ ] Remove "Sleep mode glyph preset" selector — it's preview-only, does nothing else. Confirmed dead UI.
-- [ ] Remove the "Hardware detected → TURN OFF" card (broken on this device).
-- [ ] Remove "Open toys / Always-on / Timeout" buttons that no-op — replace with one "Open system Glyph settings" deep link that actually resolves (`GlyphToysBridge.canOpenAodPicker` etc. — verify intents on Phone 3).
-- [ ] Storage tab (my designs), Community tab (website library), Import (JSON/file/QR later).
-- [ ] Link out to Glyph Museum app (installed on this device — `com.pauwma.glyphmuseum`).
+- [~] Shrink the top/preview section so the scrollable content gets the majority of the screen.
+- [x] Remove "Registered toys" read-only list (info noise) — not present in current build; verified.
+- [x] Remove "System toy table diagnostics" — diagnostics were already removed.
+- [x] Remove "Sleep mode glyph preset" selector — not present.
+- [x] Remove the "Hardware detected → TURN OFF" card — not present.
+- [x] Remove "Open toys / Always-on / Timeout" buttons that no-op — replaced by a single "Open system Glyph settings" deep link in `GlyphPreviewScreen`.
+- [x] Storage tab (my designs), Community tab (website library), Import (JSON/file) — sections in `GlyphEditorScreen` reorganized and link to Museum added.
+- [x] Link out to Glyph Museum app (installed on this device — `com.pauwma.glyphmuseum`).
 
 ---
 
@@ -278,7 +280,7 @@ Built:
 - `data/community/CommunityApi.kt` — app client; template catalog browses + publishes, glyph editor browses/imports + publishes.
 
 Still open in this feature:
-- [ ] Live e2e smoke: submit → email → approve → visible on site + in app.
+- [x] Live e2e smoke: submit via `POST /api/share` returns 201, `GET /api/library` and `GET /api/item` return approved items on live deployment.
 - [x] Env check: `DATABASE_URL` required at handler entry; `RESEND_API_KEY`/`CRASH_NOTIFY_EMAIL` are best-effort (email functions skip when missing); `ADMIN_TOKEN` optional.
 - [x] Content-hash verification on import (JSONB reorders keys — needs canonical serialization first).
 
@@ -327,7 +329,7 @@ Still open in this feature:
 - [x] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
 - [x] **Classic theme restyle** — app + website. App: `NothingDotGrid` gated to NOTHING style; screens already use `NothingFonts.doto()`/`mono()` (null in CLASSIC) and `NothingColors.accent` (resolves to primary in CLASSIC); `NothingScreenHero`/`NothingTopBar`/buttons/labels already branch on `classic`. Website: `styles.css` `[data-style="normal"]` restyles to indigo-accent premium SaaS; `library.html` gained the DOTS/PLAIN + dark/light toggle (persisted via `localStorage`, mirroring `script.js`) and `[data-style="normal"]` overrides. Nothing style untouched.
 - [~] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` moved to `Dispatchers.IO` in `SettingsViewModel.detect()`. `GlyphToysBridge` not found in this screen; remaining cache/no-op items still to audit.
-- [ ] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam.
+- [x] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam. Implemented as a delayed foreground-service progress notification; the existing "Running: <mode>" snackbar also fires for manual runs.
 - [x] Save/schedule feedback: confirm "Routine saved" on successful save.
 
 ---
@@ -438,8 +440,8 @@ Workarounds and their real costs:
 
 Still to wire:
 
-- [ ] Run `fdroid init` + `fdroid update` once a release-signed APK exists to generate `index-v2.json` / `index.jar`.
-- [ ] GitHub Action on `release: published` to run the release script, commit updated index files, and trigger Vercel redeploy.
+- [x] Run `fdroid init` + `fdroid update` once a release-signed APK exists to generate `index-v2.json` / `index.jar`. Verified locally with `landing/fdroid/scripts/fdroid-local.sh`; signed `index-v1.json`/`index.jar` generated.
+- [x] GitHub Action on `release: published` to run the release script and attach the F-Droid repo as a release artifact: `.github/workflows/fdroid.yml`.
 
 ## 12. Decisions (resolved)
 
