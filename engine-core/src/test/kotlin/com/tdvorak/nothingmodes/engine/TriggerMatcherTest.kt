@@ -236,6 +236,47 @@ class TriggerMatcherTest {
         assertTrue(matcher.matches(trigger, event))
     }
 
+    @Test
+    fun `Notification trigger survives null title and text`() {
+        val trigger = Trigger.Notification(pkg = "com.example")
+        val event = TriggerEvent.NotificationPosted("e1", "com.example", "", "", null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `Notification trigger applies title, text and sender together`() {
+        val trigger = Trigger.Notification(
+            pkg = "com.slack",
+            titleMatch = "New message",
+            textMatch = "release",
+            sender = "Deploy",
+        )
+        assertTrue(
+            matcher.matches(
+                trigger,
+                TriggerEvent.NotificationPosted(
+                    "e1",
+                    "com.slack",
+                    "New message in #release",
+                    "release pipeline started",
+                    "Deploy",
+                ),
+            ),
+        )
+        assertFalse(
+            matcher.matches(
+                trigger,
+                TriggerEvent.NotificationPosted(
+                    "e1",
+                    "com.slack",
+                    "New message in #release",
+                    "release pipeline started",
+                    "Other",
+                ),
+            ),
+        )
+    }
+
     // --- PhoneState ---
 
     @Test

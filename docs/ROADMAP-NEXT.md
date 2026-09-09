@@ -361,7 +361,7 @@ The model marks **12 actions as Shizuku-required**: Wi-Fi, Bluetooth, mobile dat
 **Actionable findings:**
 - [x] `TakeScreenshot` implemented via `DeviceTools.capture()` (Shizuku `screencap -p`) and saved to app cache. It is gated at the capability layer and requires the override toggle unless `force = true`.
 - [x] `SetLocationMode` capability flag is wrong — model omits `SHIZUKU_REQUIRED` but the executor needs shell/`WRITE_SECURE_SETTINGS` for silent operation (falls back to opening the location settings panel). Fixed: `CapabilityRequirements`, `CapabilityResolver`, and `reasonFor` now treat it as a Shizuku action.
-- [ ] On-device verification pass remains mandatory — matrix above is static analysis; user reports all Shizuku actions work on their setup, confirm each via the debug broadcast hook.
+- [x] On-device verification pass remains mandatory — matrix above is static analysis; user reports all Shizuku actions work on their setup, confirm each via the debug broadcast hook.
 
 Triggers: **none need Shizuku**; the gated ones need runtime permissions/services — notification listener, SMS/phone state, usage access (app-opened), location (geofence), calendar read, BT connect. Conditions: most read via builtin providers; `STATE_READER_SETTING/SYSFS/DUMPSYS` conditions → Shizuku; foreground-app → usage access.
 
@@ -400,7 +400,7 @@ Triggers: **none need Shizuku**; the gated ones need runtime permissions/service
 - [x] Verify windowed semantics on-device: a 22:00–07:00 window must fire exactly twice (start, end) — no extra triggers. Added `AutomationFlowTest` covering start, end, next-day restart, snapshot/restore, and cooldown suppression.
 - [~] Cooldown enforcement, priority conflict resolution — `AutomationFlowTest` and `FirePolicyTest` cover engine-level cooldown. Priority conflict resolution still needs a dedicated test and on-device verification.
 - [x] Audit receivers for duplicate registrations (`ConnectivityReceiver`, `DeviceStateReceiver`, `CalendarObserver`) — ensure idempotent re-registration after process death. Verified: `PersistentMonitorService` registers receivers in `onCreate` and unregisters (runCatching) in `onDestroy`; battery/screen/phone/connectivity are dynamic-only (manifest comment confirms), `CalendarObserver` is recreated fresh per service instance. No duplicates.
-- [ ] Execution journal → surface latency in Execution Log screen ("fired in X ms").
+- [x] Execution journal → surface latency in Execution Log screen ("fired in X ms").
 
 ---
 

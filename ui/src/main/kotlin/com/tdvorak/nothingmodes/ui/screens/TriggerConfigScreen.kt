@@ -1,9 +1,7 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import android.annotation.SuppressLint
-import android.content.ContentUris
 import android.content.pm.PackageManager
-import android.provider.CalendarContract
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -19,8 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
@@ -242,16 +245,19 @@ private fun TriggerTypePickerDialog(
     caps: DeviceCapabilities,
 ) {
     val types = remember { triggerTypes() }
-    val grouped = types.groupBy { it.category }
-    val resolver = remember(caps) { CapabilityResolver(caps) }
+    val resolver = remember { CapabilityResolver(caps) }
+    var query by remember { mutableStateOf("") }
     var pendingType by remember { mutableStateOf<TriggerType?>(null) }
 
-    androidx.compose.material3.BasicAlertDialog(
+    val filtered =
+        remember(query, types) {
+            if (query.isBlank()) types
+            else types.filter { it.label.contains(query, ignoreCase = true) || triggerDescription(it.trigger).contains(query, ignoreCase = true) }
+        }
+    val grouped = filtered.groupBy { it.category }
+
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = NothingSpacing.md),
         properties =
             androidx.compose.ui.window.DialogProperties(
                 usePlatformDefaultWidth = false,
@@ -259,18 +265,22 @@ private fun TriggerTypePickerDialog(
             ),
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shape = NothingShapes.dialog,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .imePadding(),
+            ) {
                 Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(NothingSpacing.md),
+                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -280,113 +290,82 @@ private fun TriggerTypePickerDialog(
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.mono(),
                     )
-                    Text(
-                        text = "CLOSE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.clickable(onClick = onDismiss),
-                    )
+                    androidx.compose.material3.TextButton(onClick = onDismiss) {
+                        Text(
+                            text = "CLOSE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NothingColors.accent,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
                 }
-                com.tdvorak.nothingmodes.ui.theme
-                    .NothingDivider()
 
-                LazyColumn(
+                com.tdvorak.nothingmodes.ui.theme.NothingDivider()
+
+                androidx.compose.foundation.layout.Box(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(480.dp),
+                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
                 ) {
-                    grouped.forEach { (category, groupItems) ->
+                    NothingInput(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = "Search triggers",
+                        placeholder = "Time, notification, battery...",
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+                ) {
+                    if (filtered.isEmpty()) {
                         item {
                             Text(
-                                text = category.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "No triggers match \"$query\".",
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = NothingFonts.mono(),
                                 modifier =
-                                    Modifier.padding(
-                                        start = NothingSpacing.md,
-                                        top = NothingSpacing.sm,
-                                        bottom = NothingSpacing.xs,
-                                    ),
-                            )
-                        }
-                        items(groupItems, key = { it.label }) { type ->
-                            val isSelected = selected::class == type.trigger::class
-                            val hint = triggerCapabilityHint(type.trigger, caps)
-                            Row(
-                                modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(
-                                            horizontal = NothingSpacing.md,
-                                            vertical = NothingSpacing.sm,
-                                        )
-                                        .clickable {
-                                            val required = CapabilityRequirements.derive(type.trigger, emptyList())
-                                            if (resolver.resolve(type.label, required).canRun) {
-                                                onSelect(type.trigger)
-                                                onDismiss()
-                                            } else {
-                                                pendingType = type
-                                            }
-                                        },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                            ) {
-                                Icon(
-                                    imageVector = type.icon,
-                                    contentDescription = type.label,
-                                    tint =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                    modifier = Modifier.size(20.dp),
+                                        .padding(NothingSpacing.md),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+
+                    grouped.forEach { (category, groupItems) ->
+                        stickyHeader {
+                            Surface(color = MaterialTheme.colorScheme.background) {
+                                Text(
+                                    text = category.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = NothingFonts.mono(),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
                                 )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = type.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color =
-                                            if (isSelected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurface
-                                            },
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                    if (hint.isNotEmpty()) {
-                                        Text(
-                                            text = hint,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color =
-                                                if (isSelected) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                            fontFamily = NothingFonts.mono(),
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                                if (isSelected) {
-                                    Text(
-                                        text = "•",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontFamily = NothingFonts.mono(),
-                                    )
-                                }
                             }
+                        }
+                        items(groupItems, key = { it.label }) { type ->
+                            TriggerTypeRow(
+                                type = type,
+                                selected = selected,
+                                resolver = resolver,
+                                onSelect = {
+                                    onSelect(type.trigger)
+                                    onDismiss()
+                                },
+                                onMissing = { pendingType = type },
+                            )
                         }
                     }
                     item {
-                        Spacer(modifier = Modifier.height(NothingSpacing.md))
+                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     }
                 }
             }
@@ -406,6 +385,50 @@ private fun TriggerTypePickerDialog(
             },
         )
     }
+}
+
+@Composable
+private fun TriggerTypeRow(
+    type: TriggerType,
+    selected: Trigger,
+    resolver: CapabilityResolver,
+    onSelect: () -> Unit,
+    onMissing: () -> Unit,
+) {
+    val isSelected = selected::class == type.trigger::class
+    val description = triggerDescription(type.trigger)
+    val required = remember(type.trigger) { CapabilityRequirements.derive(type.trigger, emptyList()) }
+    val resolution = remember(resolver, type.trigger) { resolver.resolve(type.label, required) }
+    val canRun = resolution.canRun
+    val hint = resolution.missingReasons.values.firstOrNull() ?: description
+
+    NothingListRow(
+        title = type.label,
+        subtitle = hint,
+        selected = isSelected,
+        leading = {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = type.label,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+        },
+        trailing = {
+            if (isSelected) {
+                Text(
+                    text = "•",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        },
+        onClick = {
+            if (canRun) onSelect() else onMissing()
+        },
+        modifier = Modifier.padding(horizontal = NothingSpacing.md),
+    )
 }
 
 @Composable
@@ -465,10 +488,14 @@ private fun TriggerConfigContent(
             )
 
         is Trigger.AppOpened ->
-            AppPicker(
-                currentPackage = t.pkg,
-                onPkgChange = { onUpdate(t.copy(pkg = it)) },
-            )
+            Column {
+                HelpText(text = "Fires when this app moves to the foreground. Usage access may be required to detect foreground changes.")
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                AppPicker(
+                    currentPackage = t.pkg,
+                    onPkgChange = { onUpdate(t.copy(pkg = it)) },
+                )
+            }
 
         is Trigger.Notification ->
             NotificationContent(
@@ -550,6 +577,8 @@ private fun TimeWindowContent(
                 )
             },
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires at the start and end times. Leave days empty for every day.")
     }
 }
 
@@ -565,6 +594,8 @@ private fun ScreenStateContent(
             onClick = { onUpdate(option) },
         )
     }
+    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+    HelpText(text = "Fires when the screen turns on or off.")
 }
 
 @Composable
@@ -587,6 +618,8 @@ private fun BatteryLevelContent(
                 onUpdate(trigger.copy(direction = enumByLabel<BatteryDirection>(dir)))
             },
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when the battery crosses this level while charging or discharging.")
     }
 }
 
@@ -614,6 +647,8 @@ private fun ChargerConnectedContent(
                 )
             },
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when a charger is connected or disconnected. Source is optional.")
     }
 }
 
@@ -642,30 +677,68 @@ private fun NotificationContent(
     trigger: Trigger.Notification,
     onUpdate: (Trigger.Notification) -> Unit,
 ) {
+    val context = LocalContext.current
+    val recent by com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications.snapshots
+        .collectAsState(emptyList())
+
     Column {
-        NothingInput(
-            value = trigger.pkg,
-            onValueChange = { onUpdate(trigger.copy(pkg = it)) },
-            label = "Package name",
+        HelpText(
+            text = "Trigger when an app posts a notification. The listener reads title and text so you can match by content. Notification listener access must be granted in system settings.",
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        AppPicker(
+            currentPackage = trigger.pkg,
+            onPkgChange = { onUpdate(trigger.copy(pkg = it)) },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.titleMatch ?: "",
             onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
             label = "Title contains",
+            placeholder = "e.g. New message",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.textMatch ?: "",
             onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
             label = "Text contains",
+            placeholder = "e.g. arrived",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.sender ?: "",
             onValueChange = { onUpdate(trigger.copy(sender = it.ifBlank { null })) },
-            label = "Sender",
+            label = "Sender (optional)",
+            placeholder = "e.g. John",
         )
+
+        if (recent.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+            NothingLabel(text = "Recent notifications (tap to use)")
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            recent.take(10).forEach { notif ->
+                NothingListRow(
+                    title = notif.title.ifBlank { notif.pkg },
+                    subtitle = notif.text,
+                    onClick = {
+                        onUpdate(
+                            trigger.copy(
+                                pkg = notif.pkg,
+                                titleMatch = notif.title.ifBlank { null },
+                                textMatch = notif.text.ifBlank { null },
+                            ),
+                        )
+                    },
+                    modifier = Modifier.padding(horizontal = NothingSpacing.md),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            }
+        } else {
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+            HelpText(
+                text = "No recent notifications captured yet. Enable the notification listener and wait for one to arrive; it will appear here.",
+            )
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         BooleanRow(
             label = "Group conversation",
@@ -752,6 +825,8 @@ private fun ConnectivityContent(
                 label = "SSID (blank = any)",
             )
         }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when Wi-Fi, mobile data, or Bluetooth connects or disconnects.")
     }
 }
 
@@ -788,6 +863,8 @@ private fun BluetoothDeviceContent(
             onValueChange = { onUpdate(trigger.copy(deviceAddress = it.ifBlank { null })) },
             label = "MAC address (blank = any)",
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when a paired Bluetooth device connects or disconnects. Leave blank to match any device.")
     }
     if (showDevicePicker) {
         BondedDevicePickerDialog(
@@ -884,6 +961,8 @@ private fun WifiConnectedContent(
             onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
             label = "Network name / SSID (blank = any)",
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when the device connects to this Wi-Fi network. Blank matches any network.")
     }
 }
 
@@ -1076,89 +1155,9 @@ private fun GeofenceContent(
             onValueChange = { onUpdate(trigger.copy(loiteringDelayMs = it.toLongOrNull() ?: trigger.loiteringDelayMs)) },
             label = "Loitering delay (ms)",
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when you enter or leave the circular area. Tap the map to move the pin. Location access is required.")
     }
-}
-
-private data class UpcomingEvent(
-    val eventId: Long,
-    val title: String,
-    val startMillis: Long,
-    val endMillis: Long,
-    val calendarId: String,
-    val calendarName: String,
-)
-
-private fun loadCalendarName(context: android.content.Context, calendarId: String): String? {
-    if (context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return null
-    return runCatching {
-        context.contentResolver
-            .query(
-                CalendarContract.Calendars.CONTENT_URI,
-                arrayOf(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME),
-                "${CalendarContract.Calendars._ID} = ?",
-                arrayOf(calendarId),
-                null,
-            )?.use { c ->
-                if (c.moveToFirst()) c.getString(0) else null
-            }
-    }.getOrNull()
-}
-
-private fun loadUpcomingEvents(context: android.content.Context, calendarId: String?, limit: Int = 20): List<UpcomingEvent> {
-    val granted = context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
-    if (!granted) return emptyList()
-
-    val now = System.currentTimeMillis()
-    val windowEnd = now + 30L * 24 * 60 * 60 * 1000
-
-    val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
-    ContentUris.appendId(builder, now)
-    ContentUris.appendId(builder, windowEnd)
-
-    val projection =
-        arrayOf(
-            CalendarContract.Instances.EVENT_ID,
-            CalendarContract.Instances.TITLE,
-            CalendarContract.Instances.BEGIN,
-            CalendarContract.Instances.END,
-            CalendarContract.Instances.CALENDAR_ID,
-            CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
-        )
-
-    val selection = calendarId?.let { "${CalendarContract.Instances.CALENDAR_ID} = ?" }
-    val selectionArgs = calendarId?.let { arrayOf(it) }
-
-    return runCatching {
-        val out = mutableListOf<UpcomingEvent>()
-        context.contentResolver.query(
-            builder.build(),
-            projection,
-            selection,
-            selectionArgs,
-            "${CalendarContract.Instances.BEGIN} ASC",
-        )?.use { c ->
-            while (c.moveToNext() && out.size < limit) {
-                val id = c.getLong(0)
-                val title = c.getString(1) ?: "(no title)"
-                val begin = c.getLong(2)
-                val end = c.getLong(3)
-                val calId = c.getString(4) ?: "0"
-                val calName = c.getString(5) ?: "Calendar"
-                out += UpcomingEvent(id, title, begin, end, calId, calName)
-            }
-        }
-        out
-    }.getOrDefault(emptyList())
-}
-
-private fun formatEventTime(millis: Long): String {
-    val zdt = java.time.ZonedDateTime.ofInstant(
-        java.time.Instant.ofEpochMilli(millis),
-        java.time.ZoneId.systemDefault(),
-    )
-    return zdt.format(
-        java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"),
-    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1168,16 +1167,8 @@ private fun CalendarEventContent(
     onUpdate: (Trigger) -> Unit,
 ) {
     val context = LocalContext.current
-    var showCalendarPicker by remember { mutableStateOf(false) }
-    var events by remember { mutableStateOf(emptyList<UpcomingEvent>()) }
-    var calendarName by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(trigger.calendarId) {
-        withContext(Dispatchers.IO) {
-            events = loadUpcomingEvents(context, trigger.calendarId)
-            calendarName = trigger.calendarId?.let { loadCalendarName(context, it) }
-        }
-    }
+    var showEventPicker by remember { mutableStateOf(false) }
+    var selectedEvent by remember { mutableStateOf<com.tdvorak.nothingmodes.ui.components.UpcomingEvent?>(null) }
 
     val sourceOptions = listOf("From calendar", "Clock")
     NothingEnumSelector(
@@ -1193,22 +1184,11 @@ private fun CalendarEventContent(
         rationale = "Calendar triggers need read access to your calendars.",
     ) {
         Column {
-            val pickerText =
-                when {
-                    trigger.calendarId == null -> "All calendars"
-                    calendarName != null -> "Calendar: $calendarName"
-                    else -> "Calendar: ${trigger.calendarId}"
-                }
-            NothingPillButton(
-                text = pickerText,
-                onClick = { showCalendarPicker = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
                 value = trigger.titleMatch ?: "",
                 onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
                 label = "Title contains (blank = any)",
+                placeholder = "e.g. Meeting, Gym, Birthday",
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingEnumSelector(
@@ -1217,119 +1197,67 @@ private fun CalendarEventContent(
                 options = enumLabelList<CalendarDirection>(),
                 onSelect = { onUpdate(trigger.copy(direction = enumByLabel(it))) },
             )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            HelpText(
+                text = "Pick a calendar event, or type a title that matches multiple events. " +
+                    "The mode fires when an event with this title starts or ends.",
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingPillButton(
+                text = "Browse upcoming events",
+                onClick = { showEventPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-            if (events.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingLabel(text = "Upcoming events (tap to use)")
-                Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                events.forEach { event ->
-                    NothingListRow(
-                        title = event.title,
-                        subtitle = "${formatEventTime(event.startMillis)} · ${event.calendarName}",
-                        onClick = {
-                            onUpdate(
-                                trigger.copy(
-                                    titleMatch = event.title,
-                                    calendarId = event.calendarId,
-                                ),
-                            )
-                        },
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
-                }
-            } else if (trigger.calendarId != null) {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                Text(
-                    text = "No upcoming events for this calendar.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
-            }
-        }
-    }
-
-    if (showCalendarPicker) {
-        CalendarPickerDialog(
-            onSelect = { id ->
-                onUpdate(trigger.copy(calendarId = id))
-                showCalendarPicker = false
-            },
-            onDismiss = { showCalendarPicker = false },
-        )
-    }
-}
-
-/** Device calendars via CalendarContract — needs READ_CALENDAR. */
-@Composable
-private fun CalendarPickerDialog(
-    onSelect: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val calendars =
-        remember {
-            runCatching {
-                val granted =
-                    context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) ==
-                        PackageManager.PERMISSION_GRANTED
-                if (!granted) return@runCatching emptyList<Pair<String, String>>()
-                val out = mutableListOf<Pair<String, String>>()
-                context.contentResolver
-                    .query(
-                        android.provider.CalendarContract.Calendars.CONTENT_URI,
-                        arrayOf(
-                            android.provider.CalendarContract.Calendars._ID,
-                            android.provider.CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
-                        ),
-                        null,
-                        null,
-                        null,
-                    )?.use { c ->
-                        while (c.moveToNext()) {
-                            out += c.getString(0) to (c.getString(1) ?: "Calendar")
-                        }
-                    }
-                out
-            }.getOrDefault(emptyList())
-        }
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Calendars", fontFamily = NothingFonts.mono()) },
-        text = {
-            PermissionGate(
-                permissions = listOf(android.Manifest.permission.READ_CALENDAR),
-                rationale = "Calendar triggers need read access to your calendars.",
-            ) {
-                Column {
-                    NothingListRow(
-                        title = "Any calendar",
-                        subtitle = "Matches every calendar",
-                        onClick = { onSelect(null) },
-                    )
-                    if (calendars.isEmpty()) {
+            selectedEvent?.let { event ->
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = NothingShapes.input,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(NothingSpacing.md)) {
                         Text(
-                            text = "No calendars found.",
+                            text = "Selected",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        Text(
+                            text = event.title,
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        Text(
+                            text = "${com.tdvorak.nothingmodes.ui.components.formatEventTime(event.startMillis)} · ${event.calendarName}",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
                         )
-                    } else {
-                        calendars.forEach { (id, name) ->
-                            NothingListRow(
-                                title = name,
-                                subtitle = "ID $id",
-                                onClick = { onSelect(id) },
-                            )
-                        }
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL") }
-        },
-    )
+        }
+    }
+
+    if (showEventPicker) {
+        com.tdvorak.nothingmodes.ui.components.CalendarEventPickerDialog(
+            initialCalendarId = trigger.calendarId,
+            onSelect = { event ->
+                selectedEvent = event
+                onUpdate(
+                    trigger.copy(
+                        titleMatch = event.title,
+                        calendarId = event.calendarId,
+                    ),
+                )
+                showEventPicker = false
+            },
+            onDismiss = { showEventPicker = false },
+        )
+    }
 }
 
 @Composable
@@ -1363,6 +1291,16 @@ private fun BooleanRow(
 private fun NothingLabel(text: String) {
     com.tdvorak.nothingmodes.ui.theme
         .NothingLabel(text = text)
+}
+
+@Composable
+private fun HelpText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontFamily = NothingFonts.mono(),
+    )
 }
 
 

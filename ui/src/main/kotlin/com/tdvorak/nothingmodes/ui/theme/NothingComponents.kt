@@ -1344,7 +1344,7 @@ fun NothingBottomActionBar(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = NothingSpacing.md)
-                    .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+                    .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
         ) {
             if (subtitle.isNotBlank()) {
                 Text(
@@ -1391,7 +1391,7 @@ fun NothingBottomActionBar(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = NothingSpacing.md)
-                    .padding(top = NothingSpacing.sm, bottom = NothingSpacing.md),
+                    .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
         ) {
             NothingSecondaryButton(
