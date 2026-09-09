@@ -1,11 +1,16 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,10 +20,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +68,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import kotlinx.coroutines.Dispatchers
@@ -78,6 +87,7 @@ private data class ActionItem(
  *  organized by category and searchable. Tapping a row opens its config sheet;
  *  the bottom bar adds the whole configured selection at once. */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ActionCatalogScreen(navController: NavController) {
     val context = LocalContext.current
     var caps by remember { mutableStateOf(DeviceCapabilities()) }
@@ -92,6 +102,8 @@ fun ActionCatalogScreen(navController: NavController) {
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     // The action currently shown in the configuration sheet.
     var configAction by remember { mutableStateOf<Action?>(null) }
+    // Action waiting for a capability-warning confirmation.
+    var pendingAction by remember { mutableStateOf<Action?>(null) }
 
     val items =
         remember {
@@ -292,7 +304,12 @@ fun ActionCatalogScreen(navController: NavController) {
                                     subtitle = actionCapabilityHint(actionItem.action, caps),
                                     onClick = {
                                         editingIndex = null
-                                        configAction = actionItem.action
+                                        val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(actionItem.action))
+                                        if (resolver.resolve(actionItem.label, required).canRun) {
+                                            configAction = actionItem.action
+                                        } else {
+                                            pendingAction = actionItem.action
+                                        }
                                     },
                                 )
                             }
@@ -325,6 +342,57 @@ fun ActionCatalogScreen(navController: NavController) {
                         .align(Alignment.BottomCenter)
                         .zIndex(1f),
             )
+        }
+    }
+
+    pendingAction?.let { action ->
+        val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+        val resolution = resolver.resolve(action::class.simpleName ?: "", required)
+        BasicAlertDialog(onDismissRequest = { pendingAction = null }) {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                shape = NothingShapes.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(NothingSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                ) {
+                    Text(
+                        text = "This action may not run",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = NothingFonts.doto(),
+                    )
+                    Text(
+                        text = resolution.missingReasons.values.distinct().joinToString("\n"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        TextButton(
+                            onClick = { pendingAction = null },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Cancel", fontFamily = NothingFonts.mono())
+                        }
+                        TextButton(
+                            onClick = {
+                                configAction = action
+                                pendingAction = null
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Continue", fontFamily = NothingFonts.mono())
+                        }
+                    }
+                }
+            }
         }
     }
 

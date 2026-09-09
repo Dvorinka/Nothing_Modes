@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -56,11 +57,15 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
+import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
@@ -95,10 +100,12 @@ import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -427,6 +434,29 @@ fun CustomAutomationBuilderScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val saved by viewModel.saved.collectAsState()
+    val context = LocalContext.current
+
+    var caps by remember { mutableStateOf(DeviceCapabilities()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
+    }
+
+    val combinedCondition =
+        when (state.conditions.size) {
+            0 -> null
+            1 -> state.conditions.first()
+            else -> Condition.And(state.conditions)
+        }
+    val resolution =
+        remember(state.trigger, state.actions, combinedCondition, caps) {
+            CapabilityResolver(caps).resolve(automationId ?: "new", CapabilityRequirements.derive(state.trigger, state.actions, combinedCondition))
+        }
+    val saveHint =
+        if (resolution.canRun) {
+            ""
+        } else {
+            resolution.missingReasons.values.distinct().joinToString(" · ")
+        }
 
     androidx.compose.runtime.LaunchedEffect(automationId) {
         if (automationId != null) viewModel.loadForEdit(automationId)
@@ -531,6 +561,7 @@ fun CustomAutomationBuilderScreen(
             NothingBottomActionBar(
                 text = if (automationId != null) "Save Changes" else "Create Mode",
                 onClick = { viewModel.save() },
+                subtitle = saveHint,
             )
         },
     ) { padding ->
