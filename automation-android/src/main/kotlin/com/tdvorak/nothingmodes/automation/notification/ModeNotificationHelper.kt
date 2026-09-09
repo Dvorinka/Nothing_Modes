@@ -43,6 +43,10 @@ class ModeNotificationHelper(
 
         val applied = results.count { it is ActionResult.Success || it is ActionResult.NeedsUserAction }
         val failed = results.size - applied
+        if (failed > 0 && results.any { it is ActionResult.ShizukuRequired || it is ActionResult.PermissionRequired || it is ActionResult.Unsupported }) {
+            postCapabilityBlocked(automation, results)
+            return
+        }
         val text = buildString {
             append("just ran — $applied applied")
             if (failed > 0) append(", $failed failed")
@@ -69,6 +73,52 @@ class ModeNotificationHelper(
         val summary = actionSummary(automation)
         val text = "fires in $minutes min$summary"
         post(automation, "Mode fires soon", text)
+    }
+
+    /** High-priority heads-up when a requirement (Shizuku, permission, support) blocks the run. */
+    private fun postCapabilityBlocked(automation: Automation, results: List<ActionResult>) {
+        val shizuku = results.count { it is ActionResult.ShizukuRequired }
+        val permission = results.count { it is ActionResult.PermissionRequired }
+        val unsupported = results.count { it is ActionResult.Unsupported }
+
+        val detail =
+            when {
+                shizuku > 0 && permission > 0 -> "Missing Shizuku + permission"
+                shizuku > 0 -> if (shizuku == 1) "Needs Shizuku" else "$shizuku actions need Shizuku"
+                permission > 0 -> if (permission == 1) "Missing permission" else "$permission actions need permission"
+                unsupported > 0 -> "Unsupported on this device"
+                else -> "Missing requirement"
+            }
+
+        val text = "$detail — tap to open the mode"
+        val launch =
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra(EXTRA_AUTOMATION_ID, automation.id.value)
+            }
+        val contentIntent =
+            launch?.let {
+                PendingIntent.getActivity(
+                    context,
+                    (automation.id.value.hashCode() and 0x7FFFFFFF),
+                    it,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            }
+
+        val notification =
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setContentTitle("Couldn't run · ${automation.name}")
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setLargeIcon(appIcon())
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ERROR)
+                .setAutoCancel(true)
+                .setContentIntent(contentIntent)
+                .build()
+
+        notificationManager.notify(notificationId(automation) + 1, notification)
     }
 
     private fun actionSummary(automation: Automation): String {
@@ -144,5 +194,6 @@ class ModeNotificationHelper(
 
     companion object {
         const val CHANNEL_ID = "mode_notifications"
+        const val EXTRA_AUTOMATION_ID = "com.tdvorak.nothingmodes.OPEN_AUTOMATION_ID"
     }
 }

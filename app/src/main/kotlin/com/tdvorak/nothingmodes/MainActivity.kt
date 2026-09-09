@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,7 @@ import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.nav.NothingModesNavHost
+import com.tdvorak.nothingmodes.nav.Routes
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.update.UpdateStatus
@@ -43,7 +45,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NothingModesThemeDynamic {
-                NothingModesNavHost()
+                val navController = rememberNavController()
+                val openAutomationId =
+                    remember(intent) {
+                        intent?.getStringExtra(
+                            com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper.EXTRA_AUTOMATION_ID,
+                        )
+                    }
+
+                NothingModesNavHost(navController = navController)
+
+                LaunchedEffect(openAutomationId) {
+                    openAutomationId?.let { id ->
+                        navController.navigate("automation/$id") {
+                            popUpTo(Routes.AUTOMATION_LIST) { saveState = true }
+                            restoreState = true
+                            launchSingleTop = true
+                        }
+                    }
+                }
 
                 val updateInfo by updateViewModel.updateInfo.collectAsState()
                 val updateStatus by updateViewModel.updateStatus.collectAsState()

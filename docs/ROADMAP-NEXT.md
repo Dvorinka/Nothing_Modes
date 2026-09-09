@@ -82,7 +82,7 @@
 
 ### Messaging-channel monitoring — assessed
 - [x] Documented assessment: modern Android blocks direct access to third-party messaging content. The viable path is a generic **notification received from app** trigger using `NotificationListenerService` with package + title/body text matching (e.g. Telegram, WhatsApp, Instagram when they post notifications). Accessibility scraping and unofficial API hooks are not appropriate.
-- [ ] Implement the generic "notification from app" trigger in the app catalog and document supported/unsupported cases.
+- [x] Implement the generic "notification from app" trigger in the app catalog and document supported/unsupported cases.
 
 ### SMS/call tests — confirmed
 - [x] SMS send to `[user-approved number]` delivered; the user received the test messages.

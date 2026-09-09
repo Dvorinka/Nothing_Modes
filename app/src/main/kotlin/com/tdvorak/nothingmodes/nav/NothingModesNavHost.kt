@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.navOptions
 import java.net.URLEncoder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -61,8 +63,9 @@ object Routes {
 }
 
 @Composable
-fun NothingModesNavHost() {
-    val navController = rememberNavController()
+fun NothingModesNavHost(
+    navController: NavHostController = rememberNavController(),
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
     val onboardingCompleted = remember { prefs.getBoolean("onboarding_completed", false) }
