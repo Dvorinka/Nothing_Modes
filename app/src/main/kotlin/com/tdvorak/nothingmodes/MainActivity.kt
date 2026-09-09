@@ -3,7 +3,6 @@ package com.tdvorak.nothingmodes
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
@@ -143,15 +143,19 @@ class MainActivity : ComponentActivity() {
         }.getOrNull()?.let { json ->
             val store = CustomGlyphStore(this)
             val name = store.import(json, uri.lastPathSegment?.substringBeforeLast('.'))
-            Toast.makeText(
-                this,
-                if (name != null) "Glyph design imported as $name" else "Not a glyph design file",
-                Toast.LENGTH_LONG,
-            ).show()
+            Toast
+                .makeText(
+                    this,
+                    if (name != null) "Glyph design imported as $name" else "Not a glyph design file",
+                    Toast.LENGTH_LONG,
+                ).show()
         }
     }
 
-    private fun importCommunityItem(type: String, id: String) {
+    private fun importCommunityItem(
+        type: String,
+        id: String,
+    ) {
         lifecycleScope.launch {
             val result =
                 runCatching {

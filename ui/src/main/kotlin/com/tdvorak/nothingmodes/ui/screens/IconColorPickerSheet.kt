@@ -3,11 +3,9 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
@@ -41,16 +40,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
 private data class IconEntry(
     val name: String,
@@ -193,19 +191,56 @@ fun iconForName(name: String): ImageVector = iconOptions.find { it.name == name 
 
 private val emojiToIconName =
     mapOf(
-        "🌙" to "dark_mode", "💡" to "lightbulb", "⚡" to "bolt", "🎧" to "music",
-        "🏠" to "home", "🏡" to "home", "✈️" to "airplane", "🛫" to "airplane",
-        "📍" to "location", "🗺️" to "location", "⏰" to "alarm", "🕐" to "clock",
-        "⏱️" to "timer", "⏲️" to "timer", "🔕" to "notification", "🔔" to "notification",
-        "💼" to "work", "🎮" to "game", "🎯" to "game", "🏋️" to "fitness",
-        "💪" to "fitness", "🍔" to "food", "🍽️" to "food", "🛒" to "shopping",
-        "☀️" to "sun", "🌅" to "sun", "🔆" to "brightness", "📶" to "wifi",
-        "🔊" to "volume", "🎵" to "music", "📱" to "phone", "☎️" to "phone",
-        "💬" to "message", "📧" to "email", "⚙️" to "settings", "🔧" to "settings",
-        "⭐" to "star", "🌐" to "language", "👤" to "person", "✅" to "check",
-        "🔒" to "lock", "📳" to "vibration", "🎤" to "mic", "☁️" to "cloud",
-        "💨" to "air", "🔦" to "flashlight", "📢" to "campaign", "⏻" to "power",
-        "🔋" to "battery", "🌡️" to "air",
+        "🌙" to "dark_mode",
+        "💡" to "lightbulb",
+        "⚡" to "bolt",
+        "🎧" to "music",
+        "🏠" to "home",
+        "🏡" to "home",
+        "✈️" to "airplane",
+        "🛫" to "airplane",
+        "📍" to "location",
+        "🗺️" to "location",
+        "⏰" to "alarm",
+        "🕐" to "clock",
+        "⏱️" to "timer",
+        "⏲️" to "timer",
+        "🔕" to "notification",
+        "🔔" to "notification",
+        "💼" to "work",
+        "🎮" to "game",
+        "🎯" to "game",
+        "🏋️" to "fitness",
+        "💪" to "fitness",
+        "🍔" to "food",
+        "🍽️" to "food",
+        "🛒" to "shopping",
+        "☀️" to "sun",
+        "🌅" to "sun",
+        "🔆" to "brightness",
+        "📶" to "wifi",
+        "🔊" to "volume",
+        "🎵" to "music",
+        "📱" to "phone",
+        "☎️" to "phone",
+        "💬" to "message",
+        "📧" to "email",
+        "⚙️" to "settings",
+        "🔧" to "settings",
+        "⭐" to "star",
+        "🌐" to "language",
+        "👤" to "person",
+        "✅" to "check",
+        "🔒" to "lock",
+        "📳" to "vibration",
+        "🎤" to "mic",
+        "☁️" to "cloud",
+        "💨" to "air",
+        "🔦" to "flashlight",
+        "📢" to "campaign",
+        "⏻" to "power",
+        "🔋" to "battery",
+        "🌡️" to "air",
     )
 
 fun iconForEmoji(emoji: String): ImageVector = iconForName(emojiToIconName[emoji.trim()] ?: "")

@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.pm.PackageManager
-
 import android.os.Build
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
@@ -159,8 +158,7 @@ class CapabilityDetector(
         }.getOrDefault(false)
     }
 
-    private fun checkPermission(permission: String): Boolean =
-        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+    private fun checkPermission(permission: String): Boolean = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun checkPostNotifications(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

@@ -1,15 +1,12 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -37,23 +34,20 @@ import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
-
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
-import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
-import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,12 +232,13 @@ fun ActionConfigContent(
                     onSelect = { onActionChange(a.copy(mode = enumByLabel<AodMode>(it))) },
                 )
                 Text(
-                    text = when (a.mode) {
-                        AodMode.OFF -> "AOD is turned off."
-                        AodMode.TAP_TO_SHOW -> "Screen lights up when tapped while dozing."
-                        AodMode.ALWAYS_ON -> "Screen stays on at all times."
-                        AodMode.SCHEDULE -> "AOD is active only within the hours below."
-                    },
+                    text =
+                        when (a.mode) {
+                            AodMode.OFF -> "AOD is turned off."
+                            AodMode.TAP_TO_SHOW -> "Screen lights up when tapped while dozing."
+                            AodMode.ALWAYS_ON -> "Screen stays on at all times."
+                            AodMode.SCHEDULE -> "AOD is active only within the hours below."
+                        },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
@@ -261,9 +256,10 @@ fun ActionConfigContent(
                             onValueChange = {
                                 onActionChange(
                                     a.copy(
-                                        schedule = (a.schedule ?: AodSchedule()).copy(
-                                            startHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
-                                        ),
+                                        schedule =
+                                            (a.schedule ?: AodSchedule()).copy(
+                                                startHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                                            ),
                                     ),
                                 )
                             },
@@ -276,9 +272,10 @@ fun ActionConfigContent(
                             onValueChange = {
                                 onActionChange(
                                     a.copy(
-                                        schedule = (a.schedule ?: AodSchedule()).copy(
-                                            startMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
-                                        ),
+                                        schedule =
+                                            (a.schedule ?: AodSchedule()).copy(
+                                                startMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                                            ),
                                     ),
                                 )
                             },
@@ -297,9 +294,10 @@ fun ActionConfigContent(
                             onValueChange = {
                                 onActionChange(
                                     a.copy(
-                                        schedule = (a.schedule ?: AodSchedule()).copy(
-                                            endHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
-                                        ),
+                                        schedule =
+                                            (a.schedule ?: AodSchedule()).copy(
+                                                endHour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                                            ),
                                     ),
                                 )
                             },
@@ -312,9 +310,10 @@ fun ActionConfigContent(
                             onValueChange = {
                                 onActionChange(
                                     a.copy(
-                                        schedule = (a.schedule ?: AodSchedule()).copy(
-                                            endMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
-                                        ),
+                                        schedule =
+                                            (a.schedule ?: AodSchedule()).copy(
+                                                endMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                                            ),
                                     ),
                                 )
                             },
@@ -475,7 +474,10 @@ fun ActionConfigContent(
             if (showIconPicker) {
                 GlyphIconPickerDialog(
                     initial = a.name,
-                    onSelect = { onActionChange(a.copy(name = it)); showIconPicker = false },
+                    onSelect = {
+                        onActionChange(a.copy(name = it))
+                        showIconPicker = false
+                    },
                     onDismiss = { showIconPicker = false },
                 )
             }
@@ -910,8 +912,6 @@ internal val GLYPH_PRESET_NAMES =
         "off",
     )
 
-
-
 internal val screenTimeoutPresets =
     listOf(
         "15 seconds" to 15_000,
@@ -949,7 +949,6 @@ internal val waitPresets =
         "1 minute" to 60_000L,
         "5 minutes" to 300_000L,
     )
-
 
 private fun actionTitle(action: Action): String =
     when (action) {

@@ -110,35 +110,36 @@ class ImportExportTest {
     @Test
     fun `locate my phone built-in template previews cleanly`() =
         runTest {
-            val bundle = """
-            {
-              "schemaVersion": 1,
-              "exportedAt": 0,
-              "appVersion": "templates",
-              "requiredCapabilities": ["trigger_phone_sms","action_set_flashlight","action_set_mobile_data","action_set_location_mode","action_send_sms","shizuku_required"],
-              "automations": [{
-                "id": "tmpl-locate-my-phone",
-                "name": "Locate my phone",
-                "type": "ROUTINE",
-                "createdBy": "IMPORT",
-                "status": "ARMED",
-                "trigger": { "type": "phone_state", "event": "SMS_RECEIVED", "textMatch": "LOCATE" },
-                "actions": [
-                  { "type": "set_flashlight", "on": true, "restore": false },
-                  { "type": "set_mobile_data", "on": true, "restore": false },
-                  { "type": "set_location_mode", "mode": "HIGH_ACCURACY", "restore": false },
-                  { "type": "send_sms", "number": "", "text": "This phone is lost. Please call the owner." }
-                ],
-                "enabled": false,
-                "quickAction": true,
-                "priority": 0,
-                "cooldownMs": 300000,
-                "schemaVersion": 1,
-                "icon": "location",
-                "iconBackground": "#0F4C5C"
-              }]
-            }
-            """.trimIndent()
+            val bundle =
+                """
+                {
+                  "schemaVersion": 1,
+                  "exportedAt": 0,
+                  "appVersion": "templates",
+                  "requiredCapabilities": ["trigger_phone_sms","action_set_flashlight","action_set_mobile_data","action_set_location_mode","action_send_sms","shizuku_required"],
+                  "automations": [{
+                    "id": "tmpl-locate-my-phone",
+                    "name": "Locate my phone",
+                    "type": "ROUTINE",
+                    "createdBy": "IMPORT",
+                    "status": "ARMED",
+                    "trigger": { "type": "phone_state", "event": "SMS_RECEIVED", "textMatch": "LOCATE" },
+                    "actions": [
+                      { "type": "set_flashlight", "on": true, "restore": false },
+                      { "type": "set_mobile_data", "on": true, "restore": false },
+                      { "type": "set_location_mode", "mode": "HIGH_ACCURACY", "restore": false },
+                      { "type": "send_sms", "number": "", "text": "This phone is lost. Please call the owner." }
+                    ],
+                    "enabled": false,
+                    "quickAction": true,
+                    "priority": 0,
+                    "cooldownMs": 300000,
+                    "schemaVersion": 1,
+                    "icon": "location",
+                    "iconBackground": "#0F4C5C"
+                  }]
+                }
+                """.trimIndent()
             val service = ImportExportService(InMemoryAutomationStore()) { 0L }
             val preview = service.preview(bundle)
             assertTrue(preview.isSupported, preview.errors.joinToString())

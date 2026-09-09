@@ -31,19 +31,22 @@ object PhoneNumberFormatter {
      * E.164 number themselves.
      */
     fun supportedCountryCodes(): List<CountryCode> {
-        val locales = util.supportedRegions.map { region ->
-            val cc = util.getCountryCodeForRegion(region)
-            if (cc <= 0) null
-            else {
-                CountryCode(
-                    regionCode = region,
-                    name = Locale("en", region).getDisplayCountry(Locale.ENGLISH),
-                    dialCode = "+$cc",
-                    flag = regionToFlag(region),
-                )
-            }
-        }.filterNotNull()
-            .sortedBy { it.name }
+        val locales =
+            util.supportedRegions
+                .map { region ->
+                    val cc = util.getCountryCodeForRegion(region)
+                    if (cc <= 0) {
+                        null
+                    } else {
+                        CountryCode(
+                            regionCode = region,
+                            name = Locale("en", region).getDisplayCountry(Locale.ENGLISH),
+                            dialCode = "+$cc",
+                            flag = regionToFlag(region),
+                        )
+                    }
+                }.filterNotNull()
+                .sortedBy { it.name }
 
         return locales + CountryCode(MANUAL_REGION, MANUAL_NAME, MANUAL_DIAL, MANUAL_FLAG)
     }
@@ -54,7 +57,10 @@ object PhoneNumberFormatter {
      *
      * If [input] already starts with `+`, the region is only used as a fallback.
      */
-    fun formatToE164(input: String, regionCode: String): String? {
+    fun formatToE164(
+        input: String,
+        regionCode: String,
+    ): String? {
         val normalized = input.trim()
         if (normalized.isEmpty()) return null
 

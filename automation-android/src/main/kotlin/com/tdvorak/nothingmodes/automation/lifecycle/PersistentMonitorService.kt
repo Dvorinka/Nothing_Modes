@@ -311,13 +311,12 @@ class PersistentMonitorService : Service() {
         ContextCompat.startForegroundService(this, serviceIntent)
     }
 
-    private fun detectRegion(tm: TelephonyManager): String {
-        return tm.simCountryIso.uppercase().ifBlank {
+    private fun detectRegion(tm: TelephonyManager): String =
+        tm.simCountryIso.uppercase().ifBlank {
             tm.networkCountryIso.uppercase().ifBlank {
                 Locale.getDefault().country
             }
         }
-    }
 
     private var lastTorchState: Boolean? = null
 

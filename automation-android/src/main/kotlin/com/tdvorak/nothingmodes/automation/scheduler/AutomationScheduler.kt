@@ -27,10 +27,10 @@ class AutomationScheduler(
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val geofenceMonitor = GeofenceMonitor(context)
     private val registeredGeofences = mutableSetOf<String>()
+
     // Tracks scheduled BEFORE lead times per automation so cancel() can remove them.
     // ponytail: in-memory only; re-populated on each reschedule/boot.
     private val scheduledBefore = mutableMapOf<String, Set<Int>>()
-
 
     /** Schedule all triggers for an automation. */
     fun schedule(automation: Automation) {

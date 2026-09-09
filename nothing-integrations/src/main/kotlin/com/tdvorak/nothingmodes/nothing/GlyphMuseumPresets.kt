@@ -18,7 +18,8 @@ class GlyphMuseumPresets(
     /** All bundled preset keys, sorted alphabetically. */
     fun names(): List<String> =
         runCatching {
-            assetManager.list(PRESETS_DIR)
+            assetManager
+                .list(PRESETS_DIR)
                 ?.filter { it.endsWith(".json") }
                 ?.map { it.removeSuffix(".json") }
                 ?.sorted()
@@ -45,8 +46,7 @@ class GlyphMuseumPresets(
     )
 
     /** All bundled presets with display metadata, sorted by title. */
-    fun infos(): List<Info> =
-        names().mapNotNull { info(it) }.sortedBy { it.title }
+    fun infos(): List<Info> = names().mapNotNull { info(it) }.sortedBy { it.title }
 
     /** Read lightweight metadata for [key] without decoding the full frame buffer. */
     fun info(key: String): Info? =

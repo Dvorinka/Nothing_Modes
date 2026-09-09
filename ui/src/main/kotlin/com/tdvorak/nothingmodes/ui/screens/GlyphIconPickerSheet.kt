@@ -32,12 +32,12 @@ import androidx.compose.ui.window.DialogProperties
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.nothing.GlyphIconLibrary
 import com.tdvorak.nothingmodes.nothing.GlyphMuseumPresets
+import com.tdvorak.nothingmodes.ui.theme.LocalUiStyle
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
-import com.tdvorak.nothingmodes.ui.theme.LocalUiStyle
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 
 private sealed class IconOption {
@@ -99,8 +99,9 @@ fun GlyphIconPickerDialog(
 
     val filtered =
         remember(query, options) {
-            if (query.isBlank()) options
-            else {
+            if (query.isBlank()) {
+                options
+            } else {
                 options.filter {
                     it.title.contains(query, ignoreCase = true) ||
                         it.subtitle.contains(query, ignoreCase = true) ||
@@ -206,13 +207,15 @@ private fun GlyphIconRow(
 
 /** A readable title for [key] across bundled presets, emoji, and custom glyphs. */
 @Composable
-fun glyphIconTitle(context: Context = LocalContext.current, key: String): String {
-    return remember(key) {
+fun glyphIconTitle(
+    context: Context = LocalContext.current,
+    key: String,
+): String =
+    remember(key) {
         GlyphMuseumPresets(context).info(key)?.title
             ?: GlyphIconLibrary.emojiFor(key)
             ?: key
     }
-}
 
 /** Field that opens the full glyph icon/preset picker. */
 @Composable
@@ -224,10 +227,11 @@ fun GlyphIconField(
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     val context = LocalContext.current
     val title = glyphIconTitle(context, value)
-    val subtitle = remember(value) {
-        GlyphMuseumPresets(context).info(value)?.let { "Glyph Museum · ${it.author ?: "unknown"}" }
-            ?: if (value in GlyphIconLibrary.names) "Standard icon" else "Custom glyph"
-    }
+    val subtitle =
+        remember(value) {
+            GlyphMuseumPresets(context).info(value)?.let { "Glyph Museum · ${it.author ?: "unknown"}" }
+                ?: if (value in GlyphIconLibrary.names) "Standard icon" else "Custom glyph"
+        }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(

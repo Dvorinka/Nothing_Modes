@@ -32,16 +32,15 @@ import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
+import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
-import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 
@@ -860,5 +859,3 @@ private fun NotificationPresentSheetContent(
         )
     }
 }
-
-

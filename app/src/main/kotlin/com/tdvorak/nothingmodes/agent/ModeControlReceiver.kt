@@ -10,14 +10,13 @@ import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
+import java.io.File
+import javax.inject.Inject
 
 /**
  * USB/MCP control surface for Nothing Modes.
@@ -37,7 +36,6 @@ import kotlinx.serialization.encodeToString
  */
 @AndroidEntryPoint
 class ModeControlReceiver : BroadcastReceiver() {
-
     @Inject
     lateinit var store: AutomationStore
 

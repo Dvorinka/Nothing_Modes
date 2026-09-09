@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.math.abs
 
 @RunWith(RobolectricTestRunner::class)
 class MusicGlyphRendererTest {
@@ -193,9 +192,11 @@ class MusicGlyphRendererTest {
         val frame = MusicGlyphRenderer.render("waveform", neg, silentBands, size, 0)
         // A full-negative wave pushes the point down; some pixel below centre lit.
         val centerY = size / 2
-        assertTrue((centerY until size).any { row ->
-            (0 until size).any { col -> frame[row * size + col] > 0 }
-        })
+        assertTrue(
+            (centerY until size).any { row ->
+                (0 until size).any { col -> frame[row * size + col] > 0 }
+            },
+        )
     }
 
     @Test
@@ -339,10 +340,11 @@ class MusicGlyphRendererTest {
     @Test
     fun `waveform connects adjacent columns`() {
         // A wave that jumps from -1 to +1 should light a vertical segment.
-        val wave = FloatArray(size) { 0f }.also {
-            it[0] = -1f
-            it[1] = 1f
-        }
+        val wave =
+            FloatArray(size) { 0f }.also {
+                it[0] = -1f
+                it[1] = 1f
+            }
         val frame = MusicGlyphRenderer.render("waveform", wave, silentBands, size, 0)
         // Column 0 and 1 should both have lit pixels.
         assertTrue((0 until size).any { frame[it * size + 0] > 0 })

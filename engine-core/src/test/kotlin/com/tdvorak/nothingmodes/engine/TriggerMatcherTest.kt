@@ -245,12 +245,13 @@ class TriggerMatcherTest {
 
     @Test
     fun `Notification trigger applies title, text and sender together`() {
-        val trigger = Trigger.Notification(
-            pkg = "com.slack",
-            titleMatch = "New message",
-            textMatch = "release",
-            sender = "Deploy",
-        )
+        val trigger =
+            Trigger.Notification(
+                pkg = "com.slack",
+                titleMatch = "New message",
+                textMatch = "release",
+                sender = "Deploy",
+            )
         assertTrue(
             matcher.matches(
                 trigger,

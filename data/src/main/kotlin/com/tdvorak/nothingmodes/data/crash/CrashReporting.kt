@@ -4,10 +4,6 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
-import java.io.PrintWriter
-import java.io.StringWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +15,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * Opt-in, self-hosted crash/error reporting.
@@ -62,7 +62,8 @@ object CrashReporting {
 
     fun setEnabled(enabled: Boolean) {
         val ctx = appContext ?: return
-        ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        ctx
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_ENABLED, enabled)
             .apply()
@@ -71,7 +72,10 @@ object CrashReporting {
     }
 
     /** Record a non-fatal error. No-op unless the user opted in. */
-    fun logError(error: Throwable, context: String = "") {
+    fun logError(
+        error: Throwable,
+        context: String = "",
+    ) {
         if (!_enabled.value) return
         runCatching {
             saveReport(buildReport(Thread.currentThread(), error, kind = "error", context = context))
@@ -106,9 +110,11 @@ object CrashReporting {
                 runCatching { it.packageManager.getPackageInfo(it.packageName, 0) }.getOrNull()
             }
         val stacktrace =
-            StringWriter().also { sw ->
-                error.printStackTrace(PrintWriter(sw))
-            }.toString().take(MAX_STACK_BYTES)
+            StringWriter()
+                .also { sw ->
+                    error.printStackTrace(PrintWriter(sw))
+                }.toString()
+                .take(MAX_STACK_BYTES)
 
         return buildJsonObject {
             put("kind", kind)
@@ -138,7 +144,8 @@ object CrashReporting {
     private fun flushQueue() {
         val dir = reportDir() ?: return
         scope.launch {
-            dir.listFiles()
+            dir
+                .listFiles()
                 ?.sortedBy { it.name }
                 ?.forEach { file ->
                     val ok = runCatching { post(file.readText()) }.getOrDefault(false)

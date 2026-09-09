@@ -99,7 +99,8 @@ class CapabilityResolver(
             CapabilityIds.ACTION_GLYPH_ICON,
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
-            CapabilityIds.ACTION_GLYPH_MUSIC -> capabilities.hasGlyphMatrix
+            CapabilityIds.ACTION_GLYPH_MUSIC,
+            -> capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_COPY_TEXT -> true
             CapabilityIds.ACTION_WAIT -> true
             CapabilityIds.ACTION_SET_BATTERY_SAVER,
@@ -159,7 +160,8 @@ class CapabilityResolver(
             CapabilityIds.ACTION_GLYPH_ICON,
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
-            CapabilityIds.ACTION_GLYPH_MUSIC -> "No Glyph Matrix on this device"
+            CapabilityIds.ACTION_GLYPH_MUSIC,
+            -> "No Glyph Matrix on this device"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access required"
             CapabilityIds.TRIGGER_APP_OPENED -> "Usage access required (Settings > Usage Access)"
             CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"

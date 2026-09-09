@@ -4,20 +4,20 @@ import android.content.Context
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.view.Display
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
-import com.tdvorak.nothingmodes.ui.theme.NothingInput
-import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 
 private val fallbackRates = listOf(60, 90, 120, 144)
 
@@ -30,7 +30,8 @@ fun rememberRefreshRatePresets(): List<Pair<String, Int>> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val dm = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
                 val display = dm?.getDisplay(Display.DEFAULT_DISPLAY)
-                display?.supportedModes
+                display
+                    ?.supportedModes
                     ?.map { it.refreshRate.toInt() }
                     ?.distinct()
                     ?.sorted()

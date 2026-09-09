@@ -6,18 +6,14 @@ import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
-import android.hardware.camera2.CameraManager
-import android.os.Handler
-import android.os.HandlerThread
-import android.provider.CalendarContract
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.hardware.display.DisplayManager
-import android.location.LocationManager
-import android.view.Display
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.hardware.camera2.CameraManager
+import android.hardware.display.DisplayManager
+import android.location.LocationManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.ConnectivityManager
@@ -25,11 +21,15 @@ import android.net.wifi.WifiManager
 import android.nfc.NfcManager
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.PowerManager
+import android.provider.CalendarContract
 import android.provider.Settings
 import android.telephony.TelephonyManager
-import com.tdvorak.nothingmodes.engine.model.StateKeys
+import android.view.Display
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
@@ -200,14 +200,11 @@ class AndroidStateProvider(
     // State readers for value-based conditions.
     // Missing permission is treated as unavailable (the value is omitted).
 
-    private fun readSystemInt(key: String): Int? =
-        runCatching { Settings.System.getInt(context.contentResolver, key) }.getOrNull()
+    private fun readSystemInt(key: String): Int? = runCatching { Settings.System.getInt(context.contentResolver, key) }.getOrNull()
 
-    private fun readSecureInt(key: String): Int? =
-        runCatching { Settings.Secure.getInt(context.contentResolver, key) }.getOrNull()
+    private fun readSecureInt(key: String): Int? = runCatching { Settings.Secure.getInt(context.contentResolver, key) }.getOrNull()
 
-    private fun readGlobalInt(key: String): Int? =
-        runCatching { Settings.Global.getInt(context.contentResolver, key) }.getOrNull()
+    private fun readGlobalInt(key: String): Int? = runCatching { Settings.Global.getInt(context.contentResolver, key) }.getOrNull()
 
     private fun readAirplaneMode(): Boolean =
         try {
@@ -455,7 +452,8 @@ class AndroidStateProvider(
     private fun readBluetoothDevices(): String? =
         try {
             val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
-            adapter?.takeIf { it.isEnabled }
+            adapter
+                ?.takeIf { it.isEnabled }
                 ?.bondedDevices
                 ?.mapNotNull { it.name }
                 ?.sorted()

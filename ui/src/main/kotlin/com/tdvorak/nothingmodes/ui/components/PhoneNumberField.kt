@@ -33,11 +33,12 @@ fun PhoneNumberField(
 ) {
     val allCountries = remember { PhoneNumberFormatter.supportedCountryCodes() }
     val defaultRegion = remember { Locale.getDefault().country.ifBlank { "US" } }
-    val defaultCountry = remember(allCountries, defaultRegion) {
-        allCountries.firstOrNull { it.regionCode == defaultRegion }
-            ?: allCountries.firstOrNull { it.regionCode == "US" }
-            ?: allCountries.first()
-    }
+    val defaultCountry =
+        remember(allCountries, defaultRegion) {
+            allCountries.firstOrNull { it.regionCode == defaultRegion }
+                ?: allCountries.firstOrNull { it.regionCode == "US" }
+                ?: allCountries.first()
+        }
 
     var nationalText by remember { mutableStateOf("") }
     var selectedCountry by remember { mutableStateOf(defaultCountry) }

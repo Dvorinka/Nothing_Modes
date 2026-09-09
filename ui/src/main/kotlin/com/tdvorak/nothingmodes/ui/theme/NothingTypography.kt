@@ -193,12 +193,10 @@ object NothingTypography {
  */
 object NothingFonts {
     @Composable
-    fun doto(): FontFamily? =
-        if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else Doto
+    fun doto(): FontFamily? = if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else Doto
 
     @Composable
-    fun mono(): FontFamily? =
-        if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else SpaceMono
+    fun mono(): FontFamily? = if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else SpaceMono
 }
 
 /**

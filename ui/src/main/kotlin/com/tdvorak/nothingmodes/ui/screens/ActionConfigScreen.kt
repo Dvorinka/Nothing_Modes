@@ -35,19 +35,17 @@ import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
-import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -301,7 +299,10 @@ fun ActionConfigScreen(
                         if (showIconPicker) {
                             GlyphIconPickerDialog(
                                 initial = a.name,
-                                onSelect = { action = a.copy(name = it); showIconPicker = false },
+                                onSelect = {
+                                    action = a.copy(name = it)
+                                    showIconPicker = false
+                                },
                                 onDismiss = { showIconPicker = false },
                             )
                         }

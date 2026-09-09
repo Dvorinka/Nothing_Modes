@@ -77,8 +77,6 @@ import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.model.withRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
-import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -86,6 +84,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDestructiveButton
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
@@ -96,7 +95,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
@@ -282,17 +280,19 @@ class CustomBuilderViewModel
             if (startIndex < 0 || endIndex >= actions.size || startIndex > endIndex) return
             val grouped = actions.slice(startIndex..endIndex)
             repeat(endIndex - startIndex + 1) { actions.removeAt(startIndex) }
-            val name = if (grouped.size == 2 && grouped[0] is Action.Group) {
-                (grouped[0] as Action.Group).name
-            } else {
-                "Group"
-            }
-            val children = grouped.flatMap {
-                when (it) {
-                    is Action.Group -> it.actions
-                    else -> listOf(it)
+            val name =
+                if (grouped.size == 2 && grouped[0] is Action.Group) {
+                    (grouped[0] as Action.Group).name
+                } else {
+                    "Group"
                 }
-            }
+            val children =
+                grouped.flatMap {
+                    when (it) {
+                        is Action.Group -> it.actions
+                        else -> listOf(it)
+                    }
+                }
             actions.add(startIndex, Action.Group(name = name, actions = children))
             _state.value = _state.value.copy(actions = actions)
         }
@@ -1632,7 +1632,10 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.Not -> "NOT"
     }
 
-private fun saveSummary(resolution: com.tdvorak.nothingmodes.capabilities.CapabilityResolution, actions: List<Action>): String {
+private fun saveSummary(
+    resolution: com.tdvorak.nothingmodes.capabilities.CapabilityResolution,
+    actions: List<Action>,
+): String {
     if (resolution.canRun) return ""
     val badges = requirementBadges(resolution.missing)
     val needsShizuku = CapabilityIds.SHIZUKU_REQUIRED in resolution.missing

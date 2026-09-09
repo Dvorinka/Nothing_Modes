@@ -6,8 +6,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.navOptions
-import java.net.URLEncoder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -26,6 +24,7 @@ import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 import com.tdvorak.nothingmodes.ui.screens.TemplateCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.TriggerConfigScreen
+import java.net.URLEncoder
 
 object Routes {
     const val ONBOARDING = "onboarding"
@@ -52,20 +51,15 @@ object Routes {
 
     fun builderEdit(id: String) = "builder/edit/$id"
 
-    fun triggerConfig(triggerJson: String) =
-        "trigger_config?trigger=" + URLEncoder.encode(triggerJson, "UTF-8")
+    fun triggerConfig(triggerJson: String) = "trigger_config?trigger=" + URLEncoder.encode(triggerJson, "UTF-8")
 
-    fun conditionConfig(conditionJson: String) =
-        "condition_config?condition=" + URLEncoder.encode(conditionJson, "UTF-8")
+    fun conditionConfig(conditionJson: String) = "condition_config?condition=" + URLEncoder.encode(conditionJson, "UTF-8")
 
-    fun actionConfig(actionJson: String) =
-        "action_config?action=" + URLEncoder.encode(actionJson, "UTF-8")
+    fun actionConfig(actionJson: String) = "action_config?action=" + URLEncoder.encode(actionJson, "UTF-8")
 }
 
 @Composable
-fun NothingModesNavHost(
-    navController: NavHostController = rememberNavController(),
-) {
+fun NothingModesNavHost(navController: NavHostController = rememberNavController()) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
     val onboardingCompleted = remember { prefs.getBoolean("onboarding_completed", false) }

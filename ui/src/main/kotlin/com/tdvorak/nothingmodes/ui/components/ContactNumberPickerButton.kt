@@ -31,23 +31,25 @@ fun ContactNumberPickerButton(
                 if (idIndex == -1 || hasNumberIndex == -1) return@use
                 val id = cursor.getString(idIndex)
                 if (cursor.getInt(hasNumberIndex) == 0) return@use
-                context.contentResolver.query(
-                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                    arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                    "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-                    arrayOf(id),
-                    null,
-                )?.use { phoneCursor ->
-                    if (phoneCursor.moveToFirst()) {
-                        val numberIndex = phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                        if (numberIndex != -1) {
-                            phoneCursor.getString(numberIndex)
-                                ?.filter { it.isDigit() || it == '+' }
-                                ?.takeIf { it.isNotBlank() }
-                                ?.let(onNumber)
+                context.contentResolver
+                    .query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                        "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                        arrayOf(id),
+                        null,
+                    )?.use { phoneCursor ->
+                        if (phoneCursor.moveToFirst()) {
+                            val numberIndex = phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            if (numberIndex != -1) {
+                                phoneCursor
+                                    .getString(numberIndex)
+                                    ?.filter { it.isDigit() || it == '+' }
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let(onNumber)
+                            }
                         }
                     }
-                }
             }
         }
 

@@ -7,10 +7,13 @@ import kotlinx.serialization.Serializable
 enum class AodMode {
     @SerialName("off")
     OFF,
+
     @SerialName("tap_to_show")
     TAP_TO_SHOW,
+
     @SerialName("always_on")
     ALWAYS_ON,
+
     @SerialName("schedule")
     SCHEDULE,
 }

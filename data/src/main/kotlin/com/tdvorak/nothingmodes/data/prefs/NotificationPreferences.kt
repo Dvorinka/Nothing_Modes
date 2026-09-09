@@ -21,12 +21,12 @@ class NotificationPreferences(
     }
 
     fun setDefaultRules(rules: List<NotifyRule>) {
-        prefs.edit()
+        prefs
+            .edit()
             .putString(
                 KEY_DEFAULT_RULES,
                 EngineJson.json.encodeToString(ListSerializer(NotifyRule.serializer()), rules),
-            )
-            .apply()
+            ).apply()
     }
 
     companion object {

@@ -34,11 +34,10 @@ import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
-import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -46,7 +45,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

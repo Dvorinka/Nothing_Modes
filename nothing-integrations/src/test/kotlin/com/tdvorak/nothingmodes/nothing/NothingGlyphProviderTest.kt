@@ -37,14 +37,16 @@ class NothingGlyphProviderTest {
     }
 
     @Test
-    fun `ensureConnected returns false when hardware unavailable`() = runTest {
-        assertFalse(provider.ensureConnected())
-    }
+    fun `ensureConnected returns false when hardware unavailable`() =
+        runTest {
+            assertFalse(provider.ensureConnected())
+        }
 
     @Test
-    fun `ensureConnected with explicit timeout returns false when unavailable`() = runTest {
-        assertFalse(provider.ensureConnected(timeoutMs = 100))
-    }
+    fun `ensureConnected with explicit timeout returns false when unavailable`() =
+        runTest {
+            assertFalse(provider.ensureConnected(timeoutMs = 100))
+        }
 
     @Test
     fun `toggle returns ServiceUnavailable when not connected`() {
@@ -110,10 +112,11 @@ class NothingGlyphProviderTest {
     }
 
     @Test
-    fun `ensureConnected does not throw when called repeatedly`() = runTest {
-        repeat(3) { provider.ensureConnected(50) }
-        assertFalse(provider.isConnected())
-    }
+    fun `ensureConnected does not throw when called repeatedly`() =
+        runTest {
+            repeat(3) { provider.ensureConnected(50) }
+            assertFalse(provider.isConnected())
+        }
 
     @Test
     fun `init called multiple times on non-Nothing hardware stays disconnected`() {
@@ -123,9 +126,10 @@ class NothingGlyphProviderTest {
     }
 
     @Test
-    fun `ensureConnected zero timeout returns false when unavailable`() = runTest {
-        assertFalse(provider.ensureConnected(timeoutMs = 0))
-    }
+    fun `ensureConnected zero timeout returns false when unavailable`() =
+        runTest {
+            assertFalse(provider.ensureConnected(timeoutMs = 0))
+        }
 
     @Test
     fun `toggle with explicit channels returns ServiceUnavailable when not connected`() {

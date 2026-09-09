@@ -45,12 +45,11 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.ui.R
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
-import com.tdvorak.nothingmodes.ui.theme.Doto
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -58,7 +57,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -200,7 +198,8 @@ class AutomationDetailViewModel
                         .writeText(
                             com.tdvorak.nothingmodes.engine.model.EngineJson.json
                                 .encodeToString(
-                                    com.tdvorak.nothingmodes.engine.model.UserTemplate.serializer(),
+                                    com.tdvorak.nothingmodes.engine.model.UserTemplate
+                                        .serializer(),
                                     template,
                                 ),
                         )

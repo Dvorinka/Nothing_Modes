@@ -15,19 +15,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -46,9 +45,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -63,14 +62,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
-import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
 import com.tdvorak.nothingmodes.engine.model.CalendarDirection
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
@@ -81,16 +78,15 @@ import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
-import com.tdvorak.nothingmodes.ui.components.CountryCodePicker
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
-import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
+import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
@@ -98,13 +94,14 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import java.util.Locale
 import kotlinx.serialization.json.Json
+import java.util.Locale
 
 private data class TriggerType(
     val label: String,
@@ -325,7 +322,8 @@ private fun TriggerTypePickerDialog(
                     }
                 }
 
-                com.tdvorak.nothingmodes.ui.theme.NothingDivider()
+                com.tdvorak.nothingmodes.ui.theme
+                    .NothingDivider()
 
                 androidx.compose.foundation.layout.Box(
                     modifier =
@@ -374,7 +372,10 @@ private fun TriggerTypePickerDialog(
                     if (activeCategories.isNotEmpty() || query.isNotBlank()) {
                         item {
                             TextButton(
-                                onClick = { activeCategories = emptySet(); query = "" },
+                                onClick = {
+                                    activeCategories = emptySet()
+                                    query = ""
+                                },
                                 modifier = Modifier.padding(start = NothingSpacing.sm),
                             ) {
                                 Text("Clear", fontFamily = NothingFonts.mono())
@@ -971,8 +972,10 @@ private fun BondedDevicePickerDialog(
         remember {
             runCatching {
                 val adapter =
-                    (context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
-                        as? android.bluetooth.BluetoothManager)?.adapter
+                    (
+                        context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
+                            as? android.bluetooth.BluetoothManager
+                    )?.adapter
                 @SuppressLint("MissingPermission")
                 adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
             }.getOrDefault(emptyList())
@@ -1083,7 +1086,11 @@ private fun ssidFromConnectivity(context: android.content.Context): String? {
 @Suppress("DEPRECATION")
 private fun ssidFromWifiManager(context: android.content.Context): String? {
     val wm = context.applicationContext.getSystemService(android.content.Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
-    return wm?.connectionInfo?.ssid?.takeUnless { it == android.net.wifi.WifiManager.UNKNOWN_SSID }?.removeSurrounding("\"")
+    return wm
+        ?.connectionInfo
+        ?.ssid
+        ?.takeUnless { it == android.net.wifi.WifiManager.UNKNOWN_SSID }
+        ?.removeSurrounding("\"")
 }
 
 @Composable
@@ -1133,7 +1140,9 @@ private fun GeofenceContent(
             fenceOverlay?.let { mapView.overlays.remove(it) }
             val poly =
                 org.osmdroid.views.overlay.Polygon(mapView).apply {
-                    points = org.osmdroid.views.overlay.Polygon.pointsAsCircle(center, trigger.radiusM)
+                    points =
+                        org.osmdroid.views.overlay.Polygon
+                            .pointsAsCircle(center, trigger.radiusM)
                     fillPaint.color = android.graphics.Color.argb(40, 255, 60, 60)
                     outlinePaint.color = android.graphics.Color.rgb(255, 60, 60)
                     outlinePaint.strokeWidth = 4f
@@ -1278,8 +1287,9 @@ private fun CalendarEventContent(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             HelpText(
-                text = "Pick a calendar event, or type a title that matches multiple events. " +
-                    "The mode fires when an event with this title starts or ends.",
+                text =
+                    "Pick a calendar event, or type a title that matches multiple events. " +
+                        "The mode fires when an event with this title starts or ends.",
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingPillButton(
@@ -1413,5 +1423,3 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
         Spacer(modifier = Modifier.height(NothingSpacing.md))
     }
 }
-
-

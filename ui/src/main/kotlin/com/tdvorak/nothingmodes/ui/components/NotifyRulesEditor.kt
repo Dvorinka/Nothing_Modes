@@ -25,12 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
-import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
@@ -57,15 +57,15 @@ fun NotifyRulesEditor(
                         .getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
                 } else {
                     null
-                }
-                    ?.getNotificationChannel(ModeNotificationHelper.CHANNEL_ID)
+                }?.getNotificationChannel(ModeNotificationHelper.CHANNEL_ID)
                     ?.let { it.importance == android.app.NotificationManager.IMPORTANCE_NONE } == true
             blocked = !appEnabled || channelBlocked
         }
         check()
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) check()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) check()
+            }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }

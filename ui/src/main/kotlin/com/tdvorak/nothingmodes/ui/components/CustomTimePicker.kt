@@ -28,21 +28,18 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.ui.screens.triggerDescription
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
-import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
-import com.tdvorak.nothingmodes.engine.model.DayOfWeek as EngineDayOfWeek
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
-import java.time.DayOfWeek as JavaDayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.tdvorak.nothingmodes.engine.model.DayOfWeek as EngineDayOfWeek
 
 private enum class Recurrence {
     ONCE,
@@ -347,11 +344,9 @@ fun CustomTimePicker(
     )
 }
 
-private fun javaDowValueToEngine(javaValue: Int): EngineDayOfWeek? =
-    EngineDayOfWeek.entries.firstOrNull { (it.ordinal + 1) % 7 == javaValue % 7 }
+private fun javaDowValueToEngine(javaValue: Int): EngineDayOfWeek? = EngineDayOfWeek.entries.firstOrNull { (it.ordinal + 1) % 7 == javaValue % 7 }
 
-private fun engineDowToCronValue(day: EngineDayOfWeek): Int =
-    (day.ordinal + 1) % 7
+private fun engineDowToCronValue(day: EngineDayOfWeek): Int = (day.ordinal + 1) % 7
 
 private fun monthName(month: Int): String =
     java.time.Month.of(month.coerceIn(1, 12)).getDisplayName(

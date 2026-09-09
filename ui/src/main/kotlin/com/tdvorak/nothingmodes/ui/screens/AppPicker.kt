@@ -302,7 +302,8 @@ fun MultiAppPicker(
                 val icon =
                     remember(app.pkg) {
                         runCatching {
-                            app.resolveInfo.loadIcon(context.packageManager)
+                            app.resolveInfo
+                                .loadIcon(context.packageManager)
                                 ?.toBitmap(96, 96)
                                 ?.asImageBitmap()
                         }.getOrNull()

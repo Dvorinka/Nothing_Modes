@@ -63,6 +63,7 @@ abstract class NothingModesDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE audit_log ADD COLUMN latencyMillis INTEGER NOT NULL DEFAULT 0")
                 }
             }
+
         fun build(
             context: Context,
             name: String = "nothing_modes.db",

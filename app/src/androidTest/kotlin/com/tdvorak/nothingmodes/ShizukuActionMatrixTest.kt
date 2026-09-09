@@ -5,8 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.tdvorak.nothingmodes.capabilities.controllers.RealActionExecutor
 import com.tdvorak.nothingmodes.engine.model.Action
-import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AodMode
+import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
@@ -27,7 +27,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class ShizukuActionMatrixTest {
-
     @Test
     fun shizukuActionsExecuteAndReportResults() =
         runBlocking {
@@ -44,32 +43,34 @@ class ShizukuActionMatrixTest {
             val shellFactory = PrivilegedShellFactory(context, gateway)
             val executor = RealActionExecutor.create(context, shellFactory = shellFactory)
 
-            val fireContext = FireContext(
-                eventId = "shizuku-matrix",
-                executionId = "matrix-1",
-                automationId = AutomationId("shizuku-matrix"),
-                actionIndex = 0,
-                priority = 50,
-            )
+            val fireContext =
+                FireContext(
+                    eventId = "shizuku-matrix",
+                    executionId = "matrix-1",
+                    automationId = AutomationId("shizuku-matrix"),
+                    actionIndex = 0,
+                    priority = 50,
+                )
 
-            val actions = listOf(
-                Action.SetWifi(true),
-                Action.SetWifi(false),
-                Action.SetBluetooth(true),
-                Action.SetBluetooth(false),
-                Action.SetMobileData(false),
-                Action.SetMobileData(true),
-                Action.SetAirplaneMode(false),
-                Action.SetDataSaver(false),
-                Action.SetHotspot(false),
-                Action.SetNfc(false),
-                Action.SetAutoSync(false),
-                Action.SetLocationMode(LocationMode.OFF),
-                Action.SetAlwaysOnDisplay(AodMode.OFF),
-                Action.SetBatterySaver(false),
-                Action.SetExtraDim(false),
-                Action.WriteSetting(com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL, "mobile_data", "1"),
-            )
+            val actions =
+                listOf(
+                    Action.SetWifi(true),
+                    Action.SetWifi(false),
+                    Action.SetBluetooth(true),
+                    Action.SetBluetooth(false),
+                    Action.SetMobileData(false),
+                    Action.SetMobileData(true),
+                    Action.SetAirplaneMode(false),
+                    Action.SetDataSaver(false),
+                    Action.SetHotspot(false),
+                    Action.SetNfc(false),
+                    Action.SetAutoSync(false),
+                    Action.SetLocationMode(LocationMode.OFF),
+                    Action.SetAlwaysOnDisplay(AodMode.OFF),
+                    Action.SetBatterySaver(false),
+                    Action.SetExtraDim(false),
+                    Action.WriteSetting(com.tdvorak.nothingmodes.engine.model.SettingNamespace.GLOBAL, "mobile_data", "1"),
+                )
 
             for ((index, action) in actions.withIndex()) {
                 val result = executor.execute(action, fireContext.copy(actionIndex = index))

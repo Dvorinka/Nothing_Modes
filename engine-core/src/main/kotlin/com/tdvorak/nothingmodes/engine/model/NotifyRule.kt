@@ -8,7 +8,9 @@ import kotlinx.serialization.Serializable
 sealed interface NotifyRule {
     @Serializable
     @SerialName("before")
-    data class Before(val minutes: Int) : NotifyRule
+    data class Before(
+        val minutes: Int,
+    ) : NotifyRule
 
     @Serializable
     @SerialName("on_trigger")

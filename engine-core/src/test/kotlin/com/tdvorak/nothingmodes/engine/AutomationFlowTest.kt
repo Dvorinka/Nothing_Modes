@@ -17,9 +17,9 @@ import com.tdvorak.nothingmodes.engine.runtime.InMemoryAutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink
 import com.tdvorak.nothingmodes.engine.runtime.NoopActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.SettingReader
+import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.engine.runtime.StateSnapshot
 import com.tdvorak.nothingmodes.engine.runtime.StateSnapshotStore
-import com.tdvorak.nothingmodes.engine.runtime.StableExecutionIdFactory
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
 import kotlinx.coroutines.test.runTest
@@ -60,8 +60,7 @@ class AutomationFlowTest {
                         snapshots.add(snapshot)
                     }
 
-                    override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> =
-                        snapshots.filter { it.automationId == id }
+                    override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> = snapshots.filter { it.automationId == id }
 
                     override suspend fun deleteForAutomation(id: AutomationId) {
                         snapshots.removeAll { it.automationId == id }

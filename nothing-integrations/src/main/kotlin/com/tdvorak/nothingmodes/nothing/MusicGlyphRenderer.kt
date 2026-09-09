@@ -3,7 +3,6 @@ package com.tdvorak.nothingmodes.nothing
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.min
 import kotlin.math.sin
 
 /**
@@ -13,7 +12,6 @@ import kotlin.math.sin
  * element is 0..255 brightness (scaled to 0..4095 by the matrix provider).
  */
 object MusicGlyphRenderer {
-
     private const val STYLE_WAVEFORM = "waveform"
     private const val STYLE_BARS = "bars"
     private const val STYLE_MIRROR = "mirror"
@@ -22,8 +20,7 @@ object MusicGlyphRenderer {
 
     private val ALL_STYLES = setOf(STYLE_WAVEFORM, STYLE_BARS, STYLE_MIRROR, STYLE_PULSE, STYLE_VINYL)
 
-    private fun normalizeStyle(style: String?): String =
-        style?.takeIf { it in ALL_STYLES } ?: STYLE_WAVEFORM
+    private fun normalizeStyle(style: String?): String = style?.takeIf { it in ALL_STYLES } ?: STYLE_WAVEFORM
 
     /**
      * @param wave signed waveform samples, length must match [size].

@@ -345,7 +345,8 @@ class Engine(
                 Action.SetDnd(
                     mode =
                         runCatching {
-                            com.tdvorak.nothingmodes.engine.model.DndMode.valueOf(value)
+                            com.tdvorak.nothingmodes.engine.model.DndMode
+                                .valueOf(value)
                         }.getOrDefault(com.tdvorak.nothingmodes.engine.model.DndMode.OFF),
                     restore = false,
                 )
@@ -353,7 +354,8 @@ class Engine(
                 Action.SetDarkMode(
                     mode =
                         runCatching {
-                            com.tdvorak.nothingmodes.engine.model.NightMode.valueOf(value)
+                            com.tdvorak.nothingmodes.engine.model.NightMode
+                                .valueOf(value)
                         }.getOrDefault(com.tdvorak.nothingmodes.engine.model.NightMode.OFF),
                     restore = false,
                 )
@@ -379,7 +381,9 @@ class Engine(
             snapshot.settingKey == "location_mode" ->
                 runCatching {
                     Action.SetLocationMode(
-                        mode = com.tdvorak.nothingmodes.engine.model.LocationMode.valueOf(value),
+                        mode =
+                            com.tdvorak.nothingmodes.engine.model.LocationMode
+                                .valueOf(value),
                         restore = false,
                     )
                 }.getOrNull()

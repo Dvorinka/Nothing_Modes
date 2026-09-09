@@ -1,8 +1,8 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,10 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
@@ -50,10 +50,10 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
@@ -62,7 +62,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
@@ -288,21 +287,23 @@ fun ConditionCatalogScreen(navController: NavController) {
                     icon = Icons.Outlined.NotificationsActive,
                     condition = Condition.NotificationPresent(pkg = "com.example", titleMatch = ""),
                 ),
-            ) + BOOLEAN_STATE_ITEMS.map {
-                ConditionItem(
-                    label = it.label,
-                    category = it.category,
-                    icon = it.icon,
-                    condition = Condition.BooleanState(it.key, true),
-                )
-            } + NUMERIC_STATE_ITEMS.map {
-                ConditionItem(
-                    label = it.label,
-                    category = it.category,
-                    icon = it.icon,
-                    condition = Condition.NumericState(it.key, it.defaultOp, it.defaultValue),
-                )
-            }
+            ) +
+                BOOLEAN_STATE_ITEMS.map {
+                    ConditionItem(
+                        label = it.label,
+                        category = it.category,
+                        icon = it.icon,
+                        condition = Condition.BooleanState(it.key, true),
+                    )
+                } +
+                NUMERIC_STATE_ITEMS.map {
+                    ConditionItem(
+                        label = it.label,
+                        category = it.category,
+                        icon = it.icon,
+                        condition = Condition.NumericState(it.key, it.defaultOp, it.defaultValue),
+                    )
+                }
         }
 
     val categories = remember(items) { items.map { it.category }.distinct().sorted() }
@@ -384,7 +385,10 @@ fun ConditionCatalogScreen(navController: NavController) {
                         if (activeCategories.isNotEmpty() || search.isNotBlank()) {
                             item {
                                 TextButton(
-                                    onClick = { activeCategories = emptySet(); search = "" },
+                                    onClick = {
+                                        activeCategories = emptySet()
+                                        search = ""
+                                    },
                                     modifier = Modifier.padding(start = NothingSpacing.sm),
                                 ) {
                                     Text("Clear", fontFamily = NothingFonts.mono())
@@ -550,17 +554,18 @@ private fun CatalogListItem(
                 )
             }
         },
-        trailing = if (badges.isNotEmpty()) {
-            {
-                Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
-                    badges.take(2).forEach {
-                        NothingRequirementBadge(text = it)
+        trailing =
+            if (badges.isNotEmpty()) {
+                {
+                    Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+                        badges.take(2).forEach {
+                            NothingRequirementBadge(text = it)
+                        }
                     }
                 }
-            }
-        } else {
-            null
-        },
+            } else {
+                null
+            },
     )
 }
 
@@ -577,10 +582,11 @@ private fun conditionCatalogMeta(
     val static = conditionDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
-    val subtitle = if (!resolution.canRun) {
-        resolution.missingReasons.values.firstOrNull() ?: static
-    } else {
-        static
-    }
+    val subtitle =
+        if (!resolution.canRun) {
+            resolution.missingReasons.values.firstOrNull() ?: static
+        } else {
+            static
+        }
     return subtitle to requirementBadges(resolution.missing)
 }

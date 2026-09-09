@@ -96,14 +96,11 @@ class AndroidSettingReader(
             ?: readGlobalSettingAsString(key)
     }
 
-    private fun readSystemSettingAsString(key: String): String? =
-        runCatching { Settings.System.getString(context.contentResolver, key) }.getOrNull()
+    private fun readSystemSettingAsString(key: String): String? = runCatching { Settings.System.getString(context.contentResolver, key) }.getOrNull()
 
-    private fun readSecureSettingAsString(key: String): String? =
-        runCatching { Settings.Secure.getString(context.contentResolver, key) }.getOrNull()
+    private fun readSecureSettingAsString(key: String): String? = runCatching { Settings.Secure.getString(context.contentResolver, key) }.getOrNull()
 
-    private fun readGlobalSettingAsString(key: String): String? =
-        runCatching { Settings.Global.getString(context.contentResolver, key) }.getOrNull()
+    private fun readGlobalSettingAsString(key: String): String? = runCatching { Settings.Global.getString(context.contentResolver, key) }.getOrNull()
 
     private fun readWifiEnabled(): String? =
         runCatching {
@@ -161,8 +158,7 @@ class AndroidSettingReader(
             }
         }.getOrNull()
 
-    private fun readAutoSync(): String? =
-        runCatching { ContentResolver.getMasterSyncAutomatically().toString() }.getOrNull()
+    private fun readAutoSync(): String? = runCatching { ContentResolver.getMasterSyncAutomatically().toString() }.getOrNull()
 
     private fun readRingerMode(): String? =
         runCatching {

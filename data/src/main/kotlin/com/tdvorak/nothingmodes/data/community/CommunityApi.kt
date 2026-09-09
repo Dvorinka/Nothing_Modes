@@ -6,7 +6,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -50,10 +49,23 @@ object CommunityApi {
     )
 
     sealed class SubmitResult {
-        data class Queued(val id: String, val verdict: String, val findings: List<Finding>) : SubmitResult()
-        data class Rejected(val findings: List<Finding>) : SubmitResult()
-        data class Duplicate(val id: String) : SubmitResult()
-        data class Failed(val error: String) : SubmitResult()
+        data class Queued(
+            val id: String,
+            val verdict: String,
+            val findings: List<Finding>,
+        ) : SubmitResult()
+
+        data class Rejected(
+            val findings: List<Finding>,
+        ) : SubmitResult()
+
+        data class Duplicate(
+            val id: String,
+        ) : SubmitResult()
+
+        data class Failed(
+            val error: String,
+        ) : SubmitResult()
     }
 
     suspend fun list(
@@ -63,28 +75,31 @@ object CommunityApi {
         caps: List<String> = emptyList(),
     ): List<LibraryItem> =
         withContext(Dispatchers.IO) {
-            val params = buildString {
-                if (isNotEmpty()) append('&')
-                append("preview=1")
-                if (!type.isNullOrBlank()) {
-                    append('&')
-                    append("type=").append(type)
-                }
-                if (query.isNotBlank()) {
+            val params =
+                buildString {
                     if (isNotEmpty()) append('&')
-                    append("q=").append(URLEncoder.encode(query, "UTF-8"))
+                    append("preview=1")
+                    if (!type.isNullOrBlank()) {
+                        append('&')
+                        append("type=").append(type)
+                    }
+                    if (query.isNotBlank()) {
+                        if (isNotEmpty()) append('&')
+                        append("q=").append(URLEncoder.encode(query, "UTF-8"))
+                    }
+                    if (sort != "newest") {
+                        if (isNotEmpty()) append('&')
+                        append("sort=").append(URLEncoder.encode(sort, "UTF-8"))
+                    }
+                    if (caps.isNotEmpty()) {
+                        if (isNotEmpty()) append('&')
+                        append("caps=").append(URLEncoder.encode(caps.joinToString(","), "UTF-8"))
+                    }
                 }
-                if (sort != "newest") {
-                    if (isNotEmpty()) append('&')
-                    append("sort=").append(URLEncoder.encode(sort, "UTF-8"))
-                }
-                if (caps.isNotEmpty()) {
-                    if (isNotEmpty()) append('&')
-                    append("caps=").append(URLEncoder.encode(caps.joinToString(","), "UTF-8"))
-                }
-            }
             val body = get("$BASE/api/library" + if (params.isNotEmpty()) "?$params" else "")
-            json.parseToJsonElement(body).jsonObject["items"]
+            json
+                .parseToJsonElement(body)
+                .jsonObject["items"]
                 ?.jsonArray
                 ?.mapNotNull { el ->
                     val o = el.jsonObject
@@ -110,8 +125,12 @@ object CommunityApi {
     suspend fun fetchItem(id: String): JsonObject =
         withContext(Dispatchers.IO) {
             val body = get("$BASE/api/item?id=${URLEncoder.encode(id, "UTF-8")}")
-            json.parseToJsonElement(body).jsonObject["item"]
-                ?.jsonObject?.get("payload")?.jsonObject
+            json
+                .parseToJsonElement(body)
+                .jsonObject["item"]
+                ?.jsonObject
+                ?.get("payload")
+                ?.jsonObject
                 ?: throw IllegalStateException("item has no payload")
         }
 
@@ -136,8 +155,9 @@ object CommunityApi {
                     put("payload", payload)
                 }
             val (code, body) = post("$BASE/api/share", req.toString())
-            val o = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
-                ?: return@withContext SubmitResult.Failed("HTTP $code")
+            val o =
+                runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
+                    ?: return@withContext SubmitResult.Failed("HTTP $code")
             val findings = parseFindings(o)
             when {
                 code == 201 && o["ok"]?.jsonPrimitive?.content == "true" ->

@@ -5,14 +5,14 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.StateKeys
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import java.time.DayOfWeek as JavaDayOfWeek
 
 /** Snapshot of device state for condition evaluation. */
@@ -377,8 +377,7 @@ class ConditionEvaluator {
                 val title = it[1].trim().lowercase()
                 val text = it[2].trim().lowercase()
                 pkg == targetPkg && (targetTitle.isBlank() || title.contains(targetTitle) || text.contains(targetTitle))
-            }
-            .let { if (it) Result.MET else Result.NOT_MET }
+            }.let { if (it) Result.MET else Result.NOT_MET }
     }
 
     // ponytail: AlarmRinging only works if a RingingAlarmProvider is wired; otherwise the value is absent
@@ -394,7 +393,7 @@ class ConditionEvaluator {
         val dLng = Math.toRadians(lng2 - lng1)
         val a =
             sin(dLat / 2).let { it * it } +
-            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).let { it * it }
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).let { it * it }
         return 2 * r * atan2(sqrt(a), sqrt(1 - a))
     }
 

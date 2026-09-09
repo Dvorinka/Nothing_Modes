@@ -62,23 +62,30 @@ fun ShareSheet(
         NothingInput(value = title, onValueChange = { title = it }, label = "Title")
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = description, onValueChange = { description = it },
+            value = description,
+            onValueChange = { description = it },
             label = "Description (optional)",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = handle, onValueChange = { handle = it },
-            label = "Handle", placeholder = "@you",
+            value = handle,
+            onValueChange = { handle = it },
+            label = "Handle",
+            placeholder = "@you",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = email, onValueChange = { email = it },
-            label = "Email (private — decision notice)", placeholder = "optional",
+            value = email,
+            onValueChange = { email = it },
+            label = "Email (private — decision notice)",
+            placeholder = "optional",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = github, onValueChange = { github = it },
-            label = "GitHub (optional)", placeholder = "username or URL",
+            value = github,
+            onValueChange = { github = it },
+            label = "GitHub (optional)",
+            placeholder = "username or URL",
         )
 
         when (result) {

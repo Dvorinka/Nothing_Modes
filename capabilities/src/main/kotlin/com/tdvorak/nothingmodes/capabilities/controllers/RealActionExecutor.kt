@@ -4,21 +4,20 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
-import java.io.File
 import android.os.VibratorManager
-import androidx.core.content.ContextCompat
 import android.provider.Settings
+import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.device.DeviceTools
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
@@ -27,7 +26,6 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
-import com.tdvorak.nothingmodes.device.DeviceTools
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
@@ -40,6 +38,7 @@ import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import java.io.File
 
 /**
  * Real ActionExecutor that maps typed actions to Android API controllers.
@@ -92,14 +91,18 @@ class RealActionExecutor(
             is Action.SetExtraDim -> setExtraDim(action.on)
             is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
             is Action.SetVolume -> {
-                val results = action.volumes.map { (stream, level) ->
-                    volume.setVolume(stream, level)
-                }
+                val results =
+                    action.volumes.map { (stream, level) ->
+                        volume.setVolume(stream, level)
+                    }
                 when {
                     results.all { it == ControllerResult.Success } -> ActionResult.Success
-                    else -> results.filterIsInstance<ControllerResult.Failure>().firstOrNull()
-                        ?.let { ActionResult.Failure(it.reason) }
-                        ?: ActionResult.Failure("volume failed")
+                    else ->
+                        results
+                            .filterIsInstance<ControllerResult.Failure>()
+                            .firstOrNull()
+                            ?.let { ActionResult.Failure(it.reason) }
+                            ?: ActionResult.Failure("volume failed")
                 }
             }
             is Action.SetRinger -> ringer.setRinger(action.mode).toActionResult()
@@ -110,8 +113,9 @@ class RealActionExecutor(
                 when {
                     results.isEmpty() -> ActionResult.Success
                     results.all { it == ActionResult.Success } -> ActionResult.Success
-                    else -> results.filterIsInstance<ActionResult.Failure>().firstOrNull()
-                        ?: ActionResult.Failure("launch app failed")
+                    else ->
+                        results.filterIsInstance<ActionResult.Failure>().firstOrNull()
+                            ?: ActionResult.Failure("launch app failed")
                 }
             }
             is Action.OpenUrl -> openUrl(action)
@@ -207,8 +211,9 @@ class RealActionExecutor(
                 when {
                     results.isEmpty() -> ActionResult.Success
                     results.all { it is ActionResult.Success } -> ActionResult.Success
-                    else -> results.filterIsInstance<ActionResult.Failure>().firstOrNull()
-                        ?: ActionResult.Failure("group failed")
+                    else ->
+                        results.filterIsInstance<ActionResult.Failure>().firstOrNull()
+                            ?: ActionResult.Failure("group failed")
                 }
             }
         }
@@ -354,8 +359,9 @@ class RealActionExecutor(
         if (provider == null) {
             // No light stripe (matrix-only devices) — a full frame stands in
             // for "all channels on".
-            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
-                ?: return ActionResult.Unsupported
+            val matrix =
+                glyphMatrixProvider?.takeIf { it.isAvailable() }
+                    ?: return ActionResult.Unsupported
             return try {
                 glyphResultToActionResult(
                     if (on) matrix.displayPercentFill(100) else matrix.turnOff(),
@@ -418,8 +424,9 @@ class RealActionExecutor(
         if (provider == null) {
             // Matrix-only devices: degrade the zone animation to a full-frame
             // blink — on/off per cycle at roughly the requested period.
-            val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
-                ?: return ActionResult.Unsupported
+            val matrix =
+                glyphMatrixProvider?.takeIf { it.isAvailable() }
+                    ?: return ActionResult.Unsupported
             return try {
                 val half = (action.periodMs / 2L).coerceAtLeast(200L)
                 repeat(action.cycles.coerceIn(1, 10)) {
@@ -455,8 +462,9 @@ class RealActionExecutor(
         if (provider == null) {
             // Matrix-only devices (e.g. Phone 3): use the circular arc —
             // the same renderer Nothing's own progress toys use.
-            val matrix = glyphMatrixProvider?.takeIf { it.isConnected() }
-                ?: return ActionResult.Unsupported
+            val matrix =
+                glyphMatrixProvider?.takeIf { it.isConnected() }
+                    ?: return ActionResult.Unsupported
             return try {
                 glyphResultToActionResult(matrix.displayProgressArc(progress, label = progress.toString()))
             } catch (e: Exception) {
@@ -598,8 +606,9 @@ class RealActionExecutor(
                     // No light stripe on this device (matrix-only, e.g. Phone 3):
                     // degrade — progress presets become a percent fill, pulse
                     // presets become a full-frame flash.
-                    val matrix = glyphMatrixProvider?.takeIf { it.isAvailable() }
-                        ?: return ActionResult.Unsupported
+                    val matrix =
+                        glyphMatrixProvider?.takeIf { it.isAvailable() }
+                            ?: return ActionResult.Unsupported
                     return try {
                         glyphResultToActionResult(
                             matrix.displayPercentFill(visual.progress ?: 100),
@@ -779,7 +788,8 @@ class RealActionExecutor(
                 )
             nm.createNotificationChannel(channel)
             val smallIcon =
-                context.resources.getIdentifier("ic_notification", "drawable", context.packageName)
+                context.resources
+                    .getIdentifier("ic_notification", "drawable", context.packageName)
                     .takeIf { it != 0 }
                     ?: android.R.drawable.ic_dialog_info
             val largeIcon =
@@ -1156,11 +1166,9 @@ class RealActionExecutor(
             else -> true
         }
 
-    private suspend fun ensureStripe(): Boolean =
-        glyphProvider?.ensureConnected() ?: false
+    private suspend fun ensureStripe(): Boolean = glyphProvider?.ensureConnected() ?: false
 
-    private suspend fun ensureMatrix(): Boolean =
-        glyphMatrixProvider?.ensureConnected() ?: false
+    private suspend fun ensureMatrix(): Boolean = glyphMatrixProvider?.ensureConnected() ?: false
 
     private suspend fun ensureStripeOrMatrix(): Boolean =
         coroutineScope {

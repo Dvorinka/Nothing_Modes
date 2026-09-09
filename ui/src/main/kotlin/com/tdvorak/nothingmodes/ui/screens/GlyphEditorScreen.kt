@@ -86,16 +86,16 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingRadio
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
-import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
-import kotlinx.coroutines.launch
 
 private enum class PaintMode { PAINT, SELECT }
 
@@ -130,14 +130,19 @@ class GlyphEditorViewModel
         /** Whether the running device has a Glyph Matrix that can be previewed. */
         val isMatrix: Boolean = matrixProvider.isAvailable()
 
-        fun save(name: String, json: String): Boolean = store.save(name, json)
+        fun save(
+            name: String,
+            json: String,
+        ): Boolean = store.save(name, json)
 
         /** Preview a full design, resampling to the device matrix if needed. */
-        fun preview(design: GlyphFrameCodec.Design): GlyphResult =
-            matrixProvider.displayDesign(design)
+        fun preview(design: GlyphFrameCodec.Design): GlyphResult = matrixProvider.displayDesign(design)
 
         /** Preview a single frame from the editor, resampling to the device. */
-        fun previewFrame(frame: IntArray, gridSize: Int): GlyphResult {
+        fun previewFrame(
+            frame: IntArray,
+            gridSize: Int,
+        ): GlyphResult {
             val design =
                 GlyphFrameCodec.Design(
                     version = if (gridSize == 13) 4 else 1,
@@ -179,13 +184,16 @@ class GlyphEditorViewModel
             )
         val shareResult = _shareResult
 
-        val creatorProfile = com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences(context)
+        val creatorProfile =
+            com.tdvorak.nothingmodes.ui.prefs
+                .CreatorPreferences(context)
 
         init {
             viewModelScope.launch {
                 _library.value =
                     runCatching {
-                        com.tdvorak.nothingmodes.data.community.CommunityApi.list(type = "glyph")
+                        com.tdvorak.nothingmodes.data.community.CommunityApi
+                            .list(type = "glyph")
                     }.getOrDefault(emptyList())
             }
         }
@@ -199,11 +207,13 @@ class GlyphEditorViewModel
             email: String,
             github: String,
         ) {
-            val designJson = store.designJson(designName) ?: run {
-                _shareResult.value =
-                    com.tdvorak.nothingmodes.data.community.CommunityApi.SubmitResult.Failed("design not found")
-                return
-            }
+            val designJson =
+                store.designJson(designName) ?: run {
+                    _shareResult.value =
+                        com.tdvorak.nothingmodes.data.community.CommunityApi.SubmitResult
+                            .Failed("design not found")
+                    return
+                }
             viewModelScope.launch {
                 _sharing.value = true
                 _shareResult.value =
@@ -236,7 +246,8 @@ class GlyphEditorViewModel
         suspend fun importLibraryItem(item: com.tdvorak.nothingmodes.data.community.CommunityApi.LibraryItem): String? =
             runCatching {
                 val payload =
-                    com.tdvorak.nothingmodes.data.community.CommunityApi.fetchItem(item.id)
+                    com.tdvorak.nothingmodes.data.community.CommunityApi
+                        .fetchItem(item.id)
                 store.import(payload.toString(), item.title)
             }.getOrNull()
     }
@@ -285,8 +296,7 @@ fun GlyphEditorScreen(
                 glyphSearch.isBlank() ||
                     it.title.contains(glyphSearch, true) ||
                     it.handle.contains(glyphSearch, true)
-            }
-            .filter { glyphCaps.isEmpty() || it.capabilities.any { c -> glyphCaps.contains(c) } }
+            }.filter { glyphCaps.isEmpty() || it.capabilities.any { c -> glyphCaps.contains(c) } }
             .let { list ->
                 when (glyphSort) {
                     "download" -> list.sortedByDescending { it.downloads }
@@ -310,13 +320,20 @@ fun GlyphEditorScreen(
         frames = frames.toMutableList().also { it[frameIndex] = newPixels }
     }
 
-    fun isInside(row: Int, col: Int): Boolean {
+    fun isInside(
+        row: Int,
+        col: Int,
+    ): Boolean {
         val widths = GlyphFrameCodec.rowWidths(gridSize)
         val start = (gridSize - widths[row]) / 2
         return col in start until start + widths[row]
     }
 
-    fun setPixel(row: Int, col: Int, value: Int) {
+    fun setPixel(
+        row: Int,
+        col: Int,
+        value: Int,
+    ) {
         if (!isInside(row, col)) return
         val idx = row * gridSize + col
         if (currentFrame()[idx] != value) {
@@ -324,7 +341,10 @@ fun GlyphEditorScreen(
         }
     }
 
-    fun togglePixel(row: Int, col: Int) {
+    fun togglePixel(
+        row: Int,
+        col: Int,
+    ) {
         if (!isInside(row, col)) return
         val idx = row * gridSize + col
         val target = if (currentFrame()[idx] > 0) 0 else brush
@@ -333,7 +353,10 @@ fun GlyphEditorScreen(
         }
     }
 
-    fun cellFromOffset(offset: Offset, canvasSize: Float): Pair<Int, Int>? {
+    fun cellFromOffset(
+        offset: Offset,
+        canvasSize: Float,
+    ): Pair<Int, Int>? {
         if (canvasSize <= 0f) return null
         val cellW = canvasSize / gridSize.toFloat()
         val col = (offset.x / cellW).toInt().coerceIn(0, gridSize - 1)
@@ -525,7 +548,10 @@ fun GlyphEditorScreen(
         }
     }
 
-    fun importText(typeface: Typeface, scale: Float) {
+    fun importText(
+        typeface: Typeface,
+        scale: Float,
+    ) {
         if (dialogText.isBlank()) {
             showTextDialog = false
             showEmojiDialog = false
@@ -548,7 +574,10 @@ fun GlyphEditorScreen(
     }
 
     @Composable
-    fun SectionHeader(label: String, section: EditorSection) {
+    fun SectionHeader(
+        label: String,
+        section: EditorSection,
+    ) {
         val arrow =
             if (section in expanded) {
                 if (classic) "v" else "V"
@@ -677,7 +706,15 @@ fun GlyphEditorScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (classic) "${GlyphFrameCodec.activeCount(currentFrame(), gridSize)} / ${GlyphFrameCodec.ledCount(gridSize)} pixels active" else "${GlyphFrameCodec.activeCount(currentFrame(), gridSize)} / ${GlyphFrameCodec.ledCount(gridSize)} PIXELS ACTIVE",
+                    text =
+                        if (classic) {
+                            "${GlyphFrameCodec.activeCount(
+                                currentFrame(),
+                                gridSize,
+                            )} / ${GlyphFrameCodec.ledCount(gridSize)} pixels active"
+                        } else {
+                            "${GlyphFrameCodec.activeCount(currentFrame(), gridSize)} / ${GlyphFrameCodec.ledCount(gridSize)} PIXELS ACTIVE"
+                        },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
@@ -699,497 +736,501 @@ fun GlyphEditorScreen(
                     ),
             ) {
                 item {
-                NothingCard {
-                    SectionHeader(label = "Animation", section = EditorSection.ANIMATION)
-                    AnimatedVisibility(visible = EditorSection.ANIMATION in expanded) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            val stripState = rememberLazyListState()
-                            LaunchedEffect(frameIndex, frames.size) {
-                                stripState.animateScrollToItem(frameIndex.coerceIn(0, frames.lastIndex))
-                            }
-                            LazyRow(
-                                state = stripState,
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                items(frames.size) { i ->
-                                    val selected = i == frameIndex
-                                    FrameChip(
-                                        number = i + 1,
-                                        selected = selected,
-                                        onClick = { frameIndex = i },
-                                    )
+                    NothingCard {
+                        SectionHeader(label = "Animation", section = EditorSection.ANIMATION)
+                        AnimatedVisibility(visible = EditorSection.ANIMATION in expanded) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                val stripState = rememberLazyListState()
+                                LaunchedEffect(frameIndex, frames.size) {
+                                    stripState.animateScrollToItem(frameIndex.coerceIn(0, frames.lastIndex))
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                            ) {
-                                GlyphPill("+", Modifier.weight(1f)) { addBlankFrame() }
-                                GlyphPill("DUP", Modifier.weight(1f)) { duplicateFrame() }
-                                GlyphPill(
-                                    "DEL",
-                                    Modifier.weight(1f),
-                                    enabled = frames.size > 1,
-                                ) { deleteFrame() }
-                            }
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                            ) {
-                                NothingLabel(text = "Duration")
-                                NothingInput(
-                                    value = durations[frameIndex].toString(),
-                                    onValueChange = { text ->
-                                        val parsed = text.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                        setDuration(parsed)
-                                    },
-                                    label = "ms",
-                                    placeholder = "100",
-                                    modifier = Modifier.weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            NothingPillButton(
-                                text = "Play",
-                                onClick = { showCurrent() },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingCard {
-                    SectionHeader(label = "Brush", section = EditorSection.BRUSH)
-                    AnimatedVisibility(visible = EditorSection.BRUSH in expanded) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                            ) {
-                                RadioRow(
-                                    label = if (classic) "Drag to paint" else "DRAG TO PAINT",
-                                    selected = paintMode == PaintMode.PAINT,
-                                    onClick = { paintMode = PaintMode.PAINT },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                RadioRow(
-                                    label = if (classic) "Select" else "SELECT",
-                                    selected = paintMode == PaintMode.SELECT,
-                                    onClick = { paintMode = PaintMode.SELECT },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(NothingSpacing.md))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                            ) {
-                                Text(
-                                    text = if (classic) "Opacity" else "OPACITY",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = NothingFonts.mono(),
-                                    modifier = Modifier.width(56.dp),
-                                )
-                                Slider(
-                                    value = opacity / 255f,
-                                    onValueChange = { opacity = (it * 255).toInt().coerceIn(0, 255) },
-                                    valueRange = 0f..1f,
-                                    modifier = Modifier.weight(1f),
-                                    colors =
-                                        SliderDefaults.colors(
-                                            thumbColor = MaterialTheme.colorScheme.primary,
-                                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        ),
-                                )
-                                Text(
-                                    text = "$opacity",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = NothingFonts.mono(),
-                                    modifier = Modifier.width(40.dp),
-                                    textAlign = TextAlign.End,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingCard {
-                    SectionHeader(label = "Actions", section = EditorSection.ACTIONS)
-                    AnimatedVisibility(visible = EditorSection.ACTIONS in expanded) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            ActionRow(
-                                listOf(
-                                    "Fill" to { replaceCurrent(GlyphFrameCodec.fill(currentFrame(), gridSize, brush)) },
-                                    "Clear" to { replaceCurrent(IntArray(gridSize * gridSize)) },
-                                    "Invert" to { replaceCurrent(GlyphFrameCodec.invert(currentFrame(), gridSize)) },
-                                ),
-                            )
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            ActionRow(
-                                listOf(
-                                    "Mirror" to { replaceCurrent(GlyphFrameCodec.flipHorizontal(currentFrame(), gridSize)) },
-                                    "Flip" to { replaceCurrent(GlyphFrameCodec.flipVertical(currentFrame(), gridSize)) },
-                                    "Rotate" to { replaceCurrent(GlyphFrameCodec.rotate90(currentFrame(), gridSize)) },
-                                ),
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingCard {
-                    SectionHeader(label = "Import", section = EditorSection.IMPORT)
-                    AnimatedVisibility(visible = EditorSection.IMPORT in expanded) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            ActionRow(
-                                listOf(
-                                    "Upload" to {
-                                        pendingImport = ImportType.IMAGE
-                                        mediaPicker.launch("image/*")
-                                    },
-                                    "Paste" to { pasteImage() },
-                                    "Text" to { showTextDialog = true },
-                                ),
-                            )
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            ActionRow(
-                                listOf(
-                                    "Emoji" to { showEmojiDialog = true },
-                                    "GIF" to {
-                                        pendingImport = ImportType.GIF
-                                        mediaPicker.launch("image/gif")
-                                    },
-                                    "Video" to {
-                                        pendingImport = ImportType.VIDEO
-                                        mediaPicker.launch("video/*")
-                                    },
-                                ),
-                            )
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            GlyphPill(
-                                label = if (classic) "Raw data" else "RAW DATA",
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { importRawJson() },
-                            )
-                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                            GlyphPill(
-                                label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { openGlyphMuseum(context) },
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingInput(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = if (classic) "Design name" else "DESIGN NAME",
-                    placeholder = "my_glyph",
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                ) {
-                    NothingPillButton(
-                        text = "Save",
-                        onClick = { saveCurrent() },
-                        modifier = Modifier.weight(1f),
-                    )
-                    NothingPillButton(
-                        text = "Show",
-                        onClick = { showCurrent() },
-                        modifier = Modifier.weight(1f),
-                    )
-                    NothingPillButton(
-                        text = "Export",
-                        onClick = { shareCurrent() },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-            }
-
-            item {
-                NothingCard {
-                    SectionHeader(label = "Saved designs", section = EditorSection.SAVED)
-                    AnimatedVisibility(visible = EditorSection.SAVED in expanded) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            if (savedNames.isEmpty()) {
-                                Text(
-                                    text = if (classic) "No saved designs yet." else "NO SAVED DESIGNS YET.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = NothingFonts.mono(),
-                                )
-                            } else {
-                                savedNames.forEachIndexed { index, entry ->
-                                    if (index > 0) NothingDivider()
-                                    val author = remember(entry) { viewModel.author(entry) }
-                                    NothingListRow(
-                                        title = entry,
-                                        subtitle = author?.let { "by @$it" } ?: "",
-                                        onClick = {
-                                            viewModel.designJson(entry)?.let { json ->
-                                                runCatching { GlyphFrameCodec.decode(json) }
-                                                    .getOrNull()?.let { design ->
-                                                        loadDesign(design)
-                                                        showCurrent()
-                                                    }
-                                            }
-                                        },
-                                        trailing = {
-                                            Row {
-                                                Text(
-                                                    text = "SHARE",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    fontFamily = NothingFonts.mono(),
-                                                    modifier =
-                                                        Modifier
-                                                            .clip(NothingShapes.input)
-                                                            .clickable {
-                                                                viewModel.clearShareResult()
-                                                                shareDesign = entry
-                                                            }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
-                                                )
-                                                Text(
-                                                    text = "X",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = NothingColors.accent,
-                                                    fontFamily = NothingFonts.mono(),
-                                                    modifier =
-                                                        Modifier
-                                                            .clip(NothingShapes.input)
-                                                            .clickable {
-                                                                viewModel.delete(entry)
-                                                                refreshNames()
-                                                            }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
-                                                )
-                                            }
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                NothingCard {
-                    SectionHeader(label = "Library", section = EditorSection.LIBRARY)
-                    AnimatedVisibility(visible = EditorSection.LIBRARY in expanded) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                        ) {
-                            GlyphPill(
-                                label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { openGlyphMuseum(context) },
-                            )
-                            if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
-                                com.tdvorak.nothingmodes.ui.theme.NothingInput(
-                                    value = glyphSearch,
-                                    onValueChange = { glyphSearch = it },
-                                    label = "Search",
-                                    placeholder = "Find a design",
-                                )
-                                Row(
+                                LazyRow(
+                                    state = stripState,
                                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    listOf(
-                                        "newest" to "Newest",
-                                        "download" to "Most downloaded",
-                                        "alpha" to "A-Z",
-                                    ).forEach { (key, label) ->
-                                        NothingTag(
-                                            text = label,
-                                            active = glyphSort == key,
-                                            onClick = { glyphSort = key },
+                                    items(frames.size) { i ->
+                                        val selected = i == frameIndex
+                                        FrameChip(
+                                            number = i + 1,
+                                            selected = selected,
+                                            onClick = { frameIndex = i },
                                         )
                                     }
                                 }
-                                if (allGlyphCaps.isNotEmpty()) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
-                                        allGlyphCaps.forEach { cap ->
-                                            NothingTag(
-                                                text = cap.replace("_", " "),
-                                                active = glyphCaps.contains(cap),
-                                                onClick = {
-                                                    glyphCaps =
-                                                        if (glyphCaps.contains(cap)) glyphCaps - cap else glyphCaps + cap
-                                                },
-                                            )
-                                        }
-                                    }
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                ) {
+                                    GlyphPill("+", Modifier.weight(1f)) { addBlankFrame() }
+                                    GlyphPill("DUP", Modifier.weight(1f)) { duplicateFrame() }
+                                    GlyphPill(
+                                        "DEL",
+                                        Modifier.weight(1f),
+                                        enabled = frames.size > 1,
+                                    ) { deleteFrame() }
                                 }
-                                if (visibleLibrary.isEmpty()) {
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                ) {
+                                    NothingLabel(text = "Duration")
+                                    NothingInput(
+                                        value = durations[frameIndex].toString(),
+                                        onValueChange = { text ->
+                                            val parsed = text.filter { it.isDigit() }.toIntOrNull() ?: 0
+                                            setDuration(parsed)
+                                        },
+                                        label = "ms",
+                                        placeholder = "100",
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                NothingPillButton(
+                                    text = "Play",
+                                    onClick = { showCurrent() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingCard {
+                        SectionHeader(label = "Brush", section = EditorSection.BRUSH)
+                        AnimatedVisibility(visible = EditorSection.BRUSH in expanded) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                                ) {
+                                    RadioRow(
+                                        label = if (classic) "Drag to paint" else "DRAG TO PAINT",
+                                        selected = paintMode == PaintMode.PAINT,
+                                        onClick = { paintMode = PaintMode.PAINT },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    RadioRow(
+                                        label = if (classic) "Select" else "SELECT",
+                                        selected = paintMode == PaintMode.SELECT,
+                                        onClick = { paintMode = PaintMode.SELECT },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                ) {
                                     Text(
-                                        text = "No matching designs.",
+                                        text = if (classic) "Opacity" else "OPACITY",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = NothingFonts.mono(),
+                                        modifier = Modifier.width(56.dp),
+                                    )
+                                    Slider(
+                                        value = opacity / 255f,
+                                        onValueChange = { opacity = (it * 255).toInt().coerceIn(0, 255) },
+                                        valueRange = 0f..1f,
+                                        modifier = Modifier.weight(1f),
+                                        colors =
+                                            SliderDefaults.colors(
+                                                thumbColor = MaterialTheme.colorScheme.primary,
+                                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            ),
+                                    )
+                                    Text(
+                                        text = "$opacity",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontFamily = NothingFonts.mono(),
+                                        modifier = Modifier.width(40.dp),
+                                        textAlign = TextAlign.End,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingCard {
+                        SectionHeader(label = "Actions", section = EditorSection.ACTIONS)
+                        AnimatedVisibility(visible = EditorSection.ACTIONS in expanded) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                ActionRow(
+                                    listOf(
+                                        "Fill" to { replaceCurrent(GlyphFrameCodec.fill(currentFrame(), gridSize, brush)) },
+                                        "Clear" to { replaceCurrent(IntArray(gridSize * gridSize)) },
+                                        "Invert" to { replaceCurrent(GlyphFrameCodec.invert(currentFrame(), gridSize)) },
+                                    ),
+                                )
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                ActionRow(
+                                    listOf(
+                                        "Mirror" to { replaceCurrent(GlyphFrameCodec.flipHorizontal(currentFrame(), gridSize)) },
+                                        "Flip" to { replaceCurrent(GlyphFrameCodec.flipVertical(currentFrame(), gridSize)) },
+                                        "Rotate" to { replaceCurrent(GlyphFrameCodec.rotate90(currentFrame(), gridSize)) },
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingCard {
+                        SectionHeader(label = "Import", section = EditorSection.IMPORT)
+                        AnimatedVisibility(visible = EditorSection.IMPORT in expanded) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                ActionRow(
+                                    listOf(
+                                        "Upload" to {
+                                            pendingImport = ImportType.IMAGE
+                                            mediaPicker.launch("image/*")
+                                        },
+                                        "Paste" to { pasteImage() },
+                                        "Text" to { showTextDialog = true },
+                                    ),
+                                )
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                ActionRow(
+                                    listOf(
+                                        "Emoji" to { showEmojiDialog = true },
+                                        "GIF" to {
+                                            pendingImport = ImportType.GIF
+                                            mediaPicker.launch("image/gif")
+                                        },
+                                        "Video" to {
+                                            pendingImport = ImportType.VIDEO
+                                            mediaPicker.launch("video/*")
+                                        },
+                                    ),
+                                )
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                GlyphPill(
+                                    label = if (classic) "Raw data" else "RAW DATA",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { importRawJson() },
+                                )
+                                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                                GlyphPill(
+                                    label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { openGlyphMuseum(context) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingInput(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = if (classic) "Design name" else "DESIGN NAME",
+                        placeholder = "my_glyph",
+                    )
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        NothingPillButton(
+                            text = "Save",
+                            onClick = { saveCurrent() },
+                            modifier = Modifier.weight(1f),
+                        )
+                        NothingPillButton(
+                            text = "Show",
+                            onClick = { showCurrent() },
+                            modifier = Modifier.weight(1f),
+                        )
+                        NothingPillButton(
+                            text = "Export",
+                            onClick = { shareCurrent() },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                }
+
+                item {
+                    NothingCard {
+                        SectionHeader(label = "Saved designs", section = EditorSection.SAVED)
+                        AnimatedVisibility(visible = EditorSection.SAVED in expanded) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                if (savedNames.isEmpty()) {
+                                    Text(
+                                        text = if (classic) "No saved designs yet." else "NO SAVED DESIGNS YET.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontFamily = NothingFonts.mono(),
                                     )
                                 } else {
-                                    visibleLibrary.forEachIndexed { index, item ->
+                                    savedNames.forEachIndexed { index, entry ->
                                         if (index > 0) NothingDivider()
-                                        GlyphCommunityRow(
-                                            item = item,
-                                            onClick = { selectedLibraryItem = item },
+                                        val author = remember(entry) { viewModel.author(entry) }
+                                        NothingListRow(
+                                            title = entry,
+                                            subtitle = author?.let { "by @$it" } ?: "",
+                                            onClick = {
+                                                viewModel.designJson(entry)?.let { json ->
+                                                    runCatching { GlyphFrameCodec.decode(json) }
+                                                        .getOrNull()
+                                                        ?.let { design ->
+                                                            loadDesign(design)
+                                                            showCurrent()
+                                                        }
+                                                }
+                                            },
+                                            trailing = {
+                                                Row {
+                                                    Text(
+                                                        text = "SHARE",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        fontFamily = NothingFonts.mono(),
+                                                        modifier =
+                                                            Modifier
+                                                                .clip(NothingShapes.input)
+                                                                .clickable {
+                                                                    viewModel.clearShareResult()
+                                                                    shareDesign = entry
+                                                                }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                                                    )
+                                                    Text(
+                                                        text = "X",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = NothingColors.accent,
+                                                        fontFamily = NothingFonts.mono(),
+                                                        modifier =
+                                                            Modifier
+                                                                .clip(NothingShapes.input)
+                                                                .clickable {
+                                                                    viewModel.delete(entry)
+                                                                    refreshNames()
+                                                                }.padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                                                    )
+                                                }
+                                            },
                                         )
                                     }
                                 }
-                            } else {
-                                Text(
-                                    text = "No designs downloaded. Open Glyph Museum to find more.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = NothingFonts.mono(),
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    NothingCard {
+                        SectionHeader(label = "Library", section = EditorSection.LIBRARY)
+                        AnimatedVisibility(visible = EditorSection.LIBRARY in expanded) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            ) {
+                                GlyphPill(
+                                    label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { openGlyphMuseum(context) },
                                 )
+                                if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
+                                    com.tdvorak.nothingmodes.ui.theme.NothingInput(
+                                        value = glyphSearch,
+                                        onValueChange = { glyphSearch = it },
+                                        label = "Search",
+                                        placeholder = "Find a design",
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        listOf(
+                                            "newest" to "Newest",
+                                            "download" to "Most downloaded",
+                                            "alpha" to "A-Z",
+                                        ).forEach { (key, label) ->
+                                            NothingTag(
+                                                text = label,
+                                                active = glyphSort == key,
+                                                onClick = { glyphSort = key },
+                                            )
+                                        }
+                                    }
+                                    if (allGlyphCaps.isNotEmpty()) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            allGlyphCaps.forEach { cap ->
+                                                NothingTag(
+                                                    text = cap.replace("_", " "),
+                                                    active = glyphCaps.contains(cap),
+                                                    onClick = {
+                                                        glyphCaps =
+                                                            if (glyphCaps.contains(cap)) glyphCaps - cap else glyphCaps + cap
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (visibleLibrary.isEmpty()) {
+                                        Text(
+                                            text = "No matching designs.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontFamily = NothingFonts.mono(),
+                                        )
+                                    } else {
+                                        visibleLibrary.forEachIndexed { index, item ->
+                                            if (index > 0) NothingDivider()
+                                            GlyphCommunityRow(
+                                                item = item,
+                                                onClick = { selectedLibraryItem = item },
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Text(
+                                        text = "No designs downloaded. Open Glyph Museum to find more.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    shareDesign?.let { designName ->
-        ModalBottomSheet(
-            onDismissRequest = { shareDesign = null },
-        ) {
-            ShareSheet(
-                initialTitle = designName,
-                initialDescription = "",
-                profile = viewModel.creatorProfile.get(),
-                sharing = sharing,
-                result = shareResult,
-                onPublish = { t, d, h, e, g ->
-                    viewModel.publishGlyph(designName, t, d, h, e, g)
-                },
-                onDismiss = { shareDesign = null },
-            )
-        }
-    }
-
-    selectedLibraryItem?.let { item ->
-        val design = selectedLibraryDesign
-        LaunchedEffect(item) {
-            selectedLibraryDesign = null
-            runCatching {
-                val payload = com.tdvorak.nothingmodes.data.community.CommunityApi.fetchItem(item.id)
-                GlyphFrameCodec.decode(payload.toString())
-            }.getOrNull()?.let { selectedLibraryDesign = it }
-        }
-        ModalBottomSheet(
-            onDismissRequest = {
-                selectedLibraryItem = null
-                selectedLibraryDesign = null
-            },
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(NothingSpacing.lg)
-                        .navigationBarsPadding(),
+        shareDesign?.let { designName ->
+            ModalBottomSheet(
+                onDismissRequest = { shareDesign = null },
             ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "by @${item.handle}${if (item.summary.isNotBlank()) " · ${item.summary}" else ""}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
-                if (item.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    Text(
-                        text = item.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                if (design != null) {
-                    AnimatedGlyphCanvas(
-                        design = design,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .clip(NothingShapes.input)
-                                .background(Color.Black),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "LOADING PREVIEW",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(NothingSpacing.md))
-                com.tdvorak.nothingmodes.ui.theme.NothingPrimaryButton(
-                    text = "Import",
-                    enabled = !importing,
-                    onClick = {
-                        importing = true
-                        scope.launch {
-                            val stored = viewModel.importLibraryItem(item)
-                            importing = false
-                            Toast.makeText(
-                                context,
-                                if (stored != null) "Imported as $stored" else "Import failed",
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                            refreshNames()
-                            selectedLibraryItem = null
-                            selectedLibraryDesign = null
-                        }
+                ShareSheet(
+                    initialTitle = designName,
+                    initialDescription = "",
+                    profile = viewModel.creatorProfile.get(),
+                    sharing = sharing,
+                    result = shareResult,
+                    onPublish = { t, d, h, e, g ->
+                        viewModel.publishGlyph(designName, t, d, h, e, g)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    onDismiss = { shareDesign = null },
                 )
             }
         }
+
+        selectedLibraryItem?.let { item ->
+            val design = selectedLibraryDesign
+            LaunchedEffect(item) {
+                selectedLibraryDesign = null
+                runCatching {
+                    val payload =
+                        com.tdvorak.nothingmodes.data.community.CommunityApi
+                            .fetchItem(item.id)
+                    GlyphFrameCodec.decode(payload.toString())
+                }.getOrNull()?.let { selectedLibraryDesign = it }
+            }
+            ModalBottomSheet(
+                onDismissRequest = {
+                    selectedLibraryItem = null
+                    selectedLibraryDesign = null
+                },
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(NothingSpacing.lg)
+                            .navigationBarsPadding(),
+                ) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "by @${item.handle}${if (item.summary.isNotBlank()) " · ${item.summary}" else ""}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                    )
+                    if (item.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        Text(
+                            text = item.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    if (design != null) {
+                        AnimatedGlyphCanvas(
+                            design = design,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(NothingShapes.input)
+                                    .background(Color.Black),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "LOADING PREVIEW",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    com.tdvorak.nothingmodes.ui.theme.NothingPrimaryButton(
+                        text = "Import",
+                        enabled = !importing,
+                        onClick = {
+                            importing = true
+                            scope.launch {
+                                val stored = viewModel.importLibraryItem(item)
+                                importing = false
+                                Toast
+                                    .makeText(
+                                        context,
+                                        if (stored != null) "Imported as $stored" else "Import failed",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                refreshNames()
+                                selectedLibraryItem = null
+                                selectedLibraryDesign = null
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
     }
-}
 }
 
 @Composable
@@ -1214,66 +1255,69 @@ private fun CanvasCard(
                         .fillMaxWidth(0.55f)
                         .aspectRatio(1f)
                         .clip(NothingShapes.input)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
-                    .background(Color.Black)
-                    .pointerInput(gridSize, paintMode, brush) {
-                        detectTapGestures { offset ->
-                            cellFromOffset(offset, size.width.toFloat(), gridSize)?.let { (r, c) ->
-                                onTap(r, c)
-                            }
-                        }
-                    }
-                    .pointerInput(gridSize, paintMode, brush) {
-                        var painting: Boolean? = null
-                        detectDragGestures(
-                            onDragStart = { offset ->
+                        .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                        .background(Color.Black)
+                        .pointerInput(gridSize, paintMode, brush) {
+                            detectTapGestures { offset ->
                                 cellFromOffset(offset, size.width.toFloat(), gridSize)?.let { (r, c) ->
-                                    painting = onDragStart(r, c)
+                                    onTap(r, c)
                                 }
-                            },
-                            onDragEnd = { painting = null },
-                            onDragCancel = { painting = null },
-                            onDrag = { change, _ ->
-                                change.consume()
-                                cellFromOffset(change.position, size.width.toFloat(), gridSize)?.let { (r, c) ->
-                                    painting?.let { onDrag(r, c, it) }
-                                }
-                            },
-                        )
-                    },
-        ) {
-            GlyphCanvas(gridSize, frame)
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(NothingSpacing.sm),
-                verticalArrangement = Arrangement.SpaceBetween,
+                            }
+                        }.pointerInput(gridSize, paintMode, brush) {
+                            var painting: Boolean? = null
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    cellFromOffset(offset, size.width.toFloat(), gridSize)?.let { (r, c) ->
+                                        painting = onDragStart(r, c)
+                                    }
+                                },
+                                onDragEnd = { painting = null },
+                                onDragCancel = { painting = null },
+                                onDrag = { change, _ ->
+                                    change.consume()
+                                    cellFromOffset(change.position, size.width.toFloat(), gridSize)?.let { (r, c) ->
+                                        painting?.let { onDrag(r, c, it) }
+                                    }
+                                },
+                            )
+                        },
             ) {
-                Text(
-                    text = "(0, 0)",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    fontFamily = NothingFonts.mono(),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                GlyphCanvas(gridSize, frame)
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(NothingSpacing.sm),
+                    verticalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "(${gridSize - 1}, ${gridSize - 1})",
+                        text = "(0, 0)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontFamily = NothingFonts.mono(),
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Text(
+                            text = "(${gridSize - 1}, ${gridSize - 1})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
                 }
             }
-        }
         }
     }
 }
 
-private fun cellFromOffset(offset: Offset, canvasSize: Float, gridSize: Int): Pair<Int, Int>? {
+private fun cellFromOffset(
+    offset: Offset,
+    canvasSize: Float,
+    gridSize: Int,
+): Pair<Int, Int>? {
     if (canvasSize <= 0f) return null
     val cellW = canvasSize / gridSize.toFloat()
     val col = (offset.x / cellW).toInt().coerceIn(0, gridSize - 1)

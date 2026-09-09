@@ -68,7 +68,10 @@ object GlyphRasterizer {
      * image import. Scales the bitmap to the grid, keeps alpha-weighted
      * luminance, thresholds at [THRESHOLD]. Values are 0 or 4095.
      */
-    fun bitmapToMatrix(bitmap: Bitmap, size: Int): IntArray {
+    fun bitmapToMatrix(
+        bitmap: Bitmap,
+        size: Int,
+    ): IntArray {
         val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
         val out = IntArray(size * size)
         val px = IntArray(size * size)

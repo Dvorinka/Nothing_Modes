@@ -4,8 +4,8 @@ import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.CmpOp
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
-import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.model.StateKeys
 import com.tdvorak.nothingmodes.engine.runtime.ConditionEvaluator
 import com.tdvorak.nothingmodes.engine.runtime.DeviceState
 import org.junit.jupiter.api.Assertions.assertEquals

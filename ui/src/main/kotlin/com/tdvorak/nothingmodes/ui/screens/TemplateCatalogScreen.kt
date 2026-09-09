@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,13 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,12 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import kotlinx.serialization.json.jsonPrimitive
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.data.community.CommunityApi
+import com.tdvorak.nothingmodes.engine.canonicalJson
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
@@ -47,17 +48,15 @@ import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.model.TemplateIndex
 import com.tdvorak.nothingmodes.engine.model.TemplateSummary
 import com.tdvorak.nothingmodes.engine.model.Trigger
-import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ExportBundle
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.engine.runtime.ImportResult
-import com.tdvorak.nothingmodes.engine.canonicalJson
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
-import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEmptyState
+import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
@@ -66,7 +65,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
-import com.tdvorak.nothingmodes.ui.theme.SpaceMono
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -77,6 +75,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
@@ -176,8 +175,7 @@ class TemplateCatalogViewModel
         }
 
         /** Local templates saved from the detail screen ("Template" action). */
-        private fun templateDir() =
-            java.io.File(context.filesDir, "user_templates").apply { mkdirs() }
+        private fun templateDir() = java.io.File(context.filesDir, "user_templates").apply { mkdirs() }
 
         private suspend fun loadUserTemplates() =
             withContext(Dispatchers.IO) {
@@ -186,12 +184,12 @@ class TemplateCatalogViewModel
                     ?.mapNotNull { f ->
                         runCatching {
                             EngineJson.json.decodeFromString(
-                                com.tdvorak.nothingmodes.engine.model.UserTemplate.serializer(),
+                                com.tdvorak.nothingmodes.engine.model.UserTemplate
+                                    .serializer(),
                                 f.readText(),
                             )
                         }.getOrNull()
-                    }
-                    ?.sortedBy { it.name }
+                    }?.sortedBy { it.name }
                     ?: emptyList()
             }
 
@@ -225,7 +223,8 @@ class TemplateCatalogViewModel
                             appVersion =
                                 runCatching {
                                     context.packageManager
-                                        .getPackageInfo(context.packageName, 0).versionName
+                                        .getPackageInfo(context.packageName, 0)
+                                        .versionName
                                 }.getOrNull().orEmpty(),
                         )
                     val payload =
@@ -464,8 +463,7 @@ fun TemplateCatalogScreen(
                     it.title.contains(search, true) ||
                     it.description.contains(search, true) ||
                     it.handle.contains(search, true)
-            }
-            .filter { selectedCaps.isEmpty() || it.capabilities.any { c -> selectedCaps.contains(c) } }
+            }.filter { selectedCaps.isEmpty() || it.capabilities.any { c -> selectedCaps.contains(c) } }
             .let { list ->
                 when (librarySort) {
                     "download" -> list.sortedByDescending { it.downloads }
@@ -768,8 +766,16 @@ private fun LibraryRow(
     onClick: () -> Unit,
 ) {
     NothingCard(modifier = Modifier.fillMaxWidth()) {
-        val iconName = item.preview?.get("icon")?.jsonPrimitive?.content ?: "star"
-        val bgHex = item.preview?.get("iconBackground")?.jsonPrimitive?.content
+        val iconName =
+            item.preview
+                ?.get("icon")
+                ?.jsonPrimitive
+                ?.content ?: "star"
+        val bgHex =
+            item.preview
+                ?.get("iconBackground")
+                ?.jsonPrimitive
+                ?.content
         val fallback = MaterialTheme.colorScheme.surfaceVariant
         val bgColor =
             remember(bgHex, fallback) {

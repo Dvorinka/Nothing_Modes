@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -16,7 +15,6 @@ import androidx.core.app.NotificationCompat
  * user once (throttled) how to fix it instead of just logging a failure.
  */
 object GlyphPreflight {
-
     enum class Problem {
         NO_GLYPH_HARDWARE,
         TOY_NOT_SELECTED,
@@ -61,7 +59,7 @@ object GlyphPreflight {
 
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                PackageManager.PERMISSION_GRANTED
+            PackageManager.PERMISSION_GRANTED
         ) {
             return
         }

@@ -23,7 +23,6 @@ import org.json.JSONObject
  * missing or malformed `meta` never fails an import.
  */
 object GlyphFrameCodec {
-
     data class Frame(
         val pixels: IntArray, // full square matrix, row-major, 0-4095
         val durationMs: Int?,
@@ -52,7 +51,10 @@ object GlyphFrameCodec {
         }
 
     /** Column offset of the first LED in [row] — rows are centered. */
-    fun rowStart(size: Int, row: Int): Int = (size - rowWidths(size)[row]) / 2
+    fun rowStart(
+        size: Int,
+        row: Int,
+    ): Int = (size - rowWidths(size)[row]) / 2
 
     /** Number of physical LEDs (489 for 25x25, 137 for 13x13). */
     fun ledCount(size: Int): Int = rowWidths(size).sum()
@@ -65,7 +67,11 @@ object GlyphFrameCodec {
      * Uses bilinear sampling on the physical LED circle so a design drawn for
      * one Nothing phone can render on another matrix size.
      */
-    fun rescaleFrame(frame: IntArray, from: Int, to: Int): IntArray {
+    fun rescaleFrame(
+        frame: IntArray,
+        from: Int,
+        to: Int,
+    ): IntArray {
         if (from == to) return frame.copyOf()
         val out = IntArray(to * to)
         val dstWidths = rowWidths(to)
@@ -80,7 +86,12 @@ object GlyphFrameCodec {
         return out
     }
 
-    private fun sampleBilinear(frame: IntArray, size: Int, x: Float, y: Float): Int {
+    private fun sampleBilinear(
+        frame: IntArray,
+        size: Int,
+        x: Float,
+        y: Float,
+    ): Int {
         val x0 = x.toInt().coerceIn(0, size - 1)
         val y0 = y.toInt().coerceIn(0, size - 1)
         val x1 = (x0 + 1).coerceAtMost(size - 1)
@@ -97,7 +108,10 @@ object GlyphFrameCodec {
     }
 
     /** Vertical flip — map each physical dot to its mirror row. */
-    fun flipVertical(frame: IntArray, size: Int): IntArray {
+    fun flipVertical(
+        frame: IntArray,
+        size: Int,
+    ): IntArray {
         val out = IntArray(size * size)
         val widths = rowWidths(size)
         for (row in 0 until size) {
@@ -114,7 +128,10 @@ object GlyphFrameCodec {
     }
 
     /** Horizontal mirror — map each physical dot to its mirror column. */
-    fun flipHorizontal(frame: IntArray, size: Int): IntArray {
+    fun flipHorizontal(
+        frame: IntArray,
+        size: Int,
+    ): IntArray {
         val out = IntArray(size * size)
         val widths = rowWidths(size)
         for (row in 0 until size) {
@@ -130,7 +147,10 @@ object GlyphFrameCodec {
 
     /** 90-degree clockwise rotation. The circular matrix is symmetric, so
      * every physical dot maps to another physical dot. */
-    fun rotate90(frame: IntArray, size: Int): IntArray {
+    fun rotate90(
+        frame: IntArray,
+        size: Int,
+    ): IntArray {
         val out = IntArray(size * size)
         for (row in 0 until size) {
             for (col in 0 until size) {
@@ -143,7 +163,10 @@ object GlyphFrameCodec {
     }
 
     /** Invert brightness values inside the physical circle. */
-    fun invert(frame: IntArray, size: Int): IntArray {
+    fun invert(
+        frame: IntArray,
+        size: Int,
+    ): IntArray {
         val out = frame.copyOf()
         val widths = rowWidths(size)
         for (row in 0 until size) {
@@ -157,7 +180,11 @@ object GlyphFrameCodec {
     }
 
     /** Fill the physical circle with [brightness] (0..4095). */
-    fun fill(frame: IntArray, size: Int, brightness: Int): IntArray {
+    fun fill(
+        frame: IntArray,
+        size: Int,
+        brightness: Int,
+    ): IntArray {
         val out = frame.copyOf()
         val widths = rowWidths(size)
         val v = brightness.coerceIn(0, 4095)
@@ -171,7 +198,10 @@ object GlyphFrameCodec {
     }
 
     /** Count of physical LEDs with value > 0. */
-    fun activeCount(frame: IntArray, size: Int): Int {
+    fun activeCount(
+        frame: IntArray,
+        size: Int,
+    ): Int {
         val widths = rowWidths(size)
         var count = 0
         for (row in 0 until size) {
@@ -184,7 +214,10 @@ object GlyphFrameCodec {
     }
 
     /** Rescale an entire design to [newSize], keeping durations and meta. */
-    fun rescaleDesign(design: Design, newSize: Int): Design =
+    fun rescaleDesign(
+        design: Design,
+        newSize: Int,
+    ): Design =
         if (design.gridSize == newSize) {
             design
         } else {

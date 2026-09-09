@@ -7,7 +7,6 @@ import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class GlyphMuseumPresetsTest {
-
     @Test
     fun `all bundled assets decode and round-trip`() {
         val dir = File("src/main/assets/glyph_presets")
@@ -23,7 +22,7 @@ class GlyphMuseumPresetsTest {
             val avgActive = if (design.frames.isNotEmpty()) active / design.frames.size else 0
             println(
                 "%-25s v=${design.version} grid=${design.gridSize} frames=${design.frames.size} avgActive=$avgActive author=${design.author ?: "—"} post=${design.postId ?: "—"}"
-                    .format(file.name)
+                    .format(file.name),
             )
 
             // Re-encode and re-decode to make sure round-trip is safe.

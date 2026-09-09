@@ -494,8 +494,9 @@ class NothingGlyphMatrixProvider(
         val frame = generateProgressArcFrame(percent, label = percent.coerceIn(0, 100).toString())
         if (!charging) return setFrame(frame)
 
-        val zapFrame = GlyphIconLibrary.frameFor("zap")
-            ?: IntArray(size * size) { 0 }
+        val zapFrame =
+            GlyphIconLibrary.frameFor("zap")
+                ?: IntArray(size * size) { 0 }
 
         batteryJob =
             countdownScope.launch {
@@ -527,7 +528,10 @@ class NothingGlyphMatrixProvider(
         Log.d(TAG, sb.toString())
     }
 
-    private fun centeredX(size: Int, text: String): Int {
+    private fun centeredX(
+        size: Int,
+        text: String,
+    ): Int {
         val w = text.length * 5 + (text.length - 1).coerceAtLeast(0)
         return ((size - w) / 2).coerceIn(0, size)
     }
@@ -570,8 +574,9 @@ class NothingGlyphMatrixProvider(
         stopActiveJobs()
         CustomGlyphStore(context).design(name)?.let { return displayDesign(it, loop = true) }
         presets.design(name)?.let { return displayDesign(it, loop = true) }
-        val frame = GlyphIconLibrary.frameFor(name)
-            ?: return GlyphResult.Failure("Unknown icon: $name")
+        val frame =
+            GlyphIconLibrary.frameFor(name)
+                ?: return GlyphResult.Failure("Unknown icon: $name")
         if (Log.isLoggable(TAG, Log.DEBUG)) dumpFrame("icon:$name", frame, matrixSize())
         return setFrame(frame)
     }
@@ -626,9 +631,7 @@ class NothingGlyphMatrixProvider(
      * unsupported. The visualizer runs until another glyph action, [turnOff],
      * or [stopMusicVisualizer] cancels it.
      */
-    fun startMusicVisualizer(
-        style: String = "waveform",
-    ): GlyphResult {
+    fun startMusicVisualizer(style: String = "waveform"): GlyphResult {
         if (!connected) return GlyphResult.ServiceUnavailable
         if (!toysBridge.ownsMatrix()) {
             return GlyphResult.Failure("matrix owned by another toy")
@@ -657,13 +660,14 @@ class NothingGlyphMatrixProvider(
                     val size = matrixSize()
                     val wave = audioAnalyzer.getWaveform(size)
                     val bands = audioAnalyzer.getBands(size)
-                    val frame = MusicGlyphRenderer.render(
-                        style = style,
-                        wave = wave,
-                        bands = bands,
-                        size = size,
-                        tick = tick++,
-                    )
+                    val frame =
+                        MusicGlyphRenderer.render(
+                            style = style,
+                            wave = wave,
+                            bands = bands,
+                            size = size,
+                            tick = tick++,
+                        )
                     if (setFrame(frame) !is GlyphResult.Success) break
                     delay(30)
                 }

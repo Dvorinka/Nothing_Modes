@@ -10,13 +10,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
+import com.tdvorak.nothingmodes.ui.screens.enumByLabel
+import com.tdvorak.nothingmodes.ui.screens.enumLabel
+import com.tdvorak.nothingmodes.ui.screens.enumLabelList
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.screens.enumByLabel
-import com.tdvorak.nothingmodes.ui.screens.enumLabel
-import com.tdvorak.nothingmodes.ui.screens.enumLabelList
 
 internal val writeSettingPresets =
     listOf(

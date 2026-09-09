@@ -9,7 +9,6 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class GlyphFrameCodecTest {
-
     @Test
     fun `round-trip preserves lit pixels inside the circle`() {
         val frame = IntArray(625) { 0 }

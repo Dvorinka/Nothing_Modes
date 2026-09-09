@@ -109,7 +109,8 @@ class GlyphToysBridge(
                 .query(Uri.parse(TOY_PROVIDER_URI), null, null, null, null)
                 ?.use { c ->
                     fun str(name: String) =
-                        c.getColumnIndex(name)
+                        c
+                            .getColumnIndex(name)
                             .takeIf { it >= 0 }
                             ?.let { runCatching { c.getString(it) }.getOrNull() }
 
@@ -186,7 +187,8 @@ class GlyphToysBridge(
             return true
         }
         val launch =
-            pm.getLaunchIntentForPackage(SYSTEM_PACKAGE)
+            pm
+                .getLaunchIntentForPackage(SYSTEM_PACKAGE)
                 ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
         return runCatching { context.startActivity(launch) }.isSuccess
     }

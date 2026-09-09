@@ -33,11 +33,13 @@ class ModeNotificationHelper(
     }
 
     /** Rules that apply for this automation. */
-    fun effectiveRules(automation: Automation): List<NotifyRule> =
-        if (automation.notifyRules.isNotEmpty()) automation.notifyRules else prefs.getDefaultRules()
+    fun effectiveRules(automation: Automation): List<NotifyRule> = if (automation.notifyRules.isNotEmpty()) automation.notifyRules else prefs.getDefaultRules()
 
     /** Call after a mode fires and its actions have run. */
-    fun postOnTrigger(automation: Automation, results: List<ActionResult>) {
+    fun postOnTrigger(
+        automation: Automation,
+        results: List<ActionResult>,
+    ) {
         if (!canPost()) return
         if (!effectiveRules(automation).contains(NotifyRule.OnTrigger)) return
 
@@ -47,10 +49,11 @@ class ModeNotificationHelper(
             postCapabilityBlocked(automation, results)
             return
         }
-        val text = buildString {
-            append("just ran — $applied applied")
-            if (failed > 0) append(", $failed failed")
-        }
+        val text =
+            buildString {
+                append("just ran — $applied applied")
+                if (failed > 0) append(", $failed failed")
+            }
         post(automation, "Mode ran", text)
     }
 
@@ -65,7 +68,10 @@ class ModeNotificationHelper(
     }
 
     /** Call for a BEFORE rule. */
-    fun postBefore(automation: Automation, minutes: Int) {
+    fun postBefore(
+        automation: Automation,
+        minutes: Int,
+    ) {
         if (!canPost()) return
         val hasBefore = effectiveRules(automation).any { it is NotifyRule.Before && it.minutes == minutes }
         if (!hasBefore) return
@@ -76,7 +82,10 @@ class ModeNotificationHelper(
     }
 
     /** High-priority heads-up when a requirement (Shizuku, permission, support) blocks the run. */
-    private fun postCapabilityBlocked(automation: Automation, results: List<ActionResult>) {
+    private fun postCapabilityBlocked(
+        automation: Automation,
+        results: List<ActionResult>,
+    ) {
         val shizuku = results.count { it is ActionResult.ShizukuRequired }
         val permission = results.count { it is ActionResult.PermissionRequired }
         val unsupported = results.count { it is ActionResult.Unsupported }
@@ -107,7 +116,8 @@ class ModeNotificationHelper(
             }
 
         val notification =
-            NotificationCompat.Builder(context, CHANNEL_ID)
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
                 .setContentTitle("Couldn't run · ${automation.name}")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_notification)
@@ -147,7 +157,8 @@ class ModeNotificationHelper(
             }
 
         val notification =
-            NotificationCompat.Builder(context, CHANNEL_ID)
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_notification)

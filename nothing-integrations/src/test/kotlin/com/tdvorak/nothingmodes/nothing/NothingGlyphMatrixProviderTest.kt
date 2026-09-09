@@ -42,14 +42,16 @@ class NothingGlyphMatrixProviderTest {
     }
 
     @Test
-    fun `ensureConnected returns false when hardware unavailable`() = runTest {
-        assertFalse(provider.ensureConnected())
-    }
+    fun `ensureConnected returns false when hardware unavailable`() =
+        runTest {
+            assertFalse(provider.ensureConnected())
+        }
 
     @Test
-    fun `ensureConnected with explicit timeout returns false when unavailable`() = runTest {
-        assertFalse(provider.ensureConnected(timeoutMs = 100))
-    }
+    fun `ensureConnected with explicit timeout returns false when unavailable`() =
+        runTest {
+            assertFalse(provider.ensureConnected(timeoutMs = 100))
+        }
 
     @Test
     fun `displayBattery returns ServiceUnavailable when not connected`() {
@@ -206,10 +208,11 @@ class NothingGlyphMatrixProviderTest {
     }
 
     @Test
-    fun `ensureConnected does not throw when called repeatedly`() = runTest {
-        repeat(3) { provider.ensureConnected(50) }
-        assertFalse(provider.isConnected())
-    }
+    fun `ensureConnected does not throw when called repeatedly`() =
+        runTest {
+            repeat(3) { provider.ensureConnected(50) }
+            assertFalse(provider.isConnected())
+        }
 
     @Test
     fun `init called multiple times on non-Nothing hardware stays disconnected`() {

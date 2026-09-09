@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -73,25 +72,27 @@ private fun loadCalendars(context: Context): List<DeviceCalendar> {
     if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return emptyList()
     return runCatching {
         val out = mutableListOf<DeviceCalendar>()
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI,
-            arrayOf(
-                CalendarContract.Calendars._ID,
-                CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
-                CalendarContract.Calendars.ACCOUNT_NAME,
-            ),
-            null,
-            null,
-            null,
-        )?.use { c ->
-            while (c.moveToNext()) {
-                out += DeviceCalendar(
-                    id = c.getString(0) ?: continue,
-                    name = c.getString(1) ?: "Calendar",
-                    account = c.getString(2),
-                )
+        context.contentResolver
+            .query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(
+                    CalendarContract.Calendars._ID,
+                    CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                    CalendarContract.Calendars.ACCOUNT_NAME,
+                ),
+                null,
+                null,
+                null,
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    out +=
+                        DeviceCalendar(
+                            id = c.getString(0) ?: continue,
+                            name = c.getString(1) ?: "Calendar",
+                            account = c.getString(2),
+                        )
+                }
             }
-        }
         out
     }.getOrDefault(emptyList())
 }
@@ -127,35 +128,38 @@ internal fun loadUpcomingEvents(
 
     return runCatching {
         val out = mutableListOf<UpcomingEvent>()
-        context.contentResolver.query(
-            builder.build(),
-            projection,
-            selection,
-            selectionArgs,
-            "${CalendarContract.Instances.BEGIN} ASC",
-        )?.use { c ->
-            while (c.moveToNext() && out.size < limit) {
-                val id = c.getLong(0)
-                val title = c.getString(1) ?: "(no title)"
-                if (query.isNotBlank() && !title.contains(query, ignoreCase = true)) continue
-                val begin = c.getLong(2)
-                val end = c.getLong(3)
-                val calId = c.getString(4) ?: "0"
-                val calName = c.getString(5) ?: "Calendar"
-                out += UpcomingEvent(id, title, begin, end, calId, calName)
+        context.contentResolver
+            .query(
+                builder.build(),
+                projection,
+                selection,
+                selectionArgs,
+                "${CalendarContract.Instances.BEGIN} ASC",
+            )?.use { c ->
+                while (c.moveToNext() && out.size < limit) {
+                    val id = c.getLong(0)
+                    val title = c.getString(1) ?: "(no title)"
+                    if (query.isNotBlank() && !title.contains(query, ignoreCase = true)) continue
+                    val begin = c.getLong(2)
+                    val end = c.getLong(3)
+                    val calId = c.getString(4) ?: "0"
+                    val calName = c.getString(5) ?: "Calendar"
+                    out += UpcomingEvent(id, title, begin, end, calId, calName)
+                }
             }
-        }
         out
     }.getOrDefault(emptyList())
 }
 
 fun formatEventTime(millis: Long): String {
-    val zdt = java.time.ZonedDateTime.ofInstant(
-        java.time.Instant.ofEpochMilli(millis),
-        java.time.ZoneId.systemDefault(),
-    )
+    val zdt =
+        java.time.ZonedDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(millis),
+            java.time.ZoneId.systemDefault(),
+        )
     return zdt.format(
-        java.time.format.DateTimeFormatter.ofPattern("EEE MMM d HH:mm"),
+        java.time.format.DateTimeFormatter
+            .ofPattern("EEE MMM d HH:mm"),
     )
 }
 
@@ -183,10 +187,11 @@ fun CalendarEventPickerDialog(
     }
 
     // Show one row per distinct title; the earliest occurrence wins.
-    val deduped = remember(rawEvents) {
-        val seen = linkedSetOf<String>()
-        rawEvents.filter { seen.add(it.title.lowercase()) }
-    }
+    val deduped =
+        remember(rawEvents) {
+            val seen = linkedSetOf<String>()
+            rawEvents.filter { seen.add(it.title.lowercase()) }
+        }
     val hasMore = deduped.size >= limit
 
     Dialog(
@@ -229,7 +234,8 @@ fun CalendarEventPickerDialog(
                     }
                 }
 
-                com.tdvorak.nothingmodes.ui.theme.NothingDivider()
+                com.tdvorak.nothingmodes.ui.theme
+                    .NothingDivider()
 
                 Box(
                     modifier =

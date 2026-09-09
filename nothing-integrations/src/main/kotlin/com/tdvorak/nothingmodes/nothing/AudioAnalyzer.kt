@@ -14,8 +14,9 @@ import androidx.core.content.ContextCompat
  * granted. Captures both FFT (for equalizer) and raw waveform (for wave line).
  * Falls back to a simulated waveform driven by [AudioManager.isMusicActive].
  */
-class AudioAnalyzer(context: Context) {
-
+class AudioAnalyzer(
+    context: Context,
+) {
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -31,11 +32,12 @@ class AudioAnalyzer(context: Context) {
 
     /** True when any media stream is currently active. */
     val isMusicActive: Boolean
-        get() = try {
-            audioManager.isMusicActive
-        } catch (_: Exception) {
-            false
-        }
+        get() =
+            try {
+                audioManager.isMusicActive
+            } catch (_: Exception) {
+                false
+            }
 
     private var simPhase = 0.0
 
@@ -44,10 +46,11 @@ class AudioAnalyzer(context: Context) {
      * Requires [android.Manifest.permission.RECORD_AUDIO].
      */
     fun init(): Boolean {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            appContext,
-            android.Manifest.permission.RECORD_AUDIO
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasPermission =
+            ContextCompat.checkSelfPermission(
+                appContext,
+                android.Manifest.permission.RECORD_AUDIO,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (!hasPermission) {
             Log.w(TAG, "RECORD_AUDIO not granted — music visualizer will simulate")
@@ -61,11 +64,12 @@ class AudioAnalyzer(context: Context) {
             val range = Visualizer.getCaptureSizeRange()
             val requested = range?.getOrNull(1)?.takeIf { it > 0 }?.coerceAtMost(1024) ?: 1024
 
-            val vis = Visualizer(0).apply {
-                enabled = false
-                captureSize = requested
-                enabled = true
-            }
+            val vis =
+                Visualizer(0).apply {
+                    enabled = false
+                    captureSize = requested
+                    enabled = true
+                }
 
             // Some devices report a zero range but still allow capture.
             // If the real captureSize stayed 0, the Visualizer is unusable.
@@ -93,15 +97,13 @@ class AudioAnalyzer(context: Context) {
      * Returns an equalizer-style energy band for each of [bandCount] columns.
      * Values are in 0..1. When no music is playing all values are 0.
      */
-    fun getBands(bandCount: Int): FloatArray =
-        if (isMusicActive) getSpectrum(bandCount) else FloatArray(bandCount) { 0f }
+    fun getBands(bandCount: Int): FloatArray = if (isMusicActive) getSpectrum(bandCount) else FloatArray(bandCount) { 0f }
 
     /**
      * Returns a single raw waveform sample for each column, centred on 0.
      * Values are in -1..1. When no music is playing all values are 0.
      */
-    fun getWaveform(size: Int): FloatArray =
-        if (isMusicActive) getWaveformSamples(size) else FloatArray(size) { 0f }
+    fun getWaveform(size: Int): FloatArray = if (isMusicActive) getWaveformSamples(size) else FloatArray(size) { 0f }
 
     private fun getSpectrum(bandCount: Int): FloatArray {
         val out = FloatArray(bandCount) { 0f }
@@ -157,7 +159,10 @@ class AudioAnalyzer(context: Context) {
         return out
     }
 
-    private fun resampleWaveform(wave: ByteArray, out: FloatArray) {
+    private fun resampleWaveform(
+        wave: ByteArray,
+        out: FloatArray,
+    ) {
         val size = out.size
         if (size <= 0) return
 
@@ -195,7 +200,10 @@ class AudioAnalyzer(context: Context) {
         isSimulated = true
     }
 
-    private fun binFft(fft: ByteArray, out: FloatArray) {
+    private fun binFft(
+        fft: ByteArray,
+        out: FloatArray,
+    ) {
         val bands = out.size
         if (bands <= 0) return
 

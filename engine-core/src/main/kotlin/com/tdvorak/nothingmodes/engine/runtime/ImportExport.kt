@@ -138,7 +138,9 @@ class ImportExportService(
         }
 
         if (expectedContentHash != null) {
-            val actual = com.tdvorak.nothingmodes.engine.jsonSha256(json)
+            val actual =
+                com.tdvorak.nothingmodes.engine
+                    .jsonSha256(json)
             if (!actual.equals(expectedContentHash, ignoreCase = true)) {
                 return ImportPreview(
                     automations = emptyList(),

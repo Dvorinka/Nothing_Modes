@@ -9,18 +9,18 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.automation.lifecycle.PhoneStateReceiver
-import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
-import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
 import dagger.hilt.EntryPoint
@@ -60,7 +60,10 @@ class DebugActionReceiver : BroadcastReceiver() {
         if (intent.action != ACTION) return
         if (intent.getStringExtra("type") == "profile") {
             // Recognition-layer probe: dump the full device snapshot.
-            val p = com.tdvorak.nothingmodes.nothing.DeviceProfiler(context).probe()
+            val p =
+                com.tdvorak.nothingmodes.nothing
+                    .DeviceProfiler(context)
+                    .probe()
             Log.i(TAG, "profile: ${p.summary()}")
             Log.i(TAG, "registeredToys=${p.registeredToys}")
             Log.i(TAG, "activeToys=${p.activeToys}")
@@ -73,7 +76,8 @@ class DebugActionReceiver : BroadcastReceiver() {
             val main =
                 Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
             val apps =
-                pm.queryIntentActivities(main, 0)
+                pm
+                    .queryIntentActivities(main, 0)
                     .map { it.loadLabel(pm).toString() to it.activityInfo.packageName }
                     .sortedBy { it.first.lowercase() }
             Log.i(TAG, "launcher apps visible: ${apps.size}")
@@ -84,12 +88,15 @@ class DebugActionReceiver : BroadcastReceiver() {
             // Raw Shizuku state via reflection (rikka api is module-internal).
             runCatching {
                 val s = Class.forName("rikka.shizuku.Shizuku")
-                fun call(name: String) =
-                    runCatching { s.getMethod(name).invoke(null) }.getOrElse { "ERR:${it.message}" }
-                Log.i(TAG, "shizuku ping=${call("pingBinder")} perm=${call("checkSelfPermission")} " +
-                    "preV11=${call("isPreV11")} ver=${call("getVersion")} " +
-                    "uid=${call("getUid")} se=${call("getSEContext")} " +
-                    "rationale=${call("shouldShowRequestPermissionRationale")}")
+
+                fun call(name: String) = runCatching { s.getMethod(name).invoke(null) }.getOrElse { "ERR:${it.message}" }
+                Log.i(
+                    TAG,
+                    "shizuku ping=${call("pingBinder")} perm=${call("checkSelfPermission")} " +
+                        "preV11=${call("isPreV11")} ver=${call("getVersion")} " +
+                        "uid=${call("getUid")} se=${call("getSEContext")} " +
+                        "rationale=${call("shouldShowRequestPermissionRationale")}",
+                )
                 Log.i(TAG, "gateway status=${com.tdvorak.nothingmodes.shizuku.ShizukuGateway(context).status()}")
             }.onFailure { Log.e(TAG, "probe failed", it) }
             return
@@ -97,13 +104,18 @@ class DebugActionReceiver : BroadcastReceiver() {
         if (intent.getStringExtra("type") == "font_probe") {
             // Can we reach Nothing's letter_ string resources via a foreign
             // package context? Probe likely owners of the NDot glyph table.
-            for (pkg in listOf("com.nothing.thirdparty", "com.nothing.ntf.glyphtoys",
-                "com.android.systemui", context.packageName)) {
+            for (pkg in listOf(
+                "com.nothing.thirdparty",
+                "com.nothing.ntf.glyphtoys",
+                "com.android.systemui",
+                context.packageName,
+            )) {
                 val info =
                     runCatching {
                         val fc = context.createPackageContext(pkg, 0)
                         val letters =
-                            com.nothing.ketchum.GlyphMatrixUtils.getLetterConfigs("89", fc, null)
+                            com.nothing.ketchum.GlyphMatrixUtils
+                                .getLetterConfigs("89", fc, null)
                         "$pkg -> ${letters?.size ?: 0} letters, dots=" +
                             (letters?.sumOf { it.dots.size } ?: 0)
                     }.getOrElse { "$pkg -> ${it.message}" }
@@ -116,10 +128,14 @@ class DebugActionReceiver : BroadcastReceiver() {
             // -e style auto|nothing|classic
             val style =
                 intent.getStringExtra("style").orEmpty().uppercase().let {
-                    runCatching { com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle.valueOf(it) }
-                        .getOrNull()
+                    runCatching {
+                        com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle
+                            .valueOf(it)
+                    }.getOrNull()
                 } ?: com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle.AUTO
-            com.tdvorak.nothingmodes.ui.theme.ThemeManager.init(context).setUiStyle(style)
+            com.tdvorak.nothingmodes.ui.theme.ThemeManager
+                .init(context)
+                .setUiStyle(style)
             Log.i(TAG, "ui_style -> $style (resolved=${com.tdvorak.nothingmodes.ui.theme.ThemeManager.instance.resolvedUiStyle()})")
             return
         }
@@ -182,10 +198,11 @@ class DebugActionReceiver : BroadcastReceiver() {
             EntryPointAccessors
                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
                 .executor()
-        val action = parse(context, intent) ?: run {
-            Log.w(TAG, "unknown or malformed type: ${intent.getStringExtra("type")}")
-            return
-        }
+        val action =
+            parse(context, intent) ?: run {
+                Log.w(TAG, "unknown or malformed type: ${intent.getStringExtra("type")}")
+                return
+            }
         // Never runBlocking on main here: Shizuku's binder callbacks post to the
         // main looper — blocking main deadlocks bindUserService until timeout.
         val pending = goAsync()
@@ -209,7 +226,10 @@ class DebugActionReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun parse(context: Context, intent: Intent): Action? {
+    private fun parse(
+        context: Context,
+        intent: Intent,
+    ): Action? {
         // `am -e on false` delivers a String — accept both bool and string extras.
         val on =
             intent.getStringExtra("on")?.toBooleanStrictOrNull()
@@ -231,14 +251,27 @@ class DebugActionReceiver : BroadcastReceiver() {
             "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes.vercel.app" })
             "show_notification" -> Action.ShowNotification("NmDebug", text.ifBlank { "test" })
             "set_volume" -> {
-                val stream = VolumeStream.valueOf(intent.getStringExtra("stream").orEmpty().ifBlank { "MEDIA" }.uppercase())
+                val stream =
+                    VolumeStream.valueOf(
+                        intent
+                            .getStringExtra("stream")
+                            .orEmpty()
+                            .ifBlank { "MEDIA" }
+                            .uppercase(),
+                    )
                 Action.SetVolume(mapOf(stream to level))
             }
             "set_flashlight" -> Action.SetFlashlight(on)
             "set_dark_mode" -> Action.SetDarkMode(NightMode.valueOf(mode.ifBlank { "ON" }.uppercase()))
             "open_settings" ->
                 Action.OpenSettingsScreen(
-                    SettingsScreen.valueOf(intent.getStringExtra("screen").orEmpty().ifBlank { "DISPLAY" }.uppercase()),
+                    SettingsScreen.valueOf(
+                        intent
+                            .getStringExtra("screen")
+                            .orEmpty()
+                            .ifBlank { "DISPLAY" }
+                            .uppercase(),
+                    ),
                 )
             "vibrate" -> Action.Vibrate(duration)
             "set_brightness" -> Action.SetBrightness(level)
@@ -265,16 +298,26 @@ class DebugActionReceiver : BroadcastReceiver() {
             "glyph_icon" -> Action.GlyphIcon(intent.getStringExtra("icon").orEmpty().ifBlank { "check" })
             "glyph_number" -> Action.GlyphNumber(intent.getIntExtra("number", 0).coerceIn(0, 99))
             "glyph_countdown" -> Action.GlyphCountdown(duration.coerceIn(1, 599))
-            "glyph_music" -> Action.GlyphMusic(
-                style = intent.getStringExtra("style").orEmpty()
-                    .ifBlank { MusicVisualizerStyles.WAVEFORM },
-            )
+            "glyph_music" ->
+                Action.GlyphMusic(
+                    style =
+                        intent
+                            .getStringExtra("style")
+                            .orEmpty()
+                            .ifBlank { MusicVisualizerStyles.WAVEFORM },
+                )
             "glyph_turnoff" -> Action.GlyphTurnOff
             "copy_text" -> Action.CopyText(text.ifBlank { "copied" })
             "wait" -> Action.Wait(duration.toLong())
             "write_setting" ->
                 Action.WriteSetting(
-                    SettingNamespace.valueOf(intent.getStringExtra("ns").orEmpty().ifBlank { "SYSTEM" }.uppercase()),
+                    SettingNamespace.valueOf(
+                        intent
+                            .getStringExtra("ns")
+                            .orEmpty()
+                            .ifBlank { "SYSTEM" }
+                            .uppercase(),
+                    ),
                     intent.getStringExtra("key").orEmpty(),
                     intent.getStringExtra("value").orEmpty(),
                 )
@@ -290,7 +333,11 @@ class DebugActionReceiver : BroadcastReceiver() {
             "media_control" -> Action.MediaControl(MediaCommand.valueOf(mode.ifBlank { "PLAY_PAUSE" }.uppercase()))
             "send_sms" -> Action.SendSms(intent.getStringExtra("number").orEmpty(), text)
             "lock_screen" -> Action.LockScreen(true)
-            "set_location_mode" -> Action.SetLocationMode(com.tdvorak.nothingmodes.engine.model.LocationMode.valueOf(mode.ifBlank { "OFF" }.uppercase()))
+            "set_location_mode" ->
+                Action.SetLocationMode(
+                    com.tdvorak.nothingmodes.engine.model.LocationMode
+                        .valueOf(mode.ifBlank { "OFF" }.uppercase()),
+                )
             "set_auto_sync" -> Action.SetAutoSync(on)
             "clear_notifications" -> Action.ClearNotifications
             "set_aod" -> {
@@ -313,10 +360,18 @@ class DebugActionReceiver : BroadcastReceiver() {
         private var toyMessenger: android.os.Messenger? = null
 
         /** Bind a foreign Glyph Toy service and send prepare/start (or end+unbind). */
-        private fun toyControl(context: Context, intent: Intent, play: Boolean) {
+        private fun toyControl(
+            context: Context,
+            intent: Intent,
+            play: Boolean,
+        ) {
             val appContext = context.applicationContext
             if (!play) {
-                val conn = toyConnection ?: run { Log.i(TAG, "toy_stop: nothing bound"); return }
+                val conn =
+                    toyConnection ?: run {
+                        Log.i(TAG, "toy_stop: nothing bound")
+                        return
+                    }
                 toyMessenger?.let { sendToyMsg(it, "end") }
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                     runCatching { appContext.unbindService(conn) }
@@ -339,7 +394,10 @@ class DebugActionReceiver : BroadcastReceiver() {
                 }
             val conn =
                 object : android.content.ServiceConnection {
-                    override fun onServiceConnected(name: android.content.ComponentName?, binder: android.os.IBinder?) {
+                    override fun onServiceConnected(
+                        name: android.content.ComponentName?,
+                        binder: android.os.IBinder?,
+                    ) {
                         val messenger = android.os.Messenger(binder)
                         toyMessenger = messenger
                         sendToyMsg(messenger, "prepare")
@@ -355,7 +413,10 @@ class DebugActionReceiver : BroadcastReceiver() {
                 }
             val bound =
                 runCatching { appContext.bindService(bindIntent, conn, Context.BIND_AUTO_CREATE) }
-                    .getOrElse { Log.e(TAG, "bind threw: ${it.message}"); false }
+                    .getOrElse {
+                        Log.e(TAG, "bind threw: ${it.message}")
+                        false
+                    }
             Log.i(TAG, "toy_play bind($pkg/$cls) -> $bound")
             if (bound) toyConnection = conn
         }
@@ -364,13 +425,17 @@ class DebugActionReceiver : BroadcastReceiver() {
          * Pull a foreign toy's registered preview_res_id from the toy provider,
          * decode it via that app's own resources, and paint it on our matrix.
          */
-        private fun toyPreview(context: Context, intent: Intent) {
+        private fun toyPreview(
+            context: Context,
+            intent: Intent,
+        ) {
             val pkg = intent.getStringExtra("pkg").orEmpty()
             if (pkg.isBlank()) {
                 Log.w(TAG, "toy_preview needs -e pkg <package>")
                 return
             }
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+            kotlinx.coroutines
+                .CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
                 .launch {
                     try {
                         // Find the toy row(s) for the package.
@@ -398,13 +463,17 @@ class DebugActionReceiver : BroadcastReceiver() {
                         }
                         val res = context.packageManager.getResourcesForApplication(pkg)
                         val drawable =
-                            runCatching { androidx.core.content.res.ResourcesCompat.getDrawable(res, previewId, null) }
-                                .getOrNull()
+                            runCatching {
+                                androidx.core.content.res.ResourcesCompat
+                                    .getDrawable(res, previewId, null)
+                            }.getOrNull()
                         if (drawable == null) {
                             Log.w(TAG, "toy_preview: drawable $previewId not decodable in $pkg")
                             return@launch
                         }
-                        val bmp = com.nothing.ketchum.GlyphMatrixUtils.drawableToBitmap(drawable)
+                        val bmp =
+                            com.nothing.ketchum.GlyphMatrixUtils
+                                .drawableToBitmap(drawable)
                         val provider =
                             EntryPointAccessors
                                 .fromApplication(context.applicationContext, DebugActionEntryPoint::class.java)
@@ -448,7 +517,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                 pct = if (level > 0 && scale > 0) (level * 100 / scale).coerceIn(0, 100) else 0
                 charging =
                     status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                        status == BatteryManager.BATTERY_STATUS_FULL
+                    status == BatteryManager.BATTERY_STATUS_FULL
             }
 
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -471,7 +540,10 @@ class DebugActionReceiver : BroadcastReceiver() {
             }
         }
 
-        private fun sendToyMsg(messenger: android.os.Messenger, event: String) {
+        private fun sendToyMsg(
+            messenger: android.os.Messenger,
+            event: String,
+        ) {
             runCatching {
                 val msg =
                     android.os.Message.obtain(null, 1).apply {

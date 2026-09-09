@@ -1,16 +1,13 @@
 package com.tdvorak.nothingmodes.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,36 +17,35 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.Action
-import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
-import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.AodMode
-import com.tdvorak.nothingmodes.engine.model.CapabilityIds
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
@@ -57,10 +53,8 @@ import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
-import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
-import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -177,8 +171,7 @@ fun ActionCatalogScreen(navController: NavController) {
             items
                 .filter {
                     if (search.isBlank()) true else it.label.contains(search, ignoreCase = true)
-                }
-                .filter {
+                }.filter {
                     if (activeFilters.isEmpty()) return@filter true
                     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(it.action))
                     val resolution = resolver.resolve(it.label, required)
@@ -262,7 +255,10 @@ fun ActionCatalogScreen(navController: NavController) {
                         if (activeFilters.isNotEmpty() || search.isNotBlank()) {
                             item {
                                 TextButton(
-                                    onClick = { activeFilters = emptySet(); search = "" },
+                                    onClick = {
+                                        activeFilters = emptySet()
+                                        search = ""
+                                    },
                                     modifier = Modifier.padding(start = NothingSpacing.sm),
                                 ) {
                                     Text("Clear", fontFamily = NothingFonts.mono())
@@ -424,17 +420,18 @@ private fun CatalogListItem(
                 )
             }
         },
-        trailing = if (badges.isNotEmpty()) {
-            {
-                Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
-                    badges.take(2).forEach {
-                        NothingRequirementBadge(text = it)
+        trailing =
+            if (badges.isNotEmpty()) {
+                {
+                    Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+                        badges.take(2).forEach {
+                            NothingRequirementBadge(text = it)
+                        }
                     }
                 }
-            }
-        } else {
-            null
-        },
+            } else {
+                null
+            },
     )
 }
 
@@ -445,18 +442,19 @@ private fun actionCatalogMeta(
     val static = actionRequirementHint(action) ?: actionDescription(action)
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
-    val subtitle = if (!resolution.canRun) {
-        resolution.missingReasons.values.firstOrNull() ?: static
-    } else {
-        static
-    }
+    val subtitle =
+        if (!resolution.canRun) {
+            resolution.missingReasons.values.firstOrNull() ?: static
+        } else {
+            static
+        }
     val badges = requirementBadges(resolution.missing)
     return subtitle to badges
 }
 
-
-
-private enum class ActionFilter(val label: String) {
+private enum class ActionFilter(
+    val label: String,
+) {
     NO_SHIZUKU("No Shizuku"),
     NEEDS_SHIZUKU("Needs Shizuku"),
     NEEDS_SETUP("Needs setup"),
@@ -467,7 +465,8 @@ private val ActionFilterSetSaver: Saver<Set<ActionFilter>, String> =
     Saver(
         save = { it.joinToString(",") { f -> f.name } },
         restore = { s ->
-            s.split(",")
+            s
+                .split(",")
                 .mapNotNull { n -> ActionFilter.entries.find { it.name == n } }
                 .toSet()
         },

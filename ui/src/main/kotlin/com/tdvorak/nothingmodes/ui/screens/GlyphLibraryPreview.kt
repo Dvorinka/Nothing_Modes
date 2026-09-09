@@ -41,7 +41,12 @@ fun glyphPreviewFromJson(preview: JsonObject?): GlyphFrameCodec.Design? {
     for (row in 0 until size) {
         val start = (size - widths[row]) / 2
         for (c in 0 until widths[row]) {
-            val v = firstFrame.getOrNull(idx)?.jsonPrimitive?.intOrNull?.coerceIn(0, 255) ?: 0
+            val v =
+                firstFrame
+                    .getOrNull(idx)
+                    ?.jsonPrimitive
+                    ?.intOrNull
+                    ?.coerceIn(0, 255) ?: 0
             grid[row * size + start + c] = v * 4095 / 255
             idx++
         }
@@ -90,7 +95,11 @@ fun AnimatedGlyphCanvas(
     var frame by remember(design) { mutableStateOf(0) }
     LaunchedEffect(design) {
         while (true) {
-            val d = design.frames.getOrNull(frame)?.durationMs?.takeIf { it > 0 } ?: 100
+            val d =
+                design.frames
+                    .getOrNull(frame)
+                    ?.durationMs
+                    ?.takeIf { it > 0 } ?: 100
             delay(d.toLong())
             frame = (frame + 1) % design.frames.size.coerceAtLeast(1)
         }

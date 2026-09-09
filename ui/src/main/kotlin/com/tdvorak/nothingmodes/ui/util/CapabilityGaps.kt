@@ -22,15 +22,19 @@ fun capabilityGaps(
     missing: Map<String, String>,
     caps: DeviceCapabilities,
 ): List<CapabilityGap> =
-    missing.map { (id, reason) ->
-        CapabilityGap(
-            reason = reason,
-            fixLabel = fixLabelFor(id, caps),
-            onFix = { openFixFor(context, id, caps) },
-        )
-    }.distinctBy { it.reason }
+    missing
+        .map { (id, reason) ->
+            CapabilityGap(
+                reason = reason,
+                fixLabel = fixLabelFor(id, caps),
+                onFix = { openFixFor(context, id, caps) },
+            )
+        }.distinctBy { it.reason }
 
-private fun fixLabelFor(id: String, caps: DeviceCapabilities): String =
+private fun fixLabelFor(
+    id: String,
+    caps: DeviceCapabilities,
+): String =
     when (id) {
         CapabilityIds.SHIZUKU_REQUIRED,
         CapabilityIds.ACTION_SET_DARK_MODE,
@@ -85,7 +89,8 @@ private fun fixLabelFor(id: String, caps: DeviceCapabilities): String =
         CapabilityIds.ACTION_SET_FLASHLIGHT -> "Flashlight unavailable"
         CapabilityIds.ACTION_VIBRATE -> "Vibrator unavailable"
 
-        in setOf(
+        in
+        setOf(
             CapabilityIds.ACTION_SET_GLYPH,
             CapabilityIds.ACTION_SET_GLYPH_MATRIX,
             CapabilityIds.ACTION_GLYPH_ANIMATE,
@@ -98,7 +103,8 @@ private fun fixLabelFor(id: String, caps: DeviceCapabilities): String =
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             CapabilityIds.ACTION_GLYPH_MUSIC,
-        ) -> "Glyph not available"
+        ),
+        -> "Glyph not available"
 
         else -> "Open settings"
     }
@@ -114,7 +120,11 @@ private fun shizukuFixLabel(caps: DeviceCapabilities): String =
         -> "Check Shizuku"
     }
 
-private fun openFixFor(context: Context, id: String, caps: DeviceCapabilities) {
+private fun openFixFor(
+    context: Context,
+    id: String,
+    caps: DeviceCapabilities,
+) {
     val intent =
         when (id) {
             CapabilityIds.SHIZUKU_REQUIRED,
@@ -144,9 +154,10 @@ private fun openFixFor(context: Context, id: String, caps: DeviceCapabilities) {
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             CapabilityIds.ACTION_SET_AOD,
-            -> Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            }
+            ->
+                Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
 
             CapabilityIds.TRIGGER_NOTIFICATION,
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
@@ -158,34 +169,39 @@ private fun openFixFor(context: Context, id: String, caps: DeviceCapabilities) {
 
             CapabilityIds.TRIGGER_PHONE_SMS,
             CapabilityIds.ACTION_SEND_SMS,
-            -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            }
-
-            CapabilityIds.TRIGGER_PHONE_CALL -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            }
-
-            CapabilityIds.TRIGGER_GEOFENCE,
-            CapabilityIds.STATE_LOCATION,
-            -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ->
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:${context.packageName}")
                 }
-            } else {
-                Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-            }
 
-            CapabilityIds.TRIGGER_CALENDAR_EVENT -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            }
+            CapabilityIds.TRIGGER_PHONE_CALL ->
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+
+            CapabilityIds.TRIGGER_GEOFENCE,
+            CapabilityIds.STATE_LOCATION,
+            ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                } else {
+                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                }
+
+            CapabilityIds.TRIGGER_CALENDAR_EVENT ->
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
 
             CapabilityIds.ACTION_LOCK_SCREEN -> Intent(Settings.ACTION_SECURITY_SETTINGS)
             CapabilityIds.ACTION_SET_WIFI -> Intent(Settings.ACTION_WIFI_SETTINGS)
             CapabilityIds.ACTION_SET_BLUETOOTH -> Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-            else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            }
+            else ->
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
         }
     runCatching {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -193,8 +209,11 @@ private fun openFixFor(context: Context, id: String, caps: DeviceCapabilities) {
     }
 }
 
-private fun shizukuFixIntent(context: Context, caps: DeviceCapabilities): Intent {
-    return when (caps.shizukuStatus) {
+private fun shizukuFixIntent(
+    context: Context,
+    caps: DeviceCapabilities,
+): Intent =
+    when (caps.shizukuStatus) {
         ShizukuCapabilityStatus.NOT_INSTALLED ->
             runCatching {
                 context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
@@ -203,13 +222,14 @@ private fun shizukuFixIntent(context: Context, caps: DeviceCapabilities): Intent
 
         ShizukuCapabilityStatus.INSTALLED_NOT_RUNNING,
         ShizukuCapabilityStatus.RUNNING_NOT_AUTHORIZED,
-        -> context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
-            ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        ->
+            context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
+                ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:moe.shizuku.privileged.api")
+                }
+
+        else ->
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.parse("package:moe.shizuku.privileged.api")
             }
-
-        else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.parse("package:moe.shizuku.privileged.api")
-        }
     }
-}

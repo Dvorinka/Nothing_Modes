@@ -43,16 +43,15 @@ fun cronToSummary(cron: String): String {
 }
 
 private fun monthName(month: String): String =
-    java.time.Month.of(month.trim().toIntOrNull()?.coerceIn(1, 12) ?: 1)
+    java.time.Month
+        .of(month.trim().toIntOrNull()?.coerceIn(1, 12) ?: 1)
         .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
 
 /** Human label for enum-style names: INCOMING_CALL_ENDED -> "Incoming call ended". */
-internal fun String.enumLabel(): String =
-    lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+internal fun String.enumLabel(): String = lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
 
 /** Display labels for every entry of an enum, e.g. for pickers. */
-internal inline fun <reified E : Enum<E>> enumLabelList(): List<String> =
-    enumValues<E>().map { it.name.enumLabel() }
+internal inline fun <reified E : Enum<E>> enumLabelList(): List<String> = enumValues<E>().map { it.name.enumLabel() }
 
 /** Reverse lookup for [enumLabelList]. */
 internal inline fun <reified E : Enum<E>> enumByLabel(label: String): E =
