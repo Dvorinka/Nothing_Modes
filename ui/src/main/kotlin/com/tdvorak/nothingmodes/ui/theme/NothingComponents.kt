@@ -1288,9 +1288,10 @@ fun NothingBottomActionBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     subtitle: String = "",
+    containerColor: Color = MaterialTheme.colorScheme.background,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = containerColor,
         modifier =
             modifier
                 .fillMaxWidth()
@@ -1334,9 +1335,10 @@ fun NothingBottomActionBar(
     onSecondaryClick: () -> Unit,
     modifier: Modifier = Modifier,
     primaryEnabled: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.background,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = containerColor,
         modifier =
             modifier
                 .fillMaxWidth()

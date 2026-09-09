@@ -113,6 +113,7 @@ fun ActionConfigSheet(
                 onPrimaryClick = { onDone(current) },
                 secondaryText = "Cancel",
                 onSecondaryClick = onDismiss,
+                containerColor = MaterialTheme.colorScheme.surface,
             )
         }
     }
@@ -1013,21 +1014,10 @@ private fun BooleanRow(
             color = MaterialTheme.colorScheme.onSurface,
             fontFamily = NothingFonts.mono(),
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-        ) {
-            Text(
-                text = if (checked) "ON" else "OFF",
-                style = MaterialTheme.typography.labelSmall,
-                color = NothingColors.accent,
-                fontFamily = NothingFonts.mono(),
-            )
-            NothingToggle(
-                checked = checked,
-                onCheckedChange = onChange,
-            )
-        }
+        NothingToggle(
+            checked = checked,
+            onCheckedChange = onChange,
+        )
     }
 }
 

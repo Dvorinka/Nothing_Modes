@@ -163,11 +163,13 @@ fun ActionCatalogScreen(navController: NavController) {
                 .filter {
                     if (activeFilters.isEmpty()) return@filter true
                     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(it.action))
+                    val resolution = resolver.resolve(it.label, required)
+                    val needsShizuku = resolution.missingReasons.values.any { it.contains("Shizuku", ignoreCase = true) }
                     activeFilters.all { f ->
                         when (f) {
-                            ActionFilter.NO_SHIZUKU -> CapabilityIds.SHIZUKU_REQUIRED !in required
-                            ActionFilter.NEEDS_SHIZUKU -> CapabilityIds.SHIZUKU_REQUIRED in required
-                            ActionFilter.NEEDS_SETUP -> !resolver.resolve(it.label, required).canRun
+                            ActionFilter.NO_SHIZUKU -> !needsShizuku
+                            ActionFilter.NEEDS_SHIZUKU -> needsShizuku
+                            ActionFilter.NEEDS_SETUP -> !resolution.canRun
                             ActionFilter.GLYPH -> it.category == "Glyph"
                         }
                     }

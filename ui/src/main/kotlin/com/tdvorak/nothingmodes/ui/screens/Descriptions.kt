@@ -208,12 +208,38 @@ fun actionRequirementHint(action: Action): String? =
         is Action.GlyphTurnOff ->
             "Clears anything currently on the Glyph."
 
-        is Action.SetWifi, is Action.SetBluetooth, is Action.SetMobileData,
-        is Action.SetAirplaneMode, is Action.SetHotspot, is Action.SetNfc,
-        is Action.SetDataSaver, is Action.SetAutoSync, is Action.SetBatterySaver,
-        is Action.SetAlwaysOnDisplay, is Action.SetLocationMode,
-        ->
-            "Silent toggle needs Shizuku — without it, the matching system panel opens for one tap."
+        is Action.SetWifi ->
+            "Turns Wi-Fi on or off. Silent toggling needs Shizuku; without it the system Wi-Fi panel opens for one tap."
+
+        is Action.SetBluetooth ->
+            "Turns Bluetooth on or off. Silent toggling needs Shizuku; without it the system Bluetooth panel opens for one tap."
+
+        is Action.SetMobileData ->
+            "Turns mobile data on or off. Silent toggling needs Shizuku; without it the system data panel opens for one tap."
+
+        is Action.SetAirplaneMode ->
+            "Turns airplane mode on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetHotspot ->
+            "Turns the mobile hotspot on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetNfc ->
+            "Turns NFC on or off. Silent toggling needs Shizuku; without it the system NFC panel opens for one tap."
+
+        is Action.SetDataSaver ->
+            "Turns data saver on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetAutoSync ->
+            "Turns auto-sync on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetBatterySaver ->
+            "Turns battery saver on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetAlwaysOnDisplay ->
+            "Turns Always-on Display on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
+
+        is Action.SetLocationMode ->
+            "Changes the device location mode. Silent toggling needs Shizuku; without it the system location panel opens for one tap."
 
         is Action.SetBrightness, is Action.SetAutoBrightness, is Action.SetExtraDim,
         is Action.SetScreenTimeout, is Action.SetAutoRotate, is Action.SetScreenRotation,
@@ -230,9 +256,9 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."
-        is Action.LaunchApp -> "Opens the selected app(s)."
-        is Action.OpenUrl -> "Opens a URL in the default browser."
-        is Action.OpenSettingsScreen -> "Opens a specific Settings screen."
+        is Action.LaunchApp -> "Opens the selected app(s) in the foreground."
+        is Action.OpenUrl -> "Opens a URL in the default browser or a chosen app."
+        is Action.OpenSettingsScreen -> "Opens a specific Android Settings screen."
         is Action.CopyText -> "Copies text to the clipboard."
         is Action.Wait -> "Waits the given duration before the next action runs."
         is Action.Vibrate -> "Vibrates the phone for the selected duration."

@@ -300,6 +300,7 @@ fun ConditionConfigSheet(
                 onPrimaryClick = { onDone(current) },
                 secondaryText = "Cancel",
                 onSecondaryClick = onDismiss,
+                containerColor = MaterialTheme.colorScheme.surface,
             )
         }
     }
