@@ -7,7 +7,14 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.data.NothingModesDatabase
+import com.tdvorak.nothingmodes.data.entities.NotificationLogEntity
 import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * NotificationListenerService that dispatches notification trigger events.
@@ -23,6 +30,21 @@ import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
  * </service>
  */
 class AutomationNotificationListener : NotificationListenerService() {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var database: NothingModesDatabase? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        database = NothingModesDatabase.build(this)
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        database?.close()
+        database = null
+        super.onDestroy()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName ?: return
         val notification = sbn.notification ?: return
@@ -33,6 +55,22 @@ class AutomationNotificationListener : NotificationListenerService() {
         val sender = extras.getString(Notification.EXTRA_SUB_TEXT, "") ?: ""
 
         Log.d(TAG, "Notification posted from $pkg")
+
+        // Persist to notification log on a background thread.
+        database?.let { db ->
+            scope.launch {
+                db
+                    .notificationLogDao()
+                    .insert(
+                        NotificationLogEntity(
+                            packageName = pkg,
+                            title = title,
+                            text = text,
+                            postTime = sbn.postTime,
+                        ),
+                    )
+            }
+        }
 
         // Dispatch to AutomationService
         val intent =

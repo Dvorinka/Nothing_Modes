@@ -68,6 +68,7 @@ class RealActionExecutorGlyphTest {
             dnd = FakeDndController,
             volume = FakeVolumeController,
             screenTimeout = FakeScreenTimeoutController,
+            wallpaper = FakeWallpaperController,
             darkMode = FakeDarkModeController,
             ringer = FakeRingerController,
             shellFactory = null,
@@ -310,6 +311,13 @@ private object FakeScreenTimeoutController : ScreenTimeoutController {
     override suspend fun setScreenTimeout(timeoutMs: Int) = ControllerResult.Success
 
     override suspend fun getScreenTimeout(): Int? = null
+}
+
+private object FakeWallpaperController : WallpaperController {
+    override suspend fun setWallpaper(
+        uri: String,
+        which: String,
+    ) = ControllerResult.Success
 }
 
 private object FakeDarkModeController : DarkModeController {

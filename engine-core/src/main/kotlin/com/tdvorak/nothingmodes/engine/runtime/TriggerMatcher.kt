@@ -91,6 +91,11 @@ class TriggerMatcher {
             is Trigger.TorchState ->
                 event is TriggerEvent.TorchStateChanged &&
                     event.on == trigger.on
+
+            is Trigger.MediaPlayback ->
+                event is TriggerEvent.MediaPlaybackChanged &&
+                    event.playing == trigger.playing &&
+                    (trigger.packageName == null || event.packageName == trigger.packageName)
         }
 
     /** Checks if a time trigger should fire on the given day. */

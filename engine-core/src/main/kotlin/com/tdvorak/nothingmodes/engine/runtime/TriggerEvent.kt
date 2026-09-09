@@ -122,6 +122,14 @@ sealed interface TriggerEvent {
         override val eventId: String,
         val on: Boolean,
     ) : TriggerEvent
+
+    data class MediaPlaybackChanged(
+        override val eventId: String,
+        val playing: Boolean,
+        val packageName: String?,
+        val artist: String?,
+        val title: String?,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

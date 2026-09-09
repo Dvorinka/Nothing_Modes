@@ -54,6 +54,7 @@ class RealActionExecutor(
     private val dnd: DndController,
     private val volume: VolumeController,
     private val screenTimeout: ScreenTimeoutController,
+    private val wallpaper: WallpaperController,
     private val darkMode: DarkModeController,
     private val ringer: RingerController,
     private val shellFactory: PrivilegedShellFactory? = null,
@@ -91,6 +92,7 @@ class RealActionExecutor(
             is Action.SetAutoBrightness -> brightness.setAutoBrightness(action.on).toActionResult()
             is Action.SetExtraDim -> setExtraDim(action.on)
             is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
+            is Action.SetWallpaper -> wallpaper.setWallpaper(action.uri, action.which).toActionResult()
             is Action.SetVolume -> {
                 val results =
                     action.volumes.map { (stream, level) ->
@@ -603,6 +605,14 @@ class RealActionExecutor(
             "airplane", "airplane_on" -> GlyphPresets.airplaneOn
             "airplane_off" -> GlyphPresets.airplaneOff
             "off" -> GlyphPresets.off
+            "now_playing", "nowplaying" -> {
+                val info = com.tdvorak.nothingmodes.engine.runtime.ActiveMedia.info.value
+                if (info != null && (info.artist != null || info.title != null)) {
+                    GlyphPresets.nowPlaying(info.artist ?: "", info.title ?: "")
+                } else {
+                    GlyphPresets.notificationLow
+                }
+            }
             else ->
                 Regex("^volume_(\\d+)$")
                     .matchEntire(name.lowercase())
@@ -1222,6 +1232,7 @@ class RealActionExecutor(
                 dnd = AndroidDndController(context),
                 volume = AndroidVolumeController(context),
                 screenTimeout = AndroidScreenTimeoutController(context),
+                wallpaper = AndroidWallpaperController(context),
                 darkMode = AndroidDarkModeController(context),
                 ringer = AndroidRingerController(context),
                 shellFactory = shellFactory,

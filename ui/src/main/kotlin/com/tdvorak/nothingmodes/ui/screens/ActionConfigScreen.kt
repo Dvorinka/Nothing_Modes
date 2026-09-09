@@ -184,6 +184,22 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.SetWallpaper -> {
+                        NothingInput(
+                            value = a.uri,
+                            onValueChange = { action = a.copy(uri = it) },
+                            label = "Image URI",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingEnumSelector(
+                            label = "Which",
+                            value = a.which,
+                            options = listOf("home", "lock"),
+                            onSelect = { action = a.copy(which = it) },
+                        )
+                    }
+
                     is Action.SetAlwaysOnDisplay -> {
                         NothingEnumSelector(
                             label = "AOD mode",

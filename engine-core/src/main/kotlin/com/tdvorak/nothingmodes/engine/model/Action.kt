@@ -33,6 +33,7 @@ object ActionTypeIds {
     const val SET_AUTO_BRIGHTNESS = "set_auto_brightness"
     const val SET_EXTRA_DIM = "set_extra_dim"
     const val SET_SCREEN_TIMEOUT = "set_screen_timeout"
+    const val SET_WALLPAPER = "set_wallpaper"
     const val SET_GLYPH = "set_glyph"
     const val SET_GLYPH_MATRIX = "set_glyph_matrix"
     const val GLYPH_ANIMATE = "glyph_animate"
@@ -201,6 +202,15 @@ sealed interface Action {
     @SerialName(ActionTypeIds.SET_SCREEN_TIMEOUT)
     data class SetScreenTimeout(
         val timeoutMs: Int,
+        val restore: Boolean = false,
+    ) : Action
+
+    /** Set the device wallpaper from a content URI. which = "home" or "lock". */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_WALLPAPER)
+    data class SetWallpaper(
+        val uri: String,
+        val which: String = "home",
         val restore: Boolean = false,
     ) : Action
 
@@ -607,6 +617,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
             is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
             is Action.SetScreenTimeout -> setOf("screen_off_timeout")
+            is Action.SetWallpaper -> setOf("wallpaper_$which")
             is Action.SetDarkMode -> setOf("night_mode")
             is Action.SetDnd -> setOf("dnd_mode")
             is Action.SetVolume -> volumes.keys.map { "volume_${it.name.lowercase()}" }.toSet()

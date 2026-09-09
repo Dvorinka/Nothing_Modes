@@ -13,6 +13,7 @@ import com.tdvorak.nothingmodes.data.dao.DraftDao
 import com.tdvorak.nothingmodes.data.dao.ExecutionJournalDao
 import com.tdvorak.nothingmodes.data.dao.FireClaimDao
 import com.tdvorak.nothingmodes.data.dao.ModeActivationDao
+import com.tdvorak.nothingmodes.data.dao.NotificationLogDao
 import com.tdvorak.nothingmodes.data.dao.ScheduledTimeAlarmDao
 import com.tdvorak.nothingmodes.data.dao.StateSnapshotDao
 import com.tdvorak.nothingmodes.data.entities.ActionResultEntity
@@ -20,6 +21,7 @@ import com.tdvorak.nothingmodes.data.entities.AuditEntity
 import com.tdvorak.nothingmodes.data.entities.AutomationEntity
 import com.tdvorak.nothingmodes.data.entities.FireClaimEntity
 import com.tdvorak.nothingmodes.data.entities.ModeActivationEntity
+import com.tdvorak.nothingmodes.data.entities.NotificationLogEntity
 import com.tdvorak.nothingmodes.data.entities.PendingDraftEntity
 import com.tdvorak.nothingmodes.data.entities.ScheduledTimeAlarmEntity
 import com.tdvorak.nothingmodes.data.entities.StateSnapshotEntity
@@ -34,8 +36,9 @@ import com.tdvorak.nothingmodes.data.entities.StateSnapshotEntity
         ScheduledTimeAlarmEntity::class,
         StateSnapshotEntity::class,
         ModeActivationEntity::class,
+        NotificationLogEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -56,11 +59,30 @@ abstract class NothingModesDatabase : RoomDatabase() {
 
     abstract fun modeActivationDao(): ModeActivationDao
 
+    abstract fun notificationLogDao(): NotificationLogDao
+
     companion object {
         val MIGRATION_1_2: Migration =
             object : Migration(1, 2) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE audit_log ADD COLUMN latencyMillis INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+
+        val MIGRATION_2_3: Migration =
+            object : Migration(2, 3) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS notification_log (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            packageName TEXT NOT NULL,
+                            title TEXT NOT NULL,
+                            text TEXT NOT NULL,
+                            postTime INTEGER NOT NULL
+                        )
+                        """.trimIndent(),
+                    )
                 }
             }
 
@@ -70,7 +92,7 @@ abstract class NothingModesDatabase : RoomDatabase() {
         ): NothingModesDatabase =
             Room
                 .databaseBuilder(context, NothingModesDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
 

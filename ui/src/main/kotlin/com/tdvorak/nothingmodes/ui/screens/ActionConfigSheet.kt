@@ -223,6 +223,21 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.SetWallpaper -> {
+            NothingInput(
+                value = a.uri,
+                onValueChange = { onActionChange(a.copy(uri = it)) },
+                label = "Image URI",
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingEnumSelector(
+                label = "Which",
+                value = a.which,
+                options = listOf("home", "lock"),
+                onSelect = { onActionChange(a.copy(which = it)) },
+            )
+        }
+
         is Action.SetAlwaysOnDisplay -> {
             Column {
                 NothingEnumSelector(
@@ -942,6 +957,7 @@ internal val GLYPH_PRESET_NAMES =
         "bluetooth_disconnected",
         "airplane",
         "airplane_off",
+        "now_playing",
         "off",
     )
 
@@ -994,6 +1010,7 @@ private fun actionTitle(action: Action): String =
         is Action.SetAutoBrightness -> "Auto brightness"
         is Action.SetExtraDim -> "Extra dim"
         is Action.SetScreenTimeout -> "Screen timeout"
+        is Action.SetWallpaper -> "Wallpaper"
         is Action.SetAlwaysOnDisplay -> "Always-on display"
         is Action.SetDnd -> "Do not disturb"
         is Action.SetVolume -> "Volume"

@@ -88,6 +88,7 @@ class AutomationService : Service() {
             ACTION_BT_DEVICE -> handleBtDevice(intent)
             ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
             ACTION_TORCH_STATE -> handleTorchState(intent)
+            ACTION_MEDIA_PLAYBACK -> handleMediaPlayback(intent)
             ACTION_MANUAL -> handleManual(intent)
             ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
         }
@@ -417,6 +418,19 @@ class AutomationService : Service() {
         )
     }
 
+    private fun handleMediaPlayback(intent: Intent) {
+        val playing = intent.getBooleanExtra(EXTRA_MEDIA_PLAYING, false)
+        dispatchEvent(
+            TriggerEvent.MediaPlaybackChanged(
+                eventId = "media:${System.currentTimeMillis()}",
+                playing = playing,
+                packageName = intent.getStringExtra(EXTRA_MEDIA_PACKAGE),
+                artist = intent.getStringExtra(EXTRA_MEDIA_ARTIST),
+                title = intent.getStringExtra(EXTRA_MEDIA_TITLE),
+            ),
+        )
+    }
+
     private fun handleManual(intent: Intent) {
         val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
         val automationId = AutomationId(idStr)
@@ -566,6 +580,11 @@ class AutomationService : Service() {
         const val ACTION_TORCH_STATE = "com.tdvorak.nothingmodes.TORCH_STATE"
         const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
         const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
+        const val ACTION_MEDIA_PLAYBACK = "com.tdvorak.nothingmodes.MEDIA_PLAYBACK"
+        const val EXTRA_MEDIA_PLAYING = "media_playing"
+        const val EXTRA_MEDIA_PACKAGE = "media_pkg"
+        const val EXTRA_MEDIA_ARTIST = "media_artist"
+        const val EXTRA_MEDIA_TITLE = "media_title"
         const val EXTRA_MANUAL_ID = "manual_automation_id"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001

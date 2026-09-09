@@ -95,11 +95,11 @@ All items verified complete. See TODO.md for historical record.
 - [x] Mode deactivation visual
 - [x] Automation fired visual
 - [x] 15+ presets defined
-- [ ] Custom visual editor (pick channels + period + cycles)
+- [~] Custom visual editor (matrix editor exists; light stripe editor is text-only)
 
 ### Glyph Notification Integration
 - [x] Notification glyph pattern on ShowNotification action
-- [ ] Per-app notification patterns
+- [~] Per-app notification patterns — achievable via Trigger.Notification + GlyphPreset action
 - [x] Notification glyph timeout (auto-off after N seconds)
 
 ### Glyph Progress & Countdown
@@ -117,8 +117,8 @@ All items verified complete. See TODO.md for historical record.
 ### Notifications
 - [x] NotificationListenerService
 - [~] Notification glyph patterns on incoming notifications — presets exist; not auto-wired
-- [ ] Notification filtering (per-app, per-priority)
-- [ ] Notification history/log
+- [~] Notification filtering — per-app via Trigger.Notification; per-priority not exposed
+- [x] Notification history/log
 
 ### Phone State
 - [x] PhoneStateReceiver (incoming call, offhook, idle)
@@ -143,7 +143,7 @@ All items verified complete. See TODO.md for historical record.
 - [x] UsageStatsManager polling for foreground app (IO dispatcher)
 - [x] PACKAGE_USAGE_STATS permission detection
 - [x] App-opened trigger dispatch
-- [ ] Screen time tracking
+- [x] Screen time tracking
 
 ### System Settings (via Shizuku where needed)
 - [x] Airplane mode toggle
@@ -157,16 +157,16 @@ All items verified complete. See TODO.md for historical record.
 
 ### Media & Audio
 - [x] Media playback control (play/pause/next/prev/stop)
-- [ ] Media session tracking (playing/paused state)
-- [ ] Now playing info on Glyph Matrix
-- [ ] Per-app volume control
+- [x] Media session tracking (playing/paused state)
+- [x] Now playing info on Glyph Matrix
+- [~] Per-app volume control — no public Android per-app volume API; stream volume + conditions
 
 ### Camera & Display
 - [x] Camera flip detection (FlipReceiver)
 - [x] Always-on display control (Glyph Toy AOD)
 - [x] Screen rotation lock
 - [x] Refresh rate control
-- [ ] Wallpaper change on mode activation
+- [x] Wallpaper change on mode activation
 
 ### Power & Battery
 - [x] Battery saver auto-enable on low battery
@@ -188,7 +188,7 @@ All items verified complete. See TODO.md for historical record.
 - [x] Execution timeline view
 - [x] Statistics dashboard
 - [x] Compatibility/debug screen
-- [~] Dot-matrix typography (uses FontFamily.Monospace for labels; full dot-matrix font TBD)
+- [x] Dot-matrix typography (doto font bundled and used across screens)
 
 ### Build & Distribution
 - [x] Release build config (R8/ProGuard, signing)

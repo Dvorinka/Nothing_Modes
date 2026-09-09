@@ -20,6 +20,7 @@ import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphEditorScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
+import com.tdvorak.nothingmodes.ui.screens.NotificationLogScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 import com.tdvorak.nothingmodes.ui.screens.TemplateCatalogScreen
@@ -40,6 +41,7 @@ object Routes {
     const val ACTION_CATALOG = "action_catalog"
     const val ACTION_CONFIG = "action_config?action={action_json}"
     const val EXECUTION_LOG = "log"
+    const val NOTIFICATION_LOG = "notification_log"
     const val GLYPH_PREVIEW = "glyph_preview"
     const val GLYPH_EDITOR = "glyph_editor"
     const val SETTINGS = "settings"
@@ -241,6 +243,10 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             ExecutionLogScreen(onBack = { navController.popBackStack() })
         }
 
+        composable(Routes.NOTIFICATION_LOG) {
+            NotificationLogScreen(onBack = { navController.popBackStack() })
+        }
+
         composable(Routes.GLYPH_PREVIEW) {
             GlyphPreviewScreen(
                 onBack = { navController.popBackStack() },
@@ -256,6 +262,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
                 onBack = { navController.popBackStack() },
                 onOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onGlyphPreview = { navController.navigate(Routes.GLYPH_PREVIEW) },
+                onNotificationLog = { navController.navigate(Routes.NOTIFICATION_LOG) },
             )
         }
 

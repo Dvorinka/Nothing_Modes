@@ -122,6 +122,7 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
         TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
         TriggerType("Torch", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
+        TriggerType("Media playback", "Device", Icons.Outlined.PlayCircle, Trigger.MediaPlayback()),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -545,6 +546,12 @@ private fun TriggerConfigContent(
                 onUpdate = onUpdate,
             )
 
+        is Trigger.MediaPlayback ->
+            MediaPlaybackContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
+
         is Trigger.ScreenStateTrigger ->
             ScreenStateContent(
                 state = t.state,
@@ -744,6 +751,30 @@ private fun TorchStateContent(
             text = "Fires when the camera flashlight turns ${if (trigger.on) "on" else "off"}. No camera permission is needed to read the state.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun MediaPlaybackContent(
+    trigger: Trigger.MediaPlayback,
+    onUpdate: (Trigger.MediaPlayback) -> Unit,
+) {
+    Column {
+        BooleanRow(
+            label = "When media starts playing",
+            checked = trigger.playing,
+            onChange = { onUpdate(trigger.copy(playing = it)) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            label = "App package (optional)",
+            value = trigger.packageName ?: "",
+            onValueChange = { onUpdate(trigger.copy(packageName = it.ifBlank { null })) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(
+            text = "Fires when any media session starts or stops playing. Leave the package blank to match all apps.",
         )
     }
 }

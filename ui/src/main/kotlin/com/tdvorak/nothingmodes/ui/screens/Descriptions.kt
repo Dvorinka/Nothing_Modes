@@ -107,6 +107,7 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.DeviceUnlocked -> "Device unlocked"
             is Trigger.DeviceLocked -> "Device locked"
             is Trigger.TorchState -> "Torch ${if (trigger.on) "on" else "off"}"
+            is Trigger.MediaPlayback -> "Media ${if (trigger.playing) "playing" else "stopped"}${trigger.packageName?.let { ": $it" } ?: ""}"
         }
     ).uppercase()
 
@@ -148,6 +149,7 @@ fun actionDescription(action: Action): String =
                 val label = screenTimeoutPresets.firstOrNull { it.second == action.timeoutMs }?.first ?: "${action.timeoutMs}ms"
                 "Screen Timeout: $label"
             }
+            is Action.SetWallpaper -> "Wallpaper: ${action.which} (${action.uri.take(30)})"
             is Action.SetGlyph -> "Glyph: ${if (action.on) "On" else "Off"}"
             is Action.SetGlyphMatrix -> "Glyph Matrix: ${if (action.restore) "Restore" else "Set"}"
             is Action.GlyphAnimate -> "Glyph Animate: ${action.zone ?: "all"} ${action.periodMs}ms x${action.cycles}"

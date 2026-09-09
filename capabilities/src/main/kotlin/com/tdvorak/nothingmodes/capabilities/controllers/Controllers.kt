@@ -55,6 +55,14 @@ interface ScreenTimeoutController {
     suspend fun getScreenTimeout(): Int?
 }
 
+/** Wallpaper. which = "home" or "lock". */
+interface WallpaperController {
+    suspend fun setWallpaper(
+        uri: String,
+        which: String,
+    ): ControllerResult
+}
+
 /** Dark mode (night mode). */
 interface DarkModeController {
     suspend fun setDarkMode(mode: com.tdvorak.nothingmodes.engine.model.NightMode): ControllerResult

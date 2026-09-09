@@ -24,6 +24,7 @@ object CapabilityIds {
     const val TRIGGER_WIFI_CONNECTED = "trigger_wifi_connected"
     const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
     const val TRIGGER_TORCH_STATE = "trigger_torch_state"
+    const val TRIGGER_MEDIA_PLAYBACK = "trigger_media_playback"
 
     // State readers
     const val STATE_READER_BUILTIN = "state_reader_builtin"
@@ -52,6 +53,7 @@ object CapabilityIds {
     const val ACTION_SET_AUTO_BRIGHTNESS = "action_set_auto_brightness"
     const val ACTION_SET_EXTRA_DIM = "action_set_extra_dim"
     const val ACTION_SET_SCREEN_TIMEOUT = "action_set_screen_timeout"
+    const val ACTION_SET_WALLPAPER = "action_set_wallpaper"
     const val ACTION_SET_GLYPH = "action_set_glyph"
     const val ACTION_SET_GLYPH_MATRIX = "action_set_glyph_matrix"
     const val ACTION_GLYPH_ANIMATE = "action_glyph_animate"
@@ -101,6 +103,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             -> "Write system settings permission"
+            CapabilityIds.ACTION_SET_WALLPAPER -> "Set wallpaper permission"
             CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
             CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "Camera flashlight"
@@ -127,6 +130,7 @@ object CapabilityLabels {
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
             CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Media session access"
             CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -182,6 +186,7 @@ object CapabilityRequirements {
             is Trigger.DeviceUnlocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.TorchState -> setOf(CapabilityIds.TRIGGER_TORCH_STATE)
+            is Trigger.MediaPlayback -> setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =
@@ -203,6 +208,7 @@ object CapabilityRequirements {
             is Action.SetAutoBrightness -> setOf(CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS)
             is Action.SetExtraDim -> setOf(CapabilityIds.ACTION_SET_EXTRA_DIM, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
+            is Action.SetWallpaper -> setOf(CapabilityIds.ACTION_SET_WALLPAPER)
             is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)
             is Action.SetGlyphMatrix -> setOf(CapabilityIds.ACTION_SET_GLYPH_MATRIX)
             is Action.GlyphAnimate -> setOf(CapabilityIds.ACTION_GLYPH_ANIMATE)

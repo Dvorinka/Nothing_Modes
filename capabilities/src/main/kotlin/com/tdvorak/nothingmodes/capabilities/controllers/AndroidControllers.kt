@@ -2,8 +2,10 @@ package com.tdvorak.nothingmodes.capabilities.controllers
 
 import android.app.NotificationManager
 import android.app.UiModeManager
+import android.app.WallpaperManager
 import android.content.Context
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
@@ -201,6 +203,36 @@ class AndroidScreenTimeoutController(
             Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_OFF_TIMEOUT)
         } catch (_: Exception) {
             null
+        }
+}
+
+class AndroidWallpaperController(
+    private val context: Context,
+) : WallpaperController {
+    override suspend fun setWallpaper(
+        uri: String,
+        which: String,
+    ): ControllerResult =
+        try {
+            val wallpaperManager = WallpaperManager.getInstance(context)
+            val parsed = Uri.parse(uri)
+            context.contentResolver.openInputStream(parsed)?.use { stream ->
+                val target =
+                    when (which.lowercase()) {
+                        "lock" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) WallpaperManager.FLAG_LOCK else 0
+                        else -> WallpaperManager.FLAG_SYSTEM
+                    }
+                if (target == WallpaperManager.FLAG_LOCK && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    wallpaperManager.setStream(stream, null, true, WallpaperManager.FLAG_LOCK)
+                } else {
+                    wallpaperManager.setStream(stream)
+                }
+                ControllerResult.Success
+            } ?: ControllerResult.Failure("Could not open wallpaper URI: $uri")
+        } catch (e: SecurityException) {
+            ControllerResult.PermissionRequired
+        } catch (e: Exception) {
+            ControllerResult.Failure(e.message ?: "setWallpaper failed")
         }
 }
 

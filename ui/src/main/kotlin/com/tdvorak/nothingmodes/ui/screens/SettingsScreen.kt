@@ -200,6 +200,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOnboarding: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
+    onNotificationLog: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel =
         hiltViewModel(
@@ -875,6 +876,11 @@ fun SettingsScreen(
                         NothingListRow(
                             title = "Glyph Preview",
                             onClick = onGlyphPreview,
+                        )
+                        NothingDivider()
+                        NothingListRow(
+                            title = "Notification Log",
+                            onClick = onNotificationLog,
                         )
                     }
 

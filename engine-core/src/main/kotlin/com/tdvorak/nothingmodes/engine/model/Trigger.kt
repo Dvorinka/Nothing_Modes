@@ -199,6 +199,14 @@ sealed interface Trigger {
     data class TorchState(
         val on: Boolean = true,
     ) : Trigger
+
+    /** Media playback started or stopped on any active session. */
+    @Serializable
+    @SerialName("media_playback")
+    data class MediaPlayback(
+        val playing: Boolean = true,
+        val packageName: String? = null,
+    ) : Trigger
 }
 
 @Serializable

@@ -35,6 +35,7 @@ class PersistentMonitorService : Service() {
     private var phoneStateReceiver: BroadcastReceiver? = null
     private var torchCallback: android.hardware.camera2.CameraManager.TorchCallback? = null
     private var usageStatsMonitor: UsageStatsMonitor? = null
+    private var mediaSessionMonitor: MediaSessionMonitor? = null
     private var calendarObserver: CalendarObserver? = null
 
     // Last observed BatteryManager.EXTRA_PLUGGED value; -1 = not yet seen.
@@ -68,6 +69,8 @@ class PersistentMonitorService : Service() {
         unregisterCallStateListener()
         usageStatsMonitor?.stop()
         usageStatsMonitor = null
+        mediaSessionMonitor?.stop()
+        mediaSessionMonitor = null
         calendarObserver?.stop()
         calendarObserver = null
         Log.i(TAG, "Persistent monitor stopped")
@@ -201,6 +204,9 @@ class PersistentMonitorService : Service() {
 
         // App-foreground polling via UsageStats (no-ops without Usage Access).
         usageStatsMonitor = UsageStatsMonitor(this).also { it.start() }
+
+        // Media session (playback / now-playing) monitoring.
+        mediaSessionMonitor = MediaSessionMonitor(this).also { it.start() }
     }
 
     private fun dispatchChargerTransition(

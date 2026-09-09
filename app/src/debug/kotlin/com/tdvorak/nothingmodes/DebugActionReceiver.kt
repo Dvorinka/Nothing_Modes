@@ -287,6 +287,11 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_auto_brightness" -> Action.SetAutoBrightness(on)
             "set_extra_dim" -> Action.SetExtraDim(on)
             "set_screen_timeout" -> Action.SetScreenTimeout(duration)
+            "set_wallpaper" ->
+                Action.SetWallpaper(
+                    uri = intent.getStringExtra("uri").orEmpty(),
+                    which = intent.getStringExtra("which").orEmpty().ifBlank { "home" },
+                )
             "set_glyph" -> Action.SetGlyph(on)
             "set_glyph_matrix" -> Action.SetGlyphMatrix()
             "glyph_animate" -> Action.GlyphAnimate(zone = null)
