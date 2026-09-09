@@ -271,6 +271,47 @@ class CustomBuilderViewModel
             _state.value = _state.value.copy(actions = actions)
         }
 
+        /** Group actions [startIndex, endIndex] inclusive into a new Action.Group. */
+        fun groupActions(
+            startIndex: Int,
+            endIndex: Int,
+        ) {
+            val actions = _state.value.actions.toMutableList()
+            if (startIndex < 0 || endIndex >= actions.size || startIndex > endIndex) return
+            val grouped = actions.slice(startIndex..endIndex)
+            repeat(endIndex - startIndex + 1) { actions.removeAt(startIndex) }
+            val name = if (grouped.size == 2 && grouped[0] is Action.Group) {
+                (grouped[0] as Action.Group).name
+            } else {
+                "Group"
+            }
+            val children = grouped.flatMap {
+                when (it) {
+                    is Action.Group -> it.actions
+                    else -> listOf(it)
+                }
+            }
+            actions.add(startIndex, Action.Group(name = name, actions = children))
+            _state.value = _state.value.copy(actions = actions)
+        }
+
+        fun ungroup(index: Int) {
+            val actions = _state.value.actions.toMutableList()
+            if (index < 0 || index >= actions.size) return
+            val group = actions[index] as? Action.Group ?: return
+            actions.removeAt(index)
+            actions.addAll(index, group.actions)
+            _state.value = _state.value.copy(actions = actions)
+        }
+
+        fun toggleGroupCollapsed(index: Int) {
+            val actions = _state.value.actions.toMutableList()
+            if (index < 0 || index >= actions.size) return
+            val group = actions[index] as? Action.Group ?: return
+            actions[index] = group.copy(collapsed = !group.collapsed)
+            _state.value = _state.value.copy(actions = actions)
+        }
+
         fun addCondition(condition: Condition) {
             _state.value = _state.value.copy(conditions = _state.value.conditions + condition)
         }
@@ -729,12 +770,20 @@ fun CustomAutomationBuilderScreen(
                                 ActionRow(
                                     action = action,
                                     index = index,
+                                    isLast = index == state.actions.lastIndex,
                                     onRemove = { viewModel.removeAction(index) },
                                     onUpdate = { viewModel.updateAction(index, it) },
                                     onConfigure = { action ->
                                         editingActionIndex = index
                                         actionSheetAction = action
                                     },
+                                    onGroupWithNext = {
+                                        if (index < state.actions.lastIndex) {
+                                            viewModel.groupActions(index, index + 1)
+                                        }
+                                    },
+                                    onUngroup = { viewModel.ungroup(index) },
+                                    onToggleCollapsed = { viewModel.toggleGroupCollapsed(index) },
                                 )
                             }
                         }
@@ -1139,45 +1188,182 @@ private fun TriggerEditor(
 private fun ReorderableListItemScope.ActionRow(
     action: Action,
     index: Int,
+    isLast: Boolean,
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
     onConfigure: (Action) -> Unit = {},
+    onGroupWithNext: () -> Unit = {},
+    onUngroup: () -> Unit = {},
+    onToggleCollapsed: () -> Unit = {},
 ) {
-    NothingListRow(
-        title = actionDescription(action),
-        onClick = { onConfigure(action) },
-        leading = {
-            Box(
-                modifier =
-                    Modifier
-                        .draggableHandle()
-                        .size(44.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "≡",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    if (action is Action.Group) {
+        // jarvis: ceiling — child editing is via ungroup; nested reordering not supported in this pass.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            NothingListRow(
+                title = actionDescription(action),
+                onClick = { onConfigure(action) },
+                leading = {
+                    Box(
+                        modifier =
+                            Modifier
+                                .draggableHandle()
+                                .size(44.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "≡",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .sizeIn(minWidth = 40.dp, minHeight = 48.dp)
+                                    .clickable(onClick = onToggleCollapsed),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = if (action.collapsed) "▶" else "▼",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                        if (!isLast) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .sizeIn(minWidth = 40.dp, minHeight = 48.dp)
+                                        .clickable(onClick = onGroupWithNext),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "GRP",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontFamily = NothingFonts.mono(),
+                                )
+                            }
+                        }
+                        Box(
+                            modifier =
+                                Modifier
+                                    .sizeIn(minWidth = 56.dp, minHeight = 48.dp)
+                                    .clickable(onClick = onUngroup),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "UNGRP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                        Box(
+                            modifier =
+                                Modifier
+                                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                    .clickable(onClick = onRemove),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "DEL",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                    }
+                },
+            )
+            if (!action.collapsed) {
+                NothingCard(
+                    modifier = Modifier.padding(start = NothingSpacing.xl),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(NothingSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+                    ) {
+                        action.actions.forEach { child ->
+                            NothingListRow(
+                                title = actionDescription(child),
+                                onClick = { onConfigure(child) },
+                                trailing = {
+                                    Text(
+                                        text = "∙",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
             }
-        },
-        trailing = {
-            Box(
-                modifier =
-                    Modifier
-                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .clickable(onClick = onRemove),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "DEL",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NothingColors.accent,
-                    fontFamily = NothingFonts.mono(),
-                )
-            }
-        },
-    )
+        }
+    } else {
+        NothingListRow(
+            title = actionDescription(action),
+            onClick = { onConfigure(action) },
+            leading = {
+                Box(
+                    modifier =
+                        Modifier
+                            .draggableHandle()
+                            .size(44.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "≡",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isLast) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .sizeIn(minWidth = 40.dp, minHeight = 48.dp)
+                                    .clickable(onClick = onGroupWithNext),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "GRP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(onClick = onRemove),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "DEL",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NothingColors.accent,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                }
+            },
+        )
+    }
 }
 
 // ─── Condition Row & Picker ──────────────────────────────────────────────────
