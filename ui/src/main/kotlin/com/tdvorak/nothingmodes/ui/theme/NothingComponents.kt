@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 
 // LocalUiStyle and ThemeManager are in the same package (com.tdvorak.nothingmodes.ui.theme).
 
@@ -740,7 +741,8 @@ fun NothingTopBar(
                 .height(88.dp)
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = NothingSpacing.lg),
+                .padding(horizontal = NothingSpacing.lg)
+                .zIndex(1f),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
