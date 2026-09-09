@@ -9,6 +9,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.re2j)
+    implementation(libs.libphonenumber)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.junit5.jupiter)

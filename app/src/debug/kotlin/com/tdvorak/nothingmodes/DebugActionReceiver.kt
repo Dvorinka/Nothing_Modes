@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.automation.lifecycle.PhoneStateReceiver
+import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -30,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -138,27 +140,31 @@ class DebugActionReceiver : BroadcastReceiver() {
         if (intent.getStringExtra("type") == "phone_state") {
             val event = intent.getStringExtra("event").orEmpty()
             val number = intent.getStringExtra("number").orEmpty()
+            val region = Locale.getDefault().country
+            val normalized = PhoneNumberFormatter.formatToE164(number, region) ?: number
             val svc =
                 Intent(context, AutomationService::class.java).apply {
                     action = AutomationService.ACTION_PHONE_STATE
                     putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, event)
-                    putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, number)
+                    putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, normalized)
                 }
             ContextCompat.startForegroundService(context, svc)
-            Log.i(TAG, "dispatched phone_state event=$event number=$number")
+            Log.i(TAG, "dispatched phone_state event=$event number=$normalized")
             return
         }
         if (intent.getStringExtra("type") == "sms_received") {
             val sender = intent.getStringExtra("sender").orEmpty()
+            val region = Locale.getDefault().country
+            val normalizedSender = PhoneNumberFormatter.formatToE164(sender, region) ?: sender
             val body = intent.getStringExtra("body").orEmpty()
             val svc =
                 Intent(context, AutomationService::class.java).apply {
                     action = AutomationService.ACTION_SMS
-                    putExtra(PhoneStateReceiver.EXTRA_SMS_SENDER, sender)
+                    putExtra(PhoneStateReceiver.EXTRA_SMS_SENDER, normalizedSender)
                     putExtra(PhoneStateReceiver.EXTRA_SMS_BODY, body)
                 }
             ContextCompat.startForegroundService(context, svc)
-            Log.i(TAG, "dispatched sms_received sender=$sender body=$body")
+            Log.i(TAG, "dispatched sms_received sender=$normalizedSender body=$body")
             return
         }
         if (intent.getStringExtra("type") == "manual") {

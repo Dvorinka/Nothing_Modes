@@ -15,6 +15,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.engine.model.ScreenState
+import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
+import java.util.Locale
 
 /**
  * Persistent foreground service that keeps dynamic broadcast receivers
@@ -253,6 +255,7 @@ class PersistentMonitorService : Service() {
                     getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
                 } ?: continue
 
+            val region = detectRegion(tm)
             val listener =
                 object : PhoneStateListener() {
                     override fun onCallStateChanged(
@@ -261,11 +264,11 @@ class PersistentMonitorService : Service() {
                     ) {
                         when (state) {
                             TelephonyManager.CALL_STATE_RINGING ->
-                                dispatchPhoneState("ringing", incomingNumber)
+                                dispatchPhoneState("ringing", incomingNumber, region)
                             TelephonyManager.CALL_STATE_IDLE ->
-                                dispatchPhoneState("idle", null)
+                                dispatchPhoneState("idle", null, region)
                             TelephonyManager.CALL_STATE_OFFHOOK ->
-                                dispatchPhoneState("offhook", incomingNumber)
+                                dispatchPhoneState("offhook", incomingNumber, region)
                         }
                     }
                 }
@@ -295,15 +298,25 @@ class PersistentMonitorService : Service() {
     private fun dispatchPhoneState(
         state: String,
         number: String?,
+        region: String,
     ) {
-        Log.d(TAG, "Call state callback: $state number=$number")
+        val normalized = number?.takeIf { it.isNotBlank() }?.let { PhoneNumberFormatter.formatToE164(it, region) ?: it }
+        Log.d(TAG, "Call state callback: $state number=$normalized")
         val serviceIntent =
             Intent(this, AutomationService::class.java).apply {
                 action = AutomationService.ACTION_PHONE_STATE
                 putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, state)
-                putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, number ?: "")
+                putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, normalized ?: "")
             }
         ContextCompat.startForegroundService(this, serviceIntent)
+    }
+
+    private fun detectRegion(tm: TelephonyManager): String {
+        return tm.simCountryIso.uppercase().ifBlank {
+            tm.networkCountryIso.uppercase().ifBlank {
+                Locale.getDefault().country
+            }
+        }
     }
 
     private var lastTorchState: Boolean? = null

@@ -6,6 +6,8 @@ import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
+import java.util.Locale
 
 /**
  * Receives SMS and dispatches SMS trigger events to AutomationService.
@@ -35,7 +37,9 @@ class PhoneStateReceiver : BroadcastReceiver() {
             Log.w(TAG, "SMS_RECEIVED with no PDUs, ignoring")
             return
         }
-        val sender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
+        val rawSender = messages.firstOrNull()?.displayOriginatingAddress ?: ""
+        val region = Locale.getDefault().country
+        val sender = PhoneNumberFormatter.formatToE164(rawSender, region) ?: rawSender
         val body = messages.joinToString("") { it.displayMessageBody ?: "" }
 
         Log.d(TAG, "SMS received")

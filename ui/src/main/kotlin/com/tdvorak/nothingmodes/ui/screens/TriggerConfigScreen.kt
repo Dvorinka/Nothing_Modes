@@ -79,8 +79,11 @@ import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
+import com.tdvorak.nothingmodes.ui.components.CountryCodePicker
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
+import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
@@ -100,6 +103,7 @@ import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import java.util.Locale
 import kotlinx.serialization.json.Json
 
 private data class TriggerType(
@@ -837,14 +841,18 @@ private fun PhoneStateContent(
             )
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            value = trigger.number ?: "",
-            onValueChange = { onUpdate(trigger.copy(number = it.ifBlank { null })) },
+        PhoneNumberField(
+            value = trigger.number,
+            onValueChange = { onUpdate(trigger.copy(number = it)) },
             label = if (isSms) "Sender number (optional)" else "Caller number (optional)",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         ContactNumberPickerButton(
-            onNumber = { onUpdate(trigger.copy(number = it)) },
+            onNumber = { raw ->
+                val defaultRegion = Locale.getDefault().country.ifBlank { "US" }
+                val formatted = PhoneNumberFormatter.formatToE164(raw, defaultRegion)
+                onUpdate(trigger.copy(number = formatted ?: raw))
+            },
             text = "Pick contact",
         )
         if (isSms) {
