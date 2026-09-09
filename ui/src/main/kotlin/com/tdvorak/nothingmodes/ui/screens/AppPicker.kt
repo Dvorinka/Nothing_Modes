@@ -50,21 +50,28 @@ private data class InstalledApp(
 fun AppPicker(
     currentPackage: String,
     onPkgChange: (String) -> Unit,
+    browserOnly: Boolean = false,
 ) {
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var showList by remember { mutableStateOf(false) }
 
     val installedApps =
-        remember {
+        remember(browserOnly) {
             runCatching {
                 val pm = context.packageManager
-                val mainIntent =
-                    android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
-                        addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                val intent =
+                    if (browserOnly) {
+                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            data = android.net.Uri.parse("https://")
+                        }
+                    } else {
+                        android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                            addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                        }
                     }
                 pm
-                    .queryIntentActivities(mainIntent, 0)
+                    .queryIntentActivities(intent, 0)
                     .map { ri ->
                         InstalledApp(
                             label = ri.loadLabel(pm).toString(),

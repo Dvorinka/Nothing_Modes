@@ -118,7 +118,10 @@ fun actionDescription(action: Action): String =
             is Action.SetDnd -> "DND: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"
             is Action.LaunchApp -> if (action.packages.isEmpty()) "Launch app" else "Launch: ${action.packages.size} app(s)"
-            is Action.OpenUrl -> if (action.url.isBlank()) "Open URL" else "Open URL: ${action.url}"
+            is Action.OpenUrl -> {
+                val prefix = if (action.packageName != null) "Open in ${action.packageName}: " else "Open URL: "
+                if (action.url.isBlank()) "Open URL" else prefix + action.url
+            }
             is Action.ShowNotification -> if (action.title.isBlank()) "Show notification" else "Notification: ${action.title}"
             is Action.SetVolume -> {
                 if (action.volumes.isEmpty()) {

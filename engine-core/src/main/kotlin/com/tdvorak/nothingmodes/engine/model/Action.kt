@@ -119,6 +119,7 @@ sealed interface Action {
     @SerialName(ActionTypeIds.OPEN_URL)
     data class OpenUrl(
         val url: String,
+        val packageName: String? = null,
     ) : Action
 
     @Serializable

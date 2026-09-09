@@ -352,6 +352,14 @@ fun ActionConfigScreen(
                             onValueChange = { action = a.copy(url = it) },
                             label = "URL",
                         )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        AppPicker(
+                            currentPackage = a.packageName ?: "",
+                            onPkgChange = { pkg ->
+                                action = a.copy(packageName = pkg.takeIf { it.isNotBlank() })
+                            },
+                            browserOnly = true,
+                        )
                     }
 
                     is Action.LaunchApp -> {

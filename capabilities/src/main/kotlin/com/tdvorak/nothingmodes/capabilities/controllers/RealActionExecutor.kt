@@ -114,7 +114,7 @@ class RealActionExecutor(
                         ?: ActionResult.Failure("launch app failed")
                 }
             }
-            is Action.OpenUrl -> openUrl(action.url)
+            is Action.OpenUrl -> openUrl(action)
             is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
             is Action.ShowNotification -> showNotification(action.title, action.text)
             is Action.Wait -> {
@@ -695,9 +695,9 @@ class RealActionExecutor(
         }
     }
 
-    private fun openUrl(url: String): ActionResult {
+    private fun openUrl(action: Action.OpenUrl): ActionResult {
         return try {
-            val uri = Uri.parse(url)
+            val uri = Uri.parse(action.url)
             val scheme = uri.scheme?.lowercase()
             // Restrict to http/https to prevent arbitrary deep-link/intent injection
             if (scheme != "http" && scheme != "https") {
@@ -706,6 +706,7 @@ class RealActionExecutor(
             val intent =
                 Intent(Intent.ACTION_VIEW, uri).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    action.packageName?.let { setPackage(it) }
                 }
             context.startActivity(intent)
             ActionResult.Success
