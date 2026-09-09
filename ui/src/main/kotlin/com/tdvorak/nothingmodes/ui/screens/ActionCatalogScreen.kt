@@ -365,52 +365,14 @@ fun ActionCatalogScreen(navController: NavController) {
     pendingAction?.let { action ->
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         val resolution = resolver.resolve(action::class.simpleName ?: "", required)
-        BasicAlertDialog(onDismissRequest = { pendingAction = null }) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = NothingShapes.shapes.medium,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(NothingSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
-                ) {
-                    Text(
-                        text = "This action may not run",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = NothingFonts.doto(),
-                    )
-                    Text(
-                        text = resolution.missingReasons.values.distinct().joinToString("\n"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                    ) {
-                        TextButton(
-                            onClick = { pendingAction = null },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Cancel", fontFamily = NothingFonts.mono())
-                        }
-                        TextButton(
-                            onClick = {
-                                configAction = action
-                                pendingAction = null
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Continue", fontFamily = NothingFonts.mono())
-                        }
-                    }
-                }
-            }
-        }
+        CapabilityWarningDialog(
+            missingReasons = resolution.missingReasons.values.distinct(),
+            onDismiss = { pendingAction = null },
+            onConfirm = {
+                configAction = action
+                pendingAction = null
+            },
+        )
     }
 
     configAction?.let { action ->

@@ -242,6 +242,8 @@ private fun TriggerTypePickerDialog(
 ) {
     val types = remember { triggerTypes() }
     val grouped = types.groupBy { it.category }
+    val resolver = remember(caps) { CapabilityResolver(caps) }
+    var pendingType by remember { mutableStateOf<TriggerType?>(null) }
 
     androidx.compose.material3.BasicAlertDialog(
         onDismissRequest = onDismiss,
@@ -321,8 +323,13 @@ private fun TriggerTypePickerDialog(
                                             vertical = NothingSpacing.sm,
                                         )
                                         .clickable {
-                                            onSelect(type.trigger)
-                                            onDismiss()
+                                            val required = CapabilityRequirements.derive(type.trigger, emptyList())
+                                            if (resolver.resolve(type.label, required).canRun) {
+                                                onSelect(type.trigger)
+                                                onDismiss()
+                                            } else {
+                                                pendingType = type
+                                            }
                                         },
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
@@ -383,6 +390,20 @@ private fun TriggerTypePickerDialog(
                 }
             }
         }
+    }
+
+    pendingType?.let { type ->
+        val required = CapabilityRequirements.derive(type.trigger, emptyList())
+        val resolution = resolver.resolve(type.label, required)
+        CapabilityWarningDialog(
+            missingReasons = resolution.missingReasons.values.distinct(),
+            onDismiss = { pendingType = null },
+            onConfirm = {
+                onSelect(type.trigger)
+                pendingType = null
+                onDismiss()
+            },
+        )
     }
 }
 

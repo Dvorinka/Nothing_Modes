@@ -73,11 +73,13 @@ fun ConditionCatalogScreen(navController: NavController) {
     // Conditions are configured in a bottom sheet before being added.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
     var configCondition by remember { mutableStateOf<Condition?>(null) }
+    var pendingCondition by remember { mutableStateOf<Condition?>(null) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     var caps by remember { mutableStateOf(DeviceCapabilities()) }
     LaunchedEffect(Unit) {
         withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
     }
+    val resolver = remember(caps) { CapabilityResolver(caps) }
 
     val items =
         remember {
@@ -389,7 +391,12 @@ fun ConditionCatalogScreen(navController: NavController) {
                                     subtitle = conditionCapabilityHint(conditionItem.condition, caps),
                                     onClick = {
                                         editingIndex = null
-                                        configCondition = conditionItem.condition
+                                        val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), conditionItem.condition)
+                                        if (resolver.resolve(conditionItem.label, required).canRun) {
+                                            configCondition = conditionItem.condition
+                                        } else {
+                                            pendingCondition = conditionItem.condition
+                                        }
                                     },
                                 )
                             }
@@ -425,6 +432,19 @@ fun ConditionCatalogScreen(navController: NavController) {
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+    }
+
+    pendingCondition?.let { condition ->
+        val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
+        val resolution = resolver.resolve(condition::class.simpleName ?: "", required)
+        CapabilityWarningDialog(
+            missingReasons = resolution.missingReasons.values.distinct(),
+            onDismiss = { pendingCondition = null },
+            onConfirm = {
+                configCondition = condition
+                pendingCondition = null
+            },
+        )
     }
 
     configCondition?.let { condition ->
