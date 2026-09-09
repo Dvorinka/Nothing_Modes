@@ -36,7 +36,8 @@ def send_command(command: str, id_: str = "", json_payload: str = "") -> None:
     if id_:
         extras += ["--es", "id", id_]
     if json_payload:
-        extras += ["--es", "json", json_payload]
+        # Wrap JSON in single quotes so device shell preserves double quotes.
+        extras += ["--es", "json", f"'{json_payload.replace(chr(39), chr(39) + '\\' + chr(39) + chr(39))}'"]
     adb(["shell", "am", "broadcast", "-n", f"{PACKAGE}/{RECEIVER}", *extras])
 
 
