@@ -575,7 +575,7 @@ fun CustomAutomationBuilderScreen(
                 )
             }
 
-            // Preview tile — live visual of the saved routine card, tappable to pick icon/color
+            // Preview tile — live visual of the saved mode card, tappable to pick icon/color
             item {
                 AutomationPreviewTile(
                     state = state,
@@ -836,7 +836,7 @@ fun CustomAutomationBuilderScreen(
 
                         NothingListRow(
                             title = "Enabled",
-                            subtitle = "Routine is saved and will fire",
+                            subtitle = "Mode is saved and will fire",
                             onClick = { viewModel.updateEnabled(!state.enabled) },
                             trailing = {
                                 NothingToggle(

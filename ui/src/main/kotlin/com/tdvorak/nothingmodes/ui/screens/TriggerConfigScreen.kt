@@ -954,6 +954,14 @@ private fun GeofenceContent(
                 NothingPillButton(
                     text = "Use current location",
                     onClick = {
+                        val fine =
+                            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                                android.content.pm.PackageManager.PERMISSION_GRANTED
+                        val coarse =
+                            context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                                android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (!fine && !coarse) return@NothingPillButton
+
                         runCatching {
                             val fusedLocationClient =
                                 com.google.android.gms.location.LocationServices

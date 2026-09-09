@@ -64,7 +64,7 @@ import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
-import com.tdvorak.nothingmodes.engine.model.AutomationType
+
 import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.data.dao.ScheduledTimeAlarmDao
@@ -90,7 +90,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingScreenHero
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
-import com.tdvorak.nothingmodes.ui.theme.NothingTag
+
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.SpaceMono
@@ -349,13 +349,7 @@ fun AutomationListScreen(
     val importWarnings by viewModel.importWarnings.collectAsState()
     val inSelection = selected.isNotEmpty()
 
-    // Type filter chips (All / Modes / Routines) — display-only, client-side.
-    val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
-    var typeFilter by remember { mutableStateOf(prefs.getString("automation_list_filter", "ALL") ?: "ALL") }
-    val visibleItems =
-        remember(items, typeFilter) {
-            if (typeFilter == "ALL") items else items.filter { it.type.name == typeFilter }
-        }
+    val visibleItems = items
 
     val importLauncher =
         rememberLauncherForActivityResult(
@@ -429,8 +423,8 @@ fun AutomationListScreen(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     NothingEmptyState(
-                        title = "No routines yet",
-                        description = "Tap + to create your first mode or routine",
+                        title = "No modes yet",
+                        description = "Tap + to create your first mode",
                         action = {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -496,30 +490,6 @@ fun AutomationListScreen(
                                 title = "Automations",
                                 caption = "${visibleItems.size} items",
                             )
-                            Spacer(modifier = Modifier.height(NothingSpacing.md))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                            ) {
-                                val setFilter = { f: String ->
-                                    typeFilter = f
-                                    prefs.edit().putString("automation_list_filter", f).apply()
-                                }
-                                NothingTag(
-                                    text = "All",
-                                    active = typeFilter == "ALL",
-                                    onClick = { setFilter("ALL") },
-                                )
-                                NothingTag(
-                                    text = "Modes",
-                                    active = typeFilter == "MODE",
-                                    onClick = { setFilter("MODE") },
-                                )
-                                NothingTag(
-                                    text = "Routines",
-                                    active = typeFilter == "ROUTINE",
-                                    onClick = { setFilter("ROUTINE") },
-                                )
-                            }
                             Spacer(modifier = Modifier.height(NothingSpacing.lg))
                             val dotStates =
                                 remember(visibleItems, activeIds, nextFires) {
@@ -533,8 +503,8 @@ fun AutomationListScreen(
                                         }
                                     }
                                 }
-                            RoutineHeroCard(
-                                totalRoutines = visibleItems.size,
+                            ModeHeroCard(
+                                totalModes = visibleItems.size,
                                 totalActions = visibleItems.sumOf { it.actions.size },
                                 dotStates = dotStates,
                             )
@@ -544,7 +514,7 @@ fun AutomationListScreen(
                     items(visibleItems, key = { it.id.value }) { automation ->
                         val isActive = activeIds.contains(automation.id.value)
                         val nextFireAt = nextFires[automation.id.value]
-                        RoutineTile(
+                        ModeTile(
                             automation = automation,
                             isSelected = selected.contains(automation.id),
                             isActive = isActive,
@@ -577,7 +547,7 @@ fun AutomationListScreen(
                         viewModel.runSelected()
                         scope.launch {
                             snackbarHostState.showSnackbar(
-                                "Running ${selected.size} routine(s)",
+                                "Running ${selected.size} mode(s)",
                                 withDismissAction = true,
                             )
                         }
@@ -602,8 +572,8 @@ fun AutomationListScreen(
 }
 
 @Composable
-private fun RoutineHeroCard(
-    totalRoutines: Int,
+private fun ModeHeroCard(
+    totalModes: Int,
     totalActions: Int,
     dotStates: List<ModeDotState>,
     modifier: Modifier = Modifier,
@@ -618,13 +588,13 @@ private fun RoutineHeroCard(
                 NothingLabel(text = "Overview")
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 Text(
-                    text = "$totalRoutines",
+                    text = "$totalModes",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = NothingFonts.doto(),
                 )
                 Text(
-                    text = "ROUTINES",
+                    text = "MODES",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
@@ -651,7 +621,7 @@ private fun RoutineHeroCard(
 }
 
 @Composable
-private fun RoutineTile(
+private fun ModeTile(
     automation: Automation,
     isSelected: Boolean,
     isActive: Boolean,
@@ -767,7 +737,7 @@ private fun RoutineTile(
             )
 
             NothingLabel(
-                text = if (automation.type == AutomationType.MODE) "Mode" else "Routine",
+                text = "Mode",
                 modifier = Modifier.padding(top = NothingSpacing.xs),
             )
 

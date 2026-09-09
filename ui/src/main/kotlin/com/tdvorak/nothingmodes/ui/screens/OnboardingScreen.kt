@@ -123,7 +123,7 @@ fun OnboardingScreen(
                 modifier = Modifier.padding(top = NothingSpacing.xxxl),
             )
             Text(
-                text = "Automate your Nothing phone with modes, routines, and Glyph integration.",
+                text = "Automate your Nothing phone with modes and Glyph integration.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = NothingSpacing.sm),

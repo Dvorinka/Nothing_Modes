@@ -827,7 +827,7 @@ fun SettingsScreen(
                                 value = profile.note,
                                 onValueChange = { profile = profile.copy(note = it) },
                                 label = "Description",
-                                placeholder = "Short note about your routines",
+                                placeholder = "Short note about your modes",
                                 singleLine = false,
                             )
                             NothingEnumSelector(

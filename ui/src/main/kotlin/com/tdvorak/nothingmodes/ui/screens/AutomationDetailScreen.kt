@@ -114,10 +114,10 @@ class AutomationDetailViewModel
                     val share =
                         Intent(Intent.ACTION_SEND).apply {
                             type = "application/json"
-                            putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes routine: ${current.name}")
+                            putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes mode: ${current.name}")
                             putExtra(Intent.EXTRA_TEXT, export.json)
                         }
-                    val chooser = Intent.createChooser(share, "Share routine")
+                    val chooser = Intent.createChooser(share, "Share mode")
                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(chooser)
                 }.onFailure {
@@ -154,9 +154,9 @@ class AutomationDetailViewModel
                         """
                         Hello,
 
-                        I would like to submit the attached Nothing Modes routine for the public template catalog.
+                        I would like to submit the attached Nothing Modes mode for the public template catalog.
 
-                        Routine name: ${current.name}
+                        Mode name: ${current.name}
                         License: ${creator.license}
                         Created by: ${creator.displayName.ifBlank { "Anonymous" }}
                         Handle/email: ${creator.handle}
@@ -175,7 +175,7 @@ class AutomationDetailViewModel
                             putExtra(Intent.EXTRA_STREAM, uri)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
-                    val chooser = Intent.createChooser(intent, "Submit routine")
+                    val chooser = Intent.createChooser(intent, "Submit mode")
                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(chooser)
                 }.onFailure {
@@ -336,7 +336,7 @@ fun AutomationDetailScreen(
                                 NothingStatusDot(color = statusColor, size = 6f)
                                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
                                 Text(
-                                    text = "${data.type.name.uppercase()} · $statusText",
+                                    text = "MODE · $statusText",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontFamily = NothingFonts.mono(),

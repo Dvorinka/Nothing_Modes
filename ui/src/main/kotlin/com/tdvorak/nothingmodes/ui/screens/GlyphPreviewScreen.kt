@@ -238,7 +238,7 @@ fun GlyphPreviewScreen(
                         )
                     }
                     Text(
-                        text = "Real Glyph output happens inside a routine via the Glyph preset action. This screen only shows status and deep links.",
+                        text = "Real Glyph output happens inside a mode via the Glyph preset action. This screen only shows status and deep links.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = NothingSpacing.sm),

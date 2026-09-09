@@ -517,7 +517,7 @@ fun TemplateCatalogScreen(
                 templates.isEmpty() && userTemplates.isEmpty() ->
                     NothingEmptyState(
                         title = "No templates yet",
-                        description = "Save a routine as a template from its detail page, or check back for community templates",
+                        description = "Save a mode as a template from its detail page, or check back for community templates",
                     )
                 else ->
                     LazyColumn(
@@ -548,7 +548,7 @@ fun TemplateCatalogScreen(
                                         title = template.name,
                                         subtitle =
                                             template.description.ifBlank {
-                                                "${template.automations.size} routine(s)"
+                                                "${template.automations.size} mode(s)"
                                             },
                                         onClick = { viewModel.selectUserTemplate(template) },
                                         trailing = {
@@ -695,7 +695,7 @@ fun TemplateCatalogScreen(
                 NothingLabel(text = "Install complete")
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 Text(
-                    text = "Imported ${result.imported} routine(s). They start disabled — enable them when ready.",
+                    text = "Imported ${result.imported} mode(s). They start disabled — enable them when ready.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -768,7 +768,7 @@ private fun LibraryRow(
     onClick: () -> Unit,
 ) {
     NothingCard(modifier = Modifier.fillMaxWidth()) {
-        val iconName = item.preview?.get("icon")?.jsonPrimitive?.content ?: "routine"
+        val iconName = item.preview?.get("icon")?.jsonPrimitive?.content ?: "star"
         val bgHex = item.preview?.get("iconBackground")?.jsonPrimitive?.content
         val fallback = MaterialTheme.colorScheme.surfaceVariant
         val bgColor =
