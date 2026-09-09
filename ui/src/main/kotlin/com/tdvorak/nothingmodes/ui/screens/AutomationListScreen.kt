@@ -78,6 +78,7 @@ import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingAddCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
+import com.tdvorak.nothingmodes.ui.theme.NothingCompactPillButton
 import com.tdvorak.nothingmodes.ui.theme.LocalUiStyle
 import com.tdvorak.nothingmodes.ui.theme.NothingDotGrid
 import com.tdvorak.nothingmodes.ui.theme.ModeDotRow
@@ -707,16 +708,10 @@ private fun ModeTile(
                 if (inSelectionMode) {
                     SelectionIndicator(isSelected = isSelected)
                 } else if (automation.trigger is Trigger.Manual) {
-                    Text(
+                    NothingCompactPillButton(
                         text = "RUN",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = NothingColors.accent,
-                        fontFamily = NothingFonts.mono(),
-                        letterSpacing = 1.0.sp,
-                        modifier =
-                            Modifier
-                                .clickable(onClick = onRun)
-                                .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                        onClick = onRun,
+                        enabled = true,
                     )
                 } else {
                     NothingToggle(

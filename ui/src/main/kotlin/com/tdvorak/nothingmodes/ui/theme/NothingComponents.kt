@@ -511,6 +511,46 @@ fun NothingPillButton(
 }
 
 @Composable
+fun NothingCompactPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
+    val container =
+        if (enabled) {
+            NothingColors.accent
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
+    val content =
+        if (enabled) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    Surface(
+        color = container,
+        shape = NothingShapes.pill,
+        modifier =
+            modifier
+                .defaultMinSize(minWidth = 64.dp)
+                .height(32.dp)
+                .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = if (classic) text else text.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = content,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
+    }
+}
+
+@Composable
 fun NothingSecondaryButton(
     text: String,
     onClick: () -> Unit,

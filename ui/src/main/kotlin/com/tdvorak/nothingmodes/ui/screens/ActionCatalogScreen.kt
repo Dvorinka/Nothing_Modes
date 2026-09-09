@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -227,13 +228,29 @@ fun ActionCatalogScreen(navController: NavController) {
                         contentPadding = PaddingValues(vertical = NothingSpacing.sm),
                     ) {
                         items(ActionFilter.entries) { filter ->
+                            val selected = filter in activeFilters
                             FilterChip(
-                                selected = filter in activeFilters,
+                                selected = selected,
                                 onClick = {
                                     activeFilters =
-                                        if (filter in activeFilters) activeFilters - filter else activeFilters + filter
+                                        if (selected) activeFilters - filter else activeFilters + filter
                                 },
-                                label = { Text(filter.label, fontFamily = NothingFonts.mono()) },
+                                label = {
+                                    Text(
+                                        filter.label,
+                                        fontFamily = NothingFonts.mono(),
+                                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    )
+                                },
+                                shape = NothingShapes.pill,
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        labelColor = MaterialTheme.colorScheme.onSurface,
+                                        selectedContainerColor = NothingColors.accent,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                border = FilterChipDefaults.filterChipBorder(false, selected),
                                 modifier = Modifier.padding(end = NothingSpacing.sm),
                             )
                         }
