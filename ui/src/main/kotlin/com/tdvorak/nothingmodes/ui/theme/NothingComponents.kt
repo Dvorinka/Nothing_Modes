@@ -488,6 +488,8 @@ fun NothingPrimaryButton(
             style = MaterialTheme.typography.labelLarge,
             color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
             modifier =
                 Modifier
                     .wrapContentSize(Alignment.Center)

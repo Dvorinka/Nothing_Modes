@@ -27,12 +27,15 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 /**
  * Gates [content] behind one or more runtime permissions.
  * Shows a rationale card with a grant button while any permission is missing.
+ * If [disclosure] is set, [PermissionDisclosureDialog] is shown before the
+ * system permission prompt, as required by Google Play for sensitive permissions.
  */
 @Composable
 fun PermissionGate(
     permissions: List<String>,
     rationale: String,
     modifier: Modifier = Modifier,
+    disclosure: String? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -43,6 +46,7 @@ fun PermissionGate(
             },
         )
     }
+    var showDisclosure by remember { mutableStateOf(false) }
     val launcher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions(),
@@ -68,14 +72,33 @@ fun PermissionGate(
                     text = rationale,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 NothingPillButton(
                     text = "Grant permission",
-                    onClick = { launcher.launch(permissions.toTypedArray()) },
+                    onClick = {
+                        if (disclosure.isNullOrBlank()) {
+                            launcher.launch(permissions.toTypedArray())
+                        } else {
+                            showDisclosure = true
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
+    }
+
+    if (showDisclosure && disclosure != null) {
+        PermissionDisclosureDialog(
+            title = "Permission disclosure",
+            body = disclosure,
+            onConfirm = {
+                showDisclosure = false
+                launcher.launch(permissions.toTypedArray())
+            },
+            onDismiss = { showDisclosure = false },
+        )
     }
 }

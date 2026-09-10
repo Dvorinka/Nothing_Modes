@@ -868,7 +868,19 @@ private fun PhoneStateContent(
     onUpdate: (Trigger.PhoneState) -> Unit,
 ) {
     val isSms = trigger.event == PhoneEvent.SMS_RECEIVED
-    Column {
+    PermissionGate(
+        permissions =
+            listOf(
+                android.Manifest.permission.READ_PHONE_STATE,
+                android.Manifest.permission.RECEIVE_SMS,
+            ),
+        rationale = "Phone and SMS triggers need phone-state and SMS access to detect calls and messages.",
+        disclosure =
+            "Nothing Modes uses phone state and SMS access to trigger automations when a call or message arrives. " +
+                "The app only reads the sender/caller number and, for SMS, the message text when you set a matching rule. " +
+                "Call and SMS data are processed on your device and are never uploaded, sold, or shared.",
+    ) {
+        Column {
         PhoneEvent.entries.forEach { event ->
             RadioOption(
                 text = event.name.enumLabel(),
@@ -913,6 +925,7 @@ private fun PhoneStateContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
     }
 }
 
@@ -1140,6 +1153,8 @@ private fun GeofenceContent(
     val scope = rememberCoroutineScope()
     val mapView = remember { org.osmdroid.views.MapView(context) }
     var fenceOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Polygon?>(null) }
+    var markerOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Marker?>(null) }
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     var addressQuery by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
 
@@ -1165,8 +1180,11 @@ private fun GeofenceContent(
             load(context, context.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
             userAgentValue = context.packageName
         }
-        mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
+        mapView.isVerticalMapRepetitionEnabled = false
+        mapView.isHorizontalMapRepetitionEnabled = false
+        mapView.setTilesScaledToDpi(true)
+        mapView.zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
         mapView.controller.setZoom(15.0)
         mapView.controller.setCenter(
             org.osmdroid.util.GeoPoint(
@@ -1191,11 +1209,18 @@ private fun GeofenceContent(
         onDispose { mapView.onPause() }
     }
 
-    // Redraw the fence circle whenever the center or radius changes.
+    // Switch tile source when light/dark theme changes.
+    androidx.compose.runtime.LaunchedEffect(isDark) {
+        mapView.setTileSource(cartoTileSource(isDark))
+        mapView.invalidate()
+    }
+
+    // Redraw the fence circle and red pin whenever the center or radius changes.
     androidx.compose.runtime.LaunchedEffect(trigger.lat, trigger.lng, trigger.radiusM) {
         if (trigger.lat != 0.0 || trigger.lng != 0.0) {
             val center = org.osmdroid.util.GeoPoint(trigger.lat, trigger.lng)
             fenceOverlay?.let { mapView.overlays.remove(it) }
+            markerOverlay?.let { mapView.overlays.remove(it) }
             val poly =
                 org.osmdroid.views.overlay.Polygon(mapView).apply {
                     points =
@@ -1205,8 +1230,17 @@ private fun GeofenceContent(
                     outlinePaint.color = android.graphics.Color.rgb(255, 60, 60)
                     outlinePaint.strokeWidth = 4f
                 }
+            val marker =
+                org.osmdroid.views.overlay.Marker(mapView).apply {
+                    position = center
+                    icon = redDotMarker(context)
+                    setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
+                    title = "Fence center"
+                }
             mapView.overlays.add(poly)
+            mapView.overlays.add(marker)
             fenceOverlay = poly
+            markerOverlay = marker
             mapView.controller.animateTo(center)
             mapView.invalidate()
         }
@@ -1220,6 +1254,10 @@ private fun GeofenceContent(
                     android.Manifest.permission.ACCESS_COARSE_LOCATION,
                 ),
             rationale = "Geofence triggers need location access to place the fence and use your current location.",
+            disclosure =
+                "Nothing Modes uses your location to run geofence automations when you enter or leave an area you define. " +
+                    "This works in the background so your rules fire even when the app is closed. " +
+                    "Your location is processed on your device and is never sold, shared, or transmitted.",
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column {
@@ -1367,6 +1405,10 @@ private fun CalendarEventContent(
     PermissionGate(
         permissions = listOf(android.Manifest.permission.READ_CALENDAR),
         rationale = "Calendar triggers need read access to your calendars.",
+        disclosure =
+            "Nothing Modes reads your calendar to trigger automations when events start or end. " +
+                "It only accesses the event title, start time, and calendar name that you choose. " +
+                "Calendar data is processed on your device and is never uploaded, sold, or shared.",
     ) {
         Column {
             NothingInput(
@@ -1519,4 +1561,41 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
         )
         Spacer(modifier = Modifier.height(NothingSpacing.md))
     }
+}
+
+/** CartoDB raster tiles in dark or light, based on the current theme. */
+private fun cartoTileSource(dark: Boolean): org.osmdroid.tileprovider.tilesource.XYTileSource {
+    val style = if (dark) "dark_all" else "light_all"
+    return org.osmdroid.tileprovider.tilesource.XYTileSource(
+        "CartoDB-$style",
+        0,
+        20,
+        256,
+        ".png",
+        arrayOf(
+            "https://a.basemaps.cartocdn.com/$style/",
+            "https://b.basemaps.cartocdn.com/$style/",
+            "https://c.basemaps.cartocdn.com/$style/",
+            "https://d.basemaps.cartocdn.com/$style/",
+        ),
+    )
+}
+
+/** A small red dot with a white border for the fence centre pin. */
+private fun redDotMarker(context: android.content.Context): android.graphics.drawable.Drawable {
+    val dp = context.resources.displayMetrics.density
+    val size = (24 * dp).toInt()
+    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+
+    paint.color = android.graphics.Color.RED
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+    paint.style = android.graphics.Paint.Style.STROKE
+    paint.color = android.graphics.Color.WHITE
+    paint.strokeWidth = 2 * dp
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f - dp, paint)
+
+    return android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
 }

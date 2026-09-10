@@ -37,6 +37,7 @@ import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
+import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
@@ -347,23 +348,33 @@ fun ActionConfigScreen(
 
                     is Action.GlyphMusic -> {
                         val ctx = LocalContext.current
-                        val hasMediaProjection = remember { MediaProjectionRequestActivity.isGranted() }
-                        Text(
-                            text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action. Grant audio capture to react to music playing through headphones or Bluetooth.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        MusicStyleSelector(
-                            style = a.style,
-                            onChange = { action = a.copy(style = MusicVisualizerStyles.normalize(it)) },
-                        )
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        NothingPillButton(
-                            text = if (hasMediaProjection) "Audio capture granted" else "Grant audio capture for headphones",
-                            onClick = { ctx.startActivity(MediaProjectionRequestActivity.intent(ctx)) },
-                            enabled = !hasMediaProjection,
-                        )
+                        PermissionGate(
+                            permissions = listOf(android.Manifest.permission.RECORD_AUDIO),
+                            rationale = "The music visualizer needs microphone access to analyse playback audio and drive the Glyph Matrix.",
+                            disclosure =
+                                "Nothing Modes uses the microphone to capture playback audio for the live music-reactive Glyph visualizer. " +
+                                    "This lets the glyph react to music playing through the speaker, headphones, or Bluetooth devices. " +
+                                    "Audio is processed on your device and is never recorded, stored, sold, or shared.",
+                        ) {
+                            val hasMediaProjection = remember { MediaProjectionRequestActivity.isGranted() }
+                            Text(
+                                text = "Live music-reactive visualizer. Stays active until Glyph off or another glyph action. Grant audio capture to react to music playing through headphones or Bluetooth.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            MusicStyleSelector(
+                                style = a.style,
+                                onChange = { action = a.copy(style = MusicVisualizerStyles.normalize(it)) },
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            NothingPillButton(
+                                text = if (hasMediaProjection) "Audio capture granted" else "Grant audio capture for headphones",
+                                onClick = { ctx.startActivity(MediaProjectionRequestActivity.intent(ctx)) },
+                                enabled = !hasMediaProjection,
+                            )
+                        }
                     }
 
                     is Action.CopyText -> {
@@ -491,25 +502,33 @@ fun ActionConfigScreen(
                         )
 
                     is Action.SendSms -> {
-                        NothingInput(
-                            value = a.number,
-                            onValueChange = { action = a.copy(number = it) },
-                            label = "Number",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        ContactNumberPickerButton(
-                            onNumber = { action = a.copy(number = it) },
-                            text = "Pick contact",
-                        )
-                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                        NothingInput(
-                            value = a.text,
-                            onValueChange = { action = a.copy(text = it) },
-                            label = "Message",
-                            singleLine = false,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        PermissionGate(
+                            permissions = listOf(android.Manifest.permission.SEND_SMS),
+                            rationale = "Send SMS needs permission to send text messages.",
+                            disclosure =
+                                "Nothing Modes sends SMS only when an automation you create runs the 'Send SMS' action. " +
+                                    "The app uses the recipient number and message you provide. No SMS content is uploaded, sold, or shared.",
+                        ) {
+                            NothingInput(
+                                value = a.number,
+                                onValueChange = { action = a.copy(number = it) },
+                                label = "Number",
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            ContactNumberPickerButton(
+                                onNumber = { action = a.copy(number = it) },
+                                text = "Pick contact",
+                            )
+                            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                            NothingInput(
+                                value = a.text,
+                                onValueChange = { action = a.copy(text = it) },
+                                label = "Message",
+                                singleLine = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
 
                     is Action.WriteSetting -> {

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -100,6 +104,7 @@ fun OnboardingScreen(
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { _ -> viewModel.detect(context) }
+    var showLocationDisclosure by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -193,7 +198,7 @@ fun OnboardingScreen(
                         description = "Geofence triggers, WiFi SSID detection.",
                         done = capabilities.hasLocationPermission,
                         onAction = {
-                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            showLocationDisclosure = true
                         },
                     )
 
@@ -252,6 +257,21 @@ fun OnboardingScreen(
                         .padding(vertical = NothingSpacing.lg),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+        }
+
+        if (showLocationDisclosure) {
+            PermissionDisclosureDialog(
+                title = "Location disclosure",
+                body =
+                    "Nothing Modes uses your location to run geofence automations when you enter or leave an area you define. " +
+                        "This works in the background so your rules fire even when the app is closed. " +
+                        "Your location is processed on your device and is never sold, shared, or transmitted.",
+                onConfirm = {
+                    showLocationDisclosure = false
+                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                },
+                onDismiss = { showLocationDisclosure = false },
+            )
         }
     }
 }

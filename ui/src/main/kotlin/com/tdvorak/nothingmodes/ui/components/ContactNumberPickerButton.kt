@@ -56,6 +56,9 @@ fun ContactNumberPickerButton(
     PermissionGate(
         permissions = listOf(Manifest.permission.READ_CONTACTS),
         rationale = "Choose a contact to pre-fill the phone number.",
+        disclosure =
+            "Nothing Modes reads your contacts only when you press 'Pick contact'. The selected phone number is used to pre-fill a trigger or action. " +
+                "Contact data is processed on your device and is never uploaded, sold, or shared.",
         modifier = modifier,
     ) {
         NothingPillButton(

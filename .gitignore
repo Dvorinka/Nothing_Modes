@@ -72,6 +72,10 @@ scorecard.png
 TODO.md
 node_modules/
 
+# Play credentials
+GOOGLE_PLAY_CREDENTIALS.md
+.gplay/
+
 # Test artifacts
 .playwright-mcp/
 /android-*.png
