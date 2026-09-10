@@ -60,12 +60,14 @@ fun WriteSettingSelector(
                 value = action.namespace.name.enumLabel(),
                 options = enumLabelList<SettingNamespace>(),
                 onSelect = { onChange(action.copy(namespace = enumByLabel<SettingNamespace>(it))) },
+                infoText = "System = per-user settings. Secure/Global = device-wide — these need Shizuku.",
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
                 value = action.key,
                 onValueChange = { onChange(action.copy(key = it)) },
                 label = "Key",
+                infoText = "The Android settings key to write, e.g. animator_duration_scale or font_scale.",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -73,6 +75,7 @@ fun WriteSettingSelector(
                 value = action.value,
                 onValueChange = { onChange(action.copy(value = it)) },
                 label = "Value",
+                infoText = "The value to write — usually a number or 0/1 for on/off.",
                 modifier = Modifier.fillMaxWidth(),
             )
         }

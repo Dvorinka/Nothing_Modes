@@ -451,7 +451,7 @@ private fun conditionCatalogMeta(
     condition: Condition,
     caps: DeviceCapabilities,
 ): Triple<String, List<String>, Boolean> {
-    val static = conditionDescription(condition)
+    val static = conditionTypeDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
     val badges = requirementBadges(resolution.missing)

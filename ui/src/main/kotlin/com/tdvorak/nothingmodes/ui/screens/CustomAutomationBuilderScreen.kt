@@ -1651,6 +1651,48 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.Not -> "NOT"
     }
 
+/** Friendly per-type description for the catalog — what the condition checks,
+ *  not the configured value (that is what [conditionDescription] shows). */
+internal fun conditionTypeDescription(condition: Condition): String =
+    when (condition) {
+        is Condition.TimeWindow -> "Only during a time range"
+        is Condition.DayOfWeekCondition -> "Only on selected days"
+        is Condition.BatteryLevel -> "Battery is above or below a level"
+        is Condition.Charging -> "Device is charging or not"
+        is Condition.WifiConnected -> "Wi-Fi is connected, optionally to a network"
+        is Condition.BluetoothConnected -> "A Bluetooth device is connected"
+        is Condition.ScreenStateCondition -> "Screen is on or off"
+        is Condition.CurrentModeActive -> "Another mode is currently active"
+        is Condition.AppInForeground -> "An app is in the foreground"
+        is Condition.DarkModeActive -> "Dark mode is on or off"
+        is Condition.PowerSaving -> "Power saving is on or off"
+        is Condition.MediaPlaying -> "Audio is playing or not"
+        is Condition.RingerMode -> "Ringer is normal, vibrate, or silent"
+        is Condition.AirplaneModeOn -> "Airplane mode is on or off"
+        is Condition.NfcEnabled -> "NFC is enabled or disabled"
+        is Condition.LocationEnabled -> "Location is on or off"
+        is Condition.CallStateCondition -> "A call is ringing, active, or ended"
+        is Condition.AlarmRinging -> "An alarm is ringing"
+        is Condition.ScreenTime -> "Screen time today passes a limit"
+        is Condition.HeadphonesConnected -> "Headphones are connected or not"
+        is Condition.DataSaverOn -> "Data saver is on or off"
+        is Condition.AutoSyncOn -> "Auto-sync is on or off"
+        is Condition.AutoRotateOn -> "Auto-rotate is on or off"
+        is Condition.VolumeLevel -> "A volume stream passes a level"
+        is Condition.ScreenOffFor -> "Screen has been off for a while"
+        is Condition.ChargingSource -> "Charging over USB, wireless, or dock"
+        is Condition.BatteryTemp -> "Battery temperature passes a limit"
+        is Condition.ThermalLevel -> "Device thermal state passes a level"
+        is Condition.BooleanState -> "A device state is on or off"
+        is Condition.NumericState -> "A device value passes a limit"
+        is Condition.AtLocation -> "Device is inside or outside an area"
+        is Condition.EventActive -> "A calendar event is active"
+        is Condition.NotificationPresent -> "A matching notification is posted"
+        is Condition.And -> "All conditions must hold"
+        is Condition.Or -> "Any condition may hold"
+        is Condition.Not -> "Condition must not hold"
+    }
+
 private fun saveSummary(
     resolution: com.tdvorak.nothingmodes.capabilities.CapabilityResolution,
     actions: List<Action>,

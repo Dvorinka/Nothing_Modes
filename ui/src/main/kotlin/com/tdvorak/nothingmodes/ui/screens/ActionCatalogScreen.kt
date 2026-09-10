@@ -1,5 +1,8 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -343,6 +346,10 @@ fun ActionCatalogScreen(navController: NavController) {
                     pendingAction = picked
                 }
             },
+            onOpenStudio = {
+                showGlyphPicker = false
+                navController.navigate("glyph_editor")
+            },
             onDismiss = { showGlyphPicker = false },
         )
     }
@@ -384,10 +391,16 @@ private fun actionCatalogMeta(
     action: Action,
     caps: DeviceCapabilities,
 ): Triple<String, List<String>, Boolean> {
-    val static = actionRequirementHint(action) ?: actionDescription(action)
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
     val badges = requirementBadges(resolution.missing)
+    val hint = actionRequirementHint(action)
+    val static =
+        if (resolution.canRun && hint != null && (hint.startsWith("Needs") || hint.startsWith("Detected"))) {
+            actionFeatureDescription(action) ?: actionDescription(action)
+        } else {
+            hint ?: actionDescription(action)
+        }
     val subtitle =
         if (!resolution.canRun) {
             missingCapabilityHint(badges, resolution.missingReasons.values.firstOrNull() ?: static)
@@ -405,8 +418,11 @@ private fun actionCatalogMeta(
 private fun GlyphDesignPicker(
     caps: DeviceCapabilities,
     onPick: (Action) -> Unit,
+    onOpenStudio: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val savedDesigns = remember { com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names() }
     val options =
         remember(caps) {
             val resolver = CapabilityResolver(caps)
@@ -450,7 +466,45 @@ private fun GlyphDesignPicker(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
             )
+            if (savedDesigns.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                Text(
+                    text = "SAVED DESIGNS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingCard {
+                    savedDesigns.forEachIndexed { index, name ->
+                        if (index > 0) NothingDivider()
+                        NothingListRow(
+                            title = name,
+                            subtitle = "Your saved matrix design",
+                            onClick = { onPick(Action.GlyphIcon(name)) },
+                            leading = {
+                                NothingIconCircle(size = 44f, accent = true) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.GridOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
+            Text(
+                text = "DESIGN TYPES",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingCard {
                 options.forEachIndexed { index, option ->
                     if (index > 0) NothingDivider()
@@ -470,6 +524,52 @@ private fun GlyphDesignPicker(
                         },
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+            NothingCard {
+                NothingListRow(
+                    title = "Open Glyph Studio",
+                    subtitle = "Draw, animate, save, and import designs",
+                    onClick = onOpenStudio,
+                    leading = {
+                        NothingIconCircle(size = 44f) {
+                            Icon(
+                                imageVector = Icons.Outlined.Draw,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    },
+                )
+                NothingDivider()
+                NothingListRow(
+                    title = "Glyph Museum",
+                    subtitle = "Browse and import community designs",
+                    onClick = {
+                        val pkg = "com.pauwma.glyphmuseum"
+                        val launch = context.packageManager.getLaunchIntentForPackage(pkg)
+                        if (launch != null) {
+                            context.startActivity(launch)
+                        } else {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                    },
+                    leading = {
+                        NothingIconCircle(size = 44f) {
+                            Icon(
+                                imageVector = Icons.Outlined.Museum,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    },
+                )
             }
         }
     }

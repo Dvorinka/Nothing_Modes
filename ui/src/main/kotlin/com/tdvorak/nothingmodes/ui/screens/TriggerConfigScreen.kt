@@ -626,6 +626,7 @@ private fun MediaPlaybackContent(
             label = "App package (optional)",
             value = trigger.packageName ?: "",
             onValueChange = { onUpdate(trigger.copy(packageName = it.ifBlank { null })) },
+            infoText = "Limit to one player — e.g. com.spotify.music or a package from the app's detail page. Blank matches every media app.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(
@@ -997,112 +998,6 @@ private fun GeofenceContent(
     trigger: Trigger.Geofence,
     onUpdate: (Trigger.Geofence) -> Unit,
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    var addressQuery by remember { mutableStateOf("") }
-    var searching by remember { mutableStateOf(false) }
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-    var map by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
-    var styleReady by remember { mutableStateOf(false) }
-
-    // MapLibre must be initialised before a MapView can be constructed.
-    val mapView =
-        remember {
-            org.maplibre.android.MapLibre.getInstance(context.applicationContext)
-            org.maplibre.android.maps.MapView(context)
-        }
-
-    // Address search: geocode on submit, then reuse the fence-update path —
-    // the LaunchedEffect below animates the map and redraws the circle.
-    fun searchAddress() {
-        val q = addressQuery.trim()
-        if (q.isEmpty() || searching) return
-        scope.launch {
-            searching = true
-            val address = geocodeAddress(context, q)
-            searching = false
-            if (address != null) {
-                onUpdate(trigger.copy(lat = address.latitude, lng = address.longitude))
-            } else {
-                Toast.makeText(context, "Address not found", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        mapView.onCreate(null)
-        mapView.getMapAsync { m ->
-            map = m
-            m.uiSettings.apply {
-                isLogoEnabled = false
-                isCompassEnabled = false
-                isAttributionEnabled = true
-                attributionGravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
-                setAttributionMargins(0, 0, 12, 12)
-            }
-            m.cameraPosition =
-                org.maplibre.android.camera.CameraPosition.Builder()
-                    .target(
-                        org.maplibre.android.geometry.LatLng(
-                            if (trigger.lat == 0.0 && trigger.lng == 0.0) 50.0755 else trigger.lat,
-                            if (trigger.lat == 0.0 && trigger.lng == 0.0) 14.4378 else trigger.lng,
-                        ),
-                    )
-                    .zoom(15.0)
-                    .build()
-            // Tap on the map moves the fence center and drops the keyboard.
-            m.addOnMapClickListener { point ->
-                focusManager.clearFocus()
-                onUpdate(trigger.copy(lat = point.latitude, lng = point.longitude))
-                true
-            }
-        }
-        val observer =
-            androidx.lifecycle.LifecycleEventObserver { _, event ->
-                when (event) {
-                    androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
-                    androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                    androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
-                    androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                    else -> Unit
-                }
-            }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            mapView.onStop()
-            mapView.onDestroy()
-        }
-    }
-
-    // Restyle when the theme flips between light and dark.
-    androidx.compose.runtime.LaunchedEffect(isDark, map) {
-        val m = map ?: return@LaunchedEffect
-        styleReady = false
-        m.setStyle(
-            org.maplibre.android.maps.Style.Builder()
-                .fromUri(if (isDark) OFM_DARK_STYLE else OFM_LIGHT_STYLE),
-        ) {
-            styleReady = true
-        }
-    }
-
-    // Redraw the fence circle and red pin whenever the center or radius changes.
-    androidx.compose.runtime.LaunchedEffect(trigger.lat, trigger.lng, trigger.radiusM, styleReady, map) {
-        val m = map ?: return@LaunchedEffect
-        if (!styleReady) return@LaunchedEffect
-        if (trigger.lat != 0.0 || trigger.lng != 0.0) {
-            val center = org.maplibre.android.geometry.LatLng(trigger.lat, trigger.lng)
-            m.style?.let { style -> applyFence(style, center, trigger.radiusM) }
-            m.animateCamera(
-                org.maplibre.android.camera.CameraUpdateFactory.newLatLng(center),
-            )
-        }
-    }
-
     Column {
         PermissionGate(
             permissions =
@@ -1117,71 +1012,12 @@ private fun GeofenceContent(
                     "Your location is processed on your device and is never sold, shared, or transmitted.",
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column {
-                NothingInput(
-                    value = addressQuery,
-                    onValueChange = { addressQuery = it },
-                    label = "Search address",
-                    placeholder = "Street, city, place...",
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { searchAddress() }),
-                )
-                if (searching) {
-                    Text(
-                        text = "Searching...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.padding(top = NothingSpacing.xs),
-                    )
-                }
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                Text(
-                    text = "Tap the map to place the fence.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                androidx.compose.ui.viewinterop.AndroidView(
-                    factory = { mapView },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .clip(NothingShapes.input)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input),
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-
-                // "Use current location" button — fetches last known location from FusedLocationProvider.
-                NothingPillButton(
-                    text = "Use current location",
-                    onClick = {
-                        val fine =
-                            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                                android.content.pm.PackageManager.PERMISSION_GRANTED
-                        val coarse =
-                            context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                                android.content.pm.PackageManager.PERMISSION_GRANTED
-                        if (!fine && !coarse) return@NothingPillButton
-
-                        runCatching {
-                            val fusedLocationClient =
-                                com.google.android.gms.location.LocationServices
-                                    .getFusedLocationProviderClient(context)
-                            fusedLocationClient.lastLocation
-                                .addOnSuccessListener { location ->
-                                    if (location != null) {
-                                        onUpdate(trigger.copy(lat = location.latitude, lng = location.longitude))
-                                    }
-                                }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            com.tdvorak.nothingmodes.ui.components.LocationMapPicker(
+                lat = trigger.lat,
+                lng = trigger.lng,
+                radiusM = trigger.radiusM,
+                onPick = { lat, lng -> onUpdate(trigger.copy(lat = lat, lng = lng)) },
+            )
         }
 
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -1420,80 +1256,5 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
             },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.md))
-    }
-}
-
-/** OpenFreeMap vector styles — free, no API key, OpenMapTiles schema.
- *  `dark` derives from the CartoDB Dark Matter cartography; `positron` is the
- *  matching light style. */
-private const val OFM_DARK_STYLE = "https://tiles.openfreemap.org/styles/dark"
-private const val OFM_LIGHT_STYLE = "https://tiles.openfreemap.org/styles/positron"
-private const val FENCE_FILL_LAYER = "nm-fence-fill"
-private const val FENCE_LINE_LAYER = "nm-fence-line"
-private const val FENCE_PIN_LAYER = "nm-fence-pin"
-private const val FENCE_SOURCE = "nm-fence-src"
-private const val PIN_SOURCE = "nm-pin-src"
-private const val FENCE_RED = "#FF3C3C"
-
-/** Draw (or redraw) the fence fill + outline + centre pin on a loaded style. */
-private fun applyFence(
-    style: org.maplibre.android.maps.Style,
-    center: org.maplibre.android.geometry.LatLng,
-    radiusM: Double,
-) {
-    val circle =
-        org.maplibre.geojson.Feature.fromGeometry(
-            org.maplibre.geojson.Polygon.fromLngLats(listOf(circleRing(center, radiusM))),
-        )
-    val pin =
-        org.maplibre.geojson.Feature.fromGeometry(
-            org.maplibre.geojson.Point.fromLngLat(center.longitude, center.latitude),
-        )
-
-    val fenceSrc = style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(FENCE_SOURCE)
-    if (fenceSrc != null) {
-        fenceSrc.setGeoJson(circle)
-        style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(PIN_SOURCE)?.setGeoJson(pin)
-        return
-    }
-
-    style.addSource(org.maplibre.android.style.sources.GeoJsonSource(FENCE_SOURCE, circle))
-    style.addSource(org.maplibre.android.style.sources.GeoJsonSource(PIN_SOURCE, pin))
-    style.addLayer(
-        org.maplibre.android.style.layers.FillLayer(FENCE_FILL_LAYER, FENCE_SOURCE).withProperties(
-            org.maplibre.android.style.layers.PropertyFactory.fillColor(FENCE_RED),
-            org.maplibre.android.style.layers.PropertyFactory.fillOpacity(0.14f),
-        ),
-    )
-    style.addLayer(
-        org.maplibre.android.style.layers.LineLayer(FENCE_LINE_LAYER, FENCE_SOURCE).withProperties(
-            org.maplibre.android.style.layers.PropertyFactory.lineColor(FENCE_RED),
-            org.maplibre.android.style.layers.PropertyFactory.lineWidth(2f),
-        ),
-    )
-    style.addLayer(
-        org.maplibre.android.style.layers.CircleLayer(FENCE_PIN_LAYER, PIN_SOURCE).withProperties(
-            org.maplibre.android.style.layers.PropertyFactory.circleColor(FENCE_RED),
-            org.maplibre.android.style.layers.PropertyFactory.circleRadius(6f),
-            org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth(2f),
-            org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor("#FFFFFF"),
-        ),
-    )
-}
-
-/** A geodesic-ish circle ring around [center], [steps]+1 points, closed. */
-private fun circleRing(
-    center: org.maplibre.android.geometry.LatLng,
-    radiusM: Double,
-    steps: Int = 72,
-): List<org.maplibre.geojson.Point> {
-    val latDegPerM = 1.0 / 111320.0
-    val lngDegPerM = 1.0 / (111320.0 * kotlin.math.cos(Math.toRadians(center.latitude)).coerceAtLeast(0.01))
-    return (0..steps).map { i ->
-        val a = 2.0 * Math.PI * i / steps
-        org.maplibre.geojson.Point.fromLngLat(
-            center.longitude + radiusM * kotlin.math.sin(a) * lngDegPerM,
-            center.latitude + radiusM * kotlin.math.cos(a) * latDegPerM,
-        )
     }
 }

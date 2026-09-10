@@ -229,6 +229,7 @@ fun ActionConfigContent(
                 label = "Timeout",
                 value = selected ?: a.timeoutMs.toString(),
                 options = screenTimeoutPresets.map { it.first },
+                infoText = "How long the screen stays on before it sleeps.",
                 onSelect = { label ->
                     screenTimeoutPresets.firstOrNull { it.first == label }?.let {
                         onActionChange(a.copy(timeoutMs = it.second))
@@ -260,6 +261,7 @@ fun ActionConfigContent(
                     value = a.mode.name.enumLabel(),
                     options = enumLabelList<AodMode>(),
                     onSelect = { onActionChange(a.copy(mode = enumByLabel<AodMode>(it))) },
+                    infoText = "Off, tap-to-show, always on, or on a daily schedule. Schedule needs the hours below.",
                 )
                 Text(
                     text =
@@ -616,6 +618,7 @@ fun ActionConfigContent(
                 value = a.glyphPreset.orEmpty(),
                 options = listOf("") + GLYPH_PRESET_NAMES,
                 onSelect = { onActionChange(a.copy(glyphPreset = it.ifBlank { null })) },
+                infoText = "Optional glyph animation flashed when the notification posts. Blank keeps the glyph untouched.",
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
@@ -628,6 +631,7 @@ fun ActionConfigContent(
                     )
                 },
                 label = "Glyph timeout (ms, 0 = manual)",
+                infoText = "How long the glyph stays lit after the notification posts. 0 keeps it on until the mode ends or the user clears it.",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -755,6 +759,7 @@ fun ActionConfigContent(
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
                 label = "LED zones (comma separated, blank = all)",
+                infoText = "Glyph strip zones, numbered per Nothing's zone map (0–4 on Phone 1/2). Blank lights every zone.",
                 modifier = Modifier.fillMaxWidth(),
             )
         }

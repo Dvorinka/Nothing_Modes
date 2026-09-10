@@ -41,8 +41,22 @@ import com.tdvorak.nothingmodes.ui.theme.NothingRadio
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
+import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/** Lets plain composables reach the mode list without a ViewModel. */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface ConditionSheetEntryPoint {
+    fun automationStore(): AutomationStore
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +91,12 @@ fun ConditionConfigSheet(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = GeistSans,
+            )
+            Text(
+                text = conditionTypeDescription(condition),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
                 modifier = Modifier.padding(bottom = NothingSpacing.md),
             )
 
@@ -413,6 +433,7 @@ private fun SsidSheetContent(
         value = ssid,
         onValueChange = onChange,
         label = "SSID (blank = any)",
+        infoText = "The Wi-Fi network name, exactly as it appears in the system Wi-Fi list. Leave blank to match any connected network.",
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -426,6 +447,7 @@ private fun DeviceNameSheetContent(
         value = name,
         onValueChange = onChange,
         label = "Device name (blank = any)",
+        infoText = "The Bluetooth device's broadcast name — e.g. the name your earbuds or car stereo report. Blank matches any connected device.",
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -435,12 +457,17 @@ private fun PackageSheetContent(
     pkg: String,
     onChange: (String) -> Unit,
 ) {
-    NothingInput(
-        value = pkg,
-        onValueChange = onChange,
-        label = "Package name",
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Column {
+        Text(
+            text = "The app to watch. Pick it — package names are handled for you.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        AppPicker(currentPackage = pkg, onPkgChange = onChange)
+    }
 }
 
 @Composable
@@ -448,12 +475,49 @@ private fun ModeIdSheetContent(
     modeId: String,
     onChange: (String) -> Unit,
 ) {
-    NothingInput(
-        value = modeId,
-        onValueChange = onChange,
-        label = "Mode ID",
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val modes by androidx.compose.runtime.produceState<List<Pair<String, String>>>(initialValue = emptyList()) {
+        value =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    EntryPointAccessors
+                        .fromApplication(context.applicationContext, ConditionSheetEntryPoint::class.java)
+                        .automationStore()
+                        .all()
+                        .map { it.id.value to it.name }
+                }.getOrDefault(emptyList())
+            }
+    }
+
+    Column {
+        Text(
+            text = "True while the chosen mode is active — useful for modes that should not overlap.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        if (modes.isNotEmpty()) {
+            NothingEnumSelector(
+                label = "Mode",
+                value = modes.firstOrNull { it.first == modeId }?.let { "${it.second} (${it.first})" } ?: "Choose…",
+                options = modes.map { "${it.second} (${it.first})" },
+                onSelect = { selected ->
+                    modes.firstOrNull { "${it.second} (${it.first})" == selected }?.let { onChange(it.first) }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            NothingInput(
+                value = modeId,
+                onValueChange = onChange,
+                label = "Mode ID",
+                infoText = "The mode's ID, from its detail page.",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
 @Composable
@@ -666,6 +730,7 @@ private fun ScreenOffForSheetContent(
             value = condition.minutes.toString(),
             onValueChange = { onChange(condition.copy(minutes = it.toIntOrNull() ?: condition.minutes)) },
             label = "Minutes",
+            infoText = "How long the screen must stay off before the condition holds. Pairs with the operator below.",
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -710,6 +775,7 @@ private fun BatteryTempSheetContent(
             value = condition.celsius.toString(),
             onValueChange = { onChange(condition.copy(celsius = it.toDoubleOrNull() ?: condition.celsius)) },
             label = "Celsius",
+            infoText = "Battery temperature threshold. Above ~40 °C the battery is getting hot; below ~5 °C charging slows down.",
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -740,6 +806,7 @@ private fun ThermalLevelSheetContent(
             value = condition.level.toString(),
             onValueChange = { onChange(condition.copy(level = it.toIntOrNull() ?: condition.level)) },
             label = "Level (0 none .. 6 shutdown)",
+            infoText = "Android thermal level: 0 = cool, 3 = heavy load, 4+ = the system is throttling to cool down.",
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -785,6 +852,7 @@ private fun NumericStateSheetContent(
                 text.toDoubleOrNull()?.let { onChange(condition.copy(value = it)) }
             },
             label = "Value",
+            infoText = "The number this device value is compared against, using the operator above.",
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -796,21 +864,29 @@ private fun AtLocationSheetContent(
     onChange: (Condition.AtLocation) -> Unit,
 ) {
     Column {
-        NothingInput(
-            value = condition.lat.toString(),
-            onValueChange = { text ->
-                text.toDoubleOrNull()?.let { onChange(condition.copy(lat = it)) }
-            },
-            label = "Latitude",
+        com.tdvorak.nothingmodes.ui.components.PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            rationale = "Checking your location against this area needs location access.",
             modifier = Modifier.fillMaxWidth(),
-        )
+        ) {
+            com.tdvorak.nothingmodes.ui.components.LocationMapPicker(
+                lat = condition.lat,
+                lng = condition.lng,
+                radiusM = condition.radiusM,
+                onPick = { lat, lng -> onChange(condition.copy(lat = lat, lng = lng)) },
+                heightDp = 180,
+            )
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            value = condition.lng.toString(),
-            onValueChange = { text ->
-                text.toDoubleOrNull()?.let { onChange(condition.copy(lng = it)) }
-            },
-            label = "Longitude",
+        Text(
+            text = "Tap the map to place the point. Radius ${condition.radiusM.toInt()} m around it.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -820,6 +896,9 @@ private fun AtLocationSheetContent(
                 text.toDoubleOrNull()?.let { onChange(condition.copy(radiusM = it)) }
             },
             label = "Radius (meters)",
+            infoText =
+                "How far from the point counts as \"at location\". Below ~50 m GPS " +
+                    "jitter can flip the condition in and out — use 100 m or more.",
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -834,6 +913,7 @@ private fun EventActiveSheetContent(
         value = condition.titleMatch,
         onValueChange = { onChange(condition.copy(titleMatch = it)) },
         label = "Title contains",
+        infoText = "Matches when a calendar event title contains this text, case-insensitive. Blank matches any event.",
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -844,17 +924,21 @@ private fun NotificationPresentSheetContent(
     onChange: (Condition.NotificationPresent) -> Unit,
 ) {
     Column {
-        NothingInput(
-            value = condition.pkg,
-            onValueChange = { onChange(condition.copy(pkg = it)) },
-            label = "App package",
+        Text(
+            text = "The app whose notification to watch for.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        AppPicker(currentPackage = condition.pkg, onPkgChange = { onChange(condition.copy(pkg = it)) })
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = condition.titleMatch,
             onValueChange = { onChange(condition.copy(titleMatch = it)) },
             label = "Title contains (optional)",
+            infoText = "Only matches when the notification title contains this text. Blank matches any notification from the app.",
             modifier = Modifier.fillMaxWidth(),
         )
     }

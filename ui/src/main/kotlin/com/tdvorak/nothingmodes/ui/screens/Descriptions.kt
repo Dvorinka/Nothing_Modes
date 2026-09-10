@@ -300,3 +300,26 @@ fun actionRequirementHint(action: Action): String? =
         is Action.ClearNotifications -> "Clears all status bar notifications."
         else -> null
     }
+
+/** Short feature description shown on catalog rows once the required
+ *  capability is already satisfied — replaces the bare "Needs …" hint
+ *  which would otherwise read as if the permission were still missing. */
+fun actionFeatureDescription(action: Action): String? =
+    when (action) {
+        is Action.SetBrightness -> "Sets screen brightness."
+        is Action.SetAutoBrightness -> "Toggles adaptive brightness."
+        is Action.SetExtraDim -> "Dims the display below the usual minimum."
+        is Action.SetScreenTimeout -> "Sets the screen-off timeout."
+        is Action.SetAutoRotate -> "Toggles auto-rotation."
+        is Action.SetScreenRotation -> "Forces a screen orientation."
+        is Action.SetRefreshRate -> "Sets the display refresh rate."
+        is Action.SetDarkMode -> "Switches dark mode on or off."
+        is Action.SetStayAwake -> "Keeps the screen on while charging."
+        is Action.SetDnd -> "Changes Do-Not-Disturb mode."
+        is Action.ShowNotification -> "Posts a notification."
+        is Action.SendSms -> "Sends an SMS message."
+        is Action.LockScreen -> "Locks the device screen."
+        is Action.TakeScreenshot -> "Captures the screen."
+        is Action.WriteSetting -> "Writes a system, secure, or global key."
+        else -> null
+    }

@@ -552,6 +552,8 @@ val Action.canRestore: Boolean
             is Action.SetAutoSync,
             is Action.SetRinger,
             is Action.SetStayAwake,
+            is Action.SetGlyph,
+            is Action.SetGlyphMatrix,
             -> true
             is Action.Group -> actions.any { it.canRestore }
             else -> false
@@ -584,6 +586,8 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetAutoSync -> copy(restore = restore)
         is Action.SetRinger -> copy(restore = restore)
         is Action.SetStayAwake -> copy(restore = restore)
+        is Action.SetGlyph -> copy(restore = restore)
+        is Action.SetGlyphMatrix -> copy(restore = restore)
         is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
