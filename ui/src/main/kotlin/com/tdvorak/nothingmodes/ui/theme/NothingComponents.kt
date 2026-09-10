@@ -881,6 +881,7 @@ fun NothingInput(
     placeholder: String = "",
     singleLine: Boolean = true,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
+    keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         NothingLabel(
@@ -898,6 +899,7 @@ fun NothingInput(
                 },
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = NothingFonts.mono()),
             colors =
                 OutlinedTextFieldDefaults.colors(

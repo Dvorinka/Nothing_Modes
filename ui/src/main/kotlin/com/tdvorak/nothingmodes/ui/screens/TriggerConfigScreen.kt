@@ -31,6 +31,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -49,6 +51,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -57,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -97,11 +101,14 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Locale
+import kotlin.coroutines.resume
 
 private data class TriggerType(
     val label: String,
@@ -1130,8 +1137,28 @@ private fun GeofenceContent(
     onUpdate: (Trigger.Geofence) -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val mapView = remember { org.osmdroid.views.MapView(context) }
     var fenceOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Polygon?>(null) }
+    var addressQuery by remember { mutableStateOf("") }
+    var searching by remember { mutableStateOf(false) }
+
+    // Address search: geocode on submit, then reuse the fence-update path —
+    // the LaunchedEffect below animates the map and redraws the circle.
+    fun searchAddress() {
+        val q = addressQuery.trim()
+        if (q.isEmpty() || searching) return
+        scope.launch {
+            searching = true
+            val address = geocodeAddress(context, q)
+            searching = false
+            if (address != null) {
+                onUpdate(trigger.copy(lat = address.latitude, lng = address.longitude))
+            } else {
+                Toast.makeText(context, "Address not found", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     androidx.compose.runtime.DisposableEffect(Unit) {
         org.osmdroid.config.Configuration.getInstance().apply {
@@ -1196,6 +1223,24 @@ private fun GeofenceContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column {
+                NothingInput(
+                    value = addressQuery,
+                    onValueChange = { addressQuery = it },
+                    label = "Search address",
+                    placeholder = "Street, city, place...",
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { searchAddress() }),
+                )
+                if (searching) {
+                    Text(
+                        text = "Searching...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                        modifier = Modifier.padding(top = NothingSpacing.xs),
+                    )
+                }
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 Text(
                     text = "Tap the map to place the fence.",
                     style = MaterialTheme.typography.labelSmall,
@@ -1278,6 +1323,27 @@ private fun GeofenceContent(
         HelpText(text = "Fires when you enter or leave the circular area. Tap the map to move the pin. Location access is required.")
     }
 }
+
+/** Resolve an address/place name to coordinates via the system Geocoder (no extra deps). */
+private suspend fun geocodeAddress(
+    context: android.content.Context,
+    query: String,
+): android.location.Address? =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val geocoder = android.location.Geocoder(context, Locale.getDefault())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine { cont ->
+                    geocoder.getFromLocationName(query, 1) { results ->
+                        cont.resume(results.firstOrNull())
+                    }
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                geocoder.getFromLocationName(query, 1)?.firstOrNull()
+            }
+        }.getOrNull()
+    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
