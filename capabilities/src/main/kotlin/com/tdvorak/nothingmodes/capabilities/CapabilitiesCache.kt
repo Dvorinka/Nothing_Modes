@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.capabilities
 
 import android.content.Context
+import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,10 @@ object CapabilitiesCache {
 
     /** Runs full detection and updates the cache. */
     suspend fun refresh(context: Context): DeviceCapabilities {
-        val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+        val caps =
+            withContext(Dispatchers.IO) {
+                CapabilityDetector(context, ShizukuGateway(context)).detect()
+            }
         _current.value = caps
         return caps
     }

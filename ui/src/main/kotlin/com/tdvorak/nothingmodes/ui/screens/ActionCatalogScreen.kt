@@ -4,17 +4,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,11 +76,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+private enum class RowKind { CONFIG, GLYPH_PICKER, DIRECT }
+
 private data class ActionItem(
     val label: String,
     val category: String,
     val icon: ImageVector,
-    val action: Action,
+    val action: Action?,
+    val kind: RowKind = RowKind.CONFIG,
+    val desc: String? = null,
 )
 
 /** Combined add-action screen. Every action type is available in one place,
@@ -95,6 +104,8 @@ fun ActionCatalogScreen(navController: NavController) {
     var configAction by remember { mutableStateOf<Action?>(null) }
     // Action waiting for a capability-warning confirmation.
     var pendingAction by remember { mutableStateOf<Action?>(null) }
+    // Glyph design-type picker sheet.
+    var showGlyphPicker by remember { mutableStateOf(false) }
 
     val items =
         remember {
@@ -135,18 +146,39 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Media control", "Apps", Icons.AutoMirrored.Outlined.VolumeUp, Action.MediaControl(MediaCommand.PLAY_PAUSE)),
                 ActionItem("Wait", "Apps", Icons.Outlined.Snooze, Action.Wait(1000)),
                 ActionItem("Send SMS", "Apps", Icons.Outlined.Sms, Action.SendSms("", "")),
-                ActionItem("Glyph", "Glyph", Icons.Outlined.WbTwilight, Action.SetGlyph(true)),
-                ActionItem("Glyph matrix", "Glyph", Icons.Outlined.GridOn, Action.SetGlyphMatrix(null, restore = false)),
-                ActionItem("Glyph preset", "Glyph", Icons.Outlined.Lightbulb, Action.GlyphPreset("sleep")),
-                ActionItem("Glyph text", "Glyph", Icons.Outlined.TextFields, Action.GlyphText("")),
-                ActionItem("Glyph scrolling", "Glyph", Icons.Outlined.Notes, Action.GlyphScrollingText("")),
-                ActionItem("Glyph icon", "Glyph", Icons.Outlined.EmojiSymbols, Action.GlyphIcon("check")),
-                ActionItem("Glyph number", "Glyph", Icons.Outlined.Tag, Action.GlyphNumber(0)),
-                ActionItem("Glyph countdown", "Glyph", Icons.Outlined.Timer, Action.GlyphCountdown(30)),
-                ActionItem("Glyph progress", "Glyph", Icons.Outlined.Moving, Action.GlyphProgress(50)),
-                ActionItem("Glyph animate", "Glyph", Icons.Outlined.Animation, Action.GlyphAnimate()),
-                ActionItem("Glyph music", "Glyph", Icons.Outlined.MusicNote, Action.GlyphMusic()),
-                ActionItem("Glyph turn off", "Glyph", Icons.Outlined.PowerSettingsNew, Action.GlyphTurnOff),
+                // One entry into every Glyph design type — the picker below.
+                ActionItem(
+                    "Glyph",
+                    "Glyph",
+                    Icons.Outlined.WbTwilight,
+                    action = Action.GlyphTurnOff, // meta carrier — picks open the design picker
+                    kind = RowKind.GLYPH_PICKER,
+                    desc = "Show a design, animation, or the music visualizer on the Glyph.",
+                ),
+                ActionItem(
+                    "Glyph flashlight",
+                    "Glyph",
+                    Icons.Outlined.FlashlightOn,
+                    action =
+                        Action.Group(
+                            name = "Glyph flashlight",
+                            actions =
+                                listOf(
+                                    Action.SetFlashlight(true),
+                                    Action.SetGlyphMatrix(colors = List(625) { 255 }),
+                                ),
+                        ),
+                    kind = RowKind.DIRECT,
+                    desc = "Torch plus Glyph at full brightness — an always-available torch.",
+                ),
+                ActionItem(
+                    "Glyph off",
+                    "Glyph",
+                    Icons.Outlined.PowerSettingsNew,
+                    action = Action.GlyphTurnOff,
+                    kind = RowKind.DIRECT,
+                    desc = "Clears anything currently on the Glyph.",
+                ),
                 ActionItem("Write setting", "Advanced", Icons.Outlined.Settings, Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0")),
             ).filter { it.action !is Action.LockScreen || FeatureFlags.enableLockScreen }
         }
@@ -154,7 +186,8 @@ fun ActionCatalogScreen(navController: NavController) {
     val iconForAction =
         remember(items) {
             { action: Action ->
-                items.find { it.action::class == action::class }?.icon ?: Icons.Outlined.Settings
+                items.firstOrNull { it.action != null && it.action::class == action::class }?.icon
+                    ?: if (action is Action.Group) Icons.Outlined.FlashlightOn else Icons.Outlined.Settings
             }
         }
 
@@ -163,7 +196,8 @@ fun ActionCatalogScreen(navController: NavController) {
     val catalogEntries =
         remember(items, caps) {
             items.mapNotNull { item ->
-                val (subtitle, badges, blocked) = actionCatalogMeta(item.action, caps)
+                val metaAction = item.action ?: return@mapNotNull null
+                val (subtitle, badges, blocked) = actionCatalogMeta(metaAction, caps)
                 if (blocked) {
                     null
                 } else {
@@ -171,7 +205,7 @@ fun ActionCatalogScreen(navController: NavController) {
                         label = item.label,
                         category = item.category,
                         icon = item.icon,
-                        description = subtitle,
+                        description = item.desc ?: subtitle,
                         badges = badges,
                         accent = item.category == "Glyph",
                     )
@@ -208,11 +242,18 @@ fun ActionCatalogScreen(navController: NavController) {
                 onSelect = { entry ->
                     val actionItem = items.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
                     editingIndex = null
-                    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(actionItem.action))
-                    if (resolver.resolve(actionItem.label, required).canRun) {
-                        configAction = actionItem.action
-                    } else {
-                        pendingAction = actionItem.action
+                    when (actionItem.kind) {
+                        RowKind.GLYPH_PICKER -> showGlyphPicker = true
+                        RowKind.DIRECT -> actionItem.action?.let { selected = selected + it }
+                        RowKind.CONFIG -> {
+                            val action = actionItem.action ?: return@CatalogPickerContent
+                            val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+                            if (resolver.resolve(actionItem.label, required).canRun) {
+                                configAction = action
+                            } else {
+                                pendingAction = action
+                            }
+                        }
                     }
                 },
                 searchPlaceholder = stringResource(R.string.picker_find_action),
@@ -227,7 +268,10 @@ fun ActionCatalogScreen(navController: NavController) {
                             selected.forEachIndexed { index, action ->
                                 if (index > 0) NothingDivider()
                                 NothingListRow(
-                                    title = items.find { it.action::class == action::class }?.label ?: "Action",
+                                    title =
+                                        items.firstOrNull { it.action != null && it.action::class == action::class }?.label
+                                            ?: (action as? Action.Group)?.name
+                                            ?: "Action",
                                     subtitle = actionDescription(action),
                                     onClick = {
                                         editingIndex = index
@@ -287,6 +331,22 @@ fun ActionCatalogScreen(navController: NavController) {
         }
     }
 
+    if (showGlyphPicker) {
+        GlyphDesignPicker(
+            caps = caps,
+            onPick = { picked ->
+                showGlyphPicker = false
+                val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(picked))
+                if (resolver.resolve("Glyph", required).canRun) {
+                    configAction = picked
+                } else {
+                    pendingAction = picked
+                }
+            },
+            onDismiss = { showGlyphPicker = false },
+        )
+    }
+
     pendingAction?.let { action ->
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         val resolution = resolver.resolve(action::class.simpleName ?: "", required)
@@ -336,6 +396,91 @@ private fun actionCatalogMeta(
         }
     return Triple(subtitle, badges, isHardwareBlocked(resolution.missing, caps))
 }
+
+/** One entry into every Glyph design type. Options the device can't physically
+ *  render (light stripe on a matrix-only phone and vice versa) are filtered out
+ *  through the same capability path as the catalog rows. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlyphDesignPicker(
+    caps: DeviceCapabilities,
+    onPick: (Action) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options =
+        remember(caps) {
+            val resolver = CapabilityResolver(caps)
+            listOf(
+                GlyphOption("Light stripe", Icons.Outlined.WbTwilight, "Simple on/off on the light strips", Action.SetGlyph(true)),
+                GlyphOption("Matrix pattern", Icons.Outlined.GridOn, "Draw a frame on the dot matrix", Action.SetGlyphMatrix(null)),
+                GlyphOption("Preset", Icons.Outlined.Lightbulb, "Named animations — sleep, charging, timer…", Action.GlyphPreset("sleep")),
+                GlyphOption("Text", Icons.Outlined.TextFields, "Static text on the matrix", Action.GlyphText("")),
+                GlyphOption("Scrolling text", Icons.Outlined.Notes, "Marquee text across the matrix", Action.GlyphScrollingText("")),
+                GlyphOption("Icon", Icons.Outlined.EmojiSymbols, "Baked icon on the matrix", Action.GlyphIcon("check")),
+                GlyphOption("Number", Icons.Outlined.Tag, "A 0–99 number, centered", Action.GlyphNumber(0)),
+                GlyphOption("Countdown", Icons.Outlined.Timer, "Live countdown ticking on the matrix", Action.GlyphCountdown(30)),
+                GlyphOption("Progress", Icons.Outlined.Moving, "Progress bar on the strips", Action.GlyphProgress(50)),
+                GlyphOption("Animation", Icons.Outlined.Animation, "Breathing animation on the strips", Action.GlyphAnimate()),
+                GlyphOption("Music visualizer", Icons.Outlined.MusicNote, "Reacts to playing audio", Action.GlyphMusic()),
+            ).filter { option ->
+                val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(option.action))
+                val missing = resolver.resolve(option.label, required).missing
+                !isHardwareBlocked(missing, caps)
+            }
+        }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = NothingSpacing.md)
+                    .padding(bottom = NothingSpacing.xxl),
+        ) {
+            Text(
+                text = "GLYPH",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.doto(),
+            )
+            Text(
+                text = "Pick what the Glyph should show.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.lg))
+            NothingCard {
+                options.forEachIndexed { index, option ->
+                    if (index > 0) NothingDivider()
+                    NothingListRow(
+                        title = option.label,
+                        subtitle = option.blurb,
+                        onClick = { onPick(option.action) },
+                        leading = {
+                            NothingIconCircle(size = 44f, accent = true) {
+                                Icon(
+                                    imageVector = option.icon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class GlyphOption(
+    val label: String,
+    val icon: ImageVector,
+    val blurb: String,
+    val action: Action,
+)
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.then(

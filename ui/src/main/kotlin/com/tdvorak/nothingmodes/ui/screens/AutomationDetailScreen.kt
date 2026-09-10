@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -48,7 +47,6 @@ import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
-import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
@@ -274,7 +272,6 @@ fun AutomationDetailScreen(
                         TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
                         TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
-                        TopBarAction("Template", icon = Icons.Filled.Bookmark, onClick = { viewModel.saveAsTemplate() }),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
                         TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
                     ),
@@ -427,7 +424,36 @@ fun AutomationDetailScreen(
                     }
                 }
 
-                NothingCard {
+                Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+                NothingCardLarge {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        NothingIconCircle(size = 44f) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(NothingSpacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "Share this mode",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = "Publish it to the public catalog after a quick review.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     NothingPillButton(
                         text = "Submit to public catalog",
                         onClick = { viewModel.stageShare() },

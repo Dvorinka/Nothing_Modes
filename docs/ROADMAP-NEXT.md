@@ -104,7 +104,7 @@ Real defects found and fixed in this pass:
 2. **Catalog "Done" button silently returned with zero actions.** If `selected` was empty, the bar still read "Done" and popped back, leaving the save button disabled with no explanation. Fixed: `NothingBottomActionBar` is disabled and shows "Select at least one action/condition" when empty.
 3. **`save()` had zero error handling.** Fixed: wrapped `store.save()` and widget refresh in `runCatching`, exposed `saveError`, and showed a `Snackbar` on failure.
 4. **Disabled save gave no reason.** Fixed: added a subtitle under the bottom bar: "Add at least one action to save." when `state.actions.isEmpty()`.
-5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. **Pending** — remove or wire.
+5. Dead code: `CreateAutomationScreen.kt` is not in the nav graph at all. **Resolved** — file removed from the tree.
 6. **Navigation route JSON not URL-encoded.** `Routes.triggerConfig/conditionConfig/actionConfig` passed raw JSON into the route query string; characters like `"`, `{`, `:` can break Compose Navigation matching. Fixed: use `URLEncoder.encode(..., "UTF-8")` before navigating.
 7. **"Add at least one action to save" shown permanently.** Fixed: removed the red subtitle and enabled the save button. A mode can now be saved with zero actions, and the hint no longer appears.
 
@@ -239,17 +239,15 @@ Every action gets an `afterEnd` policy: `RESTORE_PREVIOUS` (default where restor
 
 ## 4. Glyph consolidation — the big one
 
-Current: **12 separate glyph action types** (set_glyph, glyph_matrix, preset, text, scrolling text, icon, number, countdown, progress, animate, music, app). Agreed: too many.
+Was: **12 separate glyph action types** in the catalog (set_glyph, glyph_matrix, preset, text, scrolling text, icon, number, countdown, progress, animate, music, off). Too many.
 
-**Target: 3 glyph actions in the catalog**
+**Done — catalog now shows 3 glyph entries:**
 
-1. **"Glyph" (Glyph Studio action)** — one entry point. Opens Glyph Studio to pick:
-   - my saved designs, presets, matrix frames, icons, text/scrolling text, numbers, countdown, progress, animations, music visualizer
-   - import: JSON paste/file, community library (see §5), Glyph Museum link
-   - config: duration, brightness, loop, "always-on" (if system allows — else prompt the user to enable the toy once, deep-link to system setting)
-   - Internally it can still map to the existing action types — the model can stay; the UX collapses to one picker. Or introduce `Action.GlyphShow(descriptor)` that wraps a stored glyph-design ID.
-2. **"Glyph off"** — stays separate (genuinely useful).
-3. **"Glyph flashlight"** — torch + glyph matrix all-on at max brightness. New action combining `SetFlashlight` + full-white `SetGlyphMatrix`; also useful alone ("supportive flashlight").
+1. **"Glyph"** — one entry point. Opens `GlyphDesignPicker`, a bottom sheet listing every design type (light stripe, matrix frame, preset, text, scrolling text, icon, number, countdown, progress, animation, music visualizer). Each option opens its existing config sheet — the model is unchanged; only the catalog UX collapsed. Options are hardware-filtered through `isHardwareBlocked` (stripe options hidden on matrix-only phones and vice versa).
+2. **"Glyph off"** — separate row, adds `GlyphTurnOff` directly.
+3. **"Glyph flashlight"** — adds `Action.Group("Glyph flashlight", [SetFlashlight(true), SetGlyphMatrix(all-white 25×25)])` directly — torch plus matrix at full brightness.
+
+Still open: saved-design picking inside the Glyph row (designs stored in Glyph Studio), duration/brightness/loop config surfaced in the picker, and the Glyph Museum import link inside the picker itself.
 
 **Glyph Studio screen rework** (`GlyphEditorScreen.kt` / `GlyphPreviewScreen.kt`):
 - [x] Shrink the top/preview section so the scrollable content gets the majority of the screen. `CanvasCard` now uses `fillMaxWidth(0.55f)` and keeps a 1:1 aspect ratio.
@@ -327,7 +325,7 @@ Still open in this feature:
 - [x] **Bottom bar gap** (confirmed visually): `NothingBottomActionBar` floating pill shows content beneath it — wrap in an opaque `Surface` with `navigationBarsPadding` (it already does — but the catalog screens draw it in a `Box` overlay; ensure the container under the button is `background`-colored, not transparent) and push the button lower/solid. Done for `ActionConfigSheet` and `ConditionConfigSheet` "Done" bars.
 - [x] Toggle styling: Nothing-red track + ON/OFF text labels, app-wide.
 - [x] "If"/"Then" headers bigger (display/large-title), plus the new "After" section — see §1.
-- [x] **Classic theme restyle** — app + website. App: `NothingDotGrid` gated to NOTHING style; screens already use `NothingFonts.doto()`/`mono()` (null in CLASSIC) and `NothingColors.accent` (resolves to primary in CLASSIC); `NothingScreenHero`/`NothingTopBar`/buttons/labels already branch on `classic`. Website: `styles.css` `[data-style="normal"]` restyles to indigo-accent premium SaaS; `library.html` gained the DOTS/PLAIN + dark/light toggle (persisted via `localStorage`, mirroring `script.js`) and `[data-style="normal"]` overrides. Nothing style untouched.
+- [x] **Classic theme restyle** — app + website. App: full M3 chrome in CLASSIC — real back arrow, `Switch`, filled buttons, borderless rounded cards, M3 FAB, sentence-case labels — over neutral surfaces with a **soft teal** accent (`#8ED1C8` dark / `#00695F` light). `NothingDotGrid` gated to NOTHING style. Website: `styles.css` `[data-style="normal"]` restyles to a sober premium SaaS look; `library.html` gained the DOTS/PLAIN + dark/light toggle (persisted via `localStorage`). Nothing style untouched.
 - [x] Settings load performance — `CapabilityDetector` and `ShizukuGateway.status()` run on `Dispatchers.IO` in `SettingsViewModel.detect()`; the remaining screen content is light (package info, cached states, data-store backed toggles). No further cache/no-op work needed.
 - [x] Show progress/confirmation when an action takes >~300 ms (e.g. "Turning on Wi-Fi…" → toast/snackbar/inline spinner) so users don't spam. Implemented as a delayed foreground-service progress notification; the existing "Running: <mode>" snackbar also fires for manual runs.
 - [x] Save/schedule feedback: confirm "Mode saved" on successful save.
@@ -446,8 +444,8 @@ Still to wire:
 ## 12. Decisions (resolved)
 
 1. Mode naming — **one concept, user-facing name "mode"** everywhere. Internally the `Automation` type still carries `MODE` (windowed) and `ROUTINE` (one-shot) for engine semantics, but users see only "modes".
-2. "After" section label — **"When it ends"**.
-3. `TakeScreenshot` — **remove** from catalog and model (MediaProjection consent per capture makes it useless for automation).
+2. "After" section label — **"AFTER IT ENDS"** (supersedes the earlier "When it ends" note; matches the IF/ONLY IF/THEN section rhythm).
+3. `TakeScreenshot` — **kept**, contra the earlier removal note: it works on-device via Shizuku `screencap` and stays behind the "Detected: may not work" + override gate. GitHub flavor only in practice.
 4. "Surge" — was a voice-dictation artifact (Whispr Flow). Intended meaning: **fully wire everything across all surfaces** — app, website, GitHub — including search across library/templates. No specific product; fold into the community-pipeline work.
 5. Creator profile — **keep handle + email (private, author contact) + optional GitHub field** added.
 6. SMS send test — **approved** to the user's own number when we reach it.
