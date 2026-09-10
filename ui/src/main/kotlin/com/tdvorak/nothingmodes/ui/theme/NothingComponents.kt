@@ -36,6 +36,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -1230,6 +1232,7 @@ fun NothingListRow(
     onClick: (() -> Unit)? = null,
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
+    infoText: String? = null,
 ) {
     val rowModifier =
         if (onClick != null) {
@@ -1258,19 +1261,58 @@ fun NothingListRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color =
-                    if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                maxLines = 2,
-                softWrap = true,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (infoText != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color =
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        maxLines = 2,
+                        softWrap = true,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    var showInfo by remember { mutableStateOf(false) }
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "About $title",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier =
+                            Modifier
+                                .padding(start = NothingSpacing.sm)
+                                .size(16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                ) { showInfo = true },
+                    )
+                    if (showInfo) {
+                        com.tdvorak.nothingmodes.ui.components.InfoDialog(
+                            title = title,
+                            text = infoText,
+                        ) { showInfo = false }
+                    }
+                }
+            } else {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color =
+                        if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    maxLines = 2,
+                    softWrap = true,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             if (subtitle.isNotEmpty()) {
                 Text(
                     text = subtitle,

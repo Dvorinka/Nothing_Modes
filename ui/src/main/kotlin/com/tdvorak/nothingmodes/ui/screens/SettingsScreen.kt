@@ -362,6 +362,7 @@ fun SettingsScreen(
                     NothingCard {
                         PermissionRow(
                             label = "Write Settings",
+                            infoText = "Lets modes change system settings like brightness, dark mode, screen timeout, and other Write-Settings-gated actions.",
                             granted = capabilities.hasWriteSettings,
                             onOpenSettings = {
                                 context.startActivity(
@@ -383,6 +384,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Notification Policy",
+                            infoText = "Lets modes change Do-Not-Disturb. Needed for the DND action and for silencing the phone automatically.",
                             granted = capabilities.hasNotificationPolicyAccess,
                             onOpenSettings = {
                                 context.startActivity(
@@ -403,6 +405,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Notification Listener",
+                            infoText = "Reads posted notifications so modes can trigger or check on the app, title, or text of an alert.",
                             granted = capabilities.hasNotificationListenerAccess,
                             onOpenSettings = {
                                 context.startActivity(
@@ -423,6 +426,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Usage Access",
+                            infoText = "Detects which app is in the foreground. Used by app-opened triggers and app-in-foreground conditions.",
                             granted = capabilities.hasUsageAccess,
                             onOpenSettings = {
                                 context.startActivity(
@@ -443,6 +447,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Location",
+                            infoText = "Runs geofence triggers and at-location conditions in the background. Location stays on your device.",
                             granted = capabilities.hasLocationPermission,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.ACCESS_FINE_LOCATION) },
@@ -451,6 +456,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Calendar",
+                            infoText = "Reads upcoming events so modes can fire when a calendar event starts or ends, or check if one is active.",
                             granted = capabilities.hasReadCalendar,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.READ_CALENDAR) },
@@ -459,6 +465,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "SMS",
+                            infoText = "Sends texts from Send SMS actions and detects incoming SMS for the SMS-received trigger.",
                             granted = capabilities.hasSendSms,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.SEND_SMS) },
@@ -467,6 +474,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Phone state",
+                            infoText = "Detects ringing and active calls for the phone-call trigger and call-state condition.",
                             granted = capabilities.hasReadPhoneState,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.READ_PHONE_STATE) },
@@ -475,6 +483,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Camera",
+                            infoText = "Used by the QR-scanner action to read codes through the viewfinder.",
                             granted = capabilities.hasCamera,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.CAMERA) },
@@ -483,6 +492,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Microphone",
+                            infoText = "Feeds the Glyph music visualizer with playback audio. Audio is analysed on-device and never stored or sent.",
                             granted = capabilities.hasRecordAudio,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.RECORD_AUDIO) },
@@ -491,6 +501,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Post notifications",
+                            infoText = "Shows the foreground-service notification that keeps modes running, plus output from Show notification actions.",
                             granted = capabilities.hasPostNotifications,
                             isRuntime = true,
                             onGrant = {
@@ -505,6 +516,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Exact alarm",
+                            infoText = "Lets time-based triggers fire at the exact minute instead of being delayed by doze batching.",
                             granted = capabilities.hasExactAlarm,
                             onOpenSettings = {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -523,6 +535,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Bluetooth connect",
+                            infoText = "Reads connected Bluetooth devices for connection triggers and conditions.",
                             granted = capabilities.hasBluetoothConnect,
                             isRuntime = true,
                             onGrant = {
@@ -537,6 +550,7 @@ fun SettingsScreen(
                         NothingDivider()
                         PermissionRow(
                             label = "Bluetooth scan",
+                            infoText = "Finds nearby Bluetooth devices for proximity-based triggers.",
                             granted = capabilities.hasBluetoothScan,
                             isRuntime = true,
                             onGrant = {
@@ -1370,10 +1384,12 @@ private fun PermissionRow(
     onOpenSettings: (() -> Unit)? = null,
     onOpenAppInfo: (() -> Unit)? = null,
     onGrant: (() -> Unit)? = null,
+    infoText: String? = null,
 ) {
     NothingListRow(
         title = label,
         selected = false,
+        infoText = infoText,
         onClick = {
             when {
                 isRuntime && !granted -> onGrant?.invoke()
