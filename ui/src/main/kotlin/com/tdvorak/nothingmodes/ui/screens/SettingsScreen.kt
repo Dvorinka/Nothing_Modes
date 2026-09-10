@@ -229,7 +229,9 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val locationPermissionLauncher =
+    // One launcher serves every runtime permission row — the contract takes
+    // the permission string at launch() time.
+    val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { _ -> viewModel.detect(context) }
@@ -417,7 +419,7 @@ fun SettingsScreen(
                             label = "Location",
                             granted = capabilities.hasLocationPermission,
                             isRuntime = true,
-                            onGrant = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                             onOpenSettings = {
                                 context.startActivity(
                                     Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -432,7 +434,7 @@ fun SettingsScreen(
                             label = "Calendar",
                             granted = capabilities.hasReadCalendar,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.READ_CALENDAR) },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -440,7 +442,7 @@ fun SettingsScreen(
                             label = "SMS",
                             granted = capabilities.hasSendSms,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.SEND_SMS) },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -448,7 +450,7 @@ fun SettingsScreen(
                             label = "Phone state",
                             granted = capabilities.hasReadPhoneState,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -456,7 +458,7 @@ fun SettingsScreen(
                             label = "Camera",
                             granted = capabilities.hasCamera,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -464,7 +466,7 @@ fun SettingsScreen(
                             label = "Microphone",
                             granted = capabilities.hasRecordAudio,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -472,7 +474,13 @@ fun SettingsScreen(
                             label = "Post notifications",
                             granted = capabilities.hasPostNotifications,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    openAppInfo(context)
+                                }
+                            },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -498,7 +506,13 @@ fun SettingsScreen(
                             label = "Bluetooth connect",
                             granted = capabilities.hasBluetoothConnect,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                    permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                                } else {
+                                    openAppInfo(context)
+                                }
+                            },
                             onOpenSettings = { openAppInfo(context) },
                         )
                         NothingDivider()
@@ -506,7 +520,13 @@ fun SettingsScreen(
                             label = "Bluetooth scan",
                             granted = capabilities.hasBluetoothScan,
                             isRuntime = true,
-                            onGrant = { openAppInfo(context) },
+                            onGrant = {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                    permissionLauncher.launch(Manifest.permission.BLUETOOTH_SCAN)
+                                } else {
+                                    openAppInfo(context)
+                                }
+                            },
                             onOpenSettings = { openAppInfo(context) },
                         )
                     }
