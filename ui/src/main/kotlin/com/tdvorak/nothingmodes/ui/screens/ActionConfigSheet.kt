@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
@@ -40,12 +41,14 @@ import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
+import com.tdvorak.nothingmodes.ui.screens.MediaProjectionRequestActivity
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingDragHandle
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
+import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
@@ -519,8 +522,10 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphMusic -> {
+            val ctx = LocalContext.current
+            val hasMediaProjection = remember { MediaProjectionRequestActivity.isGranted() }
             Text(
-                text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
+                text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action. Grant audio capture to react to music playing through headphones or Bluetooth.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -528,6 +533,12 @@ fun ActionConfigContent(
             MusicStyleSelector(
                 style = a.style,
                 onChange = { onActionChange(a.copy(style = MusicVisualizerStyles.normalize(it))) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingPillButton(
+                text = if (hasMediaProjection) "Audio capture granted" else "Grant audio capture for headphones",
+                onClick = { ctx.startActivity(MediaProjectionRequestActivity.intent(ctx)) },
+                enabled = !hasMediaProjection,
             )
         }
 

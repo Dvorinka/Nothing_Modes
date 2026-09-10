@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.Action
@@ -39,6 +40,7 @@ import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
+import com.tdvorak.nothingmodes.ui.screens.MediaProjectionRequestActivity
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -344,8 +346,10 @@ fun ActionConfigScreen(
                     }
 
                     is Action.GlyphMusic -> {
+                        val ctx = LocalContext.current
+                        val hasMediaProjection = remember { MediaProjectionRequestActivity.isGranted() }
                         Text(
-                            text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action.",
+                            text = "Live music-reactive visualizer. Requires RECORD_AUDIO permission. Stays active until Glyph off or another glyph action. Grant audio capture to react to music playing through headphones or Bluetooth.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -353,6 +357,12 @@ fun ActionConfigScreen(
                         MusicStyleSelector(
                             style = a.style,
                             onChange = { action = a.copy(style = MusicVisualizerStyles.normalize(it)) },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingPillButton(
+                            text = if (hasMediaProjection) "Audio capture granted" else "Grant audio capture for headphones",
+                            onClick = { ctx.startActivity(MediaProjectionRequestActivity.intent(ctx)) },
+                            enabled = !hasMediaProjection,
                         )
                     }
 

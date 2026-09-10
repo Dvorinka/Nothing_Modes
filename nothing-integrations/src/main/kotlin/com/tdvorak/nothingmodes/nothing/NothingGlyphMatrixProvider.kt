@@ -639,6 +639,7 @@ class NothingGlyphMatrixProvider(
 
         stopActiveJobs()
 
+        audioAnalyzer.setMediaProjection(MediaProjectionHolder.get())
         val ok = audioAnalyzer.init()
         if (!ok) {
             // Even without permission we still try to show a simulated

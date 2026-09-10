@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.nothing
 import android.content.Context
 import android.media.AudioManager
 import android.media.audiofx.Visualizer
+import android.media.projection.MediaProjection
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -10,9 +11,16 @@ import androidx.core.content.ContextCompat
 /**
  * Minimal real-time audio capture for the Glyph Matrix music visualizer.
  *
- * Uses [Visualizer] on session 0 (global output mix) when [RECORD_AUDIO] is
- * granted. Captures both FFT (for equalizer) and raw waveform (for wave line).
- * Falls back to a simulated waveform driven by [AudioManager.isMusicActive].
+ * Uses three sources in order:
+ * 1. [PlaybackAudioCapture] via [MediaProjection] (Android 10+) — captures
+ *    app audio regardless of whether it is playing through the speaker,
+ *    headphones, or Bluetooth.
+ * 2. [Visualizer] on session 0 (global output mix) — works for the built-in
+ *    speaker on most devices, but fails for many headphone/Bluetooth routes.
+ * 3. Simulated waveform — runs when no real source is available so the glyph
+ *    still animates to a generic beat pattern.
+ *
+ * The first source that returns live, non-silent data wins for each frame.
  */
 class AudioAnalyzer(
     context: Context,
@@ -20,15 +28,26 @@ class AudioAnalyzer(
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+    private val playbackCapture = PlaybackAudioCapture(appContext)
     private var visualizer: Visualizer? = null
     private var captureSize = 0
     private var fftBuffer = ByteArray(0)
     private var waveBuffer = ByteArray(0)
     private var enabled = false
 
-    /** Whether the caller is seeing simulated data, not live FFT. */
+    /** Whether the caller is seeing simulated data, not live audio. */
     var isSimulated = true
         private set
+
+    /** Active capture source for diagnostics. */
+    var source = Source.SIMULATION
+        private set
+
+    enum class Source {
+        PLAYBACK,
+        VISUALIZER,
+        SIMULATION,
+    }
 
     /** True when any media stream is currently active. */
     val isMusicActive: Boolean
@@ -42,24 +61,41 @@ class AudioAnalyzer(
     private var simPhase = 0.0
 
     /**
-     * Try to initialise the [Visualizer]. Returns whether it succeeded.
-     * Requires [android.Manifest.permission.RECORD_AUDIO].
+     * Provide a [MediaProjection] for [PlaybackAudioCapture]. Call before [init]
+     * if headphone/Bluetooth capture is needed. The projection is held and used
+     * for as long as the analyzer is active.
+     */
+    fun setMediaProjection(projection: MediaProjection?) {
+        playbackCapture.setMediaProjection(projection)
+    }
+
+    /**
+     * Try to initialise real audio capture. Returns whether any live source is
+     * running. Requires [android.Manifest.permission.RECORD_AUDIO].
      */
     fun init(): Boolean {
-        val hasPermission =
-            ContextCompat.checkSelfPermission(
-                appContext,
-                android.Manifest.permission.RECORD_AUDIO,
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        if (!hasPermission) {
+        if (!hasRecordAudio()) {
             Log.w(TAG, "RECORD_AUDIO not granted — music visualizer will simulate")
             isSimulated = true
+            source = Source.SIMULATION
             return false
         }
 
         release()
 
+        // Prefer AudioPlaybackCapture when a MediaProjection is available.
+        try {
+            if (playbackCapture.init()) {
+                source = Source.PLAYBACK
+                isSimulated = false
+                Log.i(TAG, "Using PlaybackAudioCapture")
+                return true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "PlaybackAudioCapture init failed: ${e.message}")
+        }
+
+        // Fall back to Visualizer(0).
         try {
             val range = Visualizer.getCaptureSizeRange()
             val requested = range?.getOrNull(1)?.takeIf { it > 0 }?.coerceAtMost(1024) ?: 1024
@@ -71,8 +107,6 @@ class AudioAnalyzer(
                     enabled = true
                 }
 
-            // Some devices report a zero range but still allow capture.
-            // If the real captureSize stayed 0, the Visualizer is unusable.
             if (vis.captureSize <= 0) {
                 vis.release()
                 throw IllegalStateException("Visualizer capture size is 0")
@@ -84,13 +118,16 @@ class AudioAnalyzer(
             waveBuffer = ByteArray(captureSize)
             enabled = true
             isSimulated = false
+            source = Source.VISUALIZER
             Log.i(TAG, "Visualizer initialised with captureSize=$captureSize")
             return true
         } catch (e: Exception) {
             Log.w(TAG, "Visualizer init failed: ${e.message}")
-            isSimulated = true
-            return false
         }
+
+        isSimulated = true
+        source = Source.SIMULATION
+        return false
     }
 
     /**
@@ -108,54 +145,77 @@ class AudioAnalyzer(
     private fun getSpectrum(bandCount: Int): FloatArray {
         val out = FloatArray(bandCount) { 0f }
         if (!isMusicActive) {
-            isSimulated = visualizer == null
             return out
         }
 
-        if (!enabled || visualizer == null) {
-            isSimulated = true
-        }
-
-        val vis = visualizer
-        if (!isSimulated && vis != null) {
+        // 1. Playback capture (works with headphones/Bluetooth when allowed).
+        if (playbackCapture.isCapturing() && !playbackCapture.isSilent()) {
+            isSimulated = false
+            source = Source.PLAYBACK
             try {
-                vis.getFft(fftBuffer)
-                binFft(fftBuffer, out)
+                return playbackCapture.getBands(bandCount)
             } catch (e: Exception) {
-                Log.w(TAG, "getFft failed: ${e.message}")
-                isSimulated = true
+                Log.w(TAG, "PlaybackAudioCapture getBands failed: ${e.message}")
             }
         }
 
-        if (isSimulated) {
-            simulateBands(out)
+        // 2. Visualizer on global output mix.
+        if (enabled && visualizer != null) {
+            val vis = visualizer
+            if (vis != null) {
+                try {
+                    vis.getFft(fftBuffer)
+                    binFft(fftBuffer, out)
+                    isSimulated = false
+                    source = Source.VISUALIZER
+                    return out
+                } catch (e: Exception) {
+                    Log.w(TAG, "getFft failed: ${e.message}")
+                }
+            }
         }
 
+        // 3. Simulation.
+        isSimulated = true
+        source = Source.SIMULATION
+        simulateBands(out)
         return out
     }
 
     private fun getWaveformSamples(size: Int): FloatArray {
         val out = FloatArray(size) { 0f }
 
-        if (!enabled || visualizer == null) {
-            isSimulated = true
-        }
-
-        val vis = visualizer
-        if (!isSimulated && vis != null) {
+        // 1. Playback capture.
+        if (playbackCapture.isCapturing() && !playbackCapture.isSilent()) {
+            isSimulated = false
+            source = Source.PLAYBACK
             try {
-                vis.getWaveForm(waveBuffer)
-                resampleWaveform(waveBuffer, out)
+                return playbackCapture.getWaveform(size)
             } catch (e: Exception) {
-                Log.w(TAG, "getWaveForm failed: ${e.message}")
-                isSimulated = true
+                Log.w(TAG, "PlaybackAudioCapture getWaveform failed: ${e.message}")
             }
         }
 
-        if (isSimulated) {
-            simulateWaveform(out)
+        // 2. Visualizer.
+        if (enabled && visualizer != null) {
+            val vis = visualizer
+            if (vis != null) {
+                try {
+                    vis.getWaveForm(waveBuffer)
+                    resampleWaveform(waveBuffer, out)
+                    isSimulated = false
+                    source = Source.VISUALIZER
+                    return out
+                } catch (e: Exception) {
+                    Log.w(TAG, "getWaveForm failed: ${e.message}")
+                }
+            }
         }
 
+        // 3. Simulation.
+        isSimulated = true
+        source = Source.SIMULATION
+        simulateWaveform(out)
         return out
     }
 
@@ -166,7 +226,6 @@ class AudioAnalyzer(
         val size = out.size
         if (size <= 0) return
 
-        // Pick one representative sample per column from the middle of each chunk.
         val step = wave.size / size
         for (i in 0 until size) {
             val center = (i * step + step / 2).coerceIn(0, wave.size - 1)
@@ -181,13 +240,13 @@ class AudioAnalyzer(
         for (i in out.indices) {
             val x = i / out.size.toDouble() * Math.PI * 2
             val value = kotlin.math.sin(t + x) * 0.4 + kotlin.math.sin(t * 1.3 + x * 2) * 0.2
-            out[i] = if (isMusicActive) value.toFloat().coerceIn(-1f, 1f) else 0f
+            out[i] = value.toFloat().coerceIn(-1f, 1f)
         }
         simPhase += 0.1
     }
 
     /**
-     * Release the [Visualizer] and all native resources.
+     * Release all capture resources.
      */
     fun release() {
         try {
@@ -197,7 +256,9 @@ class AudioAnalyzer(
         }
         visualizer = null
         enabled = false
+        playbackCapture.release()
         isSimulated = true
+        source = Source.SIMULATION
     }
 
     private fun binFft(
@@ -207,7 +268,6 @@ class AudioAnalyzer(
         val bands = out.size
         if (bands <= 0) return
 
-        // The FFT buffer at index 0 is unused; meaningful bins start at 1.
         val usable = fft.size - 1
         if (usable <= 0) return
 
@@ -223,9 +283,6 @@ class AudioAnalyzer(
             }
             out[band] = if (count > 0) sum / count else 0f
         }
-
-        // Gentle temporal smoothing across the whole frame is left to the
-        // renderer; the raw band values are returned here.
     }
 
     private fun simulateBands(out: FloatArray) {
@@ -237,10 +294,16 @@ class AudioAnalyzer(
             val offset = i * 0.4
             val wave = kotlin.math.sin(beat + offset)
             val value = (pulse + 0.3f * wave.toFloat()).coerceIn(0f, 1f)
-            out[i] = if (isMusicActive) value else 0f
+            out[i] = value
         }
         simPhase += 0.1
     }
+
+    private fun hasRecordAudio(): Boolean =
+        ContextCompat.checkSelfPermission(
+            appContext,
+            android.Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
     companion object {
         private const val TAG = "AudioAnalyzer"
