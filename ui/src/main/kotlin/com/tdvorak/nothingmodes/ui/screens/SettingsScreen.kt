@@ -853,8 +853,20 @@ fun SettingsScreen(
                             NothingInput(
                                 value = profile.handle,
                                 onValueChange = { profile = profile.copy(handle = it) },
-                                label = "Handle / email",
-                                placeholder = "@handle or email",
+                                label = "Handle",
+                                placeholder = "@handle — shown publicly",
+                            )
+                            NothingInput(
+                                value = profile.email,
+                                onValueChange = { profile = profile.copy(email = it) },
+                                label = "Email",
+                                placeholder = "Private — decision notice only",
+                            )
+                            NothingInput(
+                                value = profile.github,
+                                onValueChange = { profile = profile.copy(github = it) },
+                                label = "GitHub",
+                                placeholder = "username or URL",
                             )
                             NothingInput(
                                 value = profile.note,

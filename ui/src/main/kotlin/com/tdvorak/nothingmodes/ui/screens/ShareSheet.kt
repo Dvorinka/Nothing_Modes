@@ -39,9 +39,11 @@ fun ShareSheet(
 ) {
     var title by remember(initialTitle) { mutableStateOf(initialTitle) }
     var description by remember(initialDescription) { mutableStateOf(initialDescription) }
+    var displayName by remember { mutableStateOf(profile.displayName) }
     var handle by remember { mutableStateOf(profile.handle) }
     var email by remember { mutableStateOf(profile.email) }
-    var github by remember { mutableStateOf("") }
+    var github by remember { mutableStateOf(profile.github) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier =
@@ -65,6 +67,13 @@ fun ShareSheet(
             value = description,
             onValueChange = { description = it },
             label = "Description (optional)",
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = displayName,
+            onValueChange = { displayName = it },
+            label = "Display name",
+            placeholder = "Your name or alias",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -148,6 +157,17 @@ fun ShareSheet(
                 if (result is CommunityApi.SubmitResult.Queued) {
                     onDismiss()
                 } else {
+                    // Keep the local creator profile in sync with the publish form.
+                    com.tdvorak.nothingmodes.ui.prefs
+                        .CreatorPreferences(context)
+                        .save(
+                            profile.copy(
+                                displayName = displayName,
+                                handle = handle,
+                                email = email,
+                                github = github,
+                            ),
+                        )
                     onPublish(title, description, handle, email, github)
                 }
             },

@@ -17,6 +17,7 @@ class CreatorPreferences(
             handle = prefs.getString(KEY_HANDLE, "") ?: "",
             email = prefs.getString(KEY_EMAIL, "") ?: "",
             note = prefs.getString(KEY_NOTE, "") ?: "",
+            github = prefs.getString(KEY_GITHUB, "") ?: "",
             license =
                 prefs.getString(KEY_LICENSE, CreatorProfile.DEFAULT_LICENSE)
                     ?: CreatorProfile.DEFAULT_LICENSE,
@@ -30,6 +31,7 @@ class CreatorPreferences(
             .putString(KEY_HANDLE, sanitized.handle)
             .putString(KEY_EMAIL, sanitized.email)
             .putString(KEY_NOTE, sanitized.note)
+            .putString(KEY_GITHUB, sanitized.github)
             .putString(KEY_LICENSE, sanitized.license)
             .apply()
     }
@@ -40,6 +42,7 @@ class CreatorPreferences(
         private const val KEY_HANDLE = "handle"
         private const val KEY_EMAIL = "email"
         private const val KEY_NOTE = "note"
+        private const val KEY_GITHUB = "github"
         private const val KEY_LICENSE = "license"
     }
 }

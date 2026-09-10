@@ -12,6 +12,7 @@ data class CreatorProfile(
     val handle: String = "",
     val email: String = "",
     val note: String = "",
+    val github: String = "",
     val license: String = DEFAULT_LICENSE,
 ) {
     companion object {
@@ -40,6 +41,7 @@ data class CreatorProfile(
             handle = handle.trim().take(120),
             email = email.trim().take(320),
             note = note.trim().take(1000),
+            github = github.trim().take(200),
             license = license.trim().take(80).ifBlank { DEFAULT_LICENSE },
         )
 }

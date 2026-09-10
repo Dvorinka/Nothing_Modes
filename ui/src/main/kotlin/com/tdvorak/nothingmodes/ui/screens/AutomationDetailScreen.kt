@@ -22,10 +22,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,16 +37,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
+import com.tdvorak.nothingmodes.data.community.CommunityApi
+import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
-import com.tdvorak.nothingmodes.ui.R
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
@@ -124,61 +127,70 @@ class AutomationDetailViewModel
             }
         }
 
-        fun submitToCatalog() {
+        val creatorProfile = CreatorPreferences(context)
+
+        private val _shareOpen = MutableStateFlow(false)
+        val shareOpen: StateFlow<Boolean> = _shareOpen.asStateFlow()
+
+        private val _sharing = MutableStateFlow(false)
+        val sharing: StateFlow<Boolean> = _sharing.asStateFlow()
+
+        private val _shareResult = MutableStateFlow<CommunityApi.SubmitResult?>(null)
+        val shareResult: StateFlow<CommunityApi.SubmitResult?> = _shareResult.asStateFlow()
+
+        fun stageShare() {
+            _shareResult.value = null
+            _shareOpen.value = true
+        }
+
+        fun dismissShare() {
+            _shareOpen.value = false
+            _shareResult.value = null
+        }
+
+        /**
+         * Push this mode to the public catalog — POSTs an export bundle to
+         * the website's /api/share (queues for admin review) and keeps a
+         * local copy in "My templates" once accepted into the queue.
+         */
+        fun publish(
+            title: String,
+            description: String,
+            handle: String,
+            email: String,
+            github: String,
+        ) {
             val current = _automation.value ?: return
             viewModelScope.launch {
-                runCatching {
+                _sharing.value = true
+                try {
                     val appVersion =
                         runCatching {
                             context.packageManager.getPackageInfo(context.packageName, 0).versionName
                         }.getOrNull().orEmpty()
-                    val creator = CreatorPreferences(context).get()
-                    val export = ImportExportService(store, appVersion).export(listOf(current.id), creator)
-
-                    val submissionDir = File(context.cacheDir, "submissions")
-                    submissionDir.mkdirs()
-                    val file = File(submissionDir, "${current.id.value}.json")
-                    file.writeText(export.json)
-
-                    val uri =
-                        FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            file,
+                    val export =
+                        ImportExportService(store, appVersion)
+                            .export(listOf(current.id), creatorProfile.get())
+                    val payload = EngineJson.json.parseToJsonElement(export.json)
+                    val result =
+                        CommunityApi.submit(
+                            type = "template",
+                            title = title,
+                            description = description,
+                            handle = handle,
+                            email = email,
+                            github = github,
+                            payload = payload,
                         )
-
-                    val email = context.getString(R.string.template_submission_email)
-                    val body =
-                        """
-                        Hello,
-
-                        I would like to submit the attached Nothing Modes mode for the public template catalog.
-
-                        Mode name: ${current.name}
-                        License: ${creator.license}
-                        Created by: ${creator.displayName.ifBlank { "Anonymous" }}
-                        Handle/email: ${creator.handle}
-
-                        Please review the attached JSON.
-
-                        Kind regards
-                        """.trimIndent()
-
-                    val intent =
-                        Intent(Intent.ACTION_SEND).apply {
-                            type = "application/json"
-                            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                            putExtra(Intent.EXTRA_SUBJECT, "[Nothing Modes Template] ${current.name}")
-                            putExtra(Intent.EXTRA_TEXT, body)
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                    val chooser = Intent.createChooser(intent, "Submit mode")
-                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(chooser)
-                }.onFailure {
-                    Toast.makeText(context, "Submit failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    _shareResult.value = result
+                    if (result is CommunityApi.SubmitResult.Queued) {
+                        saveAsTemplate()
+                    }
+                } catch (e: Exception) {
+                    _shareResult.value =
+                        CommunityApi.SubmitResult.Failed(e.message ?: "submit failed")
                 }
+                _sharing.value = false
             }
         }
 
@@ -237,6 +249,7 @@ class AutomationDetailViewModel
         }
     }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutomationDetailScreen(
     automationId: String,
@@ -246,6 +259,9 @@ fun AutomationDetailScreen(
 ) {
     LaunchedEffect(automationId) { viewModel.load(automationId) }
     val automation by viewModel.automation.collectAsState()
+    val shareOpen by viewModel.shareOpen.collectAsState()
+    val sharing by viewModel.sharing.collectAsState()
+    val shareResult by viewModel.shareResult.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -414,13 +430,30 @@ fun AutomationDetailScreen(
                 NothingCard {
                     NothingPillButton(
                         text = "Submit to public catalog",
-                        onClick = { viewModel.submitToCatalog() },
+                        onClick = { viewModel.stageShare() },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
             }
+        }
+    }
+
+    if (shareOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.dismissShare() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            ShareSheet(
+                initialTitle = automation?.name.orEmpty(),
+                initialDescription = "",
+                profile = viewModel.creatorProfile.get(),
+                sharing = sharing,
+                result = shareResult,
+                onPublish = { t, d, h, e, g -> viewModel.publish(t, d, h, e, g) },
+                onDismiss = { viewModel.dismissShare() },
+            )
         }
     }
 }
