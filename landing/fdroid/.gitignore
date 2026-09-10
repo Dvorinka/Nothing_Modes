@@ -1,24 +1,16 @@
-# F-Droid repo secrets and generated files — keep the source config, never the built index.
+# F-Droid repo secrets and generated working directories.
 config.yml
 config.local.yml
 keystore.p12
 keystorepass
 keypass
 archive/
-repo/*.apk
-repo/*.jar
-repo/*.json
-repo/*.xml
-repo/*.css
-repo/*.html
-repo/*.png
-repo/diff/
-repo/status/
-repo/icons/
-repo/icons-*/
 tmp/
 srclibs/
 stats/
-keystore.p12
-keystorepass
-keypass
+
+# Allow the F-Droid repo index and APK to be served from Vercel.
+!repo/
+!repo/**/
+!repo/*.apk
+!repo/**/*.apk

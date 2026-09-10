@@ -1,9 +1,9 @@
 Categories:
   - System
-  - Phone & SMS
 License: GPL-3.0-only
-SourceCode: https://github.com/tdvorak/Nothing_Modes
-IssueTracker: https://github.com/tdvorak/Nothing_Modes/issues
+AllowedAPKSigningKeys: f18fc9c16edd312eeef719e77384ace251b0d7e750fbade423c1ba79f7c942ac
+SourceCode: https://github.com/Dvorinka/Nothing_Modes
+IssueTracker: https://github.com/Dvorinka/Nothing_Modes/issues
 Summary: Automation for Nothing phones
 Description: |
   Nothing Modes is an open-source Android automation app for Nothing phones.
@@ -20,13 +20,13 @@ Description: |
   build would lose Nothing's proprietary Glyph SDK and Google Play Services.
 
 RepoType: git
-Repo: https://github.com/tdvorak/Nothing_Modes.git
-Binaries: https://github.com/tdvorak/Nothing_Modes/releases/download/v%v/nothing-modes-v%v.apk
+Repo: https://github.com/Dvorinka/Nothing_Modes.git
+Binaries: https://github.com/Dvorinka/Nothing_Modes/releases/download/v%v/nothing-modes-v%v.apk
 
 Builds:
-  - versionName: 0.12.0
-    versionCode: 13
-    commit: unknown
+  - versionName: 0.12.1
+    versionCode: 15
+    commit: 7637602
     gradle:
       - githubRelease
 

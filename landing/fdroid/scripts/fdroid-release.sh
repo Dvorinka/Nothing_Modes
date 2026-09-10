@@ -10,7 +10,7 @@ VERSION_CODE="${2:?versionCode required}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_ID="com.tdvorak.nothingmodes"
 APK_NAME="nothing-modes-v${VERSION_NAME}.apk"
-APK_URL="https://github.com/tdvorak/Nothing_Modes/releases/download/v${VERSION_NAME}/${APK_NAME}"
+APK_URL="https://github.com/Dvorinka/Nothing_Modes/releases/download/v${VERSION_NAME}/${APK_NAME}"
 
 cd "$REPO_ROOT"
 
