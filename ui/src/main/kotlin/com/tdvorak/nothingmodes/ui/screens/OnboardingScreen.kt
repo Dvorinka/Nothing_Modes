@@ -33,7 +33,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
@@ -70,8 +70,9 @@ class OnboardingViewModel
         val shizukuStatus: StateFlow<ShizukuGatewayStatus> = _shizukuStatus.asStateFlow()
 
         fun detect(context: android.content.Context) {
+            CapabilitiesCache.peek()?.let { _capabilities.value = it }
             viewModelScope.launch {
-                _capabilities.value = CapabilityDetector(context).detect()
+                _capabilities.value = CapabilitiesCache.refresh(context)
                 _shizukuStatus.value = shizukuGateway.status()
             }
         }

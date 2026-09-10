@@ -57,7 +57,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.Action
@@ -76,6 +76,7 @@ import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.model.withRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.ui.components.InfoFieldLabel
 import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
 import com.tdvorak.nothingmodes.ui.theme.GeistSans
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
@@ -100,6 +101,9 @@ import com.tdvorak.nothingmodes.ui.util.numericStateLabel
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -479,10 +483,8 @@ fun CustomAutomationBuilderScreen(
     val saved by viewModel.saved.collectAsState()
     val context = LocalContext.current
 
-    var caps by remember { mutableStateOf(DeviceCapabilities()) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
-    }
+    var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
 
     val combinedCondition =
         when (state.conditions.size) {
@@ -590,7 +592,7 @@ fun CustomAutomationBuilderScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             NothingTopBar(
-                title = if (automationId != null) "EDIT MODE" else "NEW MODE",
+                title = stringResource(if (automationId != null) R.string.screen_edit_mode else R.string.screen_new_mode),
                 onBack = { showDiscardDialog = true },
             )
         },
@@ -658,7 +660,7 @@ fun CustomAutomationBuilderScreen(
             item {
                 NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
                     Text(
-                        text = "IF",
+                        text = stringResource(R.string.builder_if).uppercase(),
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
@@ -679,7 +681,7 @@ fun CustomAutomationBuilderScreen(
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
-                        text = "ONLY IF",
+                        text = stringResource(R.string.builder_only_if).uppercase(),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
@@ -724,7 +726,7 @@ fun CustomAutomationBuilderScreen(
                     }
                     NothingDivider()
                     AddRowButton(
-                        label = "Add condition",
+                        label = stringResource(R.string.picker_add_condition),
                         onClick = { onAddCondition?.invoke() },
                     )
                 }
@@ -734,7 +736,7 @@ fun CustomAutomationBuilderScreen(
             item {
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                     Text(
-                        text = "THEN",
+                        text = stringResource(R.string.builder_then).uppercase(),
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
@@ -787,7 +789,7 @@ fun CustomAutomationBuilderScreen(
                     }
                     NothingDivider()
                     AddRowButton(
-                        label = "Add action",
+                        label = stringResource(R.string.picker_add_action),
                         onClick = { onAddAction?.invoke() },
                     )
                 }
@@ -863,7 +865,7 @@ fun CustomAutomationBuilderScreen(
             item {
                 NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                     Text(
-                        text = "NOTIFY",
+                        text = stringResource(R.string.builder_notify).uppercase(),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.doto(),
@@ -896,7 +898,7 @@ fun CustomAutomationBuilderScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        NothingLabel(text = "Advanced")
+                        NothingLabel(text = stringResource(R.string.builder_advanced))
                         Icon(
                             imageVector =
                                 if (showAdvanced) {
@@ -934,7 +936,14 @@ fun CustomAutomationBuilderScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                NothingLabel(text = "Cooldown")
+                                InfoFieldLabel(
+                                    text = stringResource(R.string.builder_cooldown),
+                                    infoTitle = stringResource(R.string.builder_cooldown),
+                                    infoText =
+                                        "Minimum minutes between two runs of this mode. " +
+                                            "Stops a mode from re-firing every time its trigger re-triggers — " +
+                                            "e.g. Wi-Fi flapping would otherwise toggle it constantly.",
+                                )
                                 Text(
                                     text = "Minimum minutes before the mode can fire again.",
                                     style = MaterialTheme.typography.bodySmall,
@@ -968,7 +977,14 @@ fun CustomAutomationBuilderScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                NothingLabel(text = "Priority")
+                                InfoFieldLabel(
+                                    text = stringResource(R.string.builder_priority),
+                                    infoTitle = stringResource(R.string.builder_priority),
+                                    infoText =
+                                        "When two enabled modes conflict over the same setting " +
+                                            "(for example both want to control volume), the mode with the " +
+                                            "higher priority wins. 0 is lowest, 10 is highest.",
+                                )
                                 Text(
                                     text = "Higher wins when two modes fight.",
                                     style = MaterialTheme.typography.bodySmall,

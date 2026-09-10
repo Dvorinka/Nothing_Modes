@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top-level screens -->
+    <string name="screen_modes">Režimy</string>
+    <string name="screen_settings">Nastavení</string>
+    <string name="screen_templates">Šablony</string>
+    <string name="screen_glyph_preview">Náhled Glyph</string>
+    <string name="screen_notification_log">Protokol oznámení</string>
+    <string name="screen_new_mode">Nový režim</string>
+    <string name="screen_edit_mode">Upravit režim</string>
+
+    <!-- Pickers -->
+    <string name="picker_add_trigger">Přidat spouštěč</string>
+    <string name="picker_configure_trigger">Nastavit spouštěč</string>
+    <string name="picker_add_condition">Přidat podmínku</string>
+    <string name="picker_add_action">Přidat akci</string>
+    <string name="picker_find_trigger">Hledat spouštěč</string>
+    <string name="picker_find_condition">Hledat podmínku</string>
+    <string name="picker_find_action">Hledat akci</string>
+    <string name="picker_selected">Vybrané</string>
+    <string name="picker_select_at_least_one_action">Vyberte alespoň jednu akci</string>
+    <string name="picker_select_at_least_one_condition">Vyberte alespoň jednu podmínku</string>
+    <plurals name="picker_add_n_actions">
+        <item quantity="one">Přidat %d akci</item>
+        <item quantity="few">Přidat %d akce</item>
+        <item quantity="many">Přidat %d akcí</item>
+        <item quantity="other">Přidat %d akcí</item>
+    </plurals>
+    <plurals name="picker_add_n_conditions">
+        <item quantity="one">Přidat %d podmínku</item>
+        <item quantity="few">Přidat %d podmínky</item>
+        <item quantity="many">Přidat %d podmínek</item>
+        <item quantity="other">Přidat %d podmínek</item>
+    </plurals>
+
+    <!-- Common actions -->
+    <string name="action_done">Hotovo</string>
+    <string name="action_cancel">Zrušit</string>
+    <string name="action_save">Uložit</string>
+    <string name="action_discard">Zahodit</string>
+    <string name="action_close">Zavřít</string>
+    <string name="action_continue">Pokračovat</string>
+    <string name="action_grant_permission">Udělit oprávnění</string>
+    <string name="action_use_current_location">Použít aktuální polohu</string>
+    <string name="action_delete">Smazat</string>
+    <string name="action_export">Exportovat</string>
+    <string name="action_run">Spustit</string>
+    <string name="action_all">Vše</string>
+
+    <!-- Mode builder -->
+    <string name="builder_if">Když</string>
+    <string name="builder_only_if">Pouze když</string>
+    <string name="builder_then">Potom</string>
+    <string name="builder_notify">Oznámit</string>
+    <string name="builder_advanced">Pokročilé</string>
+    <string name="builder_unsaved_title">Zahodit změny?</string>
+    <string name="builder_unsaved_body">Vaše úpravy ještě nejsou uložené.</string>
+    <string name="builder_mode_name">Název režimu</string>
+    <string name="builder_preview">Náhled</string>
+    <string name="builder_cooldown">Prodleva</string>
+    <string name="builder_priority">Priorita</string>
+
+    <!-- Home -->
+    <string name="home_overview">Přehled</string>
+    <string name="home_items">%d položek</string>
+    <plurals name="home_n_selected">
+        <item quantity="one">%d vybráno</item>
+        <item quantity="few">%d vybráno</item>
+        <item quantity="many">%d vybráno</item>
+        <item quantity="other">%d vybráno</item>
+    </plurals>
+    <plurals name="home_n_actions">
+        <item quantity="one">%d akce</item>
+        <item quantity="few">%d akce</item>
+        <item quantity="many">%d akcí</item>
+        <item quantity="other">%d akcí</item>
+    </plurals>
+    <string name="home_empty">Zatím žádné režimy</string>
+    <string name="home_empty_hint">Klepnutím na + vytvoříte první režim</string>
+
+    <!-- Capability / permission hints -->
+    <string name="req_shizuku">Vyžaduje Shizuku</string>
+    <string name="req_location">Vyžaduje oprávnění k poloze</string>
+    <string name="req_phone">Vyžaduje oprávnění k telefonu</string>
+    <string name="req_notif">Vyžaduje přístup k oznámením</string>
+    <string name="req_usage">Vyžaduje přístup k používání</string>
+    <string name="req_calendar">Vyžaduje oprávnění ke kalendáři</string>
+    <string name="req_nothing_phone">Vyžaduje telefon Nothing</string>
+    <string name="req_setup">Vyžaduje nastavení</string>
+</resources>

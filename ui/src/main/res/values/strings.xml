@@ -2,4 +2,84 @@
 <resources>
     <!-- Template catalog submission contact. Replace with a confirmed maintainer address. -->
     <string name="template_submission_email" translatable="false">info@tdvorak.dev</string>
+
+    <!-- Top-level screens -->
+    <string name="screen_modes">Modes</string>
+    <string name="screen_settings">Settings</string>
+    <string name="screen_templates">Templates</string>
+    <string name="screen_glyph_preview">Glyph Preview</string>
+    <string name="screen_notification_log">Notification Log</string>
+    <string name="screen_new_mode">New Mode</string>
+    <string name="screen_edit_mode">Edit Mode</string>
+
+    <!-- Pickers -->
+    <string name="picker_add_trigger">Add trigger</string>
+    <string name="picker_configure_trigger">Configure trigger</string>
+    <string name="picker_add_condition">Add condition</string>
+    <string name="picker_add_action">Add action</string>
+    <string name="picker_find_trigger">Find a trigger</string>
+    <string name="picker_find_condition">Find a condition</string>
+    <string name="picker_find_action">Find an action</string>
+    <string name="picker_selected">Selected</string>
+    <string name="picker_select_at_least_one_action">Select at least one action</string>
+    <string name="picker_select_at_least_one_condition">Select at least one condition</string>
+    <plurals name="picker_add_n_actions">
+        <item quantity="one">Add %d action</item>
+        <item quantity="other">Add %d actions</item>
+    </plurals>
+    <plurals name="picker_add_n_conditions">
+        <item quantity="one">Add %d condition</item>
+        <item quantity="other">Add %d conditions</item>
+    </plurals>
+
+    <!-- Common actions -->
+    <string name="action_done">Done</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_close">Close</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_grant_permission">Grant permission</string>
+    <string name="action_use_current_location">Use current location</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_export">Export</string>
+    <string name="action_run">Run</string>
+    <string name="action_all">All</string>
+
+    <!-- Mode builder -->
+    <string name="builder_if">If</string>
+    <string name="builder_only_if">Only if</string>
+    <string name="builder_then">Then</string>
+    <string name="builder_notify">Notify</string>
+    <string name="builder_advanced">Advanced</string>
+    <string name="builder_unsaved_title">Discard changes?</string>
+    <string name="builder_unsaved_body">Your edits are not saved yet.</string>
+    <string name="builder_mode_name">Mode name</string>
+    <string name="builder_preview">Preview</string>
+    <string name="builder_cooldown">Cooldown</string>
+    <string name="builder_priority">Priority</string>
+
+    <!-- Home -->
+    <string name="home_overview">Overview</string>
+    <string name="home_items">%d items</string>
+    <plurals name="home_n_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <plurals name="home_n_actions">
+        <item quantity="one">%d action</item>
+        <item quantity="other">%d actions</item>
+    </plurals>
+    <string name="home_empty">No modes yet</string>
+    <string name="home_empty_hint">Tap + to build your first mode</string>
+
+    <!-- Capability / permission hints -->
+    <string name="req_shizuku">Requires Shizuku</string>
+    <string name="req_location">Requires location permission</string>
+    <string name="req_phone">Requires phone permission</string>
+    <string name="req_notif">Requires notification access</string>
+    <string name="req_usage">Requires usage access</string>
+    <string name="req_calendar">Requires calendar permission</string>
+    <string name="req_nothing_phone">Requires a Nothing phone</string>
+    <string name="req_setup">Needs setup</string>
 </resources>

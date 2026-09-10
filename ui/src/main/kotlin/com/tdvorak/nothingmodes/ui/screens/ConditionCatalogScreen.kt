@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.CallState
@@ -55,8 +55,12 @@ import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -77,10 +81,8 @@ fun ConditionCatalogScreen(navController: NavController) {
     var configCondition by remember { mutableStateOf<Condition?>(null) }
     var pendingCondition by remember { mutableStateOf<Condition?>(null) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
-    var caps by remember { mutableStateOf(DeviceCapabilities()) }
-    LaunchedEffect(Unit) {
-        withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
-    }
+    var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
     val resolver = remember(caps) { CapabilityResolver(caps) }
 
     val items =
@@ -298,15 +300,19 @@ fun ConditionCatalogScreen(navController: NavController) {
 
     val catalogEntries =
         remember(items, caps) {
-            items.map { item ->
-                val (subtitle, badges) = conditionCatalogMeta(item.condition, caps)
-                CatalogEntry(
-                    label = item.label,
-                    category = item.category,
-                    icon = item.icon,
-                    description = subtitle,
-                    badges = badges,
-                )
+            items.mapNotNull { item ->
+                val (subtitle, badges, blocked) = conditionCatalogMeta(item.condition, caps)
+                if (blocked) {
+                    null
+                } else {
+                    CatalogEntry(
+                        label = item.label,
+                        category = item.category,
+                        icon = item.icon,
+                        description = subtitle,
+                        badges = badges,
+                    )
+                }
             }
         }
 
@@ -314,7 +320,7 @@ fun ConditionCatalogScreen(navController: NavController) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Add condition",
+                title = stringResource(R.string.picker_add_condition),
                 onBack = { navController.popBackStack() },
             )
         },
@@ -337,13 +343,13 @@ fun ConditionCatalogScreen(navController: NavController) {
                         pendingCondition = conditionItem.condition
                     }
                 },
-                searchPlaceholder = "Find a condition",
+                searchPlaceholder = stringResource(R.string.picker_find_condition),
                 categoryOrder = listOf("Device status", "Connections", "Time", "Apps", "Location", "Notifications"),
                 horizontalPadding = NothingSpacing.md,
                 bottomPadding = 160.dp,
                 selectedTray = {
                     if (selected.isNotEmpty()) {
-                        NothingSectionHeader(text = "Selected")
+                        NothingSectionHeader(text = stringResource(R.string.picker_selected))
                         NothingCard {
                             selected.forEachIndexed { index, condition ->
                                 if (index > 0) NothingDivider()
@@ -389,9 +395,9 @@ fun ConditionCatalogScreen(navController: NavController) {
             NothingBottomActionBar(
                 text =
                     if (selected.isEmpty()) {
-                        "Select at least one condition"
+                        stringResource(R.string.picker_select_at_least_one_condition)
                     } else {
-                        "Add ${selected.size} condition${if (selected.size > 1) "s" else ""}"
+                        pluralStringResource(R.plurals.picker_add_n_conditions, selected.size, selected.size)
                     },
                 onClick = {
                     if (selected.isNotEmpty()) {
@@ -444,7 +450,7 @@ fun ConditionCatalogScreen(navController: NavController) {
 private fun conditionCatalogMeta(
     condition: Condition,
     caps: DeviceCapabilities,
-): Pair<String, List<String>> {
+): Triple<String, List<String>, Boolean> {
     val static = conditionDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
@@ -455,5 +461,5 @@ private fun conditionCatalogMeta(
         } else {
             static
         }
-    return subtitle to badges
+    return Triple(subtitle, badges, isHardwareBlocked(resolution.missing, caps))
 }

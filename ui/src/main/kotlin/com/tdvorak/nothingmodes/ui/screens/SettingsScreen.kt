@@ -52,7 +52,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.data.prefs.NotificationPreferences
@@ -94,6 +94,9 @@ import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -136,8 +139,10 @@ class SettingsViewModel
         val exportReady: StateFlow<String?> = _exportReady.asStateFlow()
 
         fun detect(context: android.content.Context) {
+            // Show the cached snapshot instantly, then refresh in the background.
+            CapabilitiesCache.peek()?.let { _capabilities.value = it }
             viewModelScope.launch {
-                val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                val caps = CapabilitiesCache.refresh(context)
                 val status = withContext(Dispatchers.IO) { shizukuGateway.status() }
                 _capabilities.value = caps
                 _shizukuStatus.value = status
@@ -275,7 +280,7 @@ fun SettingsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Settings",
+                title = stringResource(R.string.screen_settings),
                 onBack = onBack,
             )
         },

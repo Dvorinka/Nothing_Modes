@@ -29,9 +29,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBackIos
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -79,15 +83,21 @@ fun NothingCard(
     borderless: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Card(
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor =
+                    if (classic) {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
             ),
         elevation = CardDefaults.cardElevation(0.dp),
-        shape = NothingShapes.card,
+        shape = if (classic) RoundedCornerShape(20.dp) else NothingShapes.card,
         border =
-            if (borderless) {
+            if (borderless || classic) {
                 null
             } else {
                 BorderStroke(
@@ -108,10 +118,16 @@ fun NothingCardLarge(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = NothingShapes.cardLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color =
+            if (classic) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        shape = if (classic) RoundedCornerShape(28.dp) else NothingShapes.cardLarge,
+        border = if (classic) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
@@ -132,7 +148,7 @@ fun NothingScreenHero(
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = if (classic) title else title.uppercase(),
-            style = MaterialTheme.typography.displayMedium,
+            style = if (classic) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.primary,
             fontFamily = if (classic) null else Doto,
         )
@@ -158,9 +174,9 @@ fun NothingSectionHeader(
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Text(
         text = if (classic) text else text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
+        style = if (classic) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.4.sp,
+        letterSpacing = if (classic) 0.2.sp else 1.4.sp,
         modifier =
             modifier.padding(
                 top = NothingSpacing.xl,
@@ -182,7 +198,7 @@ fun NothingLabel(
         text = if (classic) text else text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         color = color,
-        letterSpacing = 1.1.sp,
+        letterSpacing = if (classic) 0.4.sp else 1.1.sp,
         modifier = modifier,
     )
 }
@@ -336,6 +352,8 @@ fun NothingDotGrid(
     spacing: Float = 16f,
     alpha: Float = 0.12f,
 ) {
+    // The dot grid is a Nothing signature — classic mode renders a clean canvas.
+    if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) return
     val baseColor = MaterialTheme.colorScheme.outline
     val dotColor = baseColor.copy(alpha = alpha.coerceIn(0.10f, 0.20f))
     Canvas(modifier = modifier) {
@@ -369,6 +387,14 @@ fun NothingToggle(
     modifier: Modifier = Modifier,
     showLabels: Boolean = true,
 ) {
+    if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = modifier,
+        )
+        return
+    }
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
         animationSpec = tween(200),
@@ -747,10 +773,10 @@ fun NothingTopBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(88.dp)
+                .height(if (classic) 72.dp else 88.dp)
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = NothingSpacing.lg)
+                .padding(horizontal = if (classic) NothingSpacing.xs else NothingSpacing.lg)
                 .zIndex(1f),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -759,47 +785,58 @@ fun NothingTopBar(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Back button — circular, thin chevron
             if (onBack != null) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .clickable(onClick = onBack),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "<",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = NothingFonts.mono(),
-                    )
+                if (classic) {
+                    // Material 3: plain icon button, no chrome.
+                    androidx.compose.material3.IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBackIos,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "<",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(NothingSpacing.md))
                 }
-                Spacer(modifier = Modifier.width(NothingSpacing.md))
             }
 
             // Optional leading red dot
-            if (showLeadingDot) {
+            if (showLeadingDot && !classic) {
                 NothingRedDot(size = 8f)
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
             }
 
-            // Title — Space Mono ALL CAPS
+            // Title — Space Mono ALL CAPS in Nothing, titleLarge sans in classic.
             Text(
                 text = if (classic) title else title.uppercase(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontFamily = NothingFonts.mono(),
-                letterSpacing = 1.5.sp,
+                letterSpacing = if (classic) 0.sp else 1.5.sp,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
             )
         }
 
-        // Right side: icon chips; text-only actions get a pill that fits the label
+        // Right side: icon chips in Nothing; plain M3 IconButtons in classic.
         Row(verticalAlignment = Alignment.CenterVertically) {
             actions.forEach { action ->
                 val hasIcon = action.icon != null
@@ -816,8 +853,15 @@ fun NothingTopBar(
                                 },
                             )
                             .clip(shape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-                            .background(MaterialTheme.colorScheme.surface)
+                            .then(
+                                if (classic) {
+                                    Modifier
+                                } else {
+                                    Modifier
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                },
+                            )
                             .clickable(onClick = action.onClick),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -900,14 +944,24 @@ fun NothingInput(
     modifier: Modifier = Modifier,
     placeholder: String = "",
     singleLine: Boolean = true,
+    infoText: String? = null,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        NothingLabel(
-            text = label,
-            modifier = Modifier.padding(bottom = NothingSpacing.xs),
-        )
+        if (infoText != null) {
+            com.tdvorak.nothingmodes.ui.components.InfoFieldLabel(
+                text = label,
+                infoTitle = label,
+                infoText = infoText,
+                modifier = Modifier.padding(bottom = NothingSpacing.xs),
+            )
+        } else {
+            NothingLabel(
+                text = label,
+                modifier = Modifier.padding(bottom = NothingSpacing.xs),
+            )
+        }
         androidx.compose.material3.OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -944,15 +998,25 @@ fun NothingEnumSelector(
     options: List<String>,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    infoText: String? = null,
 ) {
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        NothingLabel(
-            text = label,
-            modifier = Modifier.padding(bottom = NothingSpacing.xs),
-        )
+        if (infoText != null) {
+            com.tdvorak.nothingmodes.ui.components.InfoFieldLabel(
+                text = label,
+                infoTitle = label,
+                infoText = infoText,
+                modifier = Modifier.padding(bottom = NothingSpacing.xs),
+            )
+        } else {
+            NothingLabel(
+                text = label,
+                modifier = Modifier.padding(bottom = NothingSpacing.xs),
+            )
+        }
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = NothingShapes.input,
@@ -980,12 +1044,26 @@ fun NothingEnumSelector(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = NothingFonts.mono(),
                 )
-                Text(
-                    text = if (expanded) "[CLOSE]" else "[OPEN]",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
+                if (classic) {
+                    Icon(
+                        imageVector =
+                            if (expanded) {
+                                Icons.Outlined.ExpandLess
+                            } else {
+                                Icons.Outlined.ExpandMore
+                            },
+                        contentDescription = if (expanded) "Close" else "Open",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                } else {
+                    Text(
+                        text = if (expanded) "[CLOSE]" else "[OPEN]",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                    )
+                }
             }
         }
 
@@ -1332,6 +1410,26 @@ fun NothingAddCircle(
     modifier: Modifier = Modifier,
     size: Float = 56f,
 ) {
+    if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) {
+        // Material 3 FAB: rounded squircle, primary container.
+        Box(
+            modifier =
+                modifier
+                    .size(size.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Add",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        return
+    }
     Box(
         modifier =
             modifier
@@ -1379,36 +1477,41 @@ fun NothingBottomActionBar(
 ) {
     Surface(
         color = containerColor,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .navigationBarsPadding(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = NothingSpacing.md)
-                    .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
+                    .navigationBarsPadding(),
         ) {
-            if (subtitle.isNotBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NothingColors.accent,
-                    fontFamily = NothingFonts.mono(),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = NothingSpacing.sm),
+            NothingDivider()
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = NothingSpacing.md)
+                        .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
+            ) {
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NothingColors.accent,
+                        fontFamily = NothingFonts.mono(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = NothingSpacing.sm),
+                    )
+                }
+                NothingPillButton(
+                    text = text,
+                    onClick = onClick,
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            NothingPillButton(
-                text = text,
-                onClick = onClick,
-                enabled = enabled,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
@@ -1426,30 +1529,35 @@ fun NothingBottomActionBar(
 ) {
     Surface(
         color = containerColor,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .navigationBarsPadding(),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
+        Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = NothingSpacing.md)
-                    .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                    .navigationBarsPadding(),
         ) {
-            NothingSecondaryButton(
-                text = secondaryText,
-                onClick = onSecondaryClick,
-                modifier = Modifier.weight(1f),
-            )
-            NothingPillButton(
-                text = primaryText,
-                onClick = onPrimaryClick,
-                enabled = primaryEnabled,
-                modifier = Modifier.weight(1f),
-            )
+            NothingDivider()
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = NothingSpacing.md)
+                        .padding(top = NothingSpacing.md, bottom = NothingSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+            ) {
+                NothingSecondaryButton(
+                    text = secondaryText,
+                    onClick = onSecondaryClick,
+                    modifier = Modifier.weight(1f),
+                )
+                NothingPillButton(
+                    text = primaryText,
+                    onClick = onPrimaryClick,
+                    enabled = primaryEnabled,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }

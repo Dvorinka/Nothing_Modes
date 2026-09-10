@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.BatteryDirection
@@ -94,8 +94,12 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -148,16 +152,14 @@ fun TriggerConfigScreen(
         }
     var trigger by remember { mutableStateOf(initial) }
     var showTypePicker by remember { mutableStateOf(false) }
-    var caps by remember { mutableStateOf(DeviceCapabilities()) }
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
-    }
+    var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Configure Trigger",
+                title = stringResource(R.string.picker_configure_trigger),
                 onBack = { navController.popBackStack() },
             )
         },
@@ -267,9 +269,10 @@ private fun TriggerTypePickerDialog(
 
     val catalogEntries =
         remember(types, caps) {
-            types.map { type ->
+            types.mapNotNull { type ->
                 val required = CapabilityRequirements.derive(type.trigger, emptyList())
                 val resolution = resolver.resolve(type.label, required)
+                if (isHardwareBlocked(resolution.missing, caps)) return@mapNotNull null
                 val badges = requirementBadges(resolution.missing)
                 CatalogEntry(
                     label = type.label,
@@ -309,7 +312,7 @@ private fun TriggerTypePickerDialog(
                         .imePadding(),
             ) {
                 NothingTopBar(
-                    title = "Add trigger",
+                    title = stringResource(R.string.picker_add_trigger),
                     onBack = onDismiss,
                 )
 
@@ -325,7 +328,7 @@ private fun TriggerTypePickerDialog(
                             pendingType = type
                         }
                     },
-                    searchPlaceholder = "Time, notification, battery...",
+                    searchPlaceholder = stringResource(R.string.picker_find_trigger),
                     categoryOrder = listOf("Schedule", "Device", "Apps", "Connections", "Location", "Manual"),
                     isSelected = { entry ->
                         types.firstOrNull { it.label == entry.label }?.trigger?.let { it::class == selected::class } == true
@@ -996,12 +999,20 @@ private fun GeofenceContent(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val mapView = remember { org.osmdroid.views.MapView(context) }
-    var fenceOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Polygon?>(null) }
-    var markerOverlay by remember { mutableStateOf<org.osmdroid.views.overlay.Marker?>(null) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     var addressQuery by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    var map by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+    var styleReady by remember { mutableStateOf(false) }
+
+    // MapLibre must be initialised before a MapView can be constructed.
+    val mapView =
+        remember {
+            org.maplibre.android.MapLibre.getInstance(context.applicationContext)
+            org.maplibre.android.maps.MapView(context)
+        }
 
     // Address search: geocode on submit, then reuse the fence-update path —
     // the LaunchedEffect below animates the map and redraws the circle.
@@ -1020,75 +1031,75 @@ private fun GeofenceContent(
         }
     }
 
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        org.osmdroid.config.Configuration.getInstance().apply {
-            load(context, context.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
-            userAgentValue = context.packageName
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        mapView.onCreate(null)
+        mapView.getMapAsync { m ->
+            map = m
+            m.uiSettings.apply {
+                isLogoEnabled = false
+                isCompassEnabled = false
+                isAttributionEnabled = true
+                attributionGravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
+                setAttributionMargins(0, 0, 12, 12)
+            }
+            m.cameraPosition =
+                org.maplibre.android.camera.CameraPosition.Builder()
+                    .target(
+                        org.maplibre.android.geometry.LatLng(
+                            if (trigger.lat == 0.0 && trigger.lng == 0.0) 50.0755 else trigger.lat,
+                            if (trigger.lat == 0.0 && trigger.lng == 0.0) 14.4378 else trigger.lng,
+                        ),
+                    )
+                    .zoom(15.0)
+                    .build()
+            // Tap on the map moves the fence center and drops the keyboard.
+            m.addOnMapClickListener { point ->
+                focusManager.clearFocus()
+                onUpdate(trigger.copy(lat = point.latitude, lng = point.longitude))
+                true
+            }
         }
-        mapView.setMultiTouchControls(true)
-        mapView.isVerticalMapRepetitionEnabled = false
-        mapView.isHorizontalMapRepetitionEnabled = false
-        mapView.setTilesScaledToDpi(true)
-        mapView.zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-        mapView.controller.setZoom(15.0)
-        mapView.controller.setCenter(
-            org.osmdroid.util.GeoPoint(
-                if (trigger.lat == 0.0 && trigger.lng == 0.0) 50.0755 else trigger.lat,
-                if (trigger.lat == 0.0 && trigger.lng == 0.0) 14.4378 else trigger.lng,
-            ),
-        )
-        // Tap on the map moves the fence center.
-        mapView.overlays.add(
-            object : org.osmdroid.views.overlay.Overlay() {
-                override fun onSingleTapConfirmed(
-                    e: android.view.MotionEvent,
-                    mv: org.osmdroid.views.MapView,
-                ): Boolean {
-                    val p = mv.projection.fromPixels(e.x.toInt(), e.y.toInt()) as org.osmdroid.util.GeoPoint
-                    onUpdate(trigger.copy(lat = p.latitude, lng = p.longitude))
-                    return true
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                when (event) {
+                    androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
+                    androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                    androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
+                    androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                    else -> Unit
                 }
-            },
-        )
-        mapView.onResume()
-        onDispose { mapView.onPause() }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onStop()
+            mapView.onDestroy()
+        }
     }
 
-    // Switch tile styling when light/dark theme changes.
-    androidx.compose.runtime.LaunchedEffect(isDark) {
-        mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
-        mapView.overlayManager.tilesOverlay.setColorFilter(if (isDark) darkMapFilter() else null)
-        mapView.invalidate()
+    // Restyle when the theme flips between light and dark.
+    androidx.compose.runtime.LaunchedEffect(isDark, map) {
+        val m = map ?: return@LaunchedEffect
+        styleReady = false
+        m.setStyle(
+            org.maplibre.android.maps.Style.Builder()
+                .fromUri(if (isDark) OFM_DARK_STYLE else OFM_LIGHT_STYLE),
+        ) {
+            styleReady = true
+        }
     }
 
     // Redraw the fence circle and red pin whenever the center or radius changes.
-    androidx.compose.runtime.LaunchedEffect(trigger.lat, trigger.lng, trigger.radiusM) {
+    androidx.compose.runtime.LaunchedEffect(trigger.lat, trigger.lng, trigger.radiusM, styleReady, map) {
+        val m = map ?: return@LaunchedEffect
+        if (!styleReady) return@LaunchedEffect
         if (trigger.lat != 0.0 || trigger.lng != 0.0) {
-            val center = org.osmdroid.util.GeoPoint(trigger.lat, trigger.lng)
-            fenceOverlay?.let { mapView.overlays.remove(it) }
-            markerOverlay?.let { mapView.overlays.remove(it) }
-            val poly =
-                org.osmdroid.views.overlay.Polygon(mapView).apply {
-                    points =
-                        org.osmdroid.views.overlay.Polygon
-                            .pointsAsCircle(center, trigger.radiusM)
-                    fillPaint.color = android.graphics.Color.argb(40, 255, 60, 60)
-                    outlinePaint.color = android.graphics.Color.rgb(255, 60, 60)
-                    outlinePaint.strokeWidth = 4f
-                }
-            val marker =
-                org.osmdroid.views.overlay.Marker(mapView).apply {
-                    position = center
-                    icon = redDotMarker(context)
-                    setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
-                    title = "Fence center"
-                }
-            mapView.overlays.add(poly)
-            mapView.overlays.add(marker)
-            fenceOverlay = poly
-            markerOverlay = marker
-            mapView.controller.animateTo(center)
-            mapView.invalidate()
+            val center = org.maplibre.android.geometry.LatLng(trigger.lat, trigger.lng)
+            m.style?.let { style -> applyFence(style, center, trigger.radiusM) }
+            m.animateCamera(
+                org.maplibre.android.camera.CameraUpdateFactory.newLatLng(center),
+            )
         }
     }
 
@@ -1189,6 +1200,9 @@ private fun GeofenceContent(
             value = trigger.radiusM.toString(),
             onValueChange = { onUpdate(trigger.copy(radiusM = it.toDoubleOrNull() ?: trigger.radiusM)) },
             label = "Radius (m)",
+            infoText =
+                "How far from the pin the fence reaches. 100 m is a good start — " +
+                    "below ~50 m GPS jitter can fire it accidentally, especially indoors.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
@@ -1196,12 +1210,18 @@ private fun GeofenceContent(
             value = trigger.transition.name.enumLabel(),
             options = enumLabelList<Transition>(),
             onSelect = { onUpdate(trigger.copy(transition = enumByLabel(it))) },
+            infoText =
+                "When the mode should fire. Enter = arriving inside the area, " +
+                    "Exit = leaving it, Dwell = staying inside for the loitering delay.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.loiteringDelayMs.toString(),
             onValueChange = { onUpdate(trigger.copy(loiteringDelayMs = it.toLongOrNull() ?: trigger.loiteringDelayMs)) },
             label = "Loitering delay (ms)",
+            infoText =
+                "How long you must stay in the state before it fires. 0 fires instantly. " +
+                    "Use e.g. 300000 (5 min) so driving past the area does not trigger the mode.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(text = "Fires when you enter or leave the circular area. Tap the map to move the pin. Location access is required.")
@@ -1403,49 +1423,77 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
     }
 }
 
-/** Dark-mode tile filter: invert the OSM tiles, then rotate hue 180° so
- *  water/parks keep natural colours while the background goes dark. Ends with a
- *  slight desaturation and dim so the map sits quietly behind the red fence. */
-private fun darkMapFilter(): android.graphics.ColorMatrixColorFilter {
-    val matrix =
-        android.graphics.ColorMatrix(
-            floatArrayOf(
-                -1f, 0f, 0f, 0f, 255f,
-                0f, -1f, 0f, 0f, 255f,
-                0f, 0f, -1f, 0f, 255f,
-                0f, 0f, 0f, 1f, 0f,
-            ),
+/** OpenFreeMap vector styles — free, no API key, OpenMapTiles schema.
+ *  `dark` derives from the CartoDB Dark Matter cartography; `positron` is the
+ *  matching light style. */
+private const val OFM_DARK_STYLE = "https://tiles.openfreemap.org/styles/dark"
+private const val OFM_LIGHT_STYLE = "https://tiles.openfreemap.org/styles/positron"
+private const val FENCE_FILL_LAYER = "nm-fence-fill"
+private const val FENCE_LINE_LAYER = "nm-fence-line"
+private const val FENCE_PIN_LAYER = "nm-fence-pin"
+private const val FENCE_SOURCE = "nm-fence-src"
+private const val PIN_SOURCE = "nm-pin-src"
+private const val FENCE_RED = "#FF3C3C"
+
+/** Draw (or redraw) the fence fill + outline + centre pin on a loaded style. */
+private fun applyFence(
+    style: org.maplibre.android.maps.Style,
+    center: org.maplibre.android.geometry.LatLng,
+    radiusM: Double,
+) {
+    val circle =
+        org.maplibre.geojson.Feature.fromGeometry(
+            org.maplibre.geojson.Polygon.fromLngLats(listOf(circleRing(center, radiusM))),
         )
-    matrix.postConcat(
-        android.graphics.ColorMatrix(
-            floatArrayOf(
-                -0.574f, 1.430f, 0.144f, 0f, 0f,
-                0.426f, 0.430f, 0.144f, 0f, 0f,
-                0.426f, 1.430f, -0.856f, 0f, 0f,
-                0f, 0f, 0f, 1f, 0f,
-            ),
+    val pin =
+        org.maplibre.geojson.Feature.fromGeometry(
+            org.maplibre.geojson.Point.fromLngLat(center.longitude, center.latitude),
+        )
+
+    val fenceSrc = style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(FENCE_SOURCE)
+    if (fenceSrc != null) {
+        fenceSrc.setGeoJson(circle)
+        style.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>(PIN_SOURCE)?.setGeoJson(pin)
+        return
+    }
+
+    style.addSource(org.maplibre.android.style.sources.GeoJsonSource(FENCE_SOURCE, circle))
+    style.addSource(org.maplibre.android.style.sources.GeoJsonSource(PIN_SOURCE, pin))
+    style.addLayer(
+        org.maplibre.android.style.layers.FillLayer(FENCE_FILL_LAYER, FENCE_SOURCE).withProperties(
+            org.maplibre.android.style.layers.PropertyFactory.fillColor(FENCE_RED),
+            org.maplibre.android.style.layers.PropertyFactory.fillOpacity(0.14f),
         ),
     )
-    matrix.postConcat(android.graphics.ColorMatrix().apply { setSaturation(0.35f) })
-    matrix.postConcat(android.graphics.ColorMatrix().apply { setScale(0.85f, 0.85f, 0.85f, 1f) })
-    return android.graphics.ColorMatrixColorFilter(matrix)
+    style.addLayer(
+        org.maplibre.android.style.layers.LineLayer(FENCE_LINE_LAYER, FENCE_SOURCE).withProperties(
+            org.maplibre.android.style.layers.PropertyFactory.lineColor(FENCE_RED),
+            org.maplibre.android.style.layers.PropertyFactory.lineWidth(2f),
+        ),
+    )
+    style.addLayer(
+        org.maplibre.android.style.layers.CircleLayer(FENCE_PIN_LAYER, PIN_SOURCE).withProperties(
+            org.maplibre.android.style.layers.PropertyFactory.circleColor(FENCE_RED),
+            org.maplibre.android.style.layers.PropertyFactory.circleRadius(6f),
+            org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth(2f),
+            org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor("#FFFFFF"),
+        ),
+    )
 }
 
-/** A small red dot with a white border for the fence centre pin. */
-private fun redDotMarker(context: android.content.Context): android.graphics.drawable.Drawable {
-    val dp = context.resources.displayMetrics.density
-    val size = (24 * dp).toInt()
-    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
-    val canvas = android.graphics.Canvas(bitmap)
-    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-
-    paint.color = android.graphics.Color.RED
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-
-    paint.style = android.graphics.Paint.Style.STROKE
-    paint.color = android.graphics.Color.WHITE
-    paint.strokeWidth = 2 * dp
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f - dp, paint)
-
-    return android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
+/** A geodesic-ish circle ring around [center], [steps]+1 points, closed. */
+private fun circleRing(
+    center: org.maplibre.android.geometry.LatLng,
+    radiusM: Double,
+    steps: Int = 72,
+): List<org.maplibre.geojson.Point> {
+    val latDegPerM = 1.0 / 111320.0
+    val lngDegPerM = 1.0 / (111320.0 * kotlin.math.cos(Math.toRadians(center.latitude)).coerceAtLeast(0.01))
+    return (0..steps).map { i ->
+        val a = 2.0 * Math.PI * i / steps
+        org.maplibre.geojson.Point.fromLngLat(
+            center.longitude + radiusM * kotlin.math.sin(a) * lngDegPerM,
+            center.latitude + radiusM * kotlin.math.cos(a) * latDegPerM,
+        )
+    }
 }

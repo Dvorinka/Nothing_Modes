@@ -37,7 +37,9 @@ import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
+import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
@@ -123,6 +125,13 @@ fun ActionConfigContent(
     action: Action,
     onActionChange: (Action) -> Unit,
 ) {
+    // Glyph actions get a live matrix preview at the top of the sheet.
+    if (action.isGlyphAction) {
+        GlyphMatrixPreview(
+            action = action,
+            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+        )
+    }
     when (val a = action) {
         is Action.SetWifi -> {
             BooleanRow(

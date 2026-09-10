@@ -75,28 +75,28 @@ private val NothingLight =
     )
 
 // ── Classic Theme (curated, non-dynamic) ─────────────────────────────────────
-// One restrained indigo accent (#4F5DD3 family) over warm-neutral surfaces.
-// Identical on every device — no Material You wallpaper tinting.
+// Soft teal accent over clean neutral surfaces — calm and deliberate without
+// the dot-matrix chrome. Identical on every device — no wallpaper tinting.
 private val ClassicDark =
     darkColorScheme(
-        primary = Color(0xFF8E97E8), // lightened indigo for dark canvas
-        onPrimary = Color(0xFF14162B),
-        primaryContainer = Color(0xFF363E7A),
-        onPrimaryContainer = Color(0xFFDEE0FF),
-        secondary = Color(0xFF9099B0), // cool low-chroma neutral
-        onSecondary = Color(0xFF1A1C21),
-        secondaryContainer = Color(0xFF363A45),
-        onSecondaryContainer = Color(0xFFD6DAEC),
-        tertiary = Color(0xFF6B73A0), // muted indigo-grey
-        onTertiary = Color(0xFF1A1C21),
-        background = Color(0xFF121316), // near-neutral dark canvas
-        onBackground = Color(0xFFE6E6E4),
-        surface = Color(0xFF1A1C21), // raised cards
-        onSurface = Color(0xFFE6E6E4),
-        surfaceVariant = Color(0xFF22252B), // elevated surfaces
-        onSurfaceVariant = Color(0xFFA8ABBA), // secondary text
-        outline = Color(0xFF2D3038), // visible borders
-        outlineVariant = Color(0xFF22252B), // hairline separators
+        primary = Color(0xFF8ED1C8), // soft teal for dark canvas
+        onPrimary = Color(0xFF0B2624),
+        primaryContainer = Color(0xFF26413E), // deep teal container, FAB surface
+        onPrimaryContainer = Color(0xFFA8E6DC),
+        secondary = Color(0xFFA8A8A8),
+        onSecondary = Color(0xFF1A1A1A),
+        secondaryContainer = Color(0xFF363636),
+        onSecondaryContainer = Color(0xFFE0E0E0),
+        tertiary = Color(0xFF8A8A8A),
+        onTertiary = Color(0xFF1A1A1A),
+        background = Color(0xFF101010), // near-black neutral canvas
+        onBackground = Color(0xFFECECEC),
+        surface = Color(0xFF191919), // raised cards
+        onSurface = Color(0xFFECECEC),
+        surfaceVariant = Color(0xFF232323), // elevated surfaces
+        onSurfaceVariant = Color(0xFFA0A0A0), // secondary text
+        outline = Color(0xFF333333), // visible borders
+        outlineVariant = Color(0xFF262626), // hairline separators
         error = Color(0xFFF2B8B5),
         onError = Color(0xFF601410),
         errorContainer = Color(0xFF8C1D18),
@@ -105,24 +105,24 @@ private val ClassicDark =
 
 private val ClassicLight =
     lightColorScheme(
-        primary = Color(0xFF3F4DBF), // deepened indigo for white contrast
+        primary = Color(0xFF00695F), // deep teal for white contrast
         onPrimary = Color(0xFFFFFFFF),
-        primaryContainer = Color(0xFFDEE0FF),
-        onPrimaryContainer = Color(0xFF1A1F4A),
-        secondary = Color(0xFF5B6071), // cool low-chroma neutral
+        primaryContainer = Color(0xFFBCEBE2),
+        onPrimaryContainer = Color(0xFF00201C),
+        secondary = Color(0xFF5A5A5A),
         onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = Color(0xFFDDE0F0),
-        onSecondaryContainer = Color(0xFF1A1C21),
-        tertiary = Color(0xFF6B73A0), // muted indigo-grey
+        secondaryContainer = Color(0xFFE6E6E6),
+        onSecondaryContainer = Color(0xFF1A1A1A),
+        tertiary = Color(0xFF7A7A7A),
         onTertiary = Color(0xFFFFFFFF),
-        background = Color(0xFFFAFAF8), // warm off-white canvas
-        onBackground = Color(0xFF1A1C21),
-        surface = Color(0xFFFFFFFF), // white cards on off-white
-        onSurface = Color(0xFF1A1C21),
-        surfaceVariant = Color(0xFFF0F0EE), // raised surfaces
-        onSurfaceVariant = Color(0xFF5B6071), // secondary text
-        outline = Color(0xFFD8D8D4), // visible borders
-        outlineVariant = Color(0xFFECECE8), // hairline separators
+        background = Color(0xFFFAFAFA), // neutral off-white canvas
+        onBackground = Color(0xFF1A1A1A),
+        surface = Color(0xFFFFFFFF), // white cards
+        onSurface = Color(0xFF1A1A1A),
+        surfaceVariant = Color(0xFFF1F1F1), // raised surfaces
+        onSurfaceVariant = Color(0xFF5F5F5F), // secondary text
+        outline = Color(0xFFDADADA), // visible borders
+        outlineVariant = Color(0xFFECECEC), // hairline separators
         error = Color(0xFFB3261E),
         onError = Color(0xFFFFFFFF),
         errorContainer = Color(0xFFF9DEDC),

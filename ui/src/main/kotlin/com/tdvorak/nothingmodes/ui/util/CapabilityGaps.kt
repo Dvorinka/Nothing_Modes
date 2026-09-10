@@ -5,15 +5,34 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.DoNotDisturbOn
+import androidx.compose.material.icons.outlined.FlashlightOn
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.PhonelinkSetup
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Sms
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.ui.util.openAppPermissionPage
 import com.tdvorak.nothingmodes.capabilities.ShizukuCapabilityStatus
 import com.tdvorak.nothingmodes.engine.model.CapabilityIds
 
-/** A missing capability with a human label and a fix action. */
+/** A missing capability with a human label, an icon, and a fix action. */
 data class CapabilityGap(
     val reason: String,
     val fixLabel: String,
+    val icon: ImageVector,
     val onFix: () -> Unit,
 )
 
@@ -28,9 +47,85 @@ fun capabilityGaps(
             CapabilityGap(
                 reason = reason,
                 fixLabel = fixLabelFor(id, caps),
+                icon = iconFor(id),
                 onFix = { openFixFor(context, id, caps) },
             )
         }.distinctBy { it.reason }
+
+private fun iconFor(id: String): ImageVector =
+    when (id) {
+        CapabilityIds.SHIZUKU_REQUIRED,
+        CapabilityIds.ACTION_SET_DARK_MODE,
+        CapabilityIds.ACTION_SET_EXTRA_DIM,
+        CapabilityIds.ACTION_SET_MOBILE_DATA,
+        CapabilityIds.ACTION_SET_LOCATION_MODE,
+        CapabilityIds.ACTION_WRITE_SETTING,
+        CapabilityIds.ACTION_SET_BATTERY_SAVER,
+        CapabilityIds.ACTION_SET_AIRPLANE_MODE,
+        CapabilityIds.ACTION_SET_DATA_SAVER,
+        CapabilityIds.ACTION_SET_HOTSPOT,
+        CapabilityIds.ACTION_SET_NFC,
+        CapabilityIds.ACTION_SET_AUTO_SYNC,
+        CapabilityIds.ACTION_TAKE_SCREENSHOT,
+        CapabilityIds.STATE_READER_SETTING,
+        CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
+        CapabilityIds.STATE_READER_SYSFS,
+        CapabilityIds.STATE_READER_DUMPSYS_FIELD,
+        -> Icons.Outlined.Terminal
+
+        CapabilityIds.ACTION_SET_DND -> Icons.Outlined.DoNotDisturbOn
+        CapabilityIds.ACTION_SET_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
+        CapabilityIds.ACTION_SET_AUTO_ROTATE,
+        CapabilityIds.ACTION_SET_REFRESH_RATE,
+        CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+        CapabilityIds.ACTION_SET_AOD,
+        -> Icons.Outlined.PhonelinkSetup
+
+        CapabilityIds.TRIGGER_NOTIFICATION,
+        CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+        -> Icons.Outlined.Notifications
+
+        CapabilityIds.TRIGGER_APP_OPENED,
+        CapabilityIds.STATE_FOREGROUND_APP,
+        -> Icons.Outlined.QueryStats
+
+        CapabilityIds.TRIGGER_PHONE_SMS,
+        CapabilityIds.ACTION_SEND_SMS,
+        -> Icons.Outlined.Sms
+
+        CapabilityIds.TRIGGER_PHONE_CALL -> Icons.Outlined.Call
+        CapabilityIds.TRIGGER_GEOFENCE,
+        CapabilityIds.STATE_LOCATION,
+        -> Icons.Outlined.Place
+
+        CapabilityIds.TRIGGER_CALENDAR_EVENT -> Icons.Outlined.CalendarMonth
+        CapabilityIds.ACTION_LOCK_SCREEN -> Icons.Outlined.Lock
+        CapabilityIds.ACTION_SET_WIFI -> Icons.Outlined.Wifi
+        CapabilityIds.ACTION_SET_BLUETOOTH -> Icons.Outlined.Bluetooth
+        CapabilityIds.ACTION_SET_FLASHLIGHT -> Icons.Outlined.FlashlightOn
+        CapabilityIds.ACTION_VIBRATE -> Icons.Outlined.Vibration
+
+        in
+        setOf(
+            CapabilityIds.ACTION_SET_GLYPH,
+            CapabilityIds.ACTION_SET_GLYPH_MATRIX,
+            CapabilityIds.ACTION_GLYPH_ANIMATE,
+            CapabilityIds.ACTION_GLYPH_PROGRESS,
+            CapabilityIds.ACTION_GLYPH_TEXT,
+            CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT,
+            CapabilityIds.ACTION_GLYPH_PRESET,
+            CapabilityIds.ACTION_GLYPH_TURNOFF,
+            CapabilityIds.ACTION_GLYPH_ICON,
+            CapabilityIds.ACTION_GLYPH_NUMBER,
+            CapabilityIds.ACTION_GLYPH_COUNTDOWN,
+            CapabilityIds.ACTION_GLYPH_MUSIC,
+        ),
+        -> Icons.Outlined.Lightbulb
+
+        else -> Icons.Outlined.Settings
+    }
 
 private fun fixLabelFor(
     id: String,

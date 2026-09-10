@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.canonicalJson
@@ -268,7 +268,7 @@ class TemplateCatalogViewModel
                             PendingTemplateInstall(summary, emptyList(), emptyList(), emptyList(), preview.errors)
                         return@launch
                     }
-                    val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                    val caps = CapabilitiesCache.peek() ?: CapabilitiesCache.refresh(context)
                     val resolution = CapabilityResolver(caps).resolve(item.id, preview.requiredCapabilities)
                     _pending.value =
                         PendingTemplateInstall(
@@ -332,7 +332,7 @@ class TemplateCatalogViewModel
                         return@launch
                     }
 
-                    val caps = withContext(Dispatchers.IO) { CapabilityDetector(context).detect() }
+                    val caps = CapabilitiesCache.peek() ?: CapabilitiesCache.refresh(context)
                     val resolver = CapabilityResolver(caps)
                     val resolution = resolver.resolve(template.id, preview.requiredCapabilities)
                     val missing =

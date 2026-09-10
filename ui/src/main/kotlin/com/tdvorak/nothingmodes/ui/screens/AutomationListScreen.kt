@@ -90,6 +90,9 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -370,7 +373,12 @@ fun AutomationListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             NothingTopBar(
-                title = if (inSelection) "${selected.size} SELECTED" else "Modes",
+                title =
+                    if (inSelection) {
+                        pluralStringResource(R.plurals.home_n_selected, selected.size, selected.size)
+                    } else {
+                        stringResource(R.string.screen_modes)
+                    },
                 showLeadingDot = !inSelection,
                 actions =
                     if (inSelection) {
@@ -417,8 +425,8 @@ fun AutomationListScreen(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     NothingEmptyState(
-                        title = "No modes yet",
-                        description = "Tap + to create your first mode",
+                        title = stringResource(R.string.home_empty),
+                        description = stringResource(R.string.home_empty_hint),
                         action = {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -473,7 +481,7 @@ fun AutomationListScreen(
                             start = NothingSpacing.md,
                             end = NothingSpacing.md,
                             top = NothingSpacing.lg,
-                            bottom = 96.dp,
+                            bottom = 140.dp,
                         ),
                     verticalArrangement = Arrangement.spacedBy(NothingSpacing.md),
                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
@@ -747,7 +755,12 @@ private fun ModeTile(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${automation.actions.size} action${if (automation.actions.size == 1) "" else "s"}",
+                text =
+                    pluralStringResource(
+                        R.plurals.home_n_actions,
+                        automation.actions.size,
+                        automation.actions.size,
+                    ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

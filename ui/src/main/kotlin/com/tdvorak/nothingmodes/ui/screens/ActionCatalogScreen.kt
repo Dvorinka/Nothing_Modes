@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
+import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.Action
@@ -60,8 +60,12 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
+import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tdvorak.nothingmodes.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -81,10 +85,8 @@ private data class ActionItem(
 @OptIn(ExperimentalMaterial3Api::class)
 fun ActionCatalogScreen(navController: NavController) {
     val context = LocalContext.current
-    var caps by remember { mutableStateOf(DeviceCapabilities()) }
-    LaunchedEffect(Unit) {
-        withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
-    }
+    var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
     // Actions the user has configured and wants to add.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
     // Index of the selected action currently being edited, or null for a new action.
@@ -133,16 +135,16 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Media control", "Apps", Icons.AutoMirrored.Outlined.VolumeUp, Action.MediaControl(MediaCommand.PLAY_PAUSE)),
                 ActionItem("Wait", "Apps", Icons.Outlined.Snooze, Action.Wait(1000)),
                 ActionItem("Send SMS", "Apps", Icons.Outlined.Sms, Action.SendSms("", "")),
-                ActionItem("Glyph", "Glyph", Icons.Outlined.PhoneAndroid, Action.SetGlyph(true)),
-                ActionItem("Glyph matrix", "Glyph", Icons.Outlined.PhoneAndroid, Action.SetGlyphMatrix(null, restore = false)),
+                ActionItem("Glyph", "Glyph", Icons.Outlined.WbTwilight, Action.SetGlyph(true)),
+                ActionItem("Glyph matrix", "Glyph", Icons.Outlined.GridOn, Action.SetGlyphMatrix(null, restore = false)),
                 ActionItem("Glyph preset", "Glyph", Icons.Outlined.Lightbulb, Action.GlyphPreset("sleep")),
-                ActionItem("Glyph text", "Glyph", Icons.Outlined.PhoneAndroid, Action.GlyphText("")),
-                ActionItem("Glyph scrolling", "Glyph", Icons.Outlined.PhoneAndroid, Action.GlyphScrollingText("")),
-                ActionItem("Glyph icon", "Glyph", Icons.Outlined.Star, Action.GlyphIcon("check")),
+                ActionItem("Glyph text", "Glyph", Icons.Outlined.TextFields, Action.GlyphText("")),
+                ActionItem("Glyph scrolling", "Glyph", Icons.Outlined.Notes, Action.GlyphScrollingText("")),
+                ActionItem("Glyph icon", "Glyph", Icons.Outlined.EmojiSymbols, Action.GlyphIcon("check")),
                 ActionItem("Glyph number", "Glyph", Icons.Outlined.Tag, Action.GlyphNumber(0)),
                 ActionItem("Glyph countdown", "Glyph", Icons.Outlined.Timer, Action.GlyphCountdown(30)),
-                ActionItem("Glyph progress", "Glyph", Icons.Outlined.Timer, Action.GlyphProgress(50)),
-                ActionItem("Glyph animate", "Glyph", Icons.Outlined.Lightbulb, Action.GlyphAnimate()),
+                ActionItem("Glyph progress", "Glyph", Icons.Outlined.Moving, Action.GlyphProgress(50)),
+                ActionItem("Glyph animate", "Glyph", Icons.Outlined.Animation, Action.GlyphAnimate()),
                 ActionItem("Glyph music", "Glyph", Icons.Outlined.MusicNote, Action.GlyphMusic()),
                 ActionItem("Glyph turn off", "Glyph", Icons.Outlined.PowerSettingsNew, Action.GlyphTurnOff),
                 ActionItem("Write setting", "Advanced", Icons.Outlined.Settings, Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0")),
@@ -160,15 +162,20 @@ fun ActionCatalogScreen(navController: NavController) {
 
     val catalogEntries =
         remember(items, caps) {
-            items.map { item ->
-                val (subtitle, badges) = actionCatalogMeta(item.action, caps)
-                CatalogEntry(
-                    label = item.label,
-                    category = item.category,
-                    icon = item.icon,
-                    description = subtitle,
-                    badges = badges,
-                )
+            items.mapNotNull { item ->
+                val (subtitle, badges, blocked) = actionCatalogMeta(item.action, caps)
+                if (blocked) {
+                    null
+                } else {
+                    CatalogEntry(
+                        label = item.label,
+                        category = item.category,
+                        icon = item.icon,
+                        description = subtitle,
+                        badges = badges,
+                        accent = item.category == "Glyph",
+                    )
+                }
             }
         }
 
@@ -185,7 +192,7 @@ fun ActionCatalogScreen(navController: NavController) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Add action",
+                title = stringResource(R.string.picker_add_action),
                 onBack = { navController.popBackStack() },
             )
         },
@@ -208,14 +215,14 @@ fun ActionCatalogScreen(navController: NavController) {
                         pendingAction = actionItem.action
                     }
                 },
-                searchPlaceholder = "Find an action",
+                searchPlaceholder = stringResource(R.string.picker_find_action),
                 categoryOrder = listOf("Connections", "Display", "Sound", "System", "Apps", "Glyph", "Advanced"),
                 extraFilters = actionFilters,
                 horizontalPadding = NothingSpacing.md,
                 bottomPadding = 160.dp,
                 selectedTray = {
                     if (selected.isNotEmpty()) {
-                        NothingSectionHeader(text = "Selected")
+                        NothingSectionHeader(text = stringResource(R.string.picker_selected))
                         NothingCard {
                             selected.forEachIndexed { index, action ->
                                 if (index > 0) NothingDivider()
@@ -258,9 +265,9 @@ fun ActionCatalogScreen(navController: NavController) {
             NothingBottomActionBar(
                 text =
                     if (selected.isEmpty()) {
-                        "Select at least one action"
+                        stringResource(R.string.picker_select_at_least_one_action)
                     } else {
-                        "Add ${selected.size} action${if (selected.size > 1) "s" else ""}"
+                        pluralStringResource(R.plurals.picker_add_n_actions, selected.size, selected.size)
                     },
                 onClick = {
                     if (selected.isNotEmpty()) {
@@ -316,7 +323,7 @@ fun ActionCatalogScreen(navController: NavController) {
 private fun actionCatalogMeta(
     action: Action,
     caps: DeviceCapabilities,
-): Pair<String, List<String>> {
+): Triple<String, List<String>, Boolean> {
     val static = actionRequirementHint(action) ?: actionDescription(action)
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
@@ -327,7 +334,7 @@ private fun actionCatalogMeta(
         } else {
             static
         }
-    return subtitle to badges
+    return Triple(subtitle, badges, isHardwareBlocked(resolution.missing, caps))
 }
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =

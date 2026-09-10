@@ -50,6 +50,8 @@ data class CatalogEntry(
     val icon: ImageVector,
     val description: String = "",
     val badges: List<String> = emptyList(),
+    /** Red-accented icon circle — used for the Glyph group, the app's signature. */
+    val accent: Boolean = false,
 )
 
 /** An extra caller-defined chip filter (e.g. "No Shizuku", "Needs setup").
@@ -253,11 +255,16 @@ fun CatalogRow(
         selected = selected,
         onClick = onClick,
         leading = {
-            NothingIconCircle(size = 44f) {
+            NothingIconCircle(size = 44f, accent = entry.accent) {
                 Icon(
                     imageVector = entry.icon,
                     contentDescription = entry.label,
-                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    tint =
+                        when {
+                            selected -> MaterialTheme.colorScheme.primary
+                            entry.accent -> NothingColors.accent
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
                     modifier = Modifier.size(24.dp),
                 )
             }
