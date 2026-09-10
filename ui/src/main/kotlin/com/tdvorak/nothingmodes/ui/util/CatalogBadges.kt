@@ -42,3 +42,21 @@ fun requirementBadges(missing: Set<String>): List<String> {
     if (other.isNotEmpty() && badges.isEmpty()) badges += "SETUP"
     return badges.toList()
 }
+
+/** Short user-facing hint for a catalog row that cannot run, derived from its
+ *  requirement badges. Falls back to the raw reason when no badge matches. */
+fun missingCapabilityHint(
+    badges: List<String>,
+    fallback: String,
+): String =
+    when {
+        "SHIZUKU" in badges -> "Requires Shizuku"
+        "LOC" in badges -> "Requires location permission"
+        "PHONE" in badges -> "Requires phone permission"
+        "NOTIF" in badges -> "Requires notification access"
+        "USAGE" in badges -> "Requires usage access"
+        "CAL" in badges -> "Requires calendar permission"
+        "GLYPH" in badges -> "Requires a Nothing phone"
+        "SETUP" in badges -> "Needs setup"
+        else -> fallback
+    }

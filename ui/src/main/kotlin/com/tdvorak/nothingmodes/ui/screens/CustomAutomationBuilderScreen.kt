@@ -1622,7 +1622,10 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.ChargingSource -> "Charging via ${condition.source.name.lowercase()}"
         is Condition.BatteryTemp -> "Battery temp ${condition.op.name} ${condition.celsius}°C"
         is Condition.ThermalLevel -> "Thermal ${condition.op.name} level ${condition.level}"
-        is Condition.BooleanState -> "${booleanStateLabel(condition.key)} ${if (condition.on) "on" else "off"}"
+        is Condition.BooleanState -> {
+            val label = booleanStateLabel(condition.key).removeSuffix(" on").removeSuffix(" off")
+            "$label ${if (condition.on) "on" else "off"}"
+        }
         is Condition.NumericState -> "${numericStateLabel(condition.key)} ${condition.op.name} ${condition.value}"
         is Condition.AtLocation -> "Within ${condition.radiusM}m of ${condition.lat}, ${condition.lng}"
         is Condition.EventActive -> "Calendar event contains \"${condition.titleMatch}\""

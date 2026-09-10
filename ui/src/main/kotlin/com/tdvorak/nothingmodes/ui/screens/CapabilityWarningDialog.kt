@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,10 +16,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
-import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.util.CapabilityGap
@@ -52,6 +54,7 @@ fun CapabilityWarningDialog(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = gap.reason,
@@ -61,9 +64,17 @@ fun CapabilityWarningDialog(
                                 modifier = Modifier.weight(1f),
                             )
                             Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                            NothingPillButton(
-                                text = gap.fixLabel,
-                                onClick = gap.onFix,
+                            Text(
+                                text = gap.fixLabel.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = NothingFonts.mono(),
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier =
+                                    Modifier
+                                        .clickable(onClick = gap.onFix)
+                                        .padding(vertical = NothingSpacing.xs),
                             )
                         }
                     }
@@ -76,13 +87,21 @@ fun CapabilityWarningDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Cancel", fontFamily = NothingFonts.mono())
+                        Text(
+                            "CANCEL",
+                            fontFamily = NothingFonts.mono(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     TextButton(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Continue", fontFamily = NothingFonts.mono())
+                        Text(
+                            "CONTINUE",
+                            fontFamily = NothingFonts.mono(),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }

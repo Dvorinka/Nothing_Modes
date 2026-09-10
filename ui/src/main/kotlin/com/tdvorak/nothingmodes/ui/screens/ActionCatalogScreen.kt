@@ -60,6 +60,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
+import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -210,7 +211,8 @@ fun ActionCatalogScreen(navController: NavController) {
                 searchPlaceholder = "Find an action",
                 categoryOrder = listOf("Connections", "Display", "Sound", "System", "Apps", "Glyph", "Advanced"),
                 extraFilters = actionFilters,
-                contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = 160.dp),
+                horizontalPadding = NothingSpacing.md,
+                bottomPadding = 160.dp,
                 selectedTray = {
                     if (selected.isNotEmpty()) {
                         NothingSectionHeader(text = "Selected")
@@ -318,13 +320,13 @@ private fun actionCatalogMeta(
     val static = actionRequirementHint(action) ?: actionDescription(action)
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
+    val badges = requirementBadges(resolution.missing)
     val subtitle =
         if (!resolution.canRun) {
-            resolution.missingReasons.values.firstOrNull() ?: static
+            missingCapabilityHint(badges, resolution.missingReasons.values.firstOrNull() ?: static)
         } else {
             static
         }
-    val badges = requirementBadges(resolution.missing)
     return subtitle to badges
 }
 

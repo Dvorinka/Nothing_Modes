@@ -207,6 +207,10 @@ fun NothingInfoRow(
             style = MaterialTheme.typography.bodyMedium,
             color = valueColor,
             fontFamily = NothingFonts.mono(),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = NothingSpacing.md),
         )
     }
 }
@@ -657,6 +661,9 @@ fun NothingTag(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
         )
     }
@@ -792,16 +799,24 @@ fun NothingTopBar(
             )
         }
 
-        // Right side: icon chips, label only as a fallback
+        // Right side: icon chips; text-only actions get a pill that fits the label
         Row(verticalAlignment = Alignment.CenterVertically) {
             actions.forEach { action ->
+                val hasIcon = action.icon != null
+                val shape = if (hasIcon) CircleShape else NothingShapes.pill
                 Box(
                     modifier =
                         Modifier
                             .padding(start = NothingSpacing.xs)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .then(
+                                if (hasIcon) {
+                                    Modifier.size(40.dp)
+                                } else {
+                                    Modifier.defaultMinSize(minWidth = 40.dp).height(40.dp)
+                                },
+                            )
+                            .clip(shape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                             .background(MaterialTheme.colorScheme.surface)
                             .clickable(onClick = action.onClick),
                     contentAlignment = Alignment.Center,
@@ -815,10 +830,13 @@ fun NothingTopBar(
                         )
                     } else {
                         Text(
-                            text = if (classic) action.label.take(4) else action.label.uppercase().take(4),
+                            text = if (classic) action.label else action.label.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = NothingSpacing.md),
                         )
                     }
                 }

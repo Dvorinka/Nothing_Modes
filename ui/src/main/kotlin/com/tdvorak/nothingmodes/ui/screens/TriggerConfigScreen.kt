@@ -94,6 +94,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -269,14 +270,21 @@ private fun TriggerTypePickerDialog(
             types.map { type ->
                 val required = CapabilityRequirements.derive(type.trigger, emptyList())
                 val resolution = resolver.resolve(type.label, required)
+                val badges = requirementBadges(resolution.missing)
                 CatalogEntry(
                     label = type.label,
                     category = type.category,
                     icon = type.icon,
                     description =
-                        resolution.missingReasons.values.firstOrNull()
-                            ?: triggerDescription(type.trigger),
-                    badges = requirementBadges(resolution.missing),
+                        if (resolution.canRun) {
+                            triggerTypeDescription(type.trigger)
+                        } else {
+                            missingCapabilityHint(
+                                badges,
+                                resolution.missingReasons.values.firstOrNull() ?: triggerTypeDescription(type.trigger),
+                            )
+                        },
+                    badges = badges,
                 )
             }
         }
@@ -322,7 +330,8 @@ private fun TriggerTypePickerDialog(
                     isSelected = { entry ->
                         types.firstOrNull { it.label == entry.label }?.trigger?.let { it::class == selected::class } == true
                     },
-                    contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = NothingSpacing.xxl),
+                    horizontalPadding = NothingSpacing.md,
+                    bottomPadding = NothingSpacing.xxl,
                 )
             }
         }
@@ -1045,9 +1054,10 @@ private fun GeofenceContent(
         onDispose { mapView.onPause() }
     }
 
-    // Switch tile source when light/dark theme changes.
+    // Switch tile styling when light/dark theme changes.
     androidx.compose.runtime.LaunchedEffect(isDark) {
-        mapView.setTileSource(cartoTileSource(isDark))
+        mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        mapView.overlayManager.tilesOverlay.setColorFilter(if (isDark) darkMapFilter() else null)
         mapView.invalidate()
     }
 
@@ -1393,22 +1403,32 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
     }
 }
 
-/** CartoDB raster tiles in dark or light, based on the current theme. */
-private fun cartoTileSource(dark: Boolean): org.osmdroid.tileprovider.tilesource.XYTileSource {
-    val style = if (dark) "dark_all" else "light_all"
-    return org.osmdroid.tileprovider.tilesource.XYTileSource(
-        "CartoDB-$style",
-        0,
-        20,
-        256,
-        ".png",
-        arrayOf(
-            "https://a.basemaps.cartocdn.com/$style/",
-            "https://b.basemaps.cartocdn.com/$style/",
-            "https://c.basemaps.cartocdn.com/$style/",
-            "https://d.basemaps.cartocdn.com/$style/",
+/** Dark-mode tile filter: invert the OSM tiles, then rotate hue 180° so
+ *  water/parks keep natural colours while the background goes dark. Ends with a
+ *  slight desaturation and dim so the map sits quietly behind the red fence. */
+private fun darkMapFilter(): android.graphics.ColorMatrixColorFilter {
+    val matrix =
+        android.graphics.ColorMatrix(
+            floatArrayOf(
+                -1f, 0f, 0f, 0f, 255f,
+                0f, -1f, 0f, 0f, 255f,
+                0f, 0f, -1f, 0f, 255f,
+                0f, 0f, 0f, 1f, 0f,
+            ),
+        )
+    matrix.postConcat(
+        android.graphics.ColorMatrix(
+            floatArrayOf(
+                -0.574f, 1.430f, 0.144f, 0f, 0f,
+                0.426f, 0.430f, 0.144f, 0f, 0f,
+                0.426f, 1.430f, -0.856f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f,
+            ),
         ),
     )
+    matrix.postConcat(android.graphics.ColorMatrix().apply { setSaturation(0.35f) })
+    matrix.postConcat(android.graphics.ColorMatrix().apply { setScale(0.85f, 0.85f, 0.85f, 1f) })
+    return android.graphics.ColorMatrixColorFilter(matrix)
 }
 
 /** A small red dot with a white border for the fence centre pin. */

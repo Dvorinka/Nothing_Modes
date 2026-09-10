@@ -55,6 +55,7 @@ import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.NUMERIC_STATE_ITEMS
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -338,7 +339,8 @@ fun ConditionCatalogScreen(navController: NavController) {
                 },
                 searchPlaceholder = "Find a condition",
                 categoryOrder = listOf("Device status", "Connections", "Time", "Apps", "Location", "Notifications"),
-                contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = 160.dp),
+                horizontalPadding = NothingSpacing.md,
+                bottomPadding = 160.dp,
                 selectedTray = {
                     if (selected.isNotEmpty()) {
                         NothingSectionHeader(text = "Selected")
@@ -446,11 +448,12 @@ private fun conditionCatalogMeta(
     val static = conditionDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
+    val badges = requirementBadges(resolution.missing)
     val subtitle =
         if (!resolution.canRun) {
-            resolution.missingReasons.values.firstOrNull() ?: static
+            missingCapabilityHint(badges, resolution.missingReasons.values.firstOrNull() ?: static)
         } else {
             static
         }
-    return subtitle to requirementBadges(resolution.missing)
+    return subtitle to badges
 }

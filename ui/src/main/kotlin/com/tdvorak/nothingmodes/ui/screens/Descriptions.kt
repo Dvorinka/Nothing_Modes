@@ -80,6 +80,32 @@ private fun dayName(day: String): String =
 
 /** Shared description functions for triggers and actions. */
 
+/** Short "what it does" line for a trigger type shown in the picker — unlike
+ *  [triggerDescription] it does not leak the default config values. */
+fun triggerTypeDescription(trigger: Trigger): String =
+    when (trigger) {
+        is Trigger.Time -> "Runs at a set time or interval"
+        is Trigger.TimeWindow -> "Active between two times of day"
+        is Trigger.Immediate -> "Runs when you tap Run"
+        is Trigger.Notification -> "When a matching notification arrives"
+        is Trigger.PhoneState -> "On call, SMS, and dialer events"
+        is Trigger.Connectivity -> "When connectivity changes"
+        is Trigger.Boot -> "When the phone finishes booting"
+        is Trigger.BatteryLevel -> "When battery crosses a level"
+        is Trigger.ScreenStateTrigger -> "When the screen turns on or off"
+        is Trigger.AppOpened -> "When an app is opened"
+        is Trigger.Geofence -> "When you enter or leave an area"
+        is Trigger.Manual -> "Runs when you tap Run"
+        is Trigger.BluetoothDevice -> "When a Bluetooth device connects"
+        is Trigger.WifiConnected -> "When a Wi-Fi network connects"
+        is Trigger.CalendarEvent -> "Around calendar events"
+        is Trigger.ChargerConnected -> "When the charger connects or unplugs"
+        is Trigger.DeviceUnlocked -> "When the device is unlocked"
+        is Trigger.DeviceLocked -> "When the device is locked"
+        is Trigger.TorchState -> "When the flashlight toggles"
+        is Trigger.MediaPlayback -> "When media starts or stops"
+    }
+
 fun triggerDescription(trigger: Trigger): String =
     (
         when (trigger) {

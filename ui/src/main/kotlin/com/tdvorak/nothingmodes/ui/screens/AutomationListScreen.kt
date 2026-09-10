@@ -747,7 +747,7 @@ private fun ModeTile(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${automation.actions.size} actions",
+                text = "${automation.actions.size} action${if (automation.actions.size == 1) "" else "s"}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

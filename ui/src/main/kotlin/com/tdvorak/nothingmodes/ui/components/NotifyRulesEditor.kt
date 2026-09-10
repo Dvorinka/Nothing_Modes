@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,7 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
-import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
+import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 
 @Composable
@@ -119,7 +122,7 @@ fun NotifyRulesEditor(
             val hasOnTrigger = rules.contains(NotifyRule.OnTrigger)
             val hasOnEnd = rules.contains(NotifyRule.OnEnd)
 
-            NothingPillButton(
+            AddRuleChip(
                 text = "+ Before",
                 onClick = {
                     val next = rules.toMutableList()
@@ -128,17 +131,52 @@ fun NotifyRulesEditor(
                 },
                 modifier = Modifier.weight(1f),
             )
-            NothingPillButton(
-                text = "+ On trigger",
+            AddRuleChip(
+                text = "+ Trigger",
                 onClick = { onChange(rules + NotifyRule.OnTrigger) },
                 modifier = Modifier.weight(1f),
                 enabled = !hasOnTrigger,
             )
-            NothingPillButton(
-                text = "+ On end",
+            AddRuleChip(
+                text = "+ End",
                 onClick = { onChange(rules + NotifyRule.OnEnd) },
                 modifier = Modifier.weight(1f),
                 enabled = !hasOnEnd,
+            )
+        }
+    }
+}
+
+/** Compact outlined add-chip — fits three across the card width without clipping. */
+@Composable
+private fun AddRuleChip(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Surface(
+        color = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
+        shape = NothingShapes.pill,
+        border =
+            BorderStroke(
+                1.dp,
+                if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
+            ),
+        modifier =
+            modifier
+                .height(40.dp)
+                .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(horizontal = 8.dp),
             )
         }
     }

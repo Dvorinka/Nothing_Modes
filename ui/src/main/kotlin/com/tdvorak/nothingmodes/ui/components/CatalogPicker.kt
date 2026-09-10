@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -82,7 +83,8 @@ fun CatalogPickerContent(
     extraFilters: List<CatalogFilter> = emptyList(),
     isSelected: (CatalogEntry) -> Boolean = { false },
     selectedTray: (@Composable () -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues(bottom = 160.dp),
+    horizontalPadding: androidx.compose.ui.unit.Dp = NothingSpacing.md,
+    bottomPadding: androidx.compose.ui.unit.Dp = 160.dp,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var activeCategories by rememberSaveable(stateSaver = CatalogCategorySaver) { mutableStateOf(emptySet<String>()) }
@@ -113,98 +115,97 @@ fun CatalogPickerContent(
             }
         }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding,
-    ) {
-        item {
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-            NothingInput(
-                value = query,
-                onValueChange = { query = it },
-                label = "Search",
-                placeholder = searchPlaceholder,
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            LazyRow(contentPadding = PaddingValues(vertical = NothingSpacing.sm)) {
-                items(categories) { category ->
-                    val selected = category in activeCategories
-                    CatalogChip(
-                        text = category,
-                        selected = selected,
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = horizontalPadding)) {
+        // Search + chips stay pinned while the list scrolls.
+        Spacer(modifier = Modifier.height(NothingSpacing.lg))
+        NothingInput(
+            value = query,
+            onValueChange = { query = it },
+            label = "Search",
+            placeholder = searchPlaceholder,
+        )
+        LazyRow(contentPadding = PaddingValues(vertical = NothingSpacing.sm)) {
+            items(categories) { category ->
+                val selected = category in activeCategories
+                CatalogChip(
+                    text = category,
+                    selected = selected,
+                    onClick = {
+                        activeCategories =
+                            if (selected) activeCategories - category else activeCategories + category
+                    },
+                )
+            }
+            items(extraFilters) { filter ->
+                val selected = filter.label in activeFilterLabels
+                CatalogChip(
+                    text = filter.label,
+                    selected = selected,
+                    onClick = {
+                        activeFilterLabels =
+                            if (selected) activeFilterLabels - filter.label else activeFilterLabels + filter.label
+                    },
+                )
+            }
+            if (activeCategories.isNotEmpty() || activeFilterLabels.isNotEmpty() || query.isNotBlank()) {
+                item {
+                    TextButton(
                         onClick = {
-                            activeCategories =
-                                if (selected) activeCategories - category else activeCategories + category
+                            activeCategories = emptySet()
+                            activeFilterLabels = emptySet()
+                            query = ""
                         },
+                        modifier = Modifier.padding(start = NothingSpacing.sm),
+                    ) {
+                        Text("Clear", fontFamily = NothingFonts.mono())
+                    }
+                }
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = bottomPadding),
+        ) {
+            if (selectedTray != null) {
+                item { selectedTray() }
+            }
+
+            if (filtered.isEmpty()) {
+                item {
+                    Text(
+                        text = if (query.isBlank()) "Nothing here." else "Nothing matches \"$query\".",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = NothingFonts.mono(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(NothingSpacing.md),
+                        textAlign = TextAlign.Center,
                     )
                 }
-                items(extraFilters) { filter ->
-                    val selected = filter.label in activeFilterLabels
-                    CatalogChip(
-                        text = filter.label,
-                        selected = selected,
-                        onClick = {
-                            activeFilterLabels =
-                                if (selected) activeFilterLabels - filter.label else activeFilterLabels + filter.label
-                        },
-                    )
-                }
-                if (activeCategories.isNotEmpty() || activeFilterLabels.isNotEmpty() || query.isNotBlank()) {
-                    item {
-                        TextButton(
-                            onClick = {
-                                activeCategories = emptySet()
-                                activeFilterLabels = emptySet()
-                                query = ""
-                            },
-                            modifier = Modifier.padding(start = NothingSpacing.sm),
-                        ) {
-                            Text("Clear", fontFamily = NothingFonts.mono())
+            }
+
+            orderedCategories.forEach { category ->
+                val groupItems = grouped[category] ?: emptyList()
+                item {
+                    NothingSectionHeader(text = category)
+                    NothingCard {
+                        groupItems.forEachIndexed { index, entry ->
+                            if (index > 0) NothingDivider()
+                            CatalogRow(
+                                entry = entry,
+                                selected = isSelected(entry),
+                                onClick = { onSelect(entry) },
+                            )
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        }
 
-        if (selectedTray != null) {
-            item { selectedTray() }
+            item { Spacer(modifier = Modifier.height(NothingSpacing.lg)) }
         }
-
-        if (filtered.isEmpty()) {
-            item {
-                Text(
-                    text = if (query.isBlank()) "Nothing here." else "Nothing matches \"$query\".",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(NothingSpacing.md),
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-
-        orderedCategories.forEach { category ->
-            val groupItems = grouped[category] ?: emptyList()
-            item {
-                NothingSectionHeader(text = category)
-                NothingCard {
-                    groupItems.forEachIndexed { index, entry ->
-                        if (index > 0) NothingDivider()
-                        CatalogRow(
-                            entry = entry,
-                            selected = isSelected(entry),
-                            onClick = { onSelect(entry) },
-                        )
-                    }
-                }
-            }
-        }
-
-        item { Spacer(modifier = Modifier.height(NothingSpacing.lg)) }
     }
 }
 
