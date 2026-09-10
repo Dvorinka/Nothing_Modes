@@ -1,35 +1,25 @@
 package com.tdvorak.nothingmodes.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,17 +39,16 @@ import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.ui.components.CatalogEntry
+import com.tdvorak.nothingmodes.ui.components.CatalogPickerContent
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
-import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
-import com.tdvorak.nothingmodes.ui.theme.NothingRequirementBadge
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
-import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.BOOLEAN_STATE_ITEMS
@@ -82,8 +71,6 @@ private data class ConditionItem(
 @Composable
 fun ConditionCatalogScreen(navController: NavController) {
     val context = LocalContext.current
-    var search by rememberSaveable { mutableStateOf("") }
-    var activeCategories by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet<String>()) }
     // Conditions are configured in a bottom sheet before being added.
     var selected by remember { mutableStateOf<List<Condition>>(emptyList()) }
     var configCondition by remember { mutableStateOf<Condition?>(null) }
@@ -308,25 +295,25 @@ fun ConditionCatalogScreen(navController: NavController) {
 
     val categories = remember(items) { items.map { it.category }.distinct().sorted() }
 
-    val filtered =
-        remember(search, activeCategories, items) {
-            items.filter {
-                val matchesSearch =
-                    search.isBlank() ||
-                        it.label.contains(search, ignoreCase = true) ||
-                        it.category.contains(search, ignoreCase = true)
-                val matchesCategory = activeCategories.isEmpty() || it.category in activeCategories
-                matchesSearch && matchesCategory
+    val catalogEntries =
+        remember(items, caps) {
+            items.map { item ->
+                val (subtitle, badges) = conditionCatalogMeta(item.condition, caps)
+                CatalogEntry(
+                    label = item.label,
+                    category = item.category,
+                    icon = item.icon,
+                    description = subtitle,
+                    badges = badges,
+                )
             }
         }
-
-    val grouped = filtered.groupBy { it.category.uppercase() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             NothingTopBar(
-                title = "Add Condition",
+                title = "Add condition",
                 onBack = { navController.popBackStack() },
             )
         },
@@ -337,70 +324,23 @@ fun ConditionCatalogScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(padding),
         ) {
-            LazyColumn(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = NothingSpacing.md),
-            ) {
-                item {
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    NothingInput(
-                        value = search,
-                        onValueChange = { search = it },
-                        label = "Search",
-                        placeholder = "Find a condition",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    LazyRow(
-                        contentPadding = PaddingValues(vertical = NothingSpacing.sm),
-                    ) {
-                        items(categories) { category ->
-                            val selected = category in activeCategories
-                            FilterChip(
-                                selected = selected,
-                                onClick = {
-                                    activeCategories =
-                                        if (selected) activeCategories - category else activeCategories + category
-                                },
-                                label = {
-                                    Text(
-                                        text = category,
-                                        fontFamily = NothingFonts.mono(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                },
-                                shape = NothingShapes.pill,
-                                colors =
-                                    FilterChipDefaults.filterChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                        labelColor = MaterialTheme.colorScheme.onSurface,
-                                        selectedContainerColor = NothingColors.accent,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                border = FilterChipDefaults.filterChipBorder(false, selected),
-                                modifier = Modifier.padding(end = NothingSpacing.sm),
-                            )
-                        }
-                        if (activeCategories.isNotEmpty() || search.isNotBlank()) {
-                            item {
-                                TextButton(
-                                    onClick = {
-                                        activeCategories = emptySet()
-                                        search = ""
-                                    },
-                                    modifier = Modifier.padding(start = NothingSpacing.sm),
-                                ) {
-                                    Text("Clear", fontFamily = NothingFonts.mono())
-                                }
-                            }
-                        }
+            CatalogPickerContent(
+                entries = catalogEntries,
+                onSelect = { entry ->
+                    val conditionItem = items.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
+                    editingIndex = null
+                    val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), conditionItem.condition)
+                    if (resolver.resolve(conditionItem.label, required).canRun) {
+                        configCondition = conditionItem.condition
+                    } else {
+                        pendingCondition = conditionItem.condition
                     }
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                }
-
-                if (selected.isNotEmpty()) {
-                    item {
+                },
+                searchPlaceholder = "Find a condition",
+                categoryOrder = listOf("Device status", "Connections", "Time", "Apps", "Location", "Notifications"),
+                contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = 160.dp),
+                selectedTray = {
+                    if (selected.isNotEmpty()) {
                         NothingSectionHeader(text = "Selected")
                         NothingCard {
                             selected.forEachIndexed { index, condition ->
@@ -440,41 +380,8 @@ fun ConditionCatalogScreen(navController: NavController) {
                         }
                         Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     }
-                }
-
-                grouped.forEach { (category, conditions) ->
-                    item {
-                        NothingSectionHeader(text = category)
-                        NothingCard {
-                            conditions.forEachIndexed { index, conditionItem ->
-                                if (index > 0) NothingDivider()
-                                val (subtitle, badges) = conditionCatalogMeta(conditionItem.condition, caps)
-                                CatalogListItem(
-                                    label = conditionItem.label,
-                                    icon = conditionItem.icon,
-                                    subtitle = subtitle,
-                                    badges = badges,
-                                    onClick = {
-                                        editingIndex = null
-                                        val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), conditionItem.condition)
-                                        if (resolver.resolve(conditionItem.label, required).canRun) {
-                                            configCondition = conditionItem.condition
-                                        } else {
-                                            pendingCondition = conditionItem.condition
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    }
-                }
-
-                item {
-                    // Room for the floating Done bar.
-                    Spacer(modifier = Modifier.height(96.dp))
-                }
-            }
+                },
+            )
 
             // Sticky bottom bar — confirms every configured condition in one shot.
             NothingBottomActionBar(
@@ -531,49 +438,6 @@ fun ConditionCatalogScreen(navController: NavController) {
         )
     }
 }
-
-@Composable
-private fun CatalogListItem(
-    label: String,
-    icon: ImageVector,
-    subtitle: String,
-    badges: List<String>,
-    onClick: () -> Unit,
-) {
-    NothingListRow(
-        title = label,
-        subtitle = subtitle,
-        onClick = onClick,
-        leading = {
-            NothingIconCircle(size = 44f) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        },
-        trailing =
-            if (badges.isNotEmpty()) {
-                {
-                    Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
-                        badges.take(2).forEach {
-                            NothingRequirementBadge(text = it)
-                        }
-                    }
-                }
-            } else {
-                null
-            },
-    )
-}
-
-private val StringSetSaver: Saver<Set<String>, String> =
-    Saver(
-        save = { it.joinToString(",") },
-        restore = { if (it.isEmpty()) emptySet() else it.split(",").toSet() },
-    )
 
 private fun conditionCatalogMeta(
     condition: Condition,

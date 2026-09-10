@@ -2,36 +2,26 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,17 +46,17 @@ import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
+import com.tdvorak.nothingmodes.ui.components.CatalogEntry
+import com.tdvorak.nothingmodes.ui.components.CatalogFilter
+import com.tdvorak.nothingmodes.ui.components.CatalogPickerContent
 import com.tdvorak.nothingmodes.ui.theme.NothingBottomActionBar
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingDivider
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
-import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
-import com.tdvorak.nothingmodes.ui.theme.NothingRequirementBadge
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
-import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
@@ -94,8 +84,6 @@ fun ActionCatalogScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         withContext(kotlinx.coroutines.Dispatchers.IO) { caps = CapabilityDetector(context).detect() }
     }
-    var search by rememberSaveable { mutableStateOf("") }
-    var activeFilters by rememberSaveable(stateSaver = ActionFilterSetSaver) { mutableStateOf(emptySet<ActionFilter>()) }
     // Actions the user has configured and wants to add.
     var selected by remember { mutableStateOf<List<Action>>(emptyList()) }
     // Index of the selected action currently being edited, or null for a new action.
@@ -168,32 +156,28 @@ fun ActionCatalogScreen(navController: NavController) {
         }
 
     val resolver = remember(caps) { CapabilityResolver(caps) }
-    val filtered =
-        remember(search, items, activeFilters, caps) {
-            items
-                .filter {
-                    if (search.isBlank()) true else it.label.contains(search, ignoreCase = true)
-                }.filter {
-                    if (activeFilters.isEmpty()) return@filter true
-                    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(it.action))
-                    val resolution = resolver.resolve(it.label, required)
-                    val needsShizuku = resolution.missingReasons.values.any { it.contains("Shizuku", ignoreCase = true) }
-                    activeFilters.all { f ->
-                        when (f) {
-                            ActionFilter.NO_SHIZUKU -> !needsShizuku
-                            ActionFilter.NEEDS_SHIZUKU -> needsShizuku
-                            ActionFilter.NEEDS_SETUP -> !resolution.canRun
-                            ActionFilter.GLYPH -> it.category == "Glyph"
-                        }
-                    }
-                }
+
+    val catalogEntries =
+        remember(items, caps) {
+            items.map { item ->
+                val (subtitle, badges) = actionCatalogMeta(item.action, caps)
+                CatalogEntry(
+                    label = item.label,
+                    category = item.category,
+                    icon = item.icon,
+                    description = subtitle,
+                    badges = badges,
+                )
+            }
         }
 
-    val grouped = filtered.groupBy { it.category.uppercase() }
-    val orderedCategories =
-        remember(filtered) {
-            listOf("CONNECTIONS", "DISPLAY", "SOUND", "SYSTEM", "APPS", "GLYPH", "ADVANCED")
-                .filter { it in grouped.keys }
+    val actionFilters =
+        remember {
+            listOf(
+                CatalogFilter("No Shizuku") { "SHIZUKU" !in it.badges },
+                CatalogFilter("Needs Shizuku") { "SHIZUKU" in it.badges },
+                CatalogFilter("Needs setup") { it.badges.isNotEmpty() },
+            )
         }
 
     Scaffold(
@@ -211,68 +195,24 @@ fun ActionCatalogScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(padding),
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = 160.dp),
-            ) {
-                item {
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    NothingInput(
-                        value = search,
-                        onValueChange = { search = it },
-                        label = "Search",
-                        placeholder = "Find an action",
-                    )
-                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                    LazyRow(
-                        contentPadding = PaddingValues(vertical = NothingSpacing.sm),
-                    ) {
-                        items(ActionFilter.entries) { filter ->
-                            val selected = filter in activeFilters
-                            FilterChip(
-                                selected = selected,
-                                onClick = {
-                                    activeFilters =
-                                        if (selected) activeFilters - filter else activeFilters + filter
-                                },
-                                label = {
-                                    Text(
-                                        filter.label,
-                                        fontFamily = NothingFonts.mono(),
-                                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                    )
-                                },
-                                shape = NothingShapes.pill,
-                                colors =
-                                    FilterChipDefaults.filterChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                        labelColor = MaterialTheme.colorScheme.onSurface,
-                                        selectedContainerColor = NothingColors.accent,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                border = FilterChipDefaults.filterChipBorder(false, selected),
-                                modifier = Modifier.padding(end = NothingSpacing.sm),
-                            )
-                        }
-                        if (activeFilters.isNotEmpty() || search.isNotBlank()) {
-                            item {
-                                TextButton(
-                                    onClick = {
-                                        activeFilters = emptySet()
-                                        search = ""
-                                    },
-                                    modifier = Modifier.padding(start = NothingSpacing.sm),
-                                ) {
-                                    Text("Clear", fontFamily = NothingFonts.mono())
-                                }
-                            }
-                        }
+            CatalogPickerContent(
+                entries = catalogEntries,
+                onSelect = { entry ->
+                    val actionItem = items.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
+                    editingIndex = null
+                    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(actionItem.action))
+                    if (resolver.resolve(actionItem.label, required).canRun) {
+                        configAction = actionItem.action
+                    } else {
+                        pendingAction = actionItem.action
                     }
-                    Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                }
-
-                if (selected.isNotEmpty()) {
-                    item {
+                },
+                searchPlaceholder = "Find an action",
+                categoryOrder = listOf("Connections", "Display", "Sound", "System", "Apps", "Glyph", "Advanced"),
+                extraFilters = actionFilters,
+                contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = 160.dp),
+                selectedTray = {
+                    if (selected.isNotEmpty()) {
                         NothingSectionHeader(text = "Selected")
                         NothingCard {
                             selected.forEachIndexed { index, action ->
@@ -309,37 +249,8 @@ fun ActionCatalogScreen(navController: NavController) {
                         }
                         Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     }
-                }
-
-                orderedCategories.forEach { category ->
-                    val categoryItems = grouped[category] ?: emptyList()
-                    item {
-                        NothingSectionHeader(text = category)
-                        NothingCard {
-                            categoryItems.forEachIndexed { index, actionItem ->
-                                if (index > 0) NothingDivider()
-                                val (subtitle, badges) = actionCatalogMeta(actionItem.action, caps)
-                                CatalogListItem(
-                                    label = actionItem.label,
-                                    icon = actionItem.icon,
-                                    subtitle = subtitle,
-                                    badges = badges,
-                                    onClick = {
-                                        editingIndex = null
-                                        val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(actionItem.action))
-                                        if (resolver.resolve(actionItem.label, required).canRun) {
-                                            configAction = actionItem.action
-                                        } else {
-                                            pendingAction = actionItem.action
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    }
-                }
-            }
+                },
+            )
 
             // Sticky bottom bar — drawn on top of the list so content never shows through.
             NothingBottomActionBar(
@@ -400,43 +311,6 @@ fun ActionCatalogScreen(navController: NavController) {
     }
 }
 
-@Composable
-private fun CatalogListItem(
-    label: String,
-    icon: ImageVector,
-    subtitle: String,
-    badges: List<String>,
-    onClick: () -> Unit,
-) {
-    NothingListRow(
-        title = label,
-        subtitle = subtitle,
-        onClick = onClick,
-        leading = {
-            NothingIconCircle(size = 44f) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        },
-        trailing =
-            if (badges.isNotEmpty()) {
-                {
-                    Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
-                        badges.take(2).forEach {
-                            NothingRequirementBadge(text = it)
-                        }
-                    }
-                }
-            } else {
-                null
-            },
-    )
-}
-
 private fun actionCatalogMeta(
     action: Action,
     caps: DeviceCapabilities,
@@ -453,26 +327,6 @@ private fun actionCatalogMeta(
     val badges = requirementBadges(resolution.missing)
     return subtitle to badges
 }
-
-private enum class ActionFilter(
-    val label: String,
-) {
-    NO_SHIZUKU("No Shizuku"),
-    NEEDS_SHIZUKU("Needs Shizuku"),
-    NEEDS_SETUP("Needs setup"),
-    GLYPH("Glyph"),
-}
-
-private val ActionFilterSetSaver: Saver<Set<ActionFilter>, String> =
-    Saver(
-        save = { it.joinToString(",") { f -> f.name } },
-        restore = { s ->
-            s
-                .split(",")
-                .mapNotNull { n -> ActionFilter.entries.find { it.name == n } }
-                .toSet()
-        },
-    )
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.then(

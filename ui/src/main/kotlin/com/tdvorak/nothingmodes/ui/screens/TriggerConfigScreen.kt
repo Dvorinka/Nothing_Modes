@@ -25,11 +25,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,8 +33,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -52,8 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +73,8 @@ import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
+import com.tdvorak.nothingmodes.ui.components.CatalogEntry
+import com.tdvorak.nothingmodes.ui.components.CatalogPickerContent
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
@@ -100,6 +94,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -267,24 +262,24 @@ private fun TriggerTypePickerDialog(
 ) {
     val types = remember { triggerTypes() }
     val resolver = remember { CapabilityResolver(caps) }
-    var query by rememberSaveable { mutableStateOf("") }
-    var activeCategories by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet<String>()) }
     var pendingType by remember { mutableStateOf<TriggerType?>(null) }
 
-    val categories = remember(types) { types.map { it.category }.distinct().sorted() }
-
-    val filtered =
-        remember(query, activeCategories, types) {
-            types.filter {
-                val matchesQuery =
-                    query.isBlank() ||
-                        it.label.contains(query, ignoreCase = true) ||
-                        triggerDescription(it.trigger).contains(query, ignoreCase = true)
-                val matchesCategory = activeCategories.isEmpty() || it.category in activeCategories
-                matchesQuery && matchesCategory
+    val catalogEntries =
+        remember(types, caps) {
+            types.map { type ->
+                val required = CapabilityRequirements.derive(type.trigger, emptyList())
+                val resolution = resolver.resolve(type.label, required)
+                CatalogEntry(
+                    label = type.label,
+                    category = type.category,
+                    icon = type.icon,
+                    description =
+                        resolution.missingReasons.values.firstOrNull()
+                            ?: triggerDescription(type.trigger),
+                    badges = requirementBadges(resolution.missing),
+                )
             }
         }
-    val grouped = filtered.groupBy { it.category }
 
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
@@ -302,148 +297,33 @@ private fun TriggerTypePickerDialog(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .statusBarsPadding()
                         .navigationBarsPadding()
                         .imePadding(),
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "TRIGGER TYPE",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.mono(),
-                    )
-                    androidx.compose.material3.TextButton(onClick = onDismiss) {
-                        Text(
-                            text = "CLOSE",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NothingColors.accent,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                    }
-                }
+                NothingTopBar(
+                    title = "Add trigger",
+                    onBack = onDismiss,
+                )
 
-                com.tdvorak.nothingmodes.ui.theme
-                    .NothingDivider()
-
-                androidx.compose.foundation.layout.Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-                ) {
-                    NothingInput(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = "Search triggers",
-                        placeholder = "Time, notification, battery...",
-                    )
-                }
-
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-                ) {
-                    items(categories) { category ->
-                        val selected = category in activeCategories
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                activeCategories =
-                                    if (selected) activeCategories - category else activeCategories + category
-                            },
-                            label = {
-                                Text(
-                                    text = category,
-                                    fontFamily = NothingFonts.mono(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            },
-                            shape = NothingShapes.pill,
-                            colors =
-                                FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    labelColor = MaterialTheme.colorScheme.onSurface,
-                                    selectedContainerColor = NothingColors.accent,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                            border = FilterChipDefaults.filterChipBorder(false, selected),
-                            modifier = Modifier.padding(end = NothingSpacing.sm),
-                        )
-                    }
-                    if (activeCategories.isNotEmpty() || query.isNotBlank()) {
-                        item {
-                            TextButton(
-                                onClick = {
-                                    activeCategories = emptySet()
-                                    query = ""
-                                },
-                                modifier = Modifier.padding(start = NothingSpacing.sm),
-                            ) {
-                                Text("Clear", fontFamily = NothingFonts.mono())
-                            }
+                CatalogPickerContent(
+                    entries = catalogEntries,
+                    onSelect = { entry ->
+                        val type = types.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
+                        val required = CapabilityRequirements.derive(type.trigger, emptyList())
+                        if (resolver.resolve(type.label, required).canRun) {
+                            onSelect(type.trigger)
+                            onDismiss()
+                        } else {
+                            pendingType = type
                         }
-                    }
-                }
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
-                ) {
-                    if (filtered.isEmpty()) {
-                        item {
-                            Text(
-                                text = "No triggers match \"$query\".",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = NothingFonts.mono(),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(NothingSpacing.md),
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
-
-                    grouped.forEach { (category, groupItems) ->
-                        stickyHeader {
-                            Surface(color = MaterialTheme.colorScheme.background) {
-                                Text(
-                                    text = category.uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = NothingFonts.mono(),
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-                                )
-                            }
-                        }
-                        items(groupItems, key = { it.label }) { type ->
-                            TriggerTypeRow(
-                                type = type,
-                                selected = selected,
-                                resolver = resolver,
-                                onSelect = {
-                                    onSelect(type.trigger)
-                                    onDismiss()
-                                },
-                                onMissing = { pendingType = type },
-                            )
-                        }
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                    }
-                }
+                    },
+                    searchPlaceholder = "Time, notification, battery...",
+                    categoryOrder = listOf("Schedule", "Device", "Apps", "Connections", "Location", "Manual"),
+                    isSelected = { entry ->
+                        types.firstOrNull { it.label == entry.label }?.trigger?.let { it::class == selected::class } == true
+                    },
+                    contentPadding = PaddingValues(start = NothingSpacing.md, end = NothingSpacing.md, bottom = NothingSpacing.xxl),
+                )
             }
         }
     }
@@ -462,50 +342,6 @@ private fun TriggerTypePickerDialog(
             },
         )
     }
-}
-
-@Composable
-private fun TriggerTypeRow(
-    type: TriggerType,
-    selected: Trigger,
-    resolver: CapabilityResolver,
-    onSelect: () -> Unit,
-    onMissing: () -> Unit,
-) {
-    val isSelected = selected::class == type.trigger::class
-    val description = triggerDescription(type.trigger)
-    val required = remember(type.trigger) { CapabilityRequirements.derive(type.trigger, emptyList()) }
-    val resolution = remember(resolver, type.trigger) { resolver.resolve(type.label, required) }
-    val canRun = resolution.canRun
-    val hint = resolution.missingReasons.values.firstOrNull() ?: description
-
-    NothingListRow(
-        title = type.label,
-        subtitle = hint,
-        selected = isSelected,
-        leading = {
-            Icon(
-                imageVector = type.icon,
-                contentDescription = type.label,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-        },
-        trailing = {
-            if (isSelected) {
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = NothingFonts.mono(),
-                )
-            }
-        },
-        onClick = {
-            if (canRun) onSelect() else onMissing()
-        },
-        modifier = Modifier.padding(horizontal = NothingSpacing.md),
-    )
 }
 
 @Composable
@@ -1487,12 +1323,6 @@ private fun CalendarEventContent(
         )
     }
 }
-
-private val StringSetSaver: Saver<Set<String>, String> =
-    Saver(
-        save = { it.joinToString(",") },
-        restore = { if (it.isEmpty()) emptySet() else it.split(",").toSet() },
-    )
 
 @Composable
 private fun BooleanRow(
