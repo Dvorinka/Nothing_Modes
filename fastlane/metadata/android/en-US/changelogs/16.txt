@@ -1,0 +1,11 @@
+- One Glyph sheet: pick a design type (preset, text, scrolling, icon, number, countdown, matrix, music) inside a single composer — saved designs and Glyph Studio/Museum links included
+- Crisp dot-matrix digit previews for countdown and number; preset previews animate so they read like hardware
+- Map-based geofence and at-location pickers: dark Nothing-style vector map, worldwide address search, tap-to-place, current-location shortcut
+- Classic theme overhaul: real Material 3 chrome with soft-teal accent — switches, cards, FAB, sentence-case labels
+- Every condition and action sheet explains itself; cryptic fields get tooltips; comparators read Equals/Above/At least
+- Permission rows show what each permission is used for via info dialogs
+- Capability warnings only appear when something is genuinely missing — no more stale "Requires Shizuku" on authorized devices
+- Persistent monitor notification opens the app on tap
+- "Write setting → Custom" now opens the raw key/value editors
+- Catalog rows show what an action does, not stale "Needs …" claims once requirements are met
+- Czech translation
