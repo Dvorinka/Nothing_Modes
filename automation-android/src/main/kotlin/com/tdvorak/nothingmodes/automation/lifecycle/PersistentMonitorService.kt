@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.automation.lifecycle
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -244,6 +245,7 @@ class PersistentMonitorService : Service() {
     private val phoneStateListeners = mutableMapOf<Int, PhoneStateListener>()
 
     @Suppress("DEPRECATION")
+    @SuppressLint("MissingPermission")
     private fun registerCallStateListener() {
         val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? android.telephony.SubscriptionManager
         val activeSubs =

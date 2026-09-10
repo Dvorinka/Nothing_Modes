@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.nothing
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -61,6 +62,7 @@ class PlaybackAudioCapture(
      * Try to initialise AudioPlaybackCapture. Returns true if a capture stream
      * is actively running.
      */
+    @SuppressLint("MissingPermission")
     fun init(): Boolean {
         release()
 
