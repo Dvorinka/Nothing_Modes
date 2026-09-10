@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -230,11 +231,30 @@ fun SettingsScreen(
     }
 
     // One launcher serves every runtime permission row — the contract takes
-    // the permission string at launch() time.
+    // the permission string at launch() time. If the system dialog can no
+    // longer be shown (permanently denied), send the user to that
+    // permission's page instead of doing nothing.
+    var pendingPermission by remember { mutableStateOf<String?>(null) }
     val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
-        ) { _ -> viewModel.detect(context) }
+        ) { granted ->
+            val permission = pendingPermission
+            pendingPermission = null
+            viewModel.detect(context)
+            if (!granted && permission != null) {
+                val canAskAgain =
+                    (context as? android.app.Activity)?.let {
+                        ActivityCompat.shouldShowRequestPermissionRationale(it, permission)
+                    } ?: false
+                if (!canAskAgain) openAppPermissions(context, permission)
+            }
+        }
+
+    fun requestRuntime(permission: String) {
+        pendingPermission = permission
+        permissionLauncher.launch(permission)
+    }
 
     val exportLauncher =
         rememberLauncherForActivityResult(
@@ -419,55 +439,48 @@ fun SettingsScreen(
                             label = "Location",
                             granted = capabilities.hasLocationPermission,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-                            onOpenSettings = {
-                                context.startActivity(
-                                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.parse("package:${context.packageName}")
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    },
-                                )
-                            },
+                            onGrant = { requestRuntime(Manifest.permission.ACCESS_FINE_LOCATION) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.ACCESS_FINE_LOCATION) },
                         )
                         NothingDivider()
                         PermissionRow(
                             label = "Calendar",
                             granted = capabilities.hasReadCalendar,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.READ_CALENDAR) },
-                            onOpenSettings = { openAppInfo(context) },
+                            onGrant = { requestRuntime(Manifest.permission.READ_CALENDAR) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.READ_CALENDAR) },
                         )
                         NothingDivider()
                         PermissionRow(
                             label = "SMS",
                             granted = capabilities.hasSendSms,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.SEND_SMS) },
-                            onOpenSettings = { openAppInfo(context) },
+                            onGrant = { requestRuntime(Manifest.permission.SEND_SMS) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.SEND_SMS) },
                         )
                         NothingDivider()
                         PermissionRow(
                             label = "Phone state",
                             granted = capabilities.hasReadPhoneState,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
-                            onOpenSettings = { openAppInfo(context) },
+                            onGrant = { requestRuntime(Manifest.permission.READ_PHONE_STATE) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.READ_PHONE_STATE) },
                         )
                         NothingDivider()
                         PermissionRow(
                             label = "Camera",
                             granted = capabilities.hasCamera,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                            onOpenSettings = { openAppInfo(context) },
+                            onGrant = { requestRuntime(Manifest.permission.CAMERA) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.CAMERA) },
                         )
                         NothingDivider()
                         PermissionRow(
                             label = "Microphone",
                             granted = capabilities.hasRecordAudio,
                             isRuntime = true,
-                            onGrant = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                            onOpenSettings = { openAppInfo(context) },
+                            onGrant = { requestRuntime(Manifest.permission.RECORD_AUDIO) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.RECORD_AUDIO) },
                         )
                         NothingDivider()
                         PermissionRow(
@@ -476,12 +489,12 @@ fun SettingsScreen(
                             isRuntime = true,
                             onGrant = {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    requestRuntime(Manifest.permission.POST_NOTIFICATIONS)
                                 } else {
                                     openAppInfo(context)
                                 }
                             },
-                            onOpenSettings = { openAppInfo(context) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.POST_NOTIFICATIONS) },
                         )
                         NothingDivider()
                         PermissionRow(
@@ -508,12 +521,12 @@ fun SettingsScreen(
                             isRuntime = true,
                             onGrant = {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                    permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                                    requestRuntime(Manifest.permission.BLUETOOTH_CONNECT)
                                 } else {
                                     openAppInfo(context)
                                 }
                             },
-                            onOpenSettings = { openAppInfo(context) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.BLUETOOTH_CONNECT) },
                         )
                         NothingDivider()
                         PermissionRow(
@@ -522,12 +535,12 @@ fun SettingsScreen(
                             isRuntime = true,
                             onGrant = {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                    permissionLauncher.launch(Manifest.permission.BLUETOOTH_SCAN)
+                                    requestRuntime(Manifest.permission.BLUETOOTH_SCAN)
                                 } else {
                                     openAppInfo(context)
                                 }
                             },
-                            onOpenSettings = { openAppInfo(context) },
+                            onOpenSettings = { openAppPermissions(context, Manifest.permission.BLUETOOTH_SCAN) },
                         )
                     }
 
@@ -1245,6 +1258,36 @@ private fun openAppInfo(context: android.content.Context) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         },
     )
+}
+
+/**
+ * Open the system permission page for this app and a specific runtime
+ * permission (e.g. "Nearby devices" for BLUETOOTH_SCAN). The intents are
+ * handled by the system PermissionController — they are non-SDK actions, so
+ * each step falls back: specific permission page → permissions list → App Info.
+ */
+private fun openAppPermissions(
+    context: android.content.Context,
+    permission: String,
+) {
+    runCatching {
+        context.startActivity(
+            Intent("android.intent.action.MANAGE_APP_PERMISSION").apply {
+                putExtra(Intent.EXTRA_PACKAGE_NAME, context.packageName)
+                putExtra("android.intent.extra.PERMISSION_NAME", permission)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
+    }.onFailure {
+        runCatching {
+            context.startActivity(
+                Intent("android.intent.action.MANAGE_APP_PERMISSIONS").apply {
+                    putExtra(Intent.EXTRA_PACKAGE_NAME, context.packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+            )
+        }.onFailure { openAppInfo(context) }
+    }
 }
 
 /** Launch the Shizuku manager app so the user can start or manage it. */
