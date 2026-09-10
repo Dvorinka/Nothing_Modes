@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -49,6 +52,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSecondaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 
 private data class IconEntry(
     val name: String,
@@ -258,6 +262,8 @@ fun IconColorPickerSheet(
     var searchQuery by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf(initialColor) }
     var selectedTint by remember { mutableStateOf(initialTint) }
+    // Colour pickers stay hidden behind this toggle — most picks use the defaults.
+    var showAdvanced by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val filteredIcons =
@@ -286,6 +292,9 @@ fun IconColorPickerSheet(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
                     .padding(NothingSpacing.md)
                     .padding(bottom = NothingSpacing.xl)
                     .verticalScroll(rememberScrollState()),
@@ -345,7 +354,7 @@ fun IconColorPickerSheet(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(240.dp),
+                        .height(320.dp),
                 horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm, Alignment.Start),
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                 contentPadding = PaddingValues(bottom = NothingSpacing.md),
@@ -361,19 +370,37 @@ fun IconColorPickerSheet(
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
-            ColorSwatches(
-                label = "BACKGROUND",
-                selected = selectedColor,
-                onSelect = { selectedColor = it },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Advanced",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = NothingFonts.mono(),
+                )
+                NothingToggle(
+                    checked = showAdvanced,
+                    onCheckedChange = { showAdvanced = it },
+                )
+            }
 
-            Spacer(modifier = Modifier.height(NothingSpacing.md))
-
-            ColorSwatches(
-                label = "ICON TINT",
-                selected = selectedTint,
-                onSelect = { selectedTint = it },
-            )
+            if (showAdvanced) {
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                ColorSwatches(
+                    label = "BACKGROUND",
+                    selected = selectedColor,
+                    onSelect = { selectedColor = it },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
+                ColorSwatches(
+                    label = "ICON TINT",
+                    selected = selectedTint,
+                    onSelect = { selectedTint = it },
+                )
+            }
 
             Spacer(modifier = Modifier.height(NothingSpacing.lg))
 
@@ -405,7 +432,7 @@ private fun IconOption(
     Box(
         modifier =
             Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .background(
                     if (selected) {
                         NothingColors.accent.copy(alpha = 0.16f)
@@ -424,7 +451,7 @@ private fun IconOption(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(28.dp),
         )
     }
 }
