@@ -389,15 +389,26 @@ class PersistentMonitorService : Service() {
         }
     }
 
-    private fun buildNotification(): android.app.Notification =
-        NotificationCompat
+    private fun buildNotification(): android.app.Notification {
+        val openApp =
+            packageManager.getLaunchIntentForPackage(packageName)?.let { intent ->
+                android.app.PendingIntent.getActivity(
+                    this,
+                    0,
+                    intent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+                )
+            }
+        return NotificationCompat
             .Builder(this, CHANNEL_ID)
             .setContentTitle("Nothing Modes")
-            .setContentText("Monitoring device state...")
+            .setContentText("Monitoring device state for your modes")
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .apply { openApp?.let { setContentIntent(it) } }
             .build()
+    }
 
     companion object {
         private const val TAG = "PersistentMonitor"
