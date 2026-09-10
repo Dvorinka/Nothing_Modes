@@ -1032,6 +1032,7 @@ fun CustomAutomationBuilderScreen(
         actionSheetAction?.let { action ->
             ActionConfigSheet(
                 action = action,
+            caps = caps,
                 onDone = { updated ->
                     if (editingActionIndex >= 0) {
                         viewModel.updateAction(editingActionIndex, updated)

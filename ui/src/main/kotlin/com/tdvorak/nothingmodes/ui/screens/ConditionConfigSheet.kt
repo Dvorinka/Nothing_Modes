@@ -325,6 +325,17 @@ fun ConditionConfigSheet(
     }
 }
 
+internal fun cmpOpLabel(op: CmpOp): String =
+    when (op) {
+        CmpOp.EQ -> "Equals"
+        CmpOp.NEQ -> "Not equal"
+        CmpOp.GT -> "Above"
+        CmpOp.LT -> "Below"
+        CmpOp.GTE -> "At least"
+        CmpOp.LTE -> "At most"
+        CmpOp.CONTAINS -> "Contains"
+    }
+
 private fun conditionTitle(condition: Condition): String =
     when (condition) {
         is Condition.BatteryLevel -> "Battery level"
@@ -340,6 +351,12 @@ private fun conditionTitle(condition: Condition): String =
         is Condition.PowerSaving -> "Power saving"
         is Condition.MediaPlaying -> "Media playing"
         is Condition.RingerMode -> "Ringer mode"
+        is Condition.AirplaneModeOn -> "Airplane mode"
+        is Condition.NfcEnabled -> "NFC"
+        is Condition.LocationEnabled -> "Location services"
+        is Condition.CallStateCondition -> "Call state"
+        is Condition.AlarmRinging -> "Alarm ringing"
+        is Condition.ScreenTime -> "Screen time"
         is Condition.HeadphonesConnected -> "Headphones"
         is Condition.DataSaverOn -> "Data saver"
         is Condition.AutoSyncOn -> "Auto-sync"
@@ -671,6 +688,7 @@ private fun AlarmRingingSheetContent(
         onValueChange = onChange,
         label = "Title contains",
         placeholder = "Leave blank for any alarm",
+        infoText = "Only alarms whose title contains this text match — e.g. 'Wake up' skips timers. Blank matches every alarm.",
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -712,7 +730,7 @@ private fun VolumeLevelSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name.enumLabel(),
+                text = cmpOpLabel(op),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -743,7 +761,7 @@ private fun ScreenOffForSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name.enumLabel(),
+                text = cmpOpLabel(op),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -788,7 +806,7 @@ private fun BatteryTempSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name.enumLabel(),
+                text = cmpOpLabel(op),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -819,7 +837,7 @@ private fun ThermalLevelSheetContent(
         )
         CmpOp.entries.forEach { op ->
             RadioOption(
-                text = op.name.enumLabel(),
+                text = cmpOpLabel(op),
                 selected = condition.op == op,
                 onClick = { onChange(condition.copy(op = op)) },
             )
@@ -832,14 +850,14 @@ private fun NumericStateSheetContent(
     condition: Condition.NumericState,
     onChange: (Condition.NumericState) -> Unit,
 ) {
-    val ops = remember { CmpOp.entries.map { it.name } }
+    val opLabels = remember { CmpOp.entries.map { cmpOpLabel(it) } }
     Column {
         NothingEnumSelector(
             label = "Operator",
-            value = condition.op.name,
-            options = ops,
-            onSelect = { op ->
-                runCatching { CmpOp.valueOf(op) }.getOrNull()?.let {
+            value = cmpOpLabel(condition.op),
+            options = opLabels,
+            onSelect = { label ->
+                CmpOp.entries.getOrNull(opLabels.indexOf(label))?.let {
                     onChange(condition.copy(op = it))
                 }
             },

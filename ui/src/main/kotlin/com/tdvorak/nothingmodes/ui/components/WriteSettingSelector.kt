@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
@@ -36,14 +38,25 @@ fun WriteSettingSelector(
     modifier: Modifier = Modifier,
 ) {
     val customLabel = "Custom"
-    val selected = writeSettingPresets.firstOrNull { it.second == action }?.first ?: customLabel
+    // "Custom" maps to null in the preset list — remember the explicit choice so
+    // the raw editors can be reached even when the action currently matches one.
+    var forceCustom by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+    val presetMatch = writeSettingPresets.firstOrNull { it.second == action }?.first
+    val selected = if (forceCustom) customLabel else presetMatch ?: customLabel
     Column(modifier = modifier) {
         NothingEnumSelector(
             label = "Preset",
             value = selected,
             options = writeSettingPresets.map { it.first },
             onSelect = { label ->
-                writeSettingPresets.firstOrNull { it.first == label }?.second?.let { onChange(it) }
+                if (label == customLabel) {
+                    forceCustom = true
+                } else {
+                    forceCustom = false
+                    writeSettingPresets.firstOrNull { it.first == label }?.second?.let { onChange(it) }
+                }
             },
         )
         if (selected == customLabel) {

@@ -546,6 +546,7 @@ private fun BatteryLevelContent(
             value = trigger.level.toString(),
             onValueChange = { onUpdate(trigger.copy(level = it.toIntOrNull() ?: trigger.level)) },
             label = "Level (%)",
+            infoText = "Fires when the battery crosses this percent in the direction chosen below.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
@@ -842,6 +843,7 @@ private fun BluetoothDeviceContent(
             value = trigger.deviceAddress ?: "",
             onValueChange = { onUpdate(trigger.copy(deviceAddress = it.ifBlank { null })) },
             label = "MAC address (blank = any)",
+            infoText = "The device's Bluetooth MAC — filled automatically when you pick a paired device above. Name alone is usually enough.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(text = "Fires when a paired Bluetooth device connects or disconnects. Leave blank to match any device.")
@@ -942,6 +944,7 @@ private fun WifiConnectedContent(
             value = trigger.ssid ?: "",
             onValueChange = { onUpdate(trigger.copy(ssid = it.ifBlank { null })) },
             label = "Network name / SSID (blank = any)",
+            infoText = "The exact Wi-Fi name as shown in system settings. Use the button above to autofill the connected network.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(text = "Fires when the device connects to this Wi-Fi network. Blank matches any network.")
@@ -1224,7 +1227,7 @@ private fun NothingLabel(text: String) {
 }
 
 @Composable
-private fun HelpText(text: String) {
+internal fun HelpText(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,

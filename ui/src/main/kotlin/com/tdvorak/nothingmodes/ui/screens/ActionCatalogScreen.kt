@@ -107,8 +107,6 @@ fun ActionCatalogScreen(navController: NavController) {
     var configAction by remember { mutableStateOf<Action?>(null) }
     // Action waiting for a capability-warning confirmation.
     var pendingAction by remember { mutableStateOf<Action?>(null) }
-    // Glyph design-type picker sheet.
-    var showGlyphPicker by remember { mutableStateOf(false) }
 
     val items =
         remember {
@@ -246,7 +244,15 @@ fun ActionCatalogScreen(navController: NavController) {
                     val actionItem = items.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
                     editingIndex = null
                     when (actionItem.kind) {
-                        RowKind.GLYPH_PICKER -> showGlyphPicker = true
+                        RowKind.GLYPH_PICKER -> {
+                            val action = Action.GlyphPreset("sleep")
+                            val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+                            if (resolver.resolve(actionItem.label, required).canRun) {
+                                configAction = action
+                            } else {
+                                pendingAction = action
+                            }
+                        }
                         RowKind.DIRECT -> actionItem.action?.let { selected = selected + it }
                         RowKind.CONFIG -> {
                             val action = actionItem.action ?: return@CatalogPickerContent
@@ -334,26 +340,6 @@ fun ActionCatalogScreen(navController: NavController) {
         }
     }
 
-    if (showGlyphPicker) {
-        GlyphDesignPicker(
-            caps = caps,
-            onPick = { picked ->
-                showGlyphPicker = false
-                val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(picked))
-                if (resolver.resolve("Glyph", required).canRun) {
-                    configAction = picked
-                } else {
-                    pendingAction = picked
-                }
-            },
-            onOpenStudio = {
-                showGlyphPicker = false
-                navController.navigate("glyph_editor")
-            },
-            onDismiss = { showGlyphPicker = false },
-        )
-    }
-
     pendingAction?.let { action ->
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         val resolution = resolver.resolve(action::class.simpleName ?: "", required)
@@ -370,6 +356,8 @@ fun ActionCatalogScreen(navController: NavController) {
     configAction?.let { action ->
         ActionConfigSheet(
             action = action,
+            caps = caps,
+            onOpenGlyphStudio = { navController.navigate("glyph_editor") },
             onDone = { updated ->
                 if (editingIndex != null) {
                     selected = selected.toMutableList().also { it[editingIndex!!] = updated }
@@ -409,178 +397,6 @@ private fun actionCatalogMeta(
         }
     return Triple(subtitle, badges, isHardwareBlocked(resolution.missing, caps))
 }
-
-/** One entry into every Glyph design type. Options the device can't physically
- *  render (light stripe on a matrix-only phone and vice versa) are filtered out
- *  through the same capability path as the catalog rows. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun GlyphDesignPicker(
-    caps: DeviceCapabilities,
-    onPick: (Action) -> Unit,
-    onOpenStudio: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val savedDesigns = remember { com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names() }
-    val options =
-        remember(caps) {
-            val resolver = CapabilityResolver(caps)
-            listOf(
-                GlyphOption("Light stripe", Icons.Outlined.WbTwilight, "Simple on/off on the light strips", Action.SetGlyph(true)),
-                GlyphOption("Matrix pattern", Icons.Outlined.GridOn, "Draw a frame on the dot matrix", Action.SetGlyphMatrix(null)),
-                GlyphOption("Preset", Icons.Outlined.Lightbulb, "Named animations — sleep, charging, timer…", Action.GlyphPreset("sleep")),
-                GlyphOption("Text", Icons.Outlined.TextFields, "Static text on the matrix", Action.GlyphText("")),
-                GlyphOption("Scrolling text", Icons.Outlined.Notes, "Marquee text across the matrix", Action.GlyphScrollingText("")),
-                GlyphOption("Icon", Icons.Outlined.EmojiSymbols, "Baked icon on the matrix", Action.GlyphIcon("check")),
-                GlyphOption("Number", Icons.Outlined.Tag, "A 0–99 number, centered", Action.GlyphNumber(0)),
-                GlyphOption("Countdown", Icons.Outlined.Timer, "Live countdown ticking on the matrix", Action.GlyphCountdown(30)),
-                GlyphOption("Progress", Icons.Outlined.Moving, "Progress bar on the strips", Action.GlyphProgress(50)),
-                GlyphOption("Animation", Icons.Outlined.Animation, "Breathing animation on the strips", Action.GlyphAnimate()),
-                GlyphOption("Music visualizer", Icons.Outlined.MusicNote, "Reacts to playing audio", Action.GlyphMusic()),
-            ).filter { option ->
-                val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(option.action))
-                val missing = resolver.resolve(option.label, required).missing
-                !isHardwareBlocked(missing, caps)
-            }
-        }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = NothingSpacing.md)
-                    .padding(bottom = NothingSpacing.xxl),
-        ) {
-            Text(
-                text = "GLYPH",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.doto(),
-            )
-            Text(
-                text = "Pick what the Glyph should show.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
-            if (savedDesigns.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-                Text(
-                    text = "SAVED DESIGNS",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = NothingFonts.mono(),
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                NothingCard {
-                    savedDesigns.forEachIndexed { index, name ->
-                        if (index > 0) NothingDivider()
-                        NothingListRow(
-                            title = name,
-                            subtitle = "Your saved matrix design",
-                            onClick = { onPick(Action.GlyphIcon(name)) },
-                            leading = {
-                                NothingIconCircle(size = 44f, accent = true) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.GridOn,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-            Text(
-                text = "DESIGN TYPES",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = NothingFonts.mono(),
-            )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingCard {
-                options.forEachIndexed { index, option ->
-                    if (index > 0) NothingDivider()
-                    NothingListRow(
-                        title = option.label,
-                        subtitle = option.blurb,
-                        onClick = { onPick(option.action) },
-                        leading = {
-                            NothingIconCircle(size = 44f, accent = true) {
-                                Icon(
-                                    imageVector = option.icon,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(NothingSpacing.lg))
-            NothingCard {
-                NothingListRow(
-                    title = "Open Glyph Studio",
-                    subtitle = "Draw, animate, save, and import designs",
-                    onClick = onOpenStudio,
-                    leading = {
-                        NothingIconCircle(size = 44f) {
-                            Icon(
-                                imageVector = Icons.Outlined.Draw,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    },
-                )
-                NothingDivider()
-                NothingListRow(
-                    title = "Glyph Museum",
-                    subtitle = "Browse and import community designs",
-                    onClick = {
-                        val pkg = "com.pauwma.glyphmuseum"
-                        val launch = context.packageManager.getLaunchIntentForPackage(pkg)
-                        if (launch != null) {
-                            context.startActivity(launch)
-                        } else {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                            )
-                        }
-                    },
-                    leading = {
-                        NothingIconCircle(size = 44f) {
-                            Icon(
-                                imageVector = Icons.Outlined.Museum,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    },
-                )
-            }
-        }
-    }
-}
-
-private data class GlyphOption(
-    val label: String,
-    val icon: ImageVector,
-    val blurb: String,
-    val action: Action,
-)
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.then(

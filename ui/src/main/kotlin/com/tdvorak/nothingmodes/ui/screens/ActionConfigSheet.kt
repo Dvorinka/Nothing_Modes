@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
@@ -36,6 +38,8 @@ import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
+import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
+import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
@@ -62,6 +66,8 @@ fun ActionConfigSheet(
     action: Action,
     onDone: (Action) -> Unit,
     onDismiss: () -> Unit,
+    caps: DeviceCapabilities = DeviceCapabilities(),
+    onOpenGlyphStudio: (() -> Unit)? = null,
 ) {
     var current by remember(action) { mutableStateOf(action) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -85,16 +91,27 @@ fun ActionConfigSheet(
                     .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                text = actionTitle(action),
+                text = actionTitle(current),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = GeistSans,
                 modifier = Modifier.padding(bottom = NothingSpacing.sm),
             )
 
-            // Requirement note — tells the user upfront what this action needs
-            // (Shizuku, Nothing hardware, a permission, a panel tap).
-            actionRequirementHint(action)?.let { hint ->
+            // Requirement note — tells the user upfront what this action needs.
+            // When everything is already satisfied, show what it does instead
+            // of a stale "Needs …" claim.
+            val required = CapabilityRequirements.derive(Trigger.Manual, listOf(current))
+            val canRun = CapabilityResolver(caps).resolve("", required).canRun
+            val subtitle =
+                if (canRun) {
+                    actionFeatureDescription(current)
+                        ?: actionRequirementHint(current)
+                        ?: actionDescription(current)
+                } else {
+                    actionRequirementHint(current)
+                }
+            subtitle?.let { hint ->
                 Text(
                     text = hint,
                     style = MaterialTheme.typography.bodySmall,
@@ -102,6 +119,31 @@ fun ActionConfigSheet(
                     fontFamily = NothingFonts.mono(),
                     modifier = Modifier.padding(bottom = NothingSpacing.sm),
                 )
+            }
+
+            // Combined glyph composer — one sheet for every design type.
+            // Switching types swaps `current` to that variant's defaults; the
+            // per-type editor below and the live preview follow automatically.
+            if (current.isGlyphAction && current !is Action.Group) {
+                val designTypes = remember(caps) { glyphDesignTypes(caps) }
+                NothingEnumSelector(
+                    label = "Design type",
+                    value = designTypes.firstOrNull { it.second::class == current::class }?.first
+                        ?: designTypes.first().first,
+                    options = designTypes.map { it.first },
+                    onSelect = { label ->
+                        designTypes.firstOrNull { it.first == label }?.let {
+                            current = it.second
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                GlyphSheetExtras(
+                    caps = caps,
+                    onOpenGlyphStudio = onOpenGlyphStudio,
+                    onPickSaved = { current = Action.GlyphIcon(it) },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
             }
 
             ActionConfigContent(
@@ -447,6 +489,7 @@ fun ActionConfigContent(
                         onValueChange = { onActionChange(a.copy(pkg = it.takeIf { it.isNotBlank() })) },
                         label = "Package name",
                         placeholder = "com.android.vending",
+                        infoText = "The app's package id — shown in Settings → Apps → (app) → App details, or in its Play Store URL.",
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -470,11 +513,17 @@ fun ActionConfigContent(
         }
 
         is Action.GlyphPreset -> {
+            val presetLabels = remember { GLYPH_PRESET_NAMES.map { glyphPresetLabel(it) } }
             NothingEnumSelector(
                 label = "Preset",
-                value = a.preset,
-                options = GLYPH_PRESET_NAMES,
-                onSelect = { onActionChange(a.copy(preset = it)) },
+                value = glyphPresetLabel(a.preset),
+                options = presetLabels,
+                onSelect = { label ->
+                    GLYPH_PRESET_NAMES.getOrNull(presetLabels.indexOf(label))?.let {
+                        onActionChange(a.copy(preset = it))
+                    }
+                },
+                infoText = "A named glyph animation shipped with the app — flashes once when the action runs.",
             )
         }
 
@@ -804,6 +853,7 @@ fun ActionConfigContent(
                         onActionChange(a.copy(colors = list.ifEmpty { null }, restore = false))
                     },
                     label = "Colors (comma separated hex, row-major)",
+                    infoText = "625 hex colors for the 25x25 LED matrix, listed left-to-right, top row first — e.g. #FF0000 for red. Blank cells count as off.",
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -834,6 +884,7 @@ fun ActionConfigContent(
                 checked = a.reverse,
                 onChange = { onActionChange(a.copy(reverse = it)) },
             )
+            HelpText(text = "Reverse fill empties the bar from the top instead of filling from the bottom — use for draining progress.")
         }
 
         is Action.GlyphAnimate -> {
@@ -848,6 +899,7 @@ fun ActionConfigContent(
                 value = a.periodMs.toString(),
                 onValueChange = { onActionChange(a.copy(periodMs = it.toIntOrNull() ?: a.periodMs)) },
                 label = "Blink speed (ms per cycle)",
+                infoText = "Milliseconds for one on-off blink. Lower = faster. 500ms is a gentle pulse.",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -855,6 +907,7 @@ fun ActionConfigContent(
                 value = a.cycles.toString(),
                 onValueChange = { onActionChange(a.copy(cycles = it.toIntOrNull() ?: a.cycles)) },
                 label = "Repeats",
+                infoText = "How many blink cycles to run before stopping.",
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -865,6 +918,7 @@ fun ActionConfigContent(
                     onActionChange(a.copy(channels = list.ifEmpty { null }))
                 },
                 label = "Advanced — raw LED zone numbers (overrides the zone above)",
+                infoText = "Comma-separated zone indices per Nothing's zone map (0-4 on Phone 1/2). Leave blank to use the named zone picker above.",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -969,6 +1023,91 @@ fun ActionConfigContent(
         }
     }
 }
+
+/** All glyph design types as (label, default action) pairs, filtered to what
+ *  this hardware can render — stripe-only types are dropped on matrix phones
+ *  and vice versa, same rule as the catalog rows. */
+internal fun glyphDesignTypes(caps: DeviceCapabilities): List<Pair<String, Action>> {
+    val resolver = CapabilityResolver(caps)
+    return listOf(
+        "Light stripe" to Action.SetGlyph(true),
+        "Matrix pattern" to Action.SetGlyphMatrix(null),
+        "Preset" to Action.GlyphPreset("sleep"),
+        "Text" to Action.GlyphText(""),
+        "Scrolling text" to Action.GlyphScrollingText(""),
+        "Icon" to Action.GlyphIcon("check"),
+        "Number" to Action.GlyphNumber(0),
+        "Countdown" to Action.GlyphCountdown(30),
+        "Progress" to Action.GlyphProgress(50),
+        "Animation" to Action.GlyphAnimate(),
+        "Music visualizer" to Action.GlyphMusic(),
+    ).filter { (_, action) ->
+        val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+        !com.tdvorak.nothingmodes.ui.util.isHardwareBlocked(
+            resolver.resolve(action::class.simpleName ?: "", required).missing,
+            caps,
+        )
+    }
+}
+
+/** Saved-design chips plus links to Glyph Studio / Glyph Museum, shown under
+ *  the design-type selector so every glyph entry point lives in one sheet. */
+@Composable
+private fun GlyphSheetExtras(
+    caps: DeviceCapabilities,
+    onOpenGlyphStudio: (() -> Unit)?,
+    onPickSaved: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    val savedDesigns = remember { com.tdvorak.nothingmodes.nothing.CustomGlyphStore(context).names() }
+    if (savedDesigns.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = "SAVED DESIGNS",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = NothingFonts.mono(),
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+        Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+            savedDesigns.take(4).forEach { name ->
+                NothingPillButton(text = name, onClick = { onPickSaved(name) })
+            }
+        }
+    }
+    if (onOpenGlyphStudio != null) {
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
+            NothingPillButton(text = "Open Glyph Studio", onClick = onOpenGlyphStudio)
+            NothingPillButton(
+                text = "Glyph Museum",
+                onClick = {
+                    val pkg = "com.pauwma.glyphmuseum"
+                    val launch = context.packageManager.getLaunchIntentForPackage(pkg)
+                    if (launch != null) {
+                        context.startActivity(launch)
+                    } else {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(
+                                    "https://play.google.com/store/apps/details?id=$pkg",
+                                ),
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+            )
+        }
+    }
+}
+
+/** Display label for a canonical glyph preset name — "charging_start" → "Charging start". */
+internal fun glyphPresetLabel(name: String): String =
+    name.split('_').joinToString(" ") { part ->
+        if (part.equals("dnd", true) || part.equals("aod", true)) part.uppercase()
+        else part.replaceFirstChar { it.uppercase() }
+    }
 
 /** Named glyph presets understood by the executor's presetFor() — canonical names only. */
 internal val GLYPH_PRESET_NAMES =

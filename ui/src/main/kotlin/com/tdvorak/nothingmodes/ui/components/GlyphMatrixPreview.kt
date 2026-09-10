@@ -57,7 +57,9 @@ fun GlyphMatrixPreview(
     action: Action,
     modifier: Modifier = Modifier,
 ) {
-    val animated = action is Action.GlyphMusic || action is Action.GlyphAnimate
+    val animated =
+        action is Action.GlyphMusic || action is Action.GlyphAnimate ||
+            action is Action.GlyphPreset
     val phase by
         rememberInfiniteTransition(label = "glyph").animateFloat(
             initialValue = 0f,
@@ -151,14 +153,22 @@ private fun matrixFrame(
         is Action.GlyphText -> rasterized(action.text.take(8), 0.5f)
         is Action.GlyphScrollingText -> rasterized(action.text.take(5), 0.6f)
         is Action.GlyphIcon -> iconFrame(action.name)
-        is Action.GlyphNumber -> rasterized(action.number.coerceIn(0, 99).toString(), 0.62f)
+        is Action.GlyphNumber -> dotMatrixText(action.number.coerceIn(0, 99).toString())
         is Action.GlyphCountdown -> {
             val s = action.seconds.coerceIn(1, 599)
-            rasterized(String.format("%d:%02d", s / 60, s % 60), 0.5f)
+            dotMatrixText(String.format("%d:%02d", s / 60, s % 60))
         }
-        is Action.GlyphPreset ->
-            GlyphIconLibrary.frameFor(action.preset)?.toArgb()
-                ?: rasterized(action.preset.take(1).uppercase(), 0.6f)
+        is Action.GlyphPreset -> {
+            // Named presets are animations on hardware — breathe the frame so
+            // the preview reads as motion, not a frozen icon.
+            val base =
+                GlyphIconLibrary.frameFor(action.preset)?.toArgb()
+                    ?: rasterized(action.preset.take(1).uppercase(), 0.6f)
+            val level = 0.55f + 0.45f * abs(sin(phase * 2 * Math.PI)).toFloat()
+            IntArray(GRID_PIXELS) { i ->
+                if (base[i] == 0) 0 else 0xFF000000.toInt() or scaleWhite(level)
+            }
+        }
         is Action.GlyphProgress -> progressFrame(action.progress, action.reverse)
         is Action.GlyphMusic -> musicFrame(phase)
         is Action.GlyphAnimate -> breatheFrame(phase)
@@ -179,6 +189,51 @@ private fun rasterized(
 private fun iconFrame(name: String): IntArray =
     GlyphIconLibrary.frameFor(name)?.toArgb()
         ?: rasterized(name.take(1).uppercase(), 0.6f)
+
+/** 5x7 dot-matrix glyphs — the same font Nothing's countdown uses on hardware.
+ *  Far crisper on a 25x25 grid than downscaled system text. */
+private val DOT_FONT =
+    mapOf(
+        '0' to arrayOf("01110", "10001", "10011", "10101", "11001", "10001", "01110"),
+        '1' to arrayOf("00100", "01100", "00100", "00100", "00100", "00100", "01110"),
+        '2' to arrayOf("01110", "10001", "00001", "00010", "00100", "01000", "11111"),
+        '3' to arrayOf("11111", "00010", "00100", "00010", "00001", "10001", "01110"),
+        '4' to arrayOf("00010", "00110", "01010", "10010", "11111", "00010", "00010"),
+        '5' to arrayOf("11111", "10000", "11110", "00001", "00001", "10001", "01110"),
+        '6' to arrayOf("00110", "01000", "10000", "11110", "10001", "10001", "01110"),
+        '7' to arrayOf("11111", "00001", "00010", "00100", "01000", "01000", "01000"),
+        '8' to arrayOf("01110", "10001", "10001", "01110", "10001", "10001", "01110"),
+        '9' to arrayOf("01110", "10001", "10001", "01111", "00001", "00010", "01100"),
+        ':' to arrayOf("00", "10", "00", "00", "10", "00", "00"),
+        '-' to arrayOf("00000", "00000", "00000", "11111", "00000", "00000", "00000"),
+    )
+
+private const val DOT_HEIGHT = 7
+private const val DOT_SPACING = 2
+
+/** Renders [text] (digits, colon, minus) in the dot font, centered on the grid.
+ *  Falls back to the generic rasterizer for any other characters. */
+private fun dotMatrixText(text: String): IntArray {
+    if (text.any { it !in DOT_FONT }) return rasterized(text, 0.55f)
+    val widths = text.map { DOT_FONT.getValue(it)[0].length }
+    val totalW = widths.sum() + DOT_SPACING * (text.length - 1)
+    val x0 = (GRID - totalW) / 2
+    val y0 = (GRID - DOT_HEIGHT) / 2
+    val out = IntArray(GRID_PIXELS)
+    var x = x0
+    text.forEachIndexed { i, ch ->
+        val rows = DOT_FONT.getValue(ch)
+        rows.forEachIndexed { dy, row ->
+            row.forEachIndexed { dx, c ->
+                if (c == '1') out[(y0 + dy) * GRID + (x + dx)] = 0xFFEDEDED.toInt()
+            }
+        }
+        x += row0Width(rows) + DOT_SPACING
+    }
+    return out
+}
+
+private fun row0Width(rows: Array<String>) = rows[0].length
 
 /** Rasterizer output (0/4095) → ARGB white LED. */
 private fun IntArray.toArgb(): IntArray =
