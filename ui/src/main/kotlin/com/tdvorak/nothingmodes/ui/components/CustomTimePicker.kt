@@ -30,7 +30,6 @@ import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
-import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
@@ -195,18 +194,8 @@ fun CustomTimePicker(
         onUpdate(schedule.toTrigger())
     }
 
-    val sourceOptions = listOf("Clock", "From calendar")
-    NothingEnumSelector(
-        label = "Source",
-        value = "Clock",
-        options = sourceOptions,
-        onSelect = { if (it == "From calendar") onUpdate(Trigger.CalendarEvent()) },
-    )
-    Spacer(modifier = Modifier.height(NothingSpacing.md))
-
     val options = Recurrence.entries.map { it.label }
 
-    NothingSectionHeader(text = "Schedule")
     NothingEnumSelector(
         label = "Recurrence",
         value = schedule.recurrence.label,

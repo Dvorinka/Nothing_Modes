@@ -245,9 +245,11 @@ class GlyphEditorViewModel
         /** Import an approved community design; returns the stored name or null. */
         suspend fun importLibraryItem(item: com.tdvorak.nothingmodes.data.community.CommunityApi.LibraryItem): String? =
             runCatching {
+                // Seed-fallback items carry the payload inline — no fetch needed.
                 val payload =
-                    com.tdvorak.nothingmodes.data.community.CommunityApi
-                        .fetchItem(item.id)
+                    item.payload
+                        ?: com.tdvorak.nothingmodes.data.community.CommunityApi
+                            .fetchItem(item.id)
                 store.import(payload.toString(), item.title)
             }.getOrNull()
     }
@@ -262,6 +264,7 @@ private val targets =
 @Composable
 fun GlyphEditorScreen(
     onBack: () -> Unit,
+    onOpenMuseum: () -> Unit = {},
     viewModel: GlyphEditorViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -929,7 +932,7 @@ fun GlyphEditorScreen(
                                 GlyphPill(
                                     label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClick = { openGlyphMuseum(context) },
+                                    onClick = { onOpenMuseum() },
                                 )
                             }
                         }
@@ -1047,7 +1050,7 @@ fun GlyphEditorScreen(
                                 GlyphPill(
                                     label = if (classic) "Open Glyph Museum" else "OPEN GLYPH MUSEUM",
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClick = { openGlyphMuseum(context) },
+                                    onClick = { onOpenMuseum() },
                                 )
                                 if (library.isNotEmpty() || glyphSearch.isNotBlank()) {
                                     com.tdvorak.nothingmodes.ui.theme.NothingInput(
@@ -1144,8 +1147,9 @@ fun GlyphEditorScreen(
                 selectedLibraryDesign = null
                 runCatching {
                     val payload =
-                        com.tdvorak.nothingmodes.data.community.CommunityApi
-                            .fetchItem(item.id)
+                        item.payload
+                            ?: com.tdvorak.nothingmodes.data.community.CommunityApi
+                                .fetchItem(item.id)
                     GlyphFrameCodec.decode(payload.toString())
                 }.getOrNull()?.let { selectedLibraryDesign = it }
             }
@@ -1493,20 +1497,4 @@ private fun TextImportDialog(
             )
         },
     )
-}
-
-private const val GLYPH_MUSEUM_PKG = "com.pauwma.glyphmuseum"
-
-private fun openGlyphMuseum(context: Context) {
-    val launch = context.packageManager.getLaunchIntentForPackage(GLYPH_MUSEUM_PKG)
-    if (launch != null) {
-        context.startActivity(launch)
-    } else {
-        val store =
-            Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("https://play.google.com/store/apps/details?id=$GLYPH_MUSEUM_PKG")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        context.startActivity(store)
-    }
 }

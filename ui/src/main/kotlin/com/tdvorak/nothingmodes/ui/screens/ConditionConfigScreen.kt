@@ -428,6 +428,10 @@ fun ConditionConfigScreen(
                             onSelect = { src ->
                                 condition = c.copy(source = enumByLabel<ChargerSource>(src))
                             },
+                            infoText =
+                                ChargerSource.entries.joinToString("\n\n") {
+                                    "${it.name.enumLabel()} — ${chargerSourceDescription(it)}."
+                                },
                         )
                     }
 

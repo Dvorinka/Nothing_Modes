@@ -85,6 +85,7 @@ class CalendarObserver(
                     CalendarContract.Events.DTSTART,
                     CalendarContract.Events.DTEND,
                     CalendarContract.Events.CALENDAR_ID,
+                    CalendarContract.Events._ID,
                 )
 
             val selection =
@@ -106,6 +107,7 @@ class CalendarObserver(
                             val dtStart = cursor.getLong(1)
                             val dtEnd = cursor.getLong(2)
                             val calendarId = cursor.getString(3)
+                            val calEventId = cursor.getLong(4)
 
                             // Event starting now (within 60s window)
                             if (dtStart in windowStart..windowEnd) {
@@ -116,6 +118,7 @@ class CalendarObserver(
                                         direction = CalendarDirection.START,
                                         title = title,
                                         calendarId = calendarId,
+                                        calendarEventId = calEventId,
                                     ),
                                 )
                             }
@@ -129,6 +132,7 @@ class CalendarObserver(
                                         direction = CalendarDirection.END,
                                         title = title,
                                         calendarId = calendarId,
+                                        calendarEventId = calEventId,
                                     ),
                                 )
                             }

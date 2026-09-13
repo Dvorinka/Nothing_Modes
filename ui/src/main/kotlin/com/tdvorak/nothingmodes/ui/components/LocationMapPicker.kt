@@ -115,6 +115,11 @@ fun LocationMapPicker(
                     .target(LatLng(if (lat == 0.0 && lng == 0.0) 50.0755 else lat, if (lat == 0.0 && lng == 0.0) 14.4378 else lng))
                     .zoom(15.0)
                     .build()
+            // Keep sheet/LazyColumn parents from stealing drags and pinches.
+            mapView.setOnTouchListener { v, _ ->
+                v.parent?.requestDisallowInterceptTouchEvent(true)
+                false
+            }
             m.addOnMapClickListener { point ->
                 focusManager.clearFocus()
                 onPick(point.latitude, point.longitude)
@@ -310,15 +315,21 @@ private fun applyNothingDarkTint(style: Style) {
             is LineLayer -> {
                 when (layer.sourceLayer) {
                     "transportation" -> {
-                        // Major roads get the muted red accent; the rest fade to gray.
+                        // All streets carry the red accent; casings go darker for depth,
+                        // rail stays gray.
                         val id = layer.id.lowercase()
-                        if (id.contains("motorway") || id.contains("trunk") || id.contains("major")) {
-                            layer.setProperties(
-                                PropertyFactory.lineColor("#B3282D"),
-                                PropertyFactory.lineOpacity(0.85f),
-                            )
-                        } else {
-                            layer.setProperties(PropertyFactory.lineColor("#2E2E2E"))
+                        when {
+                            id == "highway_path" || id.contains("dash") ->
+                                layer.setProperties(PropertyFactory.visibility("none"))
+                            id.startsWith("railway") ->
+                                layer.setProperties(PropertyFactory.lineColor("#2E2E2E"))
+                            id.contains("casing") ->
+                                layer.setProperties(PropertyFactory.lineColor("#6E1B1E"))
+                            else ->
+                                layer.setProperties(
+                                    PropertyFactory.lineColor("#B3282D"),
+                                    PropertyFactory.lineOpacity(0.85f),
+                                )
                         }
                     }
                     "waterway", "water" -> layer.setProperties(PropertyFactory.lineColor("#141414"))

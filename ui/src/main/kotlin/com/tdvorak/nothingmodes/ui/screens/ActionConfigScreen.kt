@@ -36,6 +36,8 @@ import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
+import com.tdvorak.nothingmodes.engine.model.actionDescription
+import com.tdvorak.nothingmodes.engine.model.displayName
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector

@@ -38,6 +38,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -46,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -96,6 +100,7 @@ import com.tdvorak.nothingmodes.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -126,6 +131,9 @@ class AutomationListViewModel
 
         private val _nextFires = MutableStateFlow<Map<String, Long>>(emptyMap())
         val nextFires: StateFlow<Map<String, Long>> = _nextFires.asStateFlow()
+
+        private val _exportReady = MutableStateFlow<String?>(null)
+        val exportReady: StateFlow<String?> = _exportReady.asStateFlow()
 
         private val _importResult = MutableStateFlow<ImportResult?>(null)
         val importResult: StateFlow<ImportResult?> = _importResult.asStateFlow()
@@ -281,14 +289,41 @@ class AutomationListViewModel
                 val ids = _selected.value.toList()
                 if (ids.isEmpty()) return@launch
                 val result = withContext(Dispatchers.IO) { importExportService.export(ids) }
-                val clipboard =
-                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText("Nothing Modes export", result.json),
-                )
-                android.widget.Toast
-                    .makeText(context, "Exported ${result.count} mode(s) to clipboard", android.widget.Toast.LENGTH_SHORT)
-                    .show()
+                _exportReady.value = result.json
+                _selected.value = emptySet()
+            }
+        }
+
+        fun writeExportToFile(uri: android.net.Uri) {
+            viewModelScope.launch {
+                val json = _exportReady.value ?: return@launch
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        output.write(json.toByteArray(Charsets.UTF_8))
+                    }
+                }
+                _exportReady.value = null
+            }
+        }
+
+        fun clearExportReady() {
+            _exportReady.value = null
+        }
+
+        fun shareSelected() {
+            viewModelScope.launch {
+                val ids = _selected.value.toList()
+                if (ids.isEmpty()) return@launch
+                val result = withContext(Dispatchers.IO) { importExportService.export(ids) }
+                val share =
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes export (${result.count} mode(s))")
+                        putExtra(Intent.EXTRA_TEXT, result.json)
+                    }
+                val chooser = Intent.createChooser(share, "Share modes")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooser)
                 _selected.value = emptySet()
             }
         }
@@ -354,6 +389,12 @@ fun AutomationListScreen(
         ) { uri: Uri? ->
             uri?.let { viewModel.readImportFromFile(it) }
         }
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri: Uri? ->
+            if (uri != null) viewModel.writeExportToFile(uri) else viewModel.clearExportReady()
+        }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Reload on resume so changes from builder/detail are reflected immediately.
@@ -385,13 +426,13 @@ fun AutomationListScreen(
                         listOf(TopBarAction("CLOSE") { viewModel.clearSelection() })
                     } else {
                         listOf(
-                            TopBarAction("TEMPLATES", icon = Icons.Outlined.GridView, onClick = onTemplatesClick),
+                            TopBarAction("TEMPLATES", icon = Icons.Outlined.DashboardCustomize, onClick = onTemplatesClick),
                             TopBarAction(
                                 "IMPORT",
-                                icon = Icons.Outlined.FileUpload,
+                                icon = Icons.Outlined.FileDownload,
                                 onClick = { importLauncher.launch(arrayOf("application/json")) },
                             ),
-                            TopBarAction("LOG", icon = Icons.AutoMirrored.Outlined.List, onClick = onLogClick),
+                            TopBarAction("LOG", icon = Icons.Outlined.History, onClick = onLogClick),
                             TopBarAction("SETTINGS", icon = Icons.Outlined.Settings, onClick = onSettingsClick),
                         )
                     },
@@ -513,6 +554,35 @@ fun AutomationListScreen(
                         }
                     }
 
+                    if (inSelection) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = "SELECT ALL",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = NothingFonts.mono(),
+                                    letterSpacing = 1.0.sp,
+                                    modifier =
+                                        Modifier
+                                            .clickable(onClick = viewModel::selectAll)
+                                            .padding(vertical = NothingSpacing.sm),
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "${selected.size} / ${visibleItems.size}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = NothingFonts.mono(),
+                                    letterSpacing = 1.0.sp,
+                                )
+                            }
+                        }
+                    }
+
                     items(visibleItems, key = { it.id.value }) { automation ->
                         val isActive = activeIds.contains(automation.id.value)
                         val nextFireAt = nextFires[automation.id.value]
@@ -542,8 +612,11 @@ fun AutomationListScreen(
 
             if (inSelection) {
                 MultiSelectBottomBar(
-                    onSelectAll = viewModel::selectAll,
-                    onExport = viewModel::exportSelected,
+                    onShare = viewModel::shareSelected,
+                    onExport = {
+                        viewModel.exportSelected()
+                        exportLauncher.launch("nothing-modes-export.json")
+                    },
                     onDelete = viewModel::deleteSelected,
                     onRun = {
                         viewModel.runSelected()
@@ -635,6 +708,13 @@ private fun ModeTile(
     onToggleEnabled: () -> Unit,
     onRun: () -> Unit = {},
 ) {
+    var justRan by remember { mutableStateOf(false) }
+    LaunchedEffect(justRan) {
+        if (justRan) {
+            delay(3_000)
+            justRan = false
+        }
+    }
     val iconTextColor = MaterialTheme.colorScheme.onSurface
     val borderColor =
         when {
@@ -711,8 +791,12 @@ private fun ModeTile(
                 } else if (automation.trigger is Trigger.Manual) {
                     NothingCompactPillButton(
                         text = "RUN",
-                        onClick = onRun,
+                        onClick = {
+                            justRan = true
+                            onRun()
+                        },
                         enabled = true,
+                        active = isActive || justRan,
                     )
                 } else {
                     NothingToggle(
@@ -803,7 +887,7 @@ private fun SelectionIndicator(isSelected: Boolean) {
 
 @Composable
 private fun MultiSelectBottomBar(
-    onSelectAll: () -> Unit,
+    onShare: () -> Unit,
     onExport: () -> Unit,
     onDelete: () -> Unit,
     onRun: () -> Unit,
@@ -826,45 +910,35 @@ private fun MultiSelectBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "ALL",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = NothingFonts.mono(),
-                letterSpacing = 1.0.sp,
-                modifier =
-                    Modifier
-                        .clickable(onClick = onSelectAll)
-                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-            )
-            Text(
-                text = "DELETE",
-                style = MaterialTheme.typography.labelLarge,
-                color = NothingColors.accent,
-                fontFamily = NothingFonts.mono(),
-                letterSpacing = 1.0.sp,
-                modifier =
-                    Modifier
-                        .clickable(onClick = onDelete)
-                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-            )
-            Text(
-                text = "EXPORT",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.mono(),
-                letterSpacing = 1.0.sp,
-                modifier =
-                    Modifier
-                        .clickable(onClick = onExport)
-                        .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
-            )
-            NothingCompactPillButton(
-                text = "RUN",
-                onClick = onRun,
-                enabled = true,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
+            BarIconAction(Icons.Outlined.Delete, "Delete", NothingColors.accent, onDelete)
+            BarIconAction(Icons.Outlined.Share, "Share", MaterialTheme.colorScheme.onSurface, onShare)
+            BarIconAction(Icons.Outlined.FileUpload, "Export", MaterialTheme.colorScheme.onSurface, onExport)
+            BarIconAction(Icons.Outlined.PlayArrow, "Run", NothingColors.accent, onRun)
         }
+    }
+}
+
+@Composable
+private fun BarIconAction(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }

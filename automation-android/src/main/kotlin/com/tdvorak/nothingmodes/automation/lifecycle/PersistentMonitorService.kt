@@ -369,6 +369,7 @@ class PersistentMonitorService : Service() {
                         putExtra(EXTRA_CAL_DIRECTION, event.direction.name)
                         putExtra(EXTRA_CAL_TITLE, event.title)
                         putExtra(EXTRA_CAL_ID, event.calendarId)
+                        putExtra(EXTRA_CAL_EVENT_ID, event.calendarEventId ?: -1L)
                     }
                 ContextCompat.startForegroundService(this, intent)
             }.also { it.start() }
@@ -421,6 +422,7 @@ class PersistentMonitorService : Service() {
         const val EXTRA_CAL_DIRECTION = "cal_direction"
         const val EXTRA_CAL_TITLE = "cal_title"
         const val EXTRA_CAL_ID = "cal_id"
+        const val EXTRA_CAL_EVENT_ID = "cal_event_id"
         const val EXTRA_TORCH_STATE = "torch_state"
     }
 }

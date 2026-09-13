@@ -41,7 +41,12 @@ import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.engine.model.actionDescription
+import com.tdvorak.nothingmodes.engine.model.displayName
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
+import com.tdvorak.nothingmodes.engine.model.refreshRatePresets
+import com.tdvorak.nothingmodes.engine.model.screenTimeoutPresets
+import com.tdvorak.nothingmodes.engine.model.vibratePresets
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
@@ -1144,34 +1149,6 @@ internal val GLYPH_PRESET_NAMES =
         "airplane_off",
         "now_playing",
         "off",
-    )
-
-internal val screenTimeoutPresets =
-    listOf(
-        "15 seconds" to 15_000,
-        "30 seconds" to 30_000,
-        "1 minute" to 60_000,
-        "2 minutes" to 120_000,
-        "5 minutes" to 300_000,
-        "10 minutes" to 600_000,
-        "30 minutes" to 1_800_000,
-        "Never" to Int.MAX_VALUE,
-    )
-
-internal val vibratePresets =
-    listOf(
-        "Short" to 100,
-        "Medium" to 300,
-        "Long" to 500,
-        "1 second" to 1_000,
-    )
-
-internal val refreshRatePresets =
-    listOf(
-        "60 Hz" to 60,
-        "90 Hz" to 90,
-        "120 Hz" to 120,
-        "144 Hz" to 144,
     )
 
 internal val waitPresets =

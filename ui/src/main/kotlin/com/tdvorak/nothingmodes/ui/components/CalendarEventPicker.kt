@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -151,6 +151,32 @@ internal fun loadUpcomingEvents(
     }.getOrDefault(emptyList())
 }
 
+/** Count of upcoming events per calendar over the same 90-day window. */
+private fun loadCalendarEventCounts(context: Context): Map<String, Int> {
+    if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return emptyMap()
+    val now = System.currentTimeMillis()
+    val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
+    ContentUris.appendId(builder, now)
+    ContentUris.appendId(builder, now + 90L * 24 * 60 * 60 * 1000)
+    return runCatching {
+        val out = mutableMapOf<String, Int>()
+        context.contentResolver
+            .query(
+                builder.build(),
+                arrayOf(CalendarContract.Instances.CALENDAR_ID),
+                null,
+                null,
+                null,
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getString(0) ?: "0"
+                    out[id] = (out[id] ?: 0) + 1
+                }
+            }
+        out
+    }.getOrDefault(emptyMap())
+}
+
 fun formatEventTime(millis: Long): String {
     val zdt =
         java.time.ZonedDateTime.ofInstant(
@@ -166,7 +192,8 @@ fun formatEventTime(millis: Long): String {
 @Composable
 fun CalendarEventPickerDialog(
     initialCalendarId: String?,
-    onSelect: (UpcomingEvent) -> Unit,
+    initialSelectedIds: Set<Long> = emptySet(),
+    onSelect: (List<UpcomingEvent>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -176,6 +203,15 @@ fun CalendarEventPickerDialog(
     var rawEvents by remember { mutableStateOf(emptyList<UpcomingEvent>()) }
     var limit by remember { mutableStateOf(PAGE_SIZE) }
     var isLoading by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(initialSelectedIds) }
+    // Every event ever loaded, so ids selected then filtered away keep their data.
+    val knownEvents = remember { mutableStateMapOf<Long, UpcomingEvent>() }
+    var eventCounts by remember { mutableStateOf(emptyMap<String, Int>()) }
+    var calendarListOpen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        eventCounts = withContext(Dispatchers.IO) { loadCalendarEventCounts(context) }
+    }
 
     LaunchedEffect(query, calendarFilter, limit) {
         isLoading = true
@@ -183,6 +219,7 @@ fun CalendarEventPickerDialog(
             if (calendars.isEmpty()) calendars = loadCalendars(context)
             rawEvents = loadUpcomingEvents(context, calendarFilter, query, limit)
         }
+        rawEvents.forEach { knownEvents[it.eventId] = it }
         isLoading = false
     }
 
@@ -254,32 +291,100 @@ fun CalendarEventPickerDialog(
                     )
                 }
 
-                LazyRow(
+                // Calendar filter — expandable list, search always spans all calendars.
+                // Calendars with no upcoming events are dimmed and not selectable.
+                val selectedCalendar = calendars.firstOrNull { it.id == calendarFilter }
+                val totalEvents = eventCounts.values.sum()
+                Column(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.xs),
-                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                 ) {
-                    item {
-                        CalendarFilterChip(
-                            name = "All calendars",
-                            selected = calendarFilter == null,
-                            onClick = {
-                                calendarFilter = null
-                                limit = PAGE_SIZE
-                            },
-                        )
+                    com.tdvorak.nothingmodes.ui.theme
+                        .NothingLabel(text = "Calendar")
+                    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    Surface(
+                        color = MaterialTheme.colorScheme.background,
+                        shape = NothingShapes.input,
+                        border =
+                            BorderStroke(
+                                1.dp,
+                                if (calendarListOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { calendarListOpen = !calendarListOpen },
+                    ) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = (selectedCalendar?.name ?: "All calendars").uppercase(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                            Text(
+                                text = if (calendarListOpen) "[CLOSE]" else "[OPEN]",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
                     }
-                    items(calendars, key = { it.id }) { cal ->
-                        CalendarFilterChip(
-                            name = cal.name,
-                            selected = calendarFilter == cal.id,
-                            onClick = {
-                                calendarFilter = if (calendarFilter == cal.id) null else cal.id
-                                limit = PAGE_SIZE
-                            },
-                        )
+
+                    if (calendarListOpen) {
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = NothingShapes.input,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                CalendarRow(
+                                    name = "All calendars",
+                                    detail = "$totalEvents upcoming events",
+                                    count = null,
+                                    selected = calendarFilter == null,
+                                    enabled = true,
+                                    onClick = {
+                                        calendarFilter = null
+                                        limit = PAGE_SIZE
+                                        calendarListOpen = false
+                                    },
+                                )
+                                val sorted =
+                                    calendars.sortedWith(
+                                        compareByDescending<DeviceCalendar> { eventCounts[it.id] ?: 0 }
+                                            .thenBy { it.name.lowercase() },
+                                    )
+                                sorted.forEach { cal ->
+                                    com.tdvorak.nothingmodes.ui.theme
+                                        .NothingDivider()
+                                    val count = eventCounts[cal.id] ?: 0
+                                    CalendarRow(
+                                        name = cal.name,
+                                        detail = cal.account ?: "",
+                                        count = count,
+                                        selected = calendarFilter == cal.id,
+                                        enabled = count > 0,
+                                        onClick = {
+                                            calendarFilter = cal.id
+                                            limit = PAGE_SIZE
+                                            calendarListOpen = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -298,7 +403,7 @@ fun CalendarEventPickerDialog(
                 }
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
                 ) {
                     if (deduped.isEmpty()) {
@@ -322,10 +427,20 @@ fun CalendarEventPickerDialog(
                         }
                     } else {
                         items(deduped, key = { it.eventId }) { event ->
+                            val isSelected = event.eventId in selectedIds
                             NothingListRow(
                                 title = event.title,
                                 subtitle = "${formatEventTime(event.startMillis)} · ${event.calendarName}",
-                                onClick = { onSelect(event) },
+                                selected = isSelected,
+                                onClick = {
+                                    selectedIds =
+                                        if (isSelected) selectedIds - event.eventId else selectedIds + event.eventId
+                                },
+                                trailing = {
+                                    if (isSelected) {
+                                        com.tdvorak.nothingmodes.ui.theme.NothingRedDot()
+                                    }
+                                },
                                 modifier = Modifier.padding(horizontal = NothingSpacing.md),
                             )
                         }
@@ -346,33 +461,83 @@ fun CalendarEventPickerDialog(
                         Spacer(modifier = Modifier.height(NothingSpacing.lg))
                     }
                 }
+
+                com.tdvorak.nothingmodes.ui.theme
+                    .NothingDivider()
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(NothingSpacing.md),
+                ) {
+                    NothingPillButton(
+                        text = if (selectedIds.isEmpty()) "Done" else "Done · ${selectedIds.size} selected",
+                        onClick = {
+                            onSelect(selectedIds.mapNotNull { knownEvents[it] })
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun CalendarFilterChip(
+private fun CalendarRow(
     name: String,
+    detail: String,
+    count: Int?,
     selected: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val classic = com.tdvorak.nothingmodes.ui.theme.LocalUiStyle.current == com.tdvorak.nothingmodes.ui.theme.ThemeManager.UiStyle.CLASSIC
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    Surface(
-        color = bg,
-        shape = NothingShapes.pill,
-        border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.clickable(onClick = onClick),
+    val fg =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            selected -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = if (classic) name else name.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = fg,
-            fontFamily = NothingFonts.mono(),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = name.uppercase(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = fg,
+                fontFamily = NothingFonts.mono(),
+            )
+            if (detail.isNotBlank()) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            if (count != null) {
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+            if (selected) {
+                com.tdvorak.nothingmodes.ui.theme.NothingRedDot(size = 6f)
+            }
+        }
     }
 }

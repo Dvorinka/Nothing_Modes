@@ -54,7 +54,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
@@ -69,6 +71,7 @@ import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
+import com.tdvorak.nothingmodes.engine.model.PickedCalendarEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
@@ -81,7 +84,9 @@ import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
+import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
+import com.tdvorak.nothingmodes.ui.theme.NothingConfigCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
@@ -121,6 +126,7 @@ private fun triggerTypes(): List<TriggerType> =
     listOf(
         TriggerType("Time / Day", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
         TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
+        TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
         TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
         TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
         TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
@@ -171,60 +177,76 @@ fun TriggerConfigScreen(
                     .padding(padding)
                     .padding(NothingSpacing.md),
         ) {
-            NothingCardLarge(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-            ) {
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
-
-                // Type row: current trigger type, tap to open the picker dialog.
-                // The config fields stay directly below so nothing needs scrolling.
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { showTypePicker = true }
-                            .padding(vertical = NothingSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Card is the whole screen: type header pinned inside it,
+                // fields top-aligned below the divider, Done pinned under it.
+                val currentType =
+                    triggerTypes().firstOrNull { it.trigger::class == trigger::class }
+                NothingConfigCard(
+                    modifier = Modifier.weight(1f),
+                    header = {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showTypePicker = true },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(56.dp)
+                                        .clip(NothingShapes.input)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline,
+                                            NothingShapes.input,
+                                        ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = currentType?.icon ?: Icons.Outlined.Bolt,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = (currentType?.label ?: triggerTypeLabel(trigger)).uppercase(),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontFamily = Doto,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = triggerTypeDescription(trigger).uppercase(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    letterSpacing = 1.0.sp,
+                                )
+                            }
+                            Text(
+                                text = "CHANGE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NothingColors.accent,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                    },
                 ) {
-                    NothingLabel(text = "Type")
-                    Row(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        Text(
-                            text = triggerTypeLabel(trigger).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = NothingFonts.mono(),
-                            maxLines = 2,
-                            softWrap = true,
-                            textAlign = TextAlign.End,
-                        )
-                        Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                        Text(
-                            text = "CHANGE",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NothingColors.accent,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                    }
+                    TriggerConfigContent(
+                        trigger = trigger,
+                        onUpdate = { trigger = it },
+                        caps = caps,
+                    )
                 }
 
-                com.tdvorak.nothingmodes.ui.theme
-                    .NothingDivider()
-
-                TriggerConfigContent(
-                    trigger = trigger,
-                    onUpdate = { trigger = it },
-                    caps = caps,
-                )
-
-                Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
                 NothingPillButton(
                     text = "Done",
                     onClick = {
@@ -585,9 +607,15 @@ private fun ChargerConnectedContent(
                     ),
                 )
             },
+            infoText =
+                "Restricts the trigger to one kind of power source:\n\n" +
+                    ChargerSource.entries.joinToString("\n\n") {
+                        "${it.name.enumLabel()} — ${chargerSourceDescription(it)}."
+                    } +
+                    "\n\nANY (default) fires for every source.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        HelpText(text = "Fires when a charger is connected or disconnected. Source is optional.")
+        HelpText(text = "Fires when a charger is connected or disconnected. Source is optional — tap ⓘ for what each source means.")
     }
 }
 
@@ -1094,18 +1122,7 @@ private fun CalendarEventContent(
     trigger: Trigger.CalendarEvent,
     onUpdate: (Trigger) -> Unit,
 ) {
-    val context = LocalContext.current
     var showEventPicker by remember { mutableStateOf(false) }
-    var selectedEvent by remember { mutableStateOf<com.tdvorak.nothingmodes.ui.components.UpcomingEvent?>(null) }
-
-    val sourceOptions = listOf("From calendar", "Clock")
-    NothingEnumSelector(
-        label = "Source",
-        value = "From calendar",
-        options = sourceOptions,
-        onSelect = { if (it == "Clock") onUpdate(Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())) },
-    )
-    Spacer(modifier = Modifier.height(NothingSpacing.md))
 
     PermissionGate(
         permissions = listOf(android.Manifest.permission.READ_CALENDAR),
@@ -1116,12 +1133,72 @@ private fun CalendarEventContent(
                 "Calendar data is processed on your device and is never uploaded, sold, or shared.",
     ) {
         Column {
-            NothingInput(
-                value = trigger.titleMatch ?: "",
-                onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
-                label = "Title contains (blank = any)",
-                placeholder = "e.g. Meeting, Gym, Birthday",
+            NothingPillButton(
+                text = "Browse upcoming events",
+                onClick = { showEventPicker = true },
+                modifier = Modifier.fillMaxWidth(),
             )
+
+            if (trigger.events.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = NothingShapes.input,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(NothingSpacing.md)) {
+                        Text(
+                            text = "Selected · ${trigger.events.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        trigger.events.forEach { picked ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onUpdate(
+                                                trigger.copy(
+                                                    events =
+                                                        trigger.events.filterNot {
+                                                            it.eventId == picked.eventId
+                                                        },
+                                                ),
+                                            )
+                                        },
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = picked.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                    if (picked.calendarName.isNotBlank()) {
+                                        Text(
+                                            text = picked.calendarName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontFamily = NothingFonts.mono(),
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "REMOVE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = NothingColors.accent,
+                                    fontFamily = NothingFonts.mono(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingEnumSelector(
                 label = "Direction",
@@ -1132,58 +1209,25 @@ private fun CalendarEventContent(
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             HelpText(
                 text =
-                    "Pick a calendar event, or type a title that matches multiple events. " +
-                        "The mode fires when an event with this title starts or ends.",
+                    "The mode fires when a picked event starts or ends. Tap a selected " +
+                        "event to remove it. With nothing picked, any calendar event matches.",
             )
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingPillButton(
-                text = "Browse upcoming events",
-                onClick = { showEventPicker = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            selectedEvent?.let { event ->
-                Spacer(modifier = Modifier.height(NothingSpacing.sm))
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = NothingShapes.input,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(modifier = Modifier.padding(NothingSpacing.md)) {
-                        Text(
-                            text = "Selected",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                        Text(
-                            text = event.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                        Text(
-                            text = "${com.tdvorak.nothingmodes.ui.components.formatEventTime(event.startMillis)} · ${event.calendarName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = NothingFonts.mono(),
-                        )
-                    }
-                }
-            }
         }
     }
 
     if (showEventPicker) {
         com.tdvorak.nothingmodes.ui.components.CalendarEventPickerDialog(
             initialCalendarId = trigger.calendarId,
-            onSelect = { event ->
-                selectedEvent = event
+            initialSelectedIds = trigger.events.map { it.eventId }.toSet(),
+            onSelect = { picked ->
                 onUpdate(
                     trigger.copy(
-                        titleMatch = event.title,
-                        calendarId = event.calendarId,
+                        events =
+                            picked.map {
+                                PickedCalendarEvent(it.eventId, it.title, it.calendarName)
+                            },
+                        titleMatch = null,
+                        calendarId = null,
                     ),
                 )
                 showEventPicker = false

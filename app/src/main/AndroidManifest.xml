@@ -57,6 +57,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/json" />
             </intent-filter>
+            <!-- Shared links (Glyph Museum posts, nothingmodes://import) arrive
+                 as text/plain from browsers and share sheets. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -70,6 +77,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="nothingmodes" android:host="import" />
+            </intent-filter>
+            <!-- Glyph Museum post links open straight into an import. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="app.glyphmuseum.com" android:pathPrefix="/post/" />
+                <data android:host="glyphmuseum.com" android:pathPrefix="/post/" />
+                <data android:host="www.glyphmuseum.com" android:pathPrefix="/post/" />
             </intent-filter>
         </activity>
 

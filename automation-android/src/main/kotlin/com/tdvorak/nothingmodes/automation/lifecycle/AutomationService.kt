@@ -455,6 +455,10 @@ class AutomationService : Service() {
                 direction = direction,
                 title = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_TITLE),
                 calendarId = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_ID),
+                calendarEventId =
+                    intent
+                        .getLongExtra(PersistentMonitorService.EXTRA_CAL_EVENT_ID, -1L)
+                        .takeIf { it >= 0 },
             ),
         )
     }

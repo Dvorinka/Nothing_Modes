@@ -489,10 +489,17 @@ a { color: inherit; text-decoration: none; }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
-  .nav { padding: 12px 18px; }
-  .nav nav { gap: 16px; }
-  .nav nav a:not(.gh) { display: none; }
-  .nav nav a.gh { display: inline-flex; }
+  .nav { padding: 12px 18px; flex-wrap: wrap; row-gap: 10px; }
+  /* Nav links move to a second, horizontally scrollable row instead of
+     disappearing — on phones the library page was unreachable without them. */
+  .nav nav {
+    order: 3; flex-basis: 100%;
+    gap: 18px; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav nav::-webkit-scrollbar { display: none; }
+  .nav nav a { font-size: 11px; white-space: nowrap; }
+  .nav nav .nav-toggles { margin-left: auto; }
   .hero { padding: 64px 18px 48px; }
   .hero h1 { font-size: clamp(2.5rem, 12vw, 5rem); }
   .cta-row { margin-bottom: 40px; }

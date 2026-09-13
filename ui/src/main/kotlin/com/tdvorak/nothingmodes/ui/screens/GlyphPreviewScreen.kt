@@ -60,6 +60,8 @@ class GlyphPreviewViewModel
 fun GlyphPreviewScreen(
     onBack: () -> Unit,
     onOpenEditor: () -> Unit = {},
+    onOpenMuseum: () -> Unit = {},
+    onOpenLibrary: () -> Unit = {},
     viewModel: GlyphPreviewViewModel = hiltViewModel(),
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -204,6 +206,28 @@ fun GlyphPreviewScreen(
                         }
                         GlyphLinkButton(
                             "Glyph Museum",
+                            Modifier.weight(1f),
+                        ) {
+                            onOpenMuseum()
+                            true
+                        }
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = NothingSpacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        GlyphLinkButton(
+                            "Feature Library",
+                            Modifier.weight(1f),
+                        ) {
+                            onOpenLibrary()
+                            true
+                        }
+                        GlyphLinkButton(
+                            "Museum App",
                             Modifier.weight(1f),
                         ) {
                             openGlyphMuseum(context)

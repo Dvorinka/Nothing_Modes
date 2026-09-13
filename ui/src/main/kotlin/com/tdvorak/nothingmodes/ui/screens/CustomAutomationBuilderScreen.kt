@@ -71,6 +71,7 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.canRestore
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore

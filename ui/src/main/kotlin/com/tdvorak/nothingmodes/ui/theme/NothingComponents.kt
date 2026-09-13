@@ -15,7 +15,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
@@ -28,7 +30,9 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBackIos
@@ -134,6 +138,54 @@ fun NothingCardLarge(
     ) {
         Column(modifier = Modifier.padding(NothingSpacing.lg)) {
             content()
+        }
+    }
+}
+
+/**
+ * Full-height config card: an optional [header] pinned at the top, a spaced
+ * divider, and top-aligned scrollable content below.
+ */
+@Composable
+fun NothingConfigCard(
+    modifier: Modifier = Modifier,
+    header: (@Composable ColumnScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
+    Surface(
+        color =
+            if (classic) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        shape = if (classic) RoundedCornerShape(28.dp) else NothingShapes.cardLarge,
+        border = if (classic) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (header != null) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(NothingSpacing.lg),
+                    content = header,
+                )
+                NothingDivider(
+                    modifier = Modifier.padding(horizontal = NothingSpacing.lg),
+                )
+            }
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(NothingSpacing.lg),
+                content = content,
+            )
         }
     }
 }
@@ -551,23 +603,25 @@ fun NothingCompactPillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    active: Boolean = false,
 ) {
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
-    val container =
-        if (enabled) {
-            NothingColors.accent
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        }
+    val filled = active && enabled
     val content =
-        if (enabled) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurface
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+            filled -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
     Surface(
-        color = container,
+        color = if (filled) NothingColors.accent else Color.Transparent,
         shape = NothingShapes.pill,
+        border =
+            if (filled) {
+                null
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            },
         modifier =
             modifier
                 .defaultMinSize(minWidth = 64.dp)

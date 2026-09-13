@@ -23,12 +23,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.nothing.GlyphIconLibrary
 import com.tdvorak.nothingmodes.nothing.GlyphMuseumPresets
@@ -39,6 +42,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingRedDot
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
+import kotlinx.coroutines.launch
 
 private sealed class IconOption {
     abstract val key: String
@@ -75,6 +79,20 @@ private sealed class IconOption {
         override val title: String get() = key
         override val subtitle: String get() = "Custom"
     }
+
+    /** A glyph published on the community library — imported on first use. */
+    data class Community(
+        val item: CommunityApi.LibraryItem,
+    ) : IconOption() {
+        override val key: String get() = "community:${item.id}"
+        override val title: String get() = item.title
+        override val subtitle: String
+            get() =
+                buildString {
+                    append("Community · @").append(item.handle)
+                    if (item.summary.isNotBlank()) append(" · ").append(item.summary)
+                }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,16 +103,22 @@ fun GlyphIconPickerDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     var selected by remember { mutableStateOf(initial) }
     var query by remember { mutableStateOf("") }
+    var importingId by remember { mutableStateOf<String?>(null) }
 
     var options by remember { mutableStateOf(emptyList<IconOption>()) }
     LaunchedEffect(Unit) {
         val presets = GlyphMuseumPresets(context).infos().map { IconOption.Preset(it) }
-        val emoji = GlyphIconLibrary.names.map { IconOption.Emoji(it) }
         val custom = CustomGlyphStore(context).names().map { IconOption.Custom(it) }
-        options = presets + emoji + custom
+        val community =
+            runCatching { CommunityApi.list(type = "glyph") }
+                .getOrDefault(emptyList())
+                .map { IconOption.Community(it) }
+        val emoji = GlyphIconLibrary.names.map { IconOption.Emoji(it) }
+        options = presets + custom + community + emoji
     }
 
     val filtered =
@@ -157,9 +181,35 @@ fun GlyphIconPickerDialog(
                             option = option,
                             selected = selected == option.key,
                             classic = classic,
+                            busy = importingId == option.key,
                             onClick = {
-                                selected = option.key
-                                onSelect(option.key)
+                                when (option) {
+                                    is IconOption.Community -> {
+                                        if (importingId != null) return@GlyphIconRow
+                                        importingId = option.key
+                                        scope.launch {
+                                            val stored =
+                                                runCatching {
+                                                    // Seed-fallback items carry
+                                                    // the payload inline — no fetch.
+                                                    val payload =
+                                                        option.item.payload
+                                                            ?: CommunityApi.fetchItem(option.item.id)
+                                                    CustomGlyphStore(context)
+                                                        .import(payload.toString(), option.item.title)
+                                                }.getOrNull()
+                                            importingId = null
+                                            if (stored != null) {
+                                                selected = option.key
+                                                onSelect(stored)
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        selected = option.key
+                                        onSelect(option.key)
+                                    }
+                                }
                             },
                         )
                     }
@@ -174,17 +224,28 @@ private fun GlyphIconRow(
     option: IconOption,
     selected: Boolean,
     classic: Boolean,
+    busy: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .alpha(if (busy) 0.5f else 1f)
                 .clickable(onClick = onClick)
                 .padding(horizontal = NothingSpacing.md, vertical = NothingSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        if (option is IconOption.Community) {
+            val design = remember(option.item.preview) { glyphPreviewFromJson(option.item.preview) }
+            design?.let {
+                GlyphDesignThumbnail(
+                    design = it,
+                    modifier = Modifier.padding(end = NothingSpacing.sm).height(36.dp),
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (classic) option.title else option.title.uppercase(),
@@ -193,7 +254,14 @@ private fun GlyphIconRow(
                 fontFamily = NothingFonts.mono(),
             )
             Text(
-                text = if (classic) option.subtitle else option.subtitle.uppercase(),
+                text =
+                    if (busy) {
+                        "IMPORTING…"
+                    } else if (classic) {
+                        option.subtitle
+                    } else {
+                        option.subtitle.uppercase()
+                    },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),

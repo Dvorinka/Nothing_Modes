@@ -34,6 +34,11 @@ Builds:
     commit: v0.13.0
     gradle:
       - githubRelease
+  - versionName: 0.14.0
+    versionCode: 17
+    commit: v0.14.0
+    gradle:
+      - githubRelease
 
 AuthorName: TDvorak
 AuthorEmail: info@tdvorak.dev

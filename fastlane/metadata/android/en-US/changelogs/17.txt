@@ -1,0 +1,6 @@
+- Glyph Museum integration: share a design post to Nothing Modes or open a museum link and the app imports it in one tap, with author attribution preserved
+- Community library inside the app: every glyph published on the Nothing Modes website appears in the Glyph picker and editor — browse, preview, and import without leaving the app
+- In-app browser for Glyph Museum and the Feature Library with direct JSON download interception
+- Calendar trigger rework: pick events from a real calendar view with per-event lead time
+- Redesigned automation list with clearer mode grouping and status
+- Landing site navigation now works on phones — links no longer disappear on small screens

@@ -25,6 +25,7 @@ import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.nav.NothingModesNavHost
 import com.tdvorak.nothingmodes.nav.Routes
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
+import com.tdvorak.nothingmodes.nothing.GlyphMuseumApi
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
@@ -118,23 +119,27 @@ class MainActivity : ComponentActivity() {
     /**
      * Handles:
      * - Glyph design JSON shared to or opened with this app (application/json).
+     * - Glyph Museum post links (app.glyphmuseum.com/post/<id>) viewed or shared as text.
      * - One-tap community imports from the website (nothingmodes://import?type=...&id=...).
      */
     private fun importDesignIntent(intent: Intent?) {
-        val uri: Uri? =
-            when (intent?.action) {
-                Intent.ACTION_VIEW -> intent.data
-                Intent.ACTION_SEND ->
-                    @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
-                else -> null
-            }
+        if (intent?.action == Intent.ACTION_SEND) {
+            handleSend(intent)
+            return
+        }
+
+        val uri: Uri? = if (intent?.action == Intent.ACTION_VIEW) intent.data else null
         uri ?: return
 
         if (uri.scheme == "nothingmodes" && uri.host == "import") {
             val type = uri.getQueryParameter("type") ?: "template"
             val id = uri.getQueryParameter("id") ?: return
             importCommunityItem(type, id)
+            return
+        }
+
+        GlyphMuseumApi.postIdFrom(uri)?.let { postId ->
+            importMuseumPost(postId)
             return
         }
 
@@ -152,6 +157,64 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** ACTION_SEND: a design file via EXTRA_STREAM, or a shared link via EXTRA_TEXT. */
+    private fun handleSend(intent: Intent) {
+        @Suppress("DEPRECATION")
+        val stream: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        if (stream != null) {
+            runCatching {
+                contentResolver.openInputStream(stream)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()?.let { json ->
+                val store = CustomGlyphStore(this)
+                val name = store.import(json, stream.lastPathSegment?.substringBeforeLast('.'))
+                Toast
+                    .makeText(
+                        this,
+                        if (name != null) "Glyph design imported as $name" else "Not a glyph design file",
+                        Toast.LENGTH_LONG,
+                    ).show()
+            }
+            return
+        }
+
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
+
+        // A shared nothingmodes://import link behaves exactly like tapping it.
+        Regex("""nothingmodes://import\?[^\s"'<>]+""")
+            .find(text)
+            ?.let { Uri.parse(it.value) }
+            ?.let { uri ->
+                val type = uri.getQueryParameter("type") ?: "template"
+                uri.getQueryParameter("id")?.let { id ->
+                    importCommunityItem(type, id)
+                    return
+                }
+            }
+
+        GlyphMuseumApi.postIdFromText(text)?.let { postId ->
+            importMuseumPost(postId)
+            return
+        }
+
+        Toast.makeText(this, "Nothing to import in shared text", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun importMuseumPost(postId: Long) {
+        lifecycleScope.launch {
+            val name = GlyphMuseumApi.importPost(this@MainActivity, postId)
+            Toast
+                .makeText(
+                    this@MainActivity,
+                    if (name != null) {
+                        "Glyph design imported as $name"
+                    } else {
+                        "Could not import that Glyph Museum post"
+                    },
+                    Toast.LENGTH_LONG,
+                ).show()
+        }
+    }
+
     private fun importCommunityItem(
         type: String,
         id: String,
@@ -163,7 +226,7 @@ class MainActivity : ComponentActivity() {
                     when (type) {
                         "glyph" -> {
                             val store = CustomGlyphStore(this@MainActivity)
-                            val name = store.import(payload.toString(), null)
+                            val name = store.import(payload.toString(), id)
                             if (name != null) "Glyph design imported as $name" else "Invalid glyph design"
                         }
                         else -> {

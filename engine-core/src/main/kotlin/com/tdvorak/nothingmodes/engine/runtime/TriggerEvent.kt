@@ -102,6 +102,8 @@ sealed interface TriggerEvent {
         val direction: com.tdvorak.nothingmodes.engine.model.CalendarDirection,
         val title: String?,
         val calendarId: String?,
+        /** Provider `Events._ID` of the calendar event, when known. */
+        val calendarEventId: Long? = null,
     ) : TriggerEvent
 
     data class ChargerConnectedChanged(

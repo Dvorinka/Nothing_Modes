@@ -775,11 +775,31 @@ private fun ChargingSourceSheetContent(
     onChange: (ChargerSource) -> Unit,
 ) {
     ChargerSource.entries.forEach { s ->
-        RadioOption(
-            text = s.name.enumLabel(),
-            selected = source == s,
-            onClick = { onChange(s) },
-        )
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onChange(s) }
+                    .padding(vertical = NothingSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
+        ) {
+            NothingRadio(selected = source == s, onClick = { onChange(s) })
+            Column {
+                Text(
+                    text = s.name.enumLabel(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Text(
+                    text = chargerSourceDescription(s),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
     }
 }
 

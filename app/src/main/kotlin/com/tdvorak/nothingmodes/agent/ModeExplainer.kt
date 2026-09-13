@@ -92,8 +92,12 @@ object ModeExplainer {
                 val direction = trigger.direction.name.lowercase()
                 buildString {
                     append("calendar event $direction")
-                    if (trigger.titleMatch?.isNotBlank() == true) append(" with title containing '${trigger.titleMatch}'")
-                    if (trigger.calendarId?.isNotBlank() == true) append(" in calendar ${trigger.calendarId}")
+                    if (trigger.events.isNotEmpty()) {
+                        append(" for ${trigger.events.size} picked event(s)")
+                    } else {
+                        if (trigger.titleMatch?.isNotBlank() == true) append(" with title containing '${trigger.titleMatch}'")
+                        if (trigger.calendarId?.isNotBlank() == true) append(" in calendar ${trigger.calendarId}")
+                    }
                 }
             }
             is Trigger.ChargerConnected -> {

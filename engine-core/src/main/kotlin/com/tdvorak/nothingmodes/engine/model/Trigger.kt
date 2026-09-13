@@ -169,6 +169,8 @@ sealed interface Trigger {
         val calendarId: String? = null,
         val titleMatch: String? = null,
         val direction: CalendarDirection = CalendarDirection.START,
+        /** Explicitly picked events; empty falls back to the title/calendar filters. */
+        val events: List<PickedCalendarEvent> = emptyList(),
     ) : Trigger
 
     /** Charger plugged in or unplugged. source = optional filter (e.g. WIRELESS). */
@@ -211,5 +213,14 @@ sealed interface Trigger {
 
 @Serializable
 enum class CalendarDirection { START, END }
+
+/** A calendar event chosen in the picker. [eventId] is the provider's stable ID —
+ *  recurring instances share it, so picking one occurrence selects the series. */
+@Serializable
+data class PickedCalendarEvent(
+    val eventId: Long,
+    val title: String,
+    val calendarName: String = "",
+)
 
 fun Trigger.Time.isOneShot(): Boolean = at != null || afterMs != null

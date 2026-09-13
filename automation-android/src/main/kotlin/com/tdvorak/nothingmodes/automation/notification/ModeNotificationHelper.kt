@@ -14,6 +14,7 @@ import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.data.prefs.NotificationPreferences
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
+import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 
@@ -43,16 +44,25 @@ class ModeNotificationHelper(
         if (!canPost()) return
         if (!effectiveRules(automation).contains(NotifyRule.OnTrigger)) return
 
-        val applied = results.count { it is ActionResult.Success || it is ActionResult.NeedsUserAction }
-        val failed = results.size - applied
+        val applied =
+            automation.actions
+                .zip(results)
+                .filter { (_, result) -> result is ActionResult.Success || result is ActionResult.NeedsUserAction }
+                .map { (action, _) -> actionDescription(action) }
+        val failed = results.size - applied.size
         if (failed > 0 && results.any { it is ActionResult.ShizukuRequired || it is ActionResult.PermissionRequired || it is ActionResult.Unsupported }) {
             postCapabilityBlocked(automation, results)
             return
         }
         val text =
             buildString {
-                append("just ran — $applied applied")
-                if (failed > 0) append(", $failed failed")
+                append("just ran")
+                if (applied.isNotEmpty()) {
+                    append(" — ")
+                    append(applied.take(4).joinToString(" · "))
+                    if (applied.size > 4) append(" +${applied.size - 4} more")
+                }
+                if (failed > 0) append(if (applied.isEmpty()) " — $failed failed" else ", $failed failed")
             }
         post(automation, "Mode ran", text)
     }
@@ -118,7 +128,7 @@ class ModeNotificationHelper(
         val notification =
             NotificationCompat
                 .Builder(context, CHANNEL_ID)
-                .setContentTitle("Couldn't run · ${automation.name}")
+                .setContentTitle("Couldn't run · ${automation.name.ifBlank { "Untitled" }}")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setLargeIcon(appIcon())
@@ -141,7 +151,7 @@ class ModeNotificationHelper(
         titlePrefix: String,
         text: String,
     ) {
-        val title = "$titlePrefix · ${automation.name}"
+        val title = "$titlePrefix · ${automation.name.ifBlank { "Untitled" }}"
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
         val contentIntent =
             if (launch != null) {
@@ -161,6 +171,7 @@ class ModeNotificationHelper(
                 .Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setSmallIcon(R.drawable.ic_notification)
                 .setLargeIcon(appIcon())
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

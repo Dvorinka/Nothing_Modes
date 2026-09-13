@@ -20,6 +20,7 @@ import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphEditorScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
+import com.tdvorak.nothingmodes.ui.screens.IntegratedBrowserScreen
 import com.tdvorak.nothingmodes.ui.screens.NotificationLogScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
@@ -44,6 +45,8 @@ object Routes {
     const val NOTIFICATION_LOG = "notification_log"
     const val GLYPH_PREVIEW = "glyph_preview"
     const val GLYPH_EDITOR = "glyph_editor"
+    const val GLYPH_MUSEUM = "glyph_museum"
+    const val COMMUNITY_LIBRARY = "community_library"
     const val SETTINGS = "settings"
     const val TEMPLATES = "templates"
 
@@ -251,10 +254,29 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             GlyphPreviewScreen(
                 onBack = { navController.popBackStack() },
                 onOpenEditor = { navController.navigate(Routes.GLYPH_EDITOR) },
+                onOpenMuseum = { navController.navigate(Routes.GLYPH_MUSEUM) },
+                onOpenLibrary = { navController.navigate(Routes.COMMUNITY_LIBRARY) },
             )
         }
         composable(Routes.GLYPH_EDITOR) {
-            GlyphEditorScreen(onBack = { navController.popBackStack() })
+            GlyphEditorScreen(
+                onBack = { navController.popBackStack() },
+                onOpenMuseum = { navController.navigate(Routes.GLYPH_MUSEUM) },
+            )
+        }
+        composable(Routes.GLYPH_MUSEUM) {
+            IntegratedBrowserScreen(
+                startUrl = "https://app.glyphmuseum.com",
+                title = "Glyph Museum",
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.COMMUNITY_LIBRARY) {
+            IntegratedBrowserScreen(
+                startUrl = "https://nothing-modes.vercel.app/library",
+                title = "Feature Library",
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.SETTINGS) {
