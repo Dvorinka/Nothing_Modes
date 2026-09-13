@@ -102,6 +102,7 @@ fun actionDescription(action: Action): String =
             is Action.GlyphCountdown -> "Glyph Countdown: ${action.seconds}s"
             is Action.GlyphMusic -> "Glyph Music: ${action.style}"
             is Action.GlyphTurnOff -> "Glyph Off"
+            is Action.SetGlyphInterface -> "Glyph interface: ${if (action.on) "On" else "Off"}"
             is Action.CopyText -> if (action.text.isBlank()) "Copy text" else "Copy: ${action.text.take(30)}"
             is Action.Wait -> "Wait: ${formatDuration(action.durationMs)}"
             is Action.WriteSetting -> "Write: ${action.namespace.name.enumLabel()}/${action.key}=${action.value}"

@@ -73,6 +73,7 @@ import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.canRestore
+import com.tdvorak.nothingmodes.engine.model.hasStateLifecycle
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.model.withRestore
@@ -239,6 +240,9 @@ class CustomBuilderViewModel
         }
 
         fun addAction(action: Action) {
+            // Identical duplicates are never useful — flashlight on x2, the
+            // same glyph design twice — and only produce "why twice" noise.
+            if (action in _state.value.actions) return
             _state.value = _state.value.copy(actions = _state.value.actions + action)
         }
 
@@ -388,8 +392,9 @@ class CustomBuilderViewModel
                     Automation(
                         id = id,
                         name = s.name.ifBlank { "Untitled" },
-                        // jarvis: modes and routines merged — windowed trigger implies mode semantics.
-                        type = if (s.trigger is Trigger.TimeWindow) AutomationType.MODE else AutomationType.ROUTINE,
+                        // jarvis: modes and routines merged — any state-lifecycle
+                        // trigger (window, charger on, torch on, ...) is a mode.
+                        type = if (s.trigger.hasStateLifecycle) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = existing?.createdBy ?: CreatedBy.USER,
                         status = existing?.status ?: AutomationStatus.ARMED,
                         trigger = s.trigger,
@@ -440,7 +445,7 @@ class CustomBuilderViewModel
                     Automation(
                         id = id,
                         name = "${s.name.ifBlank { "Untitled" }} (copy)",
-                        type = if (s.trigger is Trigger.TimeWindow) AutomationType.MODE else AutomationType.ROUTINE,
+                        type = if (s.trigger.hasStateLifecycle) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = CreatedBy.USER,
                         status = AutomationStatus.ARMED,
                         trigger = s.trigger,
@@ -1034,6 +1039,8 @@ fun CustomAutomationBuilderScreen(
             ActionConfigSheet(
                 action = action,
             caps = caps,
+                onOpenGlyphStudio = navController?.let { nav -> { nav.navigate("glyph_editor") } },
+                onOpenGlyphMuseum = navController?.let { nav -> { nav.navigate("glyph_museum") } },
                 onDone = { updated ->
                     if (editingActionIndex >= 0) {
                         viewModel.updateAction(editingActionIndex, updated)

@@ -4,6 +4,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
+import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.TimePrecision
 import com.tdvorak.nothingmodes.engine.model.Trigger
@@ -120,6 +121,12 @@ object ModeExplainer {
                     if (trigger.packageName?.isNotBlank() == true) append(" in ${trigger.packageName}")
                 }
             }
+            is Trigger.DeviceState ->
+                if (trigger.value == DeviceStateKeys.ANY_VALUE) {
+                    "device state '${trigger.key}' changes"
+                } else {
+                    "device state '${trigger.key}' becomes '${trigger.value}'"
+                }
         }
 
     fun explainCondition(condition: Condition): String =
@@ -200,6 +207,7 @@ object ModeExplainer {
             is Action.GlyphCountdown -> "Glyph countdown from ${action.seconds}s"
             is Action.GlyphMusic -> "show music visualizer style ${action.style}"
             Action.GlyphTurnOff -> "turn off Glyph"
+            is Action.SetGlyphInterface -> "turn the Glyph interface ${if (action.on) "on" else "off"}"
             is Action.CopyText -> "copy '${action.text}' to clipboard"
             is Action.Wait -> "wait ${action.durationMs}ms"
             is Action.WriteSetting -> "write ${action.namespace} setting ${action.key}=${action.value}"

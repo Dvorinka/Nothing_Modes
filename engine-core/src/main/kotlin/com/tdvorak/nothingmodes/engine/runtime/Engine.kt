@@ -28,6 +28,7 @@ class Engine(
     private val snapshotStore: StateSnapshotStore = NoopStateSnapshotStore,
     private val settingReader: SettingReader = NoopSettingReader,
     private val modeActivationSink: ModeActivationSink = NoopModeActivationSink,
+    private val modeActivationProvider: ModeActivationProvider = NoopModeActivationProvider,
     private val executionIds: ExecutionIdFactory = StableExecutionIdFactory,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -60,7 +61,25 @@ class Engine(
 
             try {
                 if (event is TriggerEvent.ManualFired && event.automationId != automation.id) continue
-                if (!matcher.matches(automation.trigger, event)) continue
+
+                // Window semantics come from the trigger, not the legacy type
+                // flag — but edge triggers (charger on, torch on, ...) become
+                // modes too via AutomationType.MODE.
+                val isWindowed = automation.trigger is Trigger.TimeWindow
+                val modeLike = automation.type == AutomationType.MODE || isWindowed
+
+                if (!matcher.matches(automation.trigger, event)) {
+                    // Inverse edge of a state-lifecycle trigger: the state the
+                    // mode is bound to ended — restore and deactivate without
+                    // re-running actions, cooldown, or condition gates.
+                    if (modeLike && matcher.isInverseEdge(automation.trigger, event) && isLifecycleActive(automation)) {
+                        outcomes += endLifecycleMode(automation, envelope.id, executionId, batchNow)
+                    }
+                    continue
+                }
+
+                // An already-active lifecycle mode ignores a repeated edge.
+                if (modeLike && event !is TriggerEvent.ModeWindowEnd && isLifecycleActive(automation)) continue
 
                 // Check day-of-week filter for time-based triggers
                 if (!shouldFireOnDay(automation.trigger, batchNow)) continue
@@ -124,32 +143,16 @@ class Engine(
                     continue
                 }
 
-                // Window-end: restore snapshots and stop — the action list must
-                // NOT run again or it would instantly undo the restore. Windowed
-                // automations snapshot at start regardless of MODE/ROUTINE type.
-                val isWindowed = automation.trigger is Trigger.TimeWindow
+                // Mode-end: restore snapshots and stop — the action list must
+                // NOT run again or it would instantly undo the restore.
                 if (event is TriggerEvent.ModeWindowEnd && isWindowed) {
-                    restoreSnapshots(automation.id, batchNow)
-                    // Glyph output isn't a settings key — clear it explicitly so
-                    // text/matrix/stripes never linger after the mode ends.
-                    if (automation.actions.any { it.isGlyphAction }) {
-                        runCatching {
-                            executor.execute(
-                                Action.GlyphTurnOff,
-                                FireContext(
-                                    eventId = "restore:${automation.id.value}",
-                                    executionId = "restore:${automation.id.value}:$batchNow",
-                                    automationId = automation.id,
-                                    actionIndex = -2,
-                                    priority = 100,
-                                ),
-                            )
-                        }
-                    }
+                    endModeSideEffects(automation, batchNow)
                 }
 
-                // Window-start: snapshot affected settings before executing
-                if (event is TriggerEvent.ModeWindowStart && isWindowed) {
+                // Snapshot affected settings before executing any mode-like
+                // automation — windowed modes on start, edge modes on their
+                // activation edge.
+                if (modeLike && event !is TriggerEvent.ModeWindowEnd) {
                     snapshotSettings(automation, batchNow)
                 }
 
@@ -198,9 +201,6 @@ class Engine(
                     ),
                 )
 
-                // Modes and routines merged: window semantics come from the
-                // trigger, not the legacy type flag.
-                val modeLike = automation.type == AutomationType.MODE || isWindowed
                 val isModeActivation = modeLike && event !is TriggerEvent.ModeWindowEnd
                 val isModeDeactivation = event is TriggerEvent.ModeWindowEnd && modeLike
 
@@ -228,7 +228,15 @@ class Engine(
                     ),
                 )
 
-                outcomes += FireOutcome(automation, automation.actions, actionResults.toList(), envelope.id, executionId)
+                outcomes +=
+                    FireOutcome(
+                        automation,
+                        automation.actions,
+                        actionResults.toList(),
+                        envelope.id,
+                        executionId,
+                        isDeactivation = isModeDeactivation,
+                    )
             } catch (e: CancellationException) {
                 journal.finish(
                     ExecutionCompletion(
@@ -309,6 +317,78 @@ class Engine(
                 ),
             )
         }
+    }
+
+    /**
+     * Whether a lifecycle mode is currently active — the mode row says so, or
+     * snapshots captured at activation are still pending restore.
+     */
+    private suspend fun isLifecycleActive(automation: Automation): Boolean =
+        modeActivationProvider.activeModeIds().contains(automation.id.value) ||
+            snapshotStore.forAutomation(automation.id).isNotEmpty()
+
+    /** Restore snapshots and clear glyph output — shared by every mode-end path. */
+    private suspend fun endModeSideEffects(
+        automation: Automation,
+        batchNow: Long,
+    ) {
+        restoreSnapshots(automation.id, batchNow)
+        // Glyph output isn't a settings key — clear it explicitly so
+        // text/matrix/stripes never linger after the mode ends.
+        if (automation.actions.any { it.isGlyphAction }) {
+            runCatching {
+                executor.execute(
+                    Action.GlyphTurnOff,
+                    FireContext(
+                        eventId = "restore:${automation.id.value}",
+                        executionId = "restore:${automation.id.value}:$batchNow",
+                        automationId = automation.id,
+                        actionIndex = -2,
+                        priority = 100,
+                    ),
+                )
+            }
+        }
+    }
+
+    /**
+     * Inverse-edge mode end: the bound state finished (charger unplugged,
+     * torch off, ...). Restores, deactivates, audits — returns the outcome.
+     */
+    private suspend fun endLifecycleMode(
+        automation: Automation,
+        envelopeId: String,
+        executionId: String,
+        batchNow: Long,
+    ): FireOutcome {
+        endModeSideEffects(automation, batchNow)
+        modeActivationSink.deactivate(automation.id, batchNow)
+        journal.finish(
+            ExecutionCompletion(
+                executionId = executionId,
+                automationId = automation.id,
+                atMillis = batchNow,
+                status = ExecutionStatus.COMPLETED,
+                actionCount = 0,
+            ),
+        )
+        audit.record(
+            AuditEvent(
+                automationId = automation.id,
+                kind = AuditKind.MODE_DEACTIVATED,
+                atMillis = batchNow,
+                eventId = envelopeId,
+                executionId = executionId,
+            ),
+        )
+        return FireOutcome(
+            automation,
+            emptyList(),
+            emptyList(),
+            envelopeId,
+            executionId,
+            isDeactivation = true,
+        )
     }
 
     private suspend fun restoreSnapshots(
@@ -424,7 +504,7 @@ class Engine(
     private fun namespaceForKey(key: String): String =
         when (key) {
             "reduce_bright_colors_activated", "aod_enabled", "location_mode" -> "secure"
-            "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled" -> "global"
+            "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled", "led_effect_enable" -> "global"
             else -> "system"
         }
 

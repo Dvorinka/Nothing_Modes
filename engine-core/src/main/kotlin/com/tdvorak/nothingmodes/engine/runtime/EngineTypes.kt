@@ -200,4 +200,6 @@ data class FireOutcome(
     val results: List<ActionResult>,
     val eventId: String,
     val executionId: String,
+    /** True when this outcome is a mode ending (inverse edge or window end). */
+    val isDeactivation: Boolean = false,
 )

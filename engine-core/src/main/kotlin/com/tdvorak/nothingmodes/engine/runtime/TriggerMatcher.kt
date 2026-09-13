@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.engine.runtime
 
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
+import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -97,6 +98,73 @@ class TriggerMatcher {
                 event is TriggerEvent.MediaPlaybackChanged &&
                     event.playing == trigger.playing &&
                     (trigger.packageName == null || event.packageName == trigger.packageName)
+
+            is Trigger.DeviceState ->
+                event is TriggerEvent.DeviceStateChanged &&
+                    event.key == trigger.key &&
+                    (trigger.value == DeviceStateKeys.ANY_VALUE || event.value == trigger.value) &&
+                    event.previous != event.value
+        }
+
+    /**
+     * True when [event] is the inverse edge of a state-lifecycle trigger —
+     * the moment a "while X" mode should end. A charger-on mode ends on
+     * unplug; a flashlight-on mode ends on torch-off; a device-state mode
+     * ends when the key lands on a different value.
+     */
+    fun isInverseEdge(
+        trigger: Trigger,
+        event: TriggerEvent,
+    ): Boolean =
+        when (trigger) {
+            is Trigger.ChargerConnected ->
+                event is TriggerEvent.ChargerConnectedChanged &&
+                    event.connected != trigger.connected &&
+                    (trigger.source == null || event.source == trigger.source || !event.connected)
+
+            is Trigger.TorchState ->
+                event is TriggerEvent.TorchStateChanged && event.on != trigger.on
+
+            is Trigger.ScreenStateTrigger ->
+                event is TriggerEvent.ScreenStateChanged && event.state != trigger.state
+
+            is Trigger.MediaPlayback ->
+                event is TriggerEvent.MediaPlaybackChanged &&
+                    event.playing != trigger.playing &&
+                    (trigger.packageName == null || event.packageName == trigger.packageName)
+
+            is Trigger.BluetoothDevice ->
+                event is TriggerEvent.BluetoothDeviceChanged &&
+                    event.state != trigger.state &&
+                    (trigger.deviceName == null || event.deviceName?.equals(trigger.deviceName, ignoreCase = true) == true) &&
+                    (trigger.deviceAddress == null || event.deviceAddress?.equals(trigger.deviceAddress, ignoreCase = true) == true)
+
+            is Trigger.WifiConnected ->
+                // A null SSID means the Wi-Fi link dropped entirely.
+                event is TriggerEvent.WifiConnectedChanged && event.ssid == null
+
+            is Trigger.Connectivity ->
+                event is TriggerEvent.ConnectivityChanged &&
+                    event.medium == trigger.medium &&
+                    event.state != trigger.state
+
+            is Trigger.DeviceUnlocked -> event is TriggerEvent.DeviceLockedEvent
+            is Trigger.DeviceLocked -> event is TriggerEvent.DeviceUnlockedEvent
+
+            is Trigger.CalendarEvent ->
+                event is TriggerEvent.CalendarEventChanged &&
+                    event.direction != trigger.direction &&
+                    (trigger.calendarId == null || event.calendarId == trigger.calendarId) &&
+                    (trigger.titleMatch == null || event.title?.contains(trigger.titleMatch, ignoreCase = true) == true) &&
+                    (trigger.events.isEmpty() || trigger.events.any { it.eventId == event.calendarEventId })
+
+            is Trigger.DeviceState ->
+                event is TriggerEvent.DeviceStateChanged &&
+                    event.key == trigger.key &&
+                    event.value != trigger.value &&
+                    trigger.value != DeviceStateKeys.ANY_VALUE
+
+            else -> false
         }
 
     /** Checks if a time trigger should fire on the given day. */

@@ -26,6 +26,7 @@ import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
 import com.tdvorak.nothingmodes.ui.screens.SettingsScreen
 import com.tdvorak.nothingmodes.ui.screens.TemplateCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.TriggerConfigScreen
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import java.net.URLEncoder
 
 object Routes {
@@ -102,14 +103,14 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             val id = backStackEntry.arguments?.getString("id") ?: ""
             AutomationDetailScreen(
                 automationId = id,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onEdit = { navController.navigate(Routes.builderEdit(id)) },
             )
         }
 
         composable(Routes.CREATE_AUTOMATION) {
             CustomAutomationBuilderScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
@@ -130,7 +131,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
 
         composable(Routes.CUSTOM_BUILDER) {
             CustomAutomationBuilderScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
@@ -156,7 +157,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             val id = backStackEntry.arguments?.getString("id")
             CustomAutomationBuilderScreen(
                 automationId = id,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
@@ -182,7 +183,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             val id = backStackEntry.arguments?.getString("id")
             CustomAutomationBuilderScreen(
                 automationId = id,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onSaved = {
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
                 },
@@ -243,16 +244,16 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         }
 
         composable(Routes.EXECUTION_LOG) {
-            ExecutionLogScreen(onBack = { navController.popBackStack() })
+            ExecutionLogScreen(onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) })
         }
 
         composable(Routes.NOTIFICATION_LOG) {
-            NotificationLogScreen(onBack = { navController.popBackStack() })
+            NotificationLogScreen(onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) })
         }
 
         composable(Routes.GLYPH_PREVIEW) {
             GlyphPreviewScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onOpenEditor = { navController.navigate(Routes.GLYPH_EDITOR) },
                 onOpenMuseum = { navController.navigate(Routes.GLYPH_MUSEUM) },
                 onOpenLibrary = { navController.navigate(Routes.COMMUNITY_LIBRARY) },
@@ -260,7 +261,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         }
         composable(Routes.GLYPH_EDITOR) {
             GlyphEditorScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onOpenMuseum = { navController.navigate(Routes.GLYPH_MUSEUM) },
             )
         }
@@ -268,20 +269,20 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             IntegratedBrowserScreen(
                 startUrl = "https://app.glyphmuseum.com",
                 title = "Glyph Museum",
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
             )
         }
         composable(Routes.COMMUNITY_LIBRARY) {
             IntegratedBrowserScreen(
                 startUrl = "https://nothing-modes.vercel.app/library",
                 title = "Feature Library",
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
             )
         }
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onGlyphPreview = { navController.navigate(Routes.GLYPH_PREVIEW) },
                 onNotificationLog = { navController.navigate(Routes.NOTIFICATION_LOG) },
@@ -289,7 +290,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         }
 
         composable(Routes.TEMPLATES) {
-            TemplateCatalogScreen(onBack = { navController.popBackStack() })
+            TemplateCatalogScreen(onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) })
         }
     }
 }

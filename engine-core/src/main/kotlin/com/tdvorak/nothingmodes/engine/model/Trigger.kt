@@ -209,7 +209,81 @@ sealed interface Trigger {
         val playing: Boolean = true,
         val packageName: String? = null,
     ) : Trigger
+
+    /**
+     * Generic device-state edge: fires when the named state key transitions
+     * TO [value]. `"*"` matches any change. Keys come from
+     * [DeviceStateKeys]; values match the strings written into
+     * `DeviceState.values` by the state providers.
+     */
+    @Serializable
+    @SerialName("device_state")
+    data class DeviceState(
+        val key: String,
+        val value: String,
+    ) : Trigger
 }
+
+/** State keys the monitor services can emit as change events. Shared with the
+ *  UI catalog so trigger rows and receivers agree on names. Values mirror the
+ *  strings produced by `AndroidStateProvider` / the platform broadcasts. */
+object DeviceStateKeys {
+    const val POWER_SAVING = "power_saving"
+    const val DND_ACTIVE = "dnd_active"
+    const val RINGER_MODE = "ringer_mode"
+    const val VOLUME_MEDIA = "volume_media"
+    const val VOLUME_RING = "volume_ring"
+    const val VOLUME_ALARM = "volume_alarm"
+    const val HEADPHONES = "headphones_connected"
+    const val NFC = "nfc_enabled"
+    const val LOCATION = "location_enabled"
+    const val DATA_SAVER = "data_saver"
+    const val HOTSPOT = "hotspot_enabled"
+    const val WIFI_RADIO = "wifi_radio"
+    const val BLUETOOTH_RADIO = "bluetooth_radio"
+    const val AIRPLANE = "airplane_mode"
+    const val MOBILE_DATA = "mobile_data"
+    const val AUTO_ROTATE = "auto_rotate"
+    const val AOD = "aod_enabled"
+    const val DARK_MODE = "dark_mode"
+    const val CHARGING_STATUS = "charging_status"
+    const val CHARGING_LIMIT = "charging_limit"
+    const val BATTERY_SHARE = "battery_share"
+    const val BATTERY_SHARE_LIMIT = "battery_share_limit"
+    const val GLYPH_INTERFACE = "glyph_interface"
+    const val GLYPH_CHARGE_LED = "glyph_charge_led"
+    const val THERMAL = "thermal_status"
+
+    /** Wildcard: fires on any change of the key. */
+    const val ANY_VALUE = "*"
+}
+
+/**
+ * Triggers describing a sustained device state rather than a one-shot event.
+ * A mode armed with one of these is "active while the state holds": the
+ * engine ends it — restoring snapshots and clearing glyph output — when the
+ * inverse edge fires (e.g. charger unplugged ends a "charging on" mode).
+ */
+val Trigger.hasStateLifecycle: Boolean
+    get() =
+        when (this) {
+            is Trigger.TimeWindow,
+            is Trigger.ChargerConnected,
+            is Trigger.TorchState,
+            is Trigger.ScreenStateTrigger,
+            is Trigger.MediaPlayback,
+            is Trigger.BluetoothDevice,
+            is Trigger.WifiConnected,
+            is Trigger.Connectivity,
+            is Trigger.DeviceUnlocked,
+            is Trigger.DeviceLocked,
+            -> true
+            // A wildcard ("any change") device-state trigger has no defined
+            // end edge — it is a one-shot routine, not a lifecycle mode.
+            is Trigger.DeviceState -> value != DeviceStateKeys.ANY_VALUE
+            is Trigger.CalendarEvent -> direction == CalendarDirection.START
+            else -> false
+        }
 
 @Serializable
 enum class CalendarDirection { START, END }

@@ -2,6 +2,7 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
+import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
 
 fun cronToSummary(cron: String): String {
@@ -71,6 +72,49 @@ private fun dayName(day: String): String =
         else -> day
     }
 
+/** Friendly label for a DeviceState key — shared by catalog rows and summaries. */
+fun deviceStateLabel(key: String): String =
+    when (key) {
+        DeviceStateKeys.POWER_SAVING -> "Power saving"
+        DeviceStateKeys.DND_ACTIVE -> "Do Not Disturb"
+        DeviceStateKeys.RINGER_MODE -> "Ringer mode"
+        DeviceStateKeys.VOLUME_MEDIA -> "Media volume"
+        DeviceStateKeys.VOLUME_RING -> "Ring volume"
+        DeviceStateKeys.VOLUME_ALARM -> "Alarm volume"
+        DeviceStateKeys.HEADPHONES -> "Headphones"
+        DeviceStateKeys.NFC -> "NFC"
+        DeviceStateKeys.LOCATION -> "Location"
+        DeviceStateKeys.DATA_SAVER -> "Data saver"
+        DeviceStateKeys.HOTSPOT -> "Hotspot"
+        DeviceStateKeys.WIFI_RADIO -> "Wi-Fi radio"
+        DeviceStateKeys.BLUETOOTH_RADIO -> "Bluetooth radio"
+        DeviceStateKeys.AIRPLANE -> "Airplane mode"
+        DeviceStateKeys.MOBILE_DATA -> "Mobile data"
+        DeviceStateKeys.AUTO_ROTATE -> "Auto-rotate"
+        DeviceStateKeys.AOD -> "Always-on display"
+        DeviceStateKeys.DARK_MODE -> "Dark mode"
+        DeviceStateKeys.CHARGING_STATUS -> "Charging status"
+        DeviceStateKeys.CHARGING_LIMIT -> "Charge limit"
+        DeviceStateKeys.BATTERY_SHARE -> "Battery share"
+        DeviceStateKeys.BATTERY_SHARE_LIMIT -> "Battery share limit"
+        DeviceStateKeys.GLYPH_INTERFACE -> "Glyph interface"
+        DeviceStateKeys.GLYPH_CHARGE_LED -> "Glyph charge LED"
+        DeviceStateKeys.THERMAL -> "Thermal status"
+        else -> key.replace('_', ' ').replaceFirstChar { it.uppercase() }
+    }
+
+/** Display label for a DeviceState value — booleans read as On/Off. */
+fun deviceStateValueLabel(
+    key: String,
+    value: String,
+): String =
+    when (value) {
+        DeviceStateKeys.ANY_VALUE -> "Any change"
+        "true" -> "On"
+        "false" -> "Off"
+        else -> value.replaceFirstChar { it.uppercase() }
+    }
+
 /** Shared description functions for triggers and actions. */
 
 /** Short "what it does" line for a trigger type shown in the picker — unlike
@@ -97,6 +141,7 @@ fun triggerTypeDescription(trigger: Trigger): String =
         is Trigger.DeviceLocked -> "When the device is locked"
         is Trigger.TorchState -> "When the flashlight toggles"
         is Trigger.MediaPlayback -> "When media starts or stops"
+        is Trigger.DeviceState -> "While ${deviceStateLabel(trigger.key).lowercase()} matches a state"
     }
 
 fun triggerDescription(trigger: Trigger): String =
@@ -134,6 +179,8 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.DeviceLocked -> "Device locked"
             is Trigger.TorchState -> "Torch ${if (trigger.on) "on" else "off"}"
             is Trigger.MediaPlayback -> "Media ${if (trigger.playing) "playing" else "stopped"}${trigger.packageName?.let { ": $it" } ?: ""}"
+            is Trigger.DeviceState ->
+                "${deviceStateLabel(trigger.key)} = ${deviceStateValueLabel(trigger.key, trigger.value)}"
         }
     ).uppercase()
 
@@ -152,6 +199,9 @@ fun actionRequirementHint(action: Action): String? =
 
         is Action.GlyphTurnOff ->
             "Clears anything currently on the Glyph."
+
+        is Action.SetGlyphInterface ->
+            "Enables or disables the whole Glyph interface (Nothing OS master switch). Needs Shizuku."
 
         is Action.SetWifi ->
             "Turns Wi-Fi on or off. Silent toggling needs Shizuku; without it the system Wi-Fi panel opens for one tap."
@@ -248,6 +298,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetGlyph -> "Turns the light strips on or off."
         is Action.SetGlyphMatrix -> "Draws a pattern on the Glyph Matrix."
         is Action.GlyphTurnOff -> "Clears whatever is on the Glyph."
+        is Action.SetGlyphInterface -> "Switches the whole Glyph interface on or off."
         is Action.SetWifi -> "Turns Wi-Fi on or off."
         is Action.SetBluetooth -> "Turns Bluetooth on or off."
         is Action.SetMobileData -> "Turns mobile data on or off."

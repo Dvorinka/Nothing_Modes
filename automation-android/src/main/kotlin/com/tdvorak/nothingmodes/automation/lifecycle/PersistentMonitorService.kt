@@ -38,6 +38,7 @@ class PersistentMonitorService : Service() {
     private var usageStatsMonitor: UsageStatsMonitor? = null
     private var mediaSessionMonitor: MediaSessionMonitor? = null
     private var calendarObserver: CalendarObserver? = null
+    private var deviceStateMonitor: DeviceStateMonitor? = null
 
     // Last observed BatteryManager.EXTRA_PLUGGED value; -1 = not yet seen.
     // Used to emit charger connect/disconnect transitions from the sticky
@@ -50,6 +51,7 @@ class PersistentMonitorService : Service() {
         registerReceivers()
         registerTorchCallback()
         startCalendarObserver()
+        deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
         Log.i(TAG, "Persistent monitor started")
     }
 
@@ -74,6 +76,8 @@ class PersistentMonitorService : Service() {
         mediaSessionMonitor = null
         calendarObserver?.stop()
         calendarObserver = null
+        deviceStateMonitor?.stop()
+        deviceStateMonitor = null
         Log.i(TAG, "Persistent monitor stopped")
         super.onDestroy()
     }
@@ -229,6 +233,12 @@ class PersistentMonitorService : Service() {
                 putExtra(EXTRA_CHARGER_SOURCE, source)
             }
         ContextCompat.startForegroundService(context, serviceIntent)
+        // Same edge as a device-state change so DeviceState triggers can
+        // bind "charging" without a dedicated charger trigger.
+        deviceStateMonitor?.emitExternal(
+            com.tdvorak.nothingmodes.engine.model.DeviceStateKeys.CHARGING_STATUS,
+            if (isConnected) "charging" else "discharging",
+        )
     }
 
     private fun unregisterReceivers() {

@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -59,7 +60,7 @@ fun ConditionConfigScreen(
         topBar = {
             NothingTopBar(
                 title = "Configure Condition",
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr("automations") },
             )
         },
     ) { padding ->

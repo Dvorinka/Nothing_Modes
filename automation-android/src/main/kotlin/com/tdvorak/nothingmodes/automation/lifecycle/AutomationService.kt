@@ -91,6 +91,7 @@ class AutomationService : Service() {
             ACTION_MEDIA_PLAYBACK -> handleMediaPlayback(intent)
             ACTION_MANUAL -> handleManual(intent)
             ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
+            ACTION_DEVICE_STATE -> handleDeviceState(intent)
         }
 
         // Stop only when all in-flight jobs are done
@@ -442,6 +443,19 @@ class AutomationService : Service() {
         )
     }
 
+    private fun handleDeviceState(intent: Intent) {
+        val key = intent.getStringExtra(DeviceStateMonitor.EXTRA_STATE_KEY) ?: return
+        val value = intent.getStringExtra(DeviceStateMonitor.EXTRA_STATE_VALUE) ?: return
+        dispatchEvent(
+            TriggerEvent.DeviceStateChanged(
+                eventId = "dstate:$key:${System.currentTimeMillis()}",
+                key = key,
+                value = value,
+                previous = intent.getStringExtra(DeviceStateMonitor.EXTRA_STATE_PREVIOUS),
+            ),
+        )
+    }
+
     private fun handleCalendarEvent(intent: Intent) {
         val directionStr = intent.getStringExtra(PersistentMonitorService.EXTRA_CAL_DIRECTION) ?: return
         val direction =
@@ -478,7 +492,7 @@ class AutomationService : Service() {
                     val isEnd = event is TriggerEvent.ModeWindowEnd
                     val helper = ModeNotificationHelper(this@AutomationService)
                     outcomes.forEach { outcome ->
-                        if (isEnd) {
+                        if (isEnd || outcome.isDeactivation) {
                             helper.postOnEnd(outcome.automation)
                         } else {
                             helper.postOnTrigger(outcome.automation, outcome.results)
@@ -585,6 +599,7 @@ class AutomationService : Service() {
         const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
         const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
         const val ACTION_MEDIA_PLAYBACK = "com.tdvorak.nothingmodes.MEDIA_PLAYBACK"
+        const val ACTION_DEVICE_STATE = "com.tdvorak.nothingmodes.DEVICE_STATE"
         const val EXTRA_MEDIA_PLAYING = "media_playing"
         const val EXTRA_MEDIA_PACKAGE = "media_pkg"
         const val EXTRA_MEDIA_ARTIST = "media_artist"

@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
+import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Transition
@@ -582,5 +583,93 @@ class TriggerMatcherTest {
         val trigger = Trigger.Connectivity(medium = ConnMedium.AIRPLANE, state = ConnState.DISCONNECTED)
         val event = TriggerEvent.ConnectivityChanged("e1", ConnMedium.AIRPLANE, ConnState.DISCONNECTED, null)
         assertTrue(matcher.matches(trigger, event))
+    }
+
+    // --- DeviceState ---
+
+    @Test
+    fun `DeviceState trigger matches transition to target value`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.GLYPH_INTERFACE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.GLYPH_INTERFACE, value = "1", previous = "0")
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState trigger does not match a different value`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.GLYPH_INTERFACE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.GLYPH_INTERFACE, value = "0", previous = "1")
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState trigger does not match a different key`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.GLYPH_INTERFACE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.AIRPLANE, value = "1", previous = "0")
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState trigger ignores repeat events without a real change`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.GLYPH_INTERFACE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.GLYPH_INTERFACE, value = "1", previous = "1")
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState wildcard matches any value change`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.ANY_VALUE)
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.VOLUME_MEDIA, value = "12", previous = "8")
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState wildcard ignores repeat events`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.ANY_VALUE)
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.VOLUME_MEDIA, value = "12", previous = "12")
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- Inverse edges ---
+
+    @Test
+    fun `charger-on trigger has inverse edge on disconnect`() {
+        val trigger = Trigger.ChargerConnected(connected = true)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = false, source = null)
+        assertTrue(matcher.isInverseEdge(trigger, event))
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `charger-on trigger has no inverse edge on reconnect`() {
+        val trigger = Trigger.ChargerConnected(connected = true)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = null)
+        assertFalse(matcher.isInverseEdge(trigger, event))
+    }
+
+    @Test
+    fun `torch-on trigger has inverse edge on torch off`() {
+        val trigger = Trigger.TorchState(on = true)
+        assertTrue(matcher.isInverseEdge(trigger, TriggerEvent.TorchStateChanged("e1", on = false)))
+    }
+
+    @Test
+    fun `DeviceState trigger has inverse edge when value moves away`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.BATTERY_SHARE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.BATTERY_SHARE, value = "0", previous = "1")
+        assertTrue(matcher.isInverseEdge(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState wildcard has no inverse edge`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.ANY_VALUE)
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.VOLUME_MEDIA, value = "9", previous = "12")
+        assertFalse(matcher.isInverseEdge(trigger, event))
+    }
+
+    @Test
+    fun `DeviceState inverse edge ignores unrelated keys`() {
+        val trigger = Trigger.DeviceState(DeviceStateKeys.BATTERY_SHARE, "1")
+        val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.AIRPLANE, value = "0", previous = "1")
+        assertFalse(matcher.isInverseEdge(trigger, event))
     }
 }

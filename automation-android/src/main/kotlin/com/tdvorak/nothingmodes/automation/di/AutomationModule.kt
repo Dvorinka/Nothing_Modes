@@ -146,6 +146,7 @@ object AutomationModule {
         snapshotStore: StateSnapshotStore,
         settingReader: SettingReader,
         modeActivationSink: com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink,
+        modeActivationProvider: com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider,
     ): Engine =
         Engine(
             store = store,
@@ -156,6 +157,7 @@ object AutomationModule {
             snapshotStore = snapshotStore,
             settingReader = settingReader,
             modeActivationSink = modeActivationSink,
+            modeActivationProvider = modeActivationProvider,
             executionIds = StableExecutionIdFactory,
         )
 

@@ -73,6 +73,7 @@ fun ActionConfigSheet(
     onDismiss: () -> Unit,
     caps: DeviceCapabilities = DeviceCapabilities(),
     onOpenGlyphStudio: (() -> Unit)? = null,
+    onOpenGlyphMuseum: (() -> Unit)? = null,
 ) {
     var current by remember(action) { mutableStateOf(action) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -144,8 +145,8 @@ fun ActionConfigSheet(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 GlyphSheetExtras(
-                    caps = caps,
                     onOpenGlyphStudio = onOpenGlyphStudio,
+                    onOpenGlyphMuseum = onOpenGlyphMuseum,
                     onPickSaved = { current = Action.GlyphIcon(it) },
                 )
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -928,6 +929,22 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.SetGlyphInterface -> {
+            Column {
+                BooleanRow(
+                    label = "Glyph interface enabled",
+                    checked = a.on,
+                    onChange = { onActionChange(a.copy(on = it)) },
+                )
+                Text(
+                    text = "Nothing OS master switch for the whole Glyph interface. Off disables every Glyph light feature device-wide.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
+
         is Action.GlyphTurnOff,
         is Action.ClearNotifications,
         -> {
@@ -1034,18 +1051,16 @@ fun ActionConfigContent(
  *  and vice versa, same rule as the catalog rows. */
 internal fun glyphDesignTypes(caps: DeviceCapabilities): List<Pair<String, Action>> {
     val resolver = CapabilityResolver(caps)
+    // Studio-first: raw text/icon/number/matrix rows were dropped — a saved
+    // or imported design (Glyph Studio, Glyph Museum) covers them better.
     return listOf(
-        "Light stripe" to Action.SetGlyph(true),
-        "Matrix pattern" to Action.SetGlyphMatrix(null),
+        "Design" to Action.GlyphIcon("check"),
         "Preset" to Action.GlyphPreset("sleep"),
-        "Text" to Action.GlyphText(""),
-        "Scrolling text" to Action.GlyphScrollingText(""),
-        "Icon" to Action.GlyphIcon("check"),
-        "Number" to Action.GlyphNumber(0),
-        "Countdown" to Action.GlyphCountdown(30),
-        "Progress" to Action.GlyphProgress(50),
         "Animation" to Action.GlyphAnimate(),
+        "Progress" to Action.GlyphProgress(50),
+        "Countdown" to Action.GlyphCountdown(30),
         "Music visualizer" to Action.GlyphMusic(),
+        "Light stripe" to Action.SetGlyph(true),
     ).filter { (_, action) ->
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         !com.tdvorak.nothingmodes.ui.util.isHardwareBlocked(
@@ -1059,8 +1074,8 @@ internal fun glyphDesignTypes(caps: DeviceCapabilities): List<Pair<String, Actio
  *  the design-type selector so every glyph entry point lives in one sheet. */
 @Composable
 private fun GlyphSheetExtras(
-    caps: DeviceCapabilities,
     onOpenGlyphStudio: (() -> Unit)?,
+    onOpenGlyphMuseum: (() -> Unit)?,
     onPickSaved: (String) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1080,29 +1095,15 @@ private fun GlyphSheetExtras(
             }
         }
     }
-    if (onOpenGlyphStudio != null) {
+    if (onOpenGlyphStudio != null || onOpenGlyphMuseum != null) {
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         Row(horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs)) {
-            NothingPillButton(text = "Open Glyph Studio", onClick = onOpenGlyphStudio)
-            NothingPillButton(
-                text = "Glyph Museum",
-                onClick = {
-                    val pkg = "com.pauwma.glyphmuseum"
-                    val launch = context.packageManager.getLaunchIntentForPackage(pkg)
-                    if (launch != null) {
-                        context.startActivity(launch)
-                    } else {
-                        context.startActivity(
-                            android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse(
-                                    "https://play.google.com/store/apps/details?id=$pkg",
-                                ),
-                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-            )
+            if (onOpenGlyphStudio != null) {
+                NothingPillButton(text = "Open Glyph Studio", onClick = onOpenGlyphStudio)
+            }
+            if (onOpenGlyphMuseum != null) {
+                NothingPillButton(text = "Glyph Museum", onClick = onOpenGlyphMuseum)
+            }
         }
     }
 }
@@ -1185,7 +1186,8 @@ private fun actionTitle(action: Action): String =
         is Action.GlyphPreset -> "Glyph preset"
         is Action.GlyphText -> "Glyph text"
         is Action.GlyphScrollingText -> "Glyph scrolling text"
-        is Action.GlyphIcon -> "Glyph icon"
+        is Action.GlyphIcon -> "Glyph design"
+        is Action.SetGlyphInterface -> "Glyph interface"
         is Action.GlyphNumber -> "Glyph number"
         is Action.GlyphCountdown -> "Glyph countdown"
         is Action.GlyphMusic -> "Glyph music"

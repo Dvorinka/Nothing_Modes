@@ -163,6 +163,7 @@ class RealActionExecutor(
             is Action.GlyphCountdown -> glyphCountdown(action.seconds)
             is Action.GlyphMusic -> glyphMusic(action.style)
             is Action.GlyphTurnOff -> glyphTurnOff()
+            is Action.SetGlyphInterface -> setGlyphInterface(action.on)
 
             // System settings toggles (Phase 4)
             is Action.SetAutoRotate -> setAutoRotate(action.on)
@@ -979,6 +980,21 @@ class RealActionExecutor(
             "global",
             "data_saver",
             if (on) "1" else "0",
+        )
+
+    /**
+     * Nothing OS master Glyph switch (`led_effect_enable`, Global). Off darkens
+     * every Glyph feature device-wide — needs Shizuku, no panel fallback.
+     */
+    private suspend fun setGlyphInterface(on: Boolean): ActionResult =
+        executeShell(
+            listOf(
+                "settings",
+                "put",
+                "global",
+                "led_effect_enable",
+                if (on) "1" else "0",
+            ),
         )
 
     private fun stayAwakeCommand(on: Boolean) =

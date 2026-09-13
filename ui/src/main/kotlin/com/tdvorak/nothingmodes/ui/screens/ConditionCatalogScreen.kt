@@ -58,6 +58,7 @@ import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.tdvorak.nothingmodes.ui.R
@@ -321,7 +322,7 @@ fun ConditionCatalogScreen(navController: NavController) {
         topBar = {
             NothingTopBar(
                 title = stringResource(R.string.picker_add_condition),
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr("automations") },
             )
         },
     ) { padding ->
@@ -454,7 +455,7 @@ private fun conditionCatalogMeta(
     val static = conditionTypeDescription(condition)
     val required = CapabilityRequirements.derive(Trigger.Immediate, emptyList(), condition)
     val resolution = CapabilityResolver(caps).resolve("", required)
-    val badges = requirementBadges(resolution.missing)
+    val badges = requirementBadges(required)
     val subtitle =
         if (!resolution.canRun) {
             missingCapabilityHint(badges, resolution.missingReasons.values.firstOrNull() ?: static)

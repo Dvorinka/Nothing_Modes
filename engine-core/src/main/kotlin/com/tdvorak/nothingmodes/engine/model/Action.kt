@@ -46,6 +46,7 @@ object ActionTypeIds {
     const val GLYPH_NUMBER = "glyph_number"
     const val GLYPH_COUNTDOWN = "glyph_countdown"
     const val GLYPH_MUSIC = "glyph_music"
+    const val SET_GLYPH_INTERFACE = "set_glyph_interface"
     const val SET_MOBILE_DATA = "set_mobile_data"
     const val COPY_TEXT = "copy_text"
     const val WAIT = "wait"
@@ -313,6 +314,19 @@ sealed interface Action {
     @SerialName(ActionTypeIds.GLYPH_TURNOFF)
     data object GlyphTurnOff : Action
 
+    /**
+     * Master Glyph interface switch (Nothing OS `led_effect_enable`).
+     * Off disables every Glyph light feature device-wide; on re-enables it.
+     * Writes a Global settings key — requires Shizuku.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_GLYPH_INTERFACE)
+    data class SetGlyphInterface(
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
     @Serializable
     @SerialName(ActionTypeIds.COPY_TEXT)
     data class CopyText(
@@ -554,6 +568,7 @@ val Action.canRestore: Boolean
             is Action.SetStayAwake,
             is Action.SetGlyph,
             is Action.SetGlyphMatrix,
+            is Action.SetGlyphInterface,
             -> true
             is Action.Group -> actions.any { it.canRestore }
             else -> false
@@ -588,6 +603,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetStayAwake -> copy(restore = restore)
         is Action.SetGlyph -> copy(restore = restore)
         is Action.SetGlyphMatrix -> copy(restore = restore)
+        is Action.SetGlyphInterface -> copy(restore = restore)
         is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
@@ -622,6 +638,7 @@ val Action.supportsRestore: Boolean
             is Action.SetAutoSync -> restore
             is Action.SetRinger -> restore
             is Action.SetStayAwake -> restore
+            is Action.SetGlyphInterface -> restore
             is Action.Group -> actions.any { it.supportsRestore }
             else -> false
         }
@@ -657,6 +674,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetAutoSync -> setOf("auto_sync")
             is Action.SetRinger -> setOf("ringer_mode")
             is Action.SetStayAwake -> setOf("stay_on_while_plugged_in")
+            is Action.SetGlyphInterface -> setOf("led_effect_enable")
             is Action.Group -> actions.flatMap { it.affectedSettings }.toSet()
             else -> emptySet()
         }

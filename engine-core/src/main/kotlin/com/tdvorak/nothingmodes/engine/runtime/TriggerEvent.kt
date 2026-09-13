@@ -132,6 +132,18 @@ sealed interface TriggerEvent {
         val artist: String?,
         val title: String?,
     ) : TriggerEvent
+
+    /**
+     * A named device-state value changed. Emitted by the monitor service for
+     * settings toggles and radios that have no dedicated event type.
+     * [previous] is the last observed value, or null on first observation.
+     */
+    data class DeviceStateChanged(
+        override val eventId: String,
+        val key: String,
+        val value: String,
+        val previous: String?,
+    ) : TriggerEvent
 }
 
 /** Envelope wrapping a trigger event with metadata. */

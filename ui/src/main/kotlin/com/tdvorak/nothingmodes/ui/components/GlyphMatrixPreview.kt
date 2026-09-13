@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.nothing.GlyphIconLibrary
 import com.tdvorak.nothingmodes.nothing.GlyphRasterizer
+import com.tdvorak.nothingmodes.nothing.MusicGlyphRenderer
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
@@ -170,7 +171,7 @@ private fun matrixFrame(
             }
         }
         is Action.GlyphProgress -> progressFrame(action.progress, action.reverse)
-        is Action.GlyphMusic -> musicFrame(phase)
+        is Action.GlyphMusic -> musicFrame(action.style, phase)
         is Action.GlyphAnimate -> breatheFrame(phase)
         is Action.SetGlyph -> stripeFrame(action)
         is Action.GlyphTurnOff -> IntArray(GRID_PIXELS)
@@ -257,20 +258,36 @@ private fun progressFrame(
     }
 }
 
-/** Animated equalizer bars across the grid, driven by [phase]. */
-private fun musicFrame(phase: Float): IntArray {
-    val out = IntArray(GRID_PIXELS)
-    val bars = 9
-    val band = GRID / bars
-    for (b in 0 until bars) {
-        val h = 4 + (sin(phase * 2 * Math.PI + b * 1.25).toFloat() * 0.5f + 0.5f) * (GRID - 10)
-        for (x in b * band + band / 4 until (b + 1) * band - band / 4) {
-            for (y in 0 until GRID) {
-                if (GRID - 1 - y < h) out[y * GRID + x] = 0xFFEDEDED.toInt()
-            }
+/** Live audio isn't available in a preview — synthesize a wave/bands pair from
+ *  [phase] and run it through the real MusicGlyphRenderer, so every style
+ *  renders exactly as the hardware will draw it. */
+private fun musicFrame(
+    style: String,
+    phase: Float,
+): IntArray {
+    val t = phase * 2 * Math.PI
+    val wave =
+        FloatArray(GRID) { x ->
+            (sin(t + x * 0.55) * 0.55f + sin(t * 1.7 + x * 1.3) * 0.35f)
+                .toFloat()
+                .coerceIn(-1f, 1f)
         }
+    val bands =
+        FloatArray(GRID) { x ->
+            (0.15f + 0.85f * abs(sin(t * 0.75 + x * 0.42))).toFloat()
+        }
+    val frame =
+        MusicGlyphRenderer.render(
+            style = style,
+            wave = wave,
+            bands = bands,
+            size = GRID,
+            tick = (phase * 120).toInt(),
+        )
+    // Renderer output is 0..255 brightness — map to LED ARGB.
+    return IntArray(GRID_PIXELS) { i ->
+        if (frame[i] <= 0) 0 else 0xFF000000.toInt() or scaleWhite(frame[i] / 255f)
     }
-    return out
 }
 
 /** Breathing pulse over the whole matrix. */

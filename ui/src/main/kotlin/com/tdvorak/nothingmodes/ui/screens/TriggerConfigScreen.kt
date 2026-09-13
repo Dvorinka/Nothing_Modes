@@ -70,6 +70,7 @@ import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
+import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.PickedCalendarEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
@@ -102,6 +103,7 @@ import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.tdvorak.nothingmodes.ui.R
@@ -122,16 +124,71 @@ private data class TriggerType(
     val trigger: Trigger,
 )
 
+/** A device-state row in the trigger catalog. */
+private data class DeviceStateSpec(
+    val key: String,
+    val category: String,
+    val icon: ImageVector,
+    /** value -> label pairs; null means free-form numeric input. */
+    val values: List<Pair<String, String>>?,
+)
+
+private val BOOL_VALUES = listOf("true" to "On", "false" to "Off")
+
+private fun deviceStateSpecs(): List<DeviceStateSpec> =
+    listOf(
+        // Battery
+        DeviceStateSpec(DeviceStateKeys.CHARGING_STATUS, "Battery", Icons.Outlined.BatteryChargingFull, listOf("charging" to "Charging", "discharging" to "Discharging")),
+        DeviceStateSpec(DeviceStateKeys.POWER_SAVING, "Battery", Icons.Outlined.BatterySaver, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.CHARGING_LIMIT, "Battery", Icons.Outlined.BatteryChargingFull, null),
+        DeviceStateSpec(DeviceStateKeys.BATTERY_SHARE, "Battery", Icons.Outlined.BatteryChargingFull, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.BATTERY_SHARE_LIMIT, "Battery", Icons.Outlined.BatteryChargingFull, null),
+        // Device
+        DeviceStateSpec(DeviceStateKeys.DND_ACTIVE, "Device", Icons.Outlined.DoNotDisturbOn, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.RINGER_MODE, "Device", Icons.Outlined.VolumeUp, listOf("normal" to "Normal", "vibrate" to "Vibrate", "silent" to "Silent")),
+        DeviceStateSpec(DeviceStateKeys.VOLUME_MEDIA, "Device", Icons.Outlined.MusicNote, null),
+        DeviceStateSpec(DeviceStateKeys.VOLUME_RING, "Device", Icons.Outlined.Notifications, null),
+        DeviceStateSpec(DeviceStateKeys.VOLUME_ALARM, "Device", Icons.Outlined.Alarm, null),
+        DeviceStateSpec(DeviceStateKeys.HEADPHONES, "Device", Icons.Outlined.Headphones, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.DARK_MODE, "Device", Icons.Outlined.DarkMode, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.AUTO_ROTATE, "Device", Icons.Outlined.ScreenRotation, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.AOD, "Device", Icons.Outlined.WatchLater, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.THERMAL, "Device", Icons.Outlined.Thermostat, null),
+        // Connections
+        DeviceStateSpec(DeviceStateKeys.WIFI_RADIO, "Connections", Icons.Outlined.Wifi, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.BLUETOOTH_RADIO, "Connections", Icons.Outlined.Bluetooth, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.NFC, "Connections", Icons.Outlined.Nfc, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.LOCATION, "Location", Icons.Outlined.LocationOn, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.HOTSPOT, "Connections", Icons.Outlined.WifiTethering, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.MOBILE_DATA, "Connections", Icons.Outlined.SignalCellularAlt, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.DATA_SAVER, "Connections", Icons.Outlined.DataSaverOn, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.AIRPLANE, "Connections", Icons.Outlined.AirplanemodeActive, BOOL_VALUES),
+        // Glyph
+        DeviceStateSpec(DeviceStateKeys.GLYPH_INTERFACE, "Glyph", Icons.Outlined.Lightbulb, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.GLYPH_CHARGE_LED, "Glyph", Icons.Outlined.FlashlightOn, BOOL_VALUES),
+    )
+
+/** Default value for a new device-state trigger of the given key. */
+private fun defaultDeviceStateValue(spec: DeviceStateSpec): String =
+    spec.values?.first()?.first
+        ?: when (spec.key) {
+            DeviceStateKeys.RINGER_MODE -> "silent"
+            DeviceStateKeys.CHARGING_STATUS -> "charging"
+            DeviceStateKeys.THERMAL -> "3"
+            DeviceStateKeys.CHARGING_LIMIT, DeviceStateKeys.BATTERY_SHARE_LIMIT -> "50"
+            else -> "true"
+        }
+
 private fun triggerTypes(): List<TriggerType> =
     listOf(
+        // Time / Day covers one-shot times AND windowed modes — toggle inside.
         TriggerType("Time / Day", "Schedule", Icons.Outlined.Schedule, Trigger.Time(cron = "0 12 * * *", tz = defaultTimeZone())),
-        TriggerType("Time window", "Schedule", Icons.Outlined.Alarm, Trigger.TimeWindow("22:00", "07:00", defaultTimeZone())),
         TriggerType("Calendar", "Schedule", Icons.Outlined.CalendarMonth, Trigger.CalendarEvent()),
         TriggerType("Manual", "Manual", Icons.Outlined.TouchApp, Trigger.Manual),
         TriggerType("Boot", "Device", Icons.Outlined.PowerSettingsNew, Trigger.Boot),
         TriggerType("Screen", "Device", Icons.Outlined.Devices, Trigger.ScreenStateTrigger(ScreenState.ON)),
-        TriggerType("Battery", "Device", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20, BatteryDirection.CHARGING_STARTED)),
-        TriggerType("Charger", "Device", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
+        TriggerType("Battery", "Battery", Icons.Outlined.BatteryFull, Trigger.BatteryLevel(20)),
+        TriggerType("Charger", "Battery", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
         TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
         TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
         TriggerType("Torch", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
@@ -143,7 +200,29 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
         TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
         TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
-    )
+    ) +
+        deviceStateSpecs().map { spec ->
+            TriggerType(
+                label = deviceStateLabel(spec.key),
+                category = spec.category,
+                icon = spec.icon,
+                trigger = Trigger.DeviceState(spec.key, defaultDeviceStateValue(spec)),
+            )
+        }
+
+/** Whether a catalog row represents the given trigger — Time/Day covers
+ *  TimeWindow, and device-state rows match on their key, not the class. */
+private fun matchesRow(
+    row: TriggerType,
+    trigger: Trigger,
+): Boolean =
+    when {
+        row.trigger is Trigger.Time ->
+            trigger is Trigger.Time || trigger is Trigger.TimeWindow
+        row.trigger is Trigger.DeviceState && trigger is Trigger.DeviceState ->
+            row.trigger.key == trigger.key
+        else -> row.trigger::class == trigger::class
+    }
 
 @Composable
 fun TriggerConfigScreen(
@@ -166,7 +245,7 @@ fun TriggerConfigScreen(
         topBar = {
             NothingTopBar(
                 title = stringResource(R.string.picker_configure_trigger),
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr("automations") },
             )
         },
     ) { padding ->
@@ -181,7 +260,7 @@ fun TriggerConfigScreen(
                 // Card is the whole screen: type header pinned inside it,
                 // fields top-aligned below the divider, Done pinned under it.
                 val currentType =
-                    triggerTypes().firstOrNull { it.trigger::class == trigger::class }
+                    triggerTypes().firstOrNull { matchesRow(it, trigger) }
                 NothingConfigCard(
                     modifier = Modifier.weight(1f),
                     header = {
@@ -295,7 +374,7 @@ private fun TriggerTypePickerDialog(
                 val required = CapabilityRequirements.derive(type.trigger, emptyList())
                 val resolution = resolver.resolve(type.label, required)
                 if (isHardwareBlocked(resolution.missing, caps)) return@mapNotNull null
-                val badges = requirementBadges(resolution.missing)
+                val badges = requirementBadges(required)
                 CatalogEntry(
                     label = type.label,
                     category = type.category,
@@ -351,9 +430,9 @@ private fun TriggerTypePickerDialog(
                         }
                     },
                     searchPlaceholder = stringResource(R.string.picker_find_trigger),
-                    categoryOrder = listOf("Schedule", "Device", "Apps", "Connections", "Location", "Manual"),
+                    categoryOrder = listOf("Schedule", "Battery", "Device", "Glyph", "Apps", "Connections", "Location", "Manual"),
                     isSelected = { entry ->
-                        types.firstOrNull { it.label == entry.label }?.trigger?.let { it::class == selected::class } == true
+                        types.firstOrNull { it.label == entry.label }?.let { matchesRow(it, selected) } == true
                     },
                     horizontalPadding = NothingSpacing.md,
                     bottomPadding = NothingSpacing.xxl,
@@ -388,6 +467,13 @@ private fun TriggerConfigContent(
         is Trigger.Time ->
             Column {
                 ExactAlarmWarning(caps)
+                TimeWindowToggle(
+                    checked = false,
+                    onToggle = { on ->
+                        if (on) onUpdate(timeToWindow(t))
+                    },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 CustomTimePicker(
                     trigger = t,
                     onUpdate = onUpdate,
@@ -397,6 +483,13 @@ private fun TriggerConfigContent(
         is Trigger.TimeWindow ->
             Column {
                 ExactAlarmWarning(caps)
+                TimeWindowToggle(
+                    checked = true,
+                    onToggle = { on ->
+                        if (!on) onUpdate(windowToTime(t))
+                    },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 TimeWindowContent(
                     trigger = t,
                     onUpdate = onUpdate,
@@ -498,7 +591,59 @@ private fun TriggerConfigContent(
                 trigger = t,
                 onUpdate = onUpdate,
             )
+
+        is Trigger.DeviceState ->
+            DeviceStateContent(
+                trigger = t,
+                onUpdate = onUpdate,
+            )
     }
+}
+
+/** Toggle between one-shot time and a sustained window, keeping tz/days. */
+@Composable
+private fun TimeWindowToggle(
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    BooleanRow(
+        label = "Time window (mode)",
+        checked = checked,
+        onChange = onToggle,
+    )
+    Spacer(modifier = Modifier.height(NothingSpacing.xs))
+    HelpText(
+        text =
+            if (checked) {
+                "Mode stays active between the two times and restores settings when it ends. Turn off for a single scheduled run."
+            } else {
+                "Runs once per schedule. Turn on to keep the mode active between a start and end time instead."
+            },
+    )
+}
+
+private fun timeToWindow(t: Trigger.Time): Trigger.TimeWindow {
+    // Carry a simple daily "H m" cron over as the window start.
+    val parts = t.cron?.split(" ")?.filter { it.isNotBlank() }
+    val (h, m) =
+        if (parts != null && parts.size == 5 && parts[1].toIntOrNull() != null && parts[0].toIntOrNull() != null) {
+            parts[1].toInt() to parts[0].toInt()
+        } else {
+            22 to 0
+        }
+    return Trigger.TimeWindow(
+        startLocal = "%02d:%02d".format(h, m),
+        endLocal = "07:00",
+        tz = t.tz,
+        days = t.days,
+    )
+}
+
+private fun windowToTime(t: Trigger.TimeWindow): Trigger.Time {
+    val parts = t.startLocal.split(":")
+    val h = parts.getOrNull(0)?.toIntOrNull() ?: 22
+    val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    return Trigger.Time(cron = "$m $h * * *", tz = t.tz, days = t.days)
 }
 
 @Composable
@@ -563,24 +708,19 @@ private fun BatteryLevelContent(
     trigger: Trigger.BatteryLevel,
     onUpdate: (Trigger.BatteryLevel) -> Unit,
 ) {
+    // Level crossing in either direction — charging edges live on Charger.
+    LaunchedEffect(Unit) {
+        if (trigger.direction != null) onUpdate(trigger.copy(direction = null))
+    }
     Column {
         NothingInput(
             value = trigger.level.toString(),
             onValueChange = { onUpdate(trigger.copy(level = it.toIntOrNull() ?: trigger.level)) },
             label = "Level (%)",
-            infoText = "Fires when the battery crosses this percent in the direction chosen below.",
+            infoText = "Fires when the battery crosses this percent, charging or not.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingEnumSelector(
-            label = "Direction",
-            value = (trigger.direction ?: BatteryDirection.CHARGING_STARTED).name.enumLabel(),
-            options = enumLabelList<BatteryDirection>(),
-            onSelect = { dir ->
-                onUpdate(trigger.copy(direction = enumByLabel<BatteryDirection>(dir)))
-            },
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        HelpText(text = "Fires when the battery crosses this level while charging or discharging.")
+        HelpText(text = "For charging start/stop and power sources use the Charger trigger. Power saving, charge limit and battery share are under Battery in the trigger list.")
     }
 }
 
@@ -590,10 +730,12 @@ private fun ChargerConnectedContent(
     onUpdate: (Trigger.ChargerConnected) -> Unit,
 ) {
     Column {
-        BooleanRow(
-            label = if (trigger.connected) "On connect" else "On disconnect",
-            checked = trigger.connected,
-            onChange = { onUpdate(trigger.copy(connected = it)) },
+        NothingEnumSelector(
+            label = "Charging On/Off",
+            value = if (trigger.connected) "On" else "Off",
+            options = listOf("On", "Off"),
+            onSelect = { onUpdate(trigger.copy(connected = it == "On")) },
+            infoText = "On fires when charging starts; Off when it stops. A mode using this stays active while the state holds and restores when it flips.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(
@@ -615,7 +757,80 @@ private fun ChargerConnectedContent(
                     "\n\nANY (default) fires for every source.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        HelpText(text = "Fires when a charger is connected or disconnected. Source is optional — tap ⓘ for what each source means.")
+        HelpText(text = "Fires when the device starts or stops charging. Source is optional — tap ⓘ for what each source means.")
+    }
+}
+
+@Composable
+private fun DeviceStateContent(
+    trigger: Trigger.DeviceState,
+    onUpdate: (Trigger.DeviceState) -> Unit,
+) {
+    val spec = deviceStateSpecs().firstOrNull { it.key == trigger.key }
+    val label = deviceStateLabel(trigger.key)
+    Column {
+        val options = spec?.values
+        if (options != null) {
+            NothingEnumSelector(
+                label = "State",
+                value =
+                    if (trigger.value == DeviceStateKeys.ANY_VALUE) {
+                        "Any change"
+                    } else {
+                        options.firstOrNull { it.first == trigger.value }?.second
+                            ?: deviceStateValueLabel(trigger.key, trigger.value)
+                    },
+                options = listOf("Any change") + options.map { it.second },
+                onSelect = { selected ->
+                    val value =
+                        if (selected == "Any change") {
+                            DeviceStateKeys.ANY_VALUE
+                        } else {
+                            options.firstOrNull { it.second == selected }?.first ?: trigger.value
+                        }
+                    onUpdate(trigger.copy(value = value))
+                },
+            )
+        } else {
+            BooleanRow(
+                label = "Any change",
+                checked = trigger.value == DeviceStateKeys.ANY_VALUE,
+                onChange = { any ->
+                    onUpdate(
+                        trigger.copy(
+                            value = if (any) DeviceStateKeys.ANY_VALUE else "0",
+                        ),
+                    )
+                },
+            )
+            if (trigger.value != DeviceStateKeys.ANY_VALUE) {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = trigger.value,
+                    onValueChange = { onUpdate(trigger.copy(value = it)) },
+                    label = "Value",
+                    infoText =
+                        when (trigger.key) {
+                            DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.VOLUME_RING, DeviceStateKeys.VOLUME_ALARM ->
+                                "Stream volume level, 0 to max."
+                            DeviceStateKeys.THERMAL ->
+                                "0 none, 1 light, 2 moderate, 3 severe, 4 critical, 5 emergency, 6 shutdown."
+                            DeviceStateKeys.CHARGING_LIMIT, DeviceStateKeys.BATTERY_SHARE_LIMIT ->
+                                "Percent, 0–100."
+                            else -> "Raw value the monitor reports for this key."
+                        },
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(
+            text =
+                if (trigger.value == DeviceStateKeys.ANY_VALUE) {
+                    "Fires on every change of $label."
+                } else {
+                    "Mode runs while $label is ${deviceStateValueLabel(trigger.key, trigger.value).lowercase()}, and ends — restoring settings — when it changes."
+                },
+        )
     }
 }
 

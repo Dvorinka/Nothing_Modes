@@ -72,6 +72,7 @@ import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.tdvorak.nothingmodes.ui.R
@@ -158,6 +159,32 @@ fun ActionCatalogScreen(navController: NavController) {
                     desc = "Show a design, animation, or the music visualizer on the Glyph.",
                 ),
                 ActionItem(
+                    "Glyph on",
+                    "Glyph",
+                    Icons.Outlined.Lightbulb,
+                    action = Action.SetGlyph(true),
+                    kind = RowKind.DIRECT,
+                    desc = "Switches the Glyph light on.",
+                ),
+                // Same "Glyph on" for matrix phones — the stripe variant is
+                // hardware-hidden there, so exactly one row shows per device.
+                ActionItem(
+                    "Glyph on",
+                    "Glyph",
+                    Icons.Outlined.Lightbulb,
+                    action = Action.SetGlyphMatrix(colors = List(625) { 255 }),
+                    kind = RowKind.DIRECT,
+                    desc = "Lights the whole Glyph Matrix.",
+                ),
+                ActionItem(
+                    "Glyph interface",
+                    "Glyph",
+                    Icons.Outlined.ToggleOn,
+                    action = Action.SetGlyphInterface(true),
+                    kind = RowKind.CONFIG,
+                    desc = "Nothing OS master switch for all Glyph lights. Needs Shizuku.",
+                ),
+                ActionItem(
                     "Glyph flashlight",
                     "Glyph",
                     Icons.Outlined.FlashlightOn,
@@ -229,7 +256,7 @@ fun ActionCatalogScreen(navController: NavController) {
         topBar = {
             NothingTopBar(
                 title = stringResource(R.string.picker_add_action),
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr("automations") },
             )
         },
     ) { padding ->
@@ -242,11 +269,18 @@ fun ActionCatalogScreen(navController: NavController) {
             CatalogPickerContent(
                 entries = catalogEntries,
                 onSelect = { entry ->
-                    val actionItem = items.firstOrNull { it.label == entry.label } ?: return@CatalogPickerContent
+                    // Hardware-blocked rows never become catalog entries, so a
+                    // label alone can point at the wrong twin (e.g. "Glyph on"
+                    // stripe vs matrix) — pick the first non-blocked match.
+                    val actionItem =
+                        items.firstOrNull {
+                            it.label == entry.label && it.action != null &&
+                                !actionCatalogMeta(it.action!!, caps).third
+                        } ?: return@CatalogPickerContent
                     editingIndex = null
                     when (actionItem.kind) {
                         RowKind.GLYPH_PICKER -> {
-                            val action = Action.GlyphPreset("sleep")
+                            val action = Action.GlyphIcon("check")
                             val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
                             if (resolver.resolve(actionItem.label, required).canRun) {
                                 configAction = action
@@ -254,7 +288,9 @@ fun ActionCatalogScreen(navController: NavController) {
                                 pendingAction = action
                             }
                         }
-                        RowKind.DIRECT -> actionItem.action?.let { selected = selected + it }
+                        RowKind.DIRECT -> actionItem.action?.let {
+                            if (it !in selected) selected = selected + it
+                        }
                         RowKind.CONFIG -> {
                             val action = actionItem.action ?: return@CatalogPickerContent
                             val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
@@ -359,6 +395,7 @@ fun ActionCatalogScreen(navController: NavController) {
             action = action,
             caps = caps,
             onOpenGlyphStudio = { navController.navigate("glyph_editor") },
+            onOpenGlyphMuseum = { navController.navigate("glyph_museum") },
             onDone = { updated ->
                 if (editingIndex != null) {
                     selected = selected.toMutableList().also { it[editingIndex!!] = updated }
@@ -382,7 +419,7 @@ private fun actionCatalogMeta(
 ): Triple<String, List<String>, Boolean> {
     val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
     val resolution = CapabilityResolver(caps).resolve("", required)
-    val badges = requirementBadges(resolution.missing)
+    val badges = requirementBadges(required)
     val hint = actionRequirementHint(action)
     val static =
         if (resolution.canRun && hint != null && (hint.startsWith("Needs") || hint.startsWith("Detected"))) {

@@ -1,0 +1,7 @@
+- Stateful modes: charger, torch, screen, media, Bluetooth, Wi-Fi, and device-state triggers now run as modes — activate when the state starts, restore settings and clear the Glyph when it ends
+- Triggers: merged Time/Day with the time window; Charger now asks "Charging On/Off" with an optional source; new device-state triggers (charging status, power saving, charge limit, battery share, DND, ringer, volumes, headphones, dark mode, auto-rotate, AOD, and more)
+- Actions: Glyph on, Glyph off, and Glyph interface (the Nothing OS master switch, needs Shizuku); direct actions can no longer be added twice
+- Glyph picker reworked around Glyph Studio — saved and imported designs lead, with Open Glyph Studio and Glyph Museum one tap away
+- Music visualizer preview now renders the selected style (waveform, bars, mirror, pulse, vinyl) instead of one fixed animation
+- Catalog rows now show what they need — SHIZUKU, GLYPH, USAGE, PHONE, LOC, CAL, NOTIF badges appear even when already granted
+- Fix: top-bar back buttons always return to the previous page instead of exiting to the launcher

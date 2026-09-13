@@ -25,6 +25,7 @@ object CapabilityIds {
     const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
     const val TRIGGER_TORCH_STATE = "trigger_torch_state"
     const val TRIGGER_MEDIA_PLAYBACK = "trigger_media_playback"
+    const val TRIGGER_DEVICE_STATE = "trigger_device_state"
 
     // State readers
     const val STATE_READER_BUILTIN = "state_reader_builtin"
@@ -86,6 +87,7 @@ object CapabilityIds {
     const val ACTION_SET_AOD = "action_set_aod"
     const val ACTION_TAKE_SCREENSHOT = "action_take_screenshot"
     const val ACTION_SET_STAY_AWAKE = "action_set_stay_awake"
+    const val ACTION_SET_GLYPH_INTERFACE = "action_set_glyph_interface"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -127,6 +129,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             CapabilityIds.ACTION_GLYPH_MUSIC,
             -> "Nothing Glyph Matrix"
+            CapabilityIds.ACTION_SET_GLYPH_INTERFACE -> "Nothing Glyph interface switch"
             CapabilityIds.ACTION_SET_STAY_AWAKE -> "Stay awake while charging"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
@@ -189,6 +192,7 @@ object CapabilityRequirements {
             is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.TorchState -> setOf(CapabilityIds.TRIGGER_TORCH_STATE)
             is Trigger.MediaPlayback -> setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK)
+            is Trigger.DeviceState -> setOf(CapabilityIds.TRIGGER_DEVICE_STATE)
         }
 
     private fun actionCapabilities(action: Action): Set<String> =
@@ -223,6 +227,8 @@ object CapabilityRequirements {
             is Action.GlyphCountdown -> setOf(CapabilityIds.ACTION_GLYPH_COUNTDOWN)
             is Action.GlyphMusic -> setOf(CapabilityIds.ACTION_GLYPH_MUSIC)
             is Action.GlyphTurnOff -> setOf(CapabilityIds.ACTION_GLYPH_TURNOFF)
+            is Action.SetGlyphInterface ->
+                setOf(CapabilityIds.ACTION_SET_GLYPH_INTERFACE, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.CopyText -> setOf(CapabilityIds.ACTION_COPY_TEXT)
             is Action.Wait -> setOf(CapabilityIds.ACTION_WAIT)
             is Action.WriteSetting -> setOf(CapabilityIds.ACTION_WRITE_SETTING, CapabilityIds.SHIZUKU_REQUIRED)

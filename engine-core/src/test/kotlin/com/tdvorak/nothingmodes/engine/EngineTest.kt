@@ -279,6 +279,130 @@ class EngineTest {
     }
 
     @Test
+    fun `lifecycle mode activates, ignores repeats, and deactivates on inverse edge`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val automation =
+                Automation(
+                    id = AutomationId("charge-mode"),
+                    name = "Charging glyph",
+                    type = AutomationType.MODE,
+                    createdBy = CreatedBy.USER,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.ChargerConnected(connected = true),
+                    actions = listOf(Action.GlyphIcon("check"), Action.SetDnd(DndMode.PRIORITY)),
+                )
+            store.save(automation)
+
+            val executed = mutableListOf<Action>()
+            val active = mutableSetOf<String>()
+            val engine =
+                Engine(
+                    store = store,
+                    executor =
+                        com.tdvorak.nothingmodes.engine.runtime.ActionExecutor { action, _ ->
+                            executed += action
+                            ActionResult.Success
+                        },
+                    modeActivationSink =
+                        object : com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink {
+                            override suspend fun activate(
+                                automationId: AutomationId,
+                                atMillis: Long,
+                            ) {
+                                active += automationId.value
+                            }
+
+                            override suspend fun deactivate(
+                                automationId: AutomationId,
+                                atMillis: Long,
+                            ) {
+                                active -= automationId.value
+                            }
+                        },
+                    modeActivationProvider =
+                        com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider {
+                            active.toList()
+                        },
+                )
+
+            fun envelope(id: String, event: TriggerEvent) =
+                TriggerEnvelope(id = id, event = event, receivedAtMillis = System.currentTimeMillis())
+
+            // Activation edge: actions run, mode marked active.
+            val on =
+                engine.onTrigger(
+                    envelope("e1", TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = null)),
+                )
+            assertEquals(1, on.size)
+            assertEquals(false, on[0].isDeactivation)
+            assertEquals(2, on[0].results.size)
+            assertTrue("charge-mode" in active)
+            assertEquals(2, executed.size)
+
+            // Repeated activation edge while active: no outcome, no re-run.
+            val repeat =
+                engine.onTrigger(
+                    envelope("e2", TriggerEvent.ChargerConnectedChanged("e2", connected = true, source = null)),
+                )
+            assertEquals(0, repeat.size)
+            assertEquals(2, executed.size)
+
+            // Inverse edge: deactivation — no action re-run, glyph cleared,
+            // mode removed from the active set.
+            val off =
+                engine.onTrigger(
+                    envelope("e3", TriggerEvent.ChargerConnectedChanged("e3", connected = false, source = null)),
+                )
+            assertEquals(1, off.size)
+            assertEquals(true, off[0].isDeactivation)
+            assertTrue(off[0].results.isEmpty())
+            assertTrue("charge-mode" !in active)
+            // Exactly one extra execution: the synthetic GlyphTurnOff — the
+            // original actions (GlyphIcon, SetDnd) must NOT re-run.
+            assertEquals(1, executed.size - 2)
+            assertEquals(Action.GlyphTurnOff, executed.last())
+
+            // Inverse edge again, now inactive: nothing to end.
+            val offAgain =
+                engine.onTrigger(
+                    envelope("e4", TriggerEvent.ChargerConnectedChanged("e4", connected = false, source = null)),
+                )
+            assertEquals(0, offAgain.size)
+        }
+
+    @Test
+    fun `lifecycle mode ignores inverse edge when never activated`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            store.save(
+                Automation(
+                    id = AutomationId("idle-mode"),
+                    name = "Idle",
+                    type = AutomationType.MODE,
+                    createdBy = CreatedBy.USER,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.ChargerConnected(connected = true),
+                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                ),
+            )
+            val engine =
+                Engine(
+                    store = store,
+                    executor = NoopActionExecutor,
+                )
+            val outcomes =
+                engine.onTrigger(
+                    TriggerEnvelope(
+                        id = "e1",
+                        event = TriggerEvent.ChargerConnectedChanged("e1", connected = false, source = null),
+                        receivedAtMillis = System.currentTimeMillis(),
+                    ),
+                )
+            assertEquals(0, outcomes.size)
+        }
+
+    @Test
     fun `cron last day of month matches and computes next fire`() {
         val cron = CronSchedule("0 9 L * *", java.time.ZoneId.of("UTC"))
         val jan31 = java.time.ZonedDateTime.of(2026, 1, 31, 9, 0, 0, 0, java.time.ZoneId.of("UTC"))

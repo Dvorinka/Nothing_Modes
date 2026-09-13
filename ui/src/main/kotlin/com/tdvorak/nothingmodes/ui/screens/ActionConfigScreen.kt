@@ -52,6 +52,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -73,7 +74,7 @@ fun ActionConfigScreen(
         topBar = {
             NothingTopBar(
                 title = "Configure Action",
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStackOr("automations") },
             )
         },
     ) { padding ->
