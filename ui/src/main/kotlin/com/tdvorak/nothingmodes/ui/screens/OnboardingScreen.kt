@@ -76,6 +76,13 @@ class OnboardingViewModel
                 _shizukuStatus.value = shizukuGateway.status()
             }
         }
+
+        fun requestShizukuPermission() {
+            viewModelScope.launch {
+                shizukuGateway.requestPermission(rationaleShown = true)
+                _shizukuStatus.value = shizukuGateway.status()
+            }
+        }
     }
 
 @Composable
@@ -216,13 +223,29 @@ fun OnboardingScreen(
                     OnboardingStep(
                         step = if (capabilities.isNothingDevice) 7 else 6,
                         title = "Shizuku (Optional)",
-                        description = "Wi-Fi, Bluetooth, mobile data toggles.",
+                        description =
+                            when (shizukuStatus) {
+                                ShizukuGatewayStatus.NOT_INSTALLED -> "Wi-Fi, Bluetooth, mobile data toggles. Needs the Shizuku app."
+                                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Installed — open Shizuku and start the service first."
+                                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Running — tap to authorize Nothing Modes."
+                                ShizukuGatewayStatus.AUTHORIZED -> "Wi-Fi, Bluetooth, mobile data toggles."
+                                ShizukuGatewayStatus.UNSUPPORTED -> "Shizuku is too old — update it first."
+                            },
                         done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
                         onAction = {
-                            if (shizukuStatus == ShizukuGatewayStatus.NOT_INSTALLED) {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")),
-                                )
+                            when (shizukuStatus) {
+                                ShizukuGatewayStatus.NOT_INSTALLED,
+                                ShizukuGatewayStatus.UNSUPPORTED,
+                                ->
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")),
+                                    )
+                                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING ->
+                                    context.packageManager
+                                        .getLaunchIntentForPackage("moe.shizuku.privileged.api")
+                                        ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        ?.let(context::startActivity)
+                                else -> viewModel.requestShizukuPermission()
                             }
                         },
                     )

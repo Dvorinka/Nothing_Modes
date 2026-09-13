@@ -1,0 +1,1 @@
+- Fix: onboarding "Shizuku (Optional)" step now actually requests authorization — tap GRANT with Shizuku running and the Shizuku permission prompt appears; installed-but-not-running opens the Shizuku app
