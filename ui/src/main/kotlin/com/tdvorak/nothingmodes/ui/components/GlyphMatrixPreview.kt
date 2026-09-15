@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.nothing.GlyphIconLibrary
 import com.tdvorak.nothingmodes.nothing.GlyphRasterizer
 import com.tdvorak.nothingmodes.nothing.MusicGlyphRenderer
@@ -175,6 +176,10 @@ private fun matrixFrame(
         is Action.GlyphAnimate -> breatheFrame(phase)
         is Action.SetGlyph -> stripeFrame(action)
         is Action.GlyphTurnOff -> IntArray(GRID_PIXELS)
+        is Action.Group ->
+            action.actions.firstOrNull { it.isGlyphAction }
+                ?.let { matrixFrame(it, phase) }
+                ?: IntArray(GRID_PIXELS)
         else -> IntArray(GRID_PIXELS)
     }
 

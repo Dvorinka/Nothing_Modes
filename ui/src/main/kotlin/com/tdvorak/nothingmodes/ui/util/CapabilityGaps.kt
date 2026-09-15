@@ -28,10 +28,12 @@ import com.tdvorak.nothingmodes.ui.util.openAppPermissionPage
 import com.tdvorak.nothingmodes.capabilities.ShizukuCapabilityStatus
 import com.tdvorak.nothingmodes.engine.model.CapabilityIds
 
-/** A missing capability with a human label, an icon, and a fix action. */
+/** A missing capability with a human label, an icon, and a fix action.
+ *  [fixLabel] is null when nothing on this device can fix the gap — the
+ *  dialog then shows no dead-end button. */
 data class CapabilityGap(
     val reason: String,
-    val fixLabel: String,
+    val fixLabel: String?,
     val icon: ImageVector,
     val onFix: () -> Unit,
 )
@@ -85,6 +87,7 @@ private fun iconFor(id: String): ImageVector =
 
         CapabilityIds.TRIGGER_NOTIFICATION,
         CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+        CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
         -> Icons.Outlined.Notifications
 
         CapabilityIds.TRIGGER_APP_OPENED,
@@ -130,7 +133,7 @@ private fun iconFor(id: String): ImageVector =
 private fun fixLabelFor(
     id: String,
     caps: DeviceCapabilities,
-): String =
+): String? =
     when (id) {
         CapabilityIds.SHIZUKU_REQUIRED,
         CapabilityIds.ACTION_SET_DARK_MODE,
@@ -163,6 +166,7 @@ private fun fixLabelFor(
 
         CapabilityIds.TRIGGER_NOTIFICATION,
         CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+        CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
         -> "Grant notification access"
 
         CapabilityIds.TRIGGER_APP_OPENED,
@@ -180,10 +184,11 @@ private fun fixLabelFor(
 
         CapabilityIds.TRIGGER_CALENDAR_EVENT -> "Allow calendar"
         CapabilityIds.ACTION_LOCK_SCREEN -> "Enable device admin"
-        CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi unavailable"
-        CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth unavailable"
-        CapabilityIds.ACTION_SET_FLASHLIGHT -> "Flashlight unavailable"
-        CapabilityIds.ACTION_VIBRATE -> "Vibrator unavailable"
+        // Missing hardware can't be fixed in settings — no button.
+        CapabilityIds.ACTION_SET_WIFI -> null
+        CapabilityIds.ACTION_SET_BLUETOOTH -> null
+        CapabilityIds.ACTION_SET_FLASHLIGHT -> null
+        CapabilityIds.ACTION_VIBRATE -> null
 
         in
         setOf(
@@ -200,7 +205,7 @@ private fun fixLabelFor(
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             CapabilityIds.ACTION_GLYPH_MUSIC,
         ),
-        -> "Glyph not available"
+        -> null
 
         else -> "Open settings"
     }
@@ -261,6 +266,7 @@ private fun openFixFor(
 
         CapabilityIds.TRIGGER_NOTIFICATION,
         CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+        CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
         -> runCatching { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
 
         CapabilityIds.TRIGGER_APP_OPENED,

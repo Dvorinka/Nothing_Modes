@@ -1287,6 +1287,7 @@ fun NothingListRow(
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
     infoText: String? = null,
+    titleColor: androidx.compose.ui.graphics.Color? = null,
 ) {
     val rowModifier =
         if (onClick != null) {
@@ -1321,11 +1322,12 @@ fun NothingListRow(
                         text = title,
                         style = MaterialTheme.typography.bodyLarge,
                         color =
-                            if (selected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+                            titleColor
+                                ?: if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                         maxLines = 2,
                         softWrap = true,
                         overflow = TextOverflow.Ellipsis,
@@ -1357,11 +1359,12 @@ fun NothingListRow(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     color =
-                        if (selected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                        titleColor
+                            ?: if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                     maxLines = 2,
                     softWrap = true,
                     overflow = TextOverflow.Ellipsis,
@@ -1372,7 +1375,7 @@ fun NothingListRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

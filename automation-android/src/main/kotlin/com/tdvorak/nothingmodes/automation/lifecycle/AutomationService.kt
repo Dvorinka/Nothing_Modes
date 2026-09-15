@@ -15,6 +15,7 @@ import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
+import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
@@ -23,6 +24,8 @@ import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.isOneShot
+import com.tdvorak.nothingmodes.engine.model.EngineJson
+import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -33,6 +36,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 /**
@@ -51,6 +56,14 @@ class AutomationService : Service() {
     private val activeJobs = mutableSetOf<Job>()
     private val progressHandler = Handler(Looper.getMainLooper())
     private val pendingProgress = mutableSetOf<Runnable>()
+
+    // Serializes all Engine access — concurrent onTrigger calls race on
+    // lifecycle snapshots and can double-restore or lose activations.
+    private val engineMutex = Mutex()
+
+    // Last observed battery level — lets the matcher detect threshold
+    // crossings when a broadcast is missed (doze, process restart).
+    @Volatile private var lastBatteryLevel: Int? = null
 
     @Volatile private var lastStartId = 0
 
@@ -92,6 +105,7 @@ class AutomationService : Service() {
             ACTION_MANUAL -> handleManual(intent)
             ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
             ACTION_DEVICE_STATE -> handleDeviceState(intent)
+            ACTION_AUTOMATION_REMOVED -> handleAutomationRemoved(intent)
         }
 
         // Stop only when all in-flight jobs are done
@@ -120,7 +134,7 @@ class AutomationService : Service() {
         trackJob(
             scope.launch {
                 store.armed().forEach { automation ->
-                    scheduler.schedule(automation)
+                    rescheduleOne(automation)
                 }
             },
         )
@@ -130,7 +144,7 @@ class AutomationService : Service() {
         trackJob(
             scope.launch {
                 store.armed().forEach { automation ->
-                    scheduler.schedule(automation)
+                    rescheduleOne(automation)
                 }
                 dispatchEvent(
                     TriggerEvent.BootCompleted(
@@ -139,6 +153,13 @@ class AutomationService : Service() {
                 )
             },
         )
+    }
+
+    // One broken automation (e.g. an invalid geofence) must not abort the
+    // whole reschedule — isolate each schedule call.
+    private fun rescheduleOne(automation: Automation) {
+        runCatching { scheduler.schedule(automation) }
+            .onFailure { android.util.Log.w("AutomationService", "Reschedule failed for ${automation.id.value}", it) }
     }
 
     private fun handleTimeFired(intent: Intent) {
@@ -177,12 +198,17 @@ class AutomationService : Service() {
 
     private fun handleNotifyBefore(intent: Intent) {
         val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
-        val name = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_NAME) ?: ""
         val minutes = intent.getIntExtra(AutomationAlarmReceiver.EXTRA_LEAD_MINUTES, 0)
         trackJob(
             scope.launch {
-                store.get(AutomationId(automationId))?.let {
-                    ModeNotificationHelper(this@AutomationService).postBefore(it, minutes)
+                val automation = store.get(AutomationId(automationId)) ?: return@launch
+                // Alarms outlive edits — a BEFORE rule removed since scheduling
+                // would still post a stale notification. Re-check the rule.
+                val stillWanted =
+                    automation.enabled &&
+                        automation.notifyRules.any { it is NotifyRule.Before && it.minutes == minutes }
+                if (stillWanted) {
+                    ModeNotificationHelper(this@AutomationService).postBefore(automation, minutes)
                 }
             },
         )
@@ -207,14 +233,17 @@ class AutomationService : Service() {
     }
 
     private fun handleBatteryChanged(intent: Intent) {
-        val level = intent.getIntExtra(DeviceStateReceiver.EXTRA_BATTERY_LEVEL, -1)
+        val level = intent.getIntExtra(EXTRA_BATTERY_LEVEL, -1)
         if (level < 0) return
-        val isCharging = intent.getBooleanExtra(DeviceStateReceiver.EXTRA_BATTERY_CHARGING, false)
+        val isCharging = intent.getBooleanExtra(EXTRA_BATTERY_CHARGING, false)
+        val previousLevel = lastBatteryLevel
+        lastBatteryLevel = level
         dispatchEvent(
             TriggerEvent.BatteryLevelChanged(
                 eventId = "battery:${System.currentTimeMillis()}",
                 level = level,
                 isCharging = isCharging,
+                previousLevel = previousLevel,
             ),
         )
     }
@@ -244,7 +273,7 @@ class AutomationService : Service() {
     }
 
     private fun handleScreenState(intent: Intent) {
-        val stateName = intent.getStringExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE) ?: return
+        val stateName = intent.getStringExtra(EXTRA_SCREEN_STATE) ?: return
         val state = runCatching { ScreenState.valueOf(stateName) }.getOrNull() ?: return
         dispatchEvent(
             TriggerEvent.ScreenStateChanged(
@@ -262,7 +291,9 @@ class AutomationService : Service() {
     private fun pollDeviceLocked() {
         val km = getSystemService(KeyguardManager::class.java) ?: return
         scope.launch {
-            repeat(10) {
+            // ~10 s window — some devices engage the keyguard a few seconds
+            // after the screen goes dark (power-off animations, double-tap).
+            repeat(20) {
                 if (km.isDeviceLocked) {
                     dispatchEvent(
                         TriggerEvent.DeviceLockedEvent(
@@ -271,7 +302,7 @@ class AutomationService : Service() {
                     )
                     return@launch
                 }
-                kotlinx.coroutines.delay(300)
+                kotlinx.coroutines.delay(500)
             }
         }
     }
@@ -288,6 +319,14 @@ class AutomationService : Service() {
                 title = title,
                 text = text,
                 sender = sender,
+                isGroup =
+                    if (intent.hasExtra(AutomationNotificationListener.EXTRA_IS_GROUP)) {
+                        intent.getBooleanExtra(AutomationNotificationListener.EXTRA_IS_GROUP, false)
+                    } else {
+                        null
+                    },
+                conversationId =
+                    intent.getStringExtra(AutomationNotificationListener.EXTRA_CONVERSATION_ID),
             ),
         )
     }
@@ -400,13 +439,37 @@ class AutomationService : Service() {
     }
 
     private fun handleWifiConnected(intent: Intent) {
-        val ssid = intent.getStringExtra(ConnectivityReceiver.EXTRA_WIFI_SSID) ?: return
+        // Absent extra = the Wi-Fi link dropped (or radio off) — that null is
+        // the inverse edge "while on Wi-Fi" modes wait for.
+        val ssid = intent.getStringExtra(ConnectivityReceiver.EXTRA_WIFI_SSID)
         dispatchEvent(
             TriggerEvent.WifiConnectedChanged(
                 eventId = "wifi_conn:${System.currentTimeMillis()}",
                 ssid = ssid,
             ),
         )
+        // The validated association is the only place the SSID is reliably
+        // known — radio-on arrives too early. Connectivity triggers with a
+        // network-name filter match here.
+        if (ssid != null) {
+            dispatchEvent(
+                TriggerEvent.ConnectivityChanged(
+                    eventId = "conn:${System.currentTimeMillis()}",
+                    medium = ConnMedium.WIFI,
+                    state = ConnState.CONNECTED,
+                    match = ssid,
+                ),
+            )
+        }
+    }
+
+    private fun handleAutomationRemoved(intent: Intent) {
+        val json = intent.getStringExtra(EXTRA_AUTOMATION_JSON) ?: return
+        val automation =
+            runCatching {
+                EngineJson.json.decodeFromString(Automation.serializer(), json)
+            }.getOrNull() ?: return
+        trackJob(scope.launch { engineMutex.withLock { engine.endAutomation(automation) } })
     }
 
     private fun handleTorchState(intent: Intent) {
@@ -488,7 +551,7 @@ class AutomationService : Service() {
                             event = event,
                             receivedAtMillis = System.currentTimeMillis(),
                         )
-                    val outcomes = engine.onTrigger(envelope)
+                    val outcomes = engineMutex.withLock { engine.onTrigger(envelope) }
                     val isEnd = event is TriggerEvent.ModeWindowEnd
                     val helper = ModeNotificationHelper(this@AutomationService)
                     outcomes.forEach { outcome ->
@@ -600,11 +663,16 @@ class AutomationService : Service() {
         const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
         const val ACTION_MEDIA_PLAYBACK = "com.tdvorak.nothingmodes.MEDIA_PLAYBACK"
         const val ACTION_DEVICE_STATE = "com.tdvorak.nothingmodes.DEVICE_STATE"
+        const val ACTION_AUTOMATION_REMOVED = "com.tdvorak.nothingmodes.AUTOMATION_REMOVED"
+        const val EXTRA_AUTOMATION_JSON = "automation_json"
         const val EXTRA_MEDIA_PLAYING = "media_playing"
         const val EXTRA_MEDIA_PACKAGE = "media_pkg"
         const val EXTRA_MEDIA_ARTIST = "media_artist"
         const val EXTRA_MEDIA_TITLE = "media_title"
         const val EXTRA_MANUAL_ID = "manual_automation_id"
+        const val EXTRA_BATTERY_LEVEL = "battery_level"
+        const val EXTRA_BATTERY_CHARGING = "battery_charging"
+        const val EXTRA_SCREEN_STATE = "screen_state"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
     }

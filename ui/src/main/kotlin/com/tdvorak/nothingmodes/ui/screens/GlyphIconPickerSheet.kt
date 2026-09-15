@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
+import com.tdvorak.nothingmodes.nothing.GlyphFrameCodec
 import com.tdvorak.nothingmodes.nothing.GlyphIconLibrary
 import com.tdvorak.nothingmodes.nothing.GlyphMuseumPresets
 import com.tdvorak.nothingmodes.ui.theme.LocalUiStyle
@@ -64,13 +65,14 @@ private sealed class IconOption {
                 }
     }
 
-    data class Emoji(
+    /** A bundled icon from [GlyphIconLibrary] — rendered on-device, no emoji shown. */
+    data class Standard(
         override val key: String,
     ) : IconOption() {
         override val title: String
-            get() = key.replaceFirstChar { it.uppercase() }
+            get() = key.replace('_', ' ').replaceFirstChar { it.uppercase() }
         override val subtitle: String
-            get() = GlyphIconLibrary.emojiFor(key)?.let { "Emoji · $it" } ?: "Standard icon"
+            get() = "Standard icon"
     }
 
     data class Custom(
@@ -117,8 +119,8 @@ fun GlyphIconPickerDialog(
             runCatching { CommunityApi.list(type = "glyph") }
                 .getOrDefault(emptyList())
                 .map { IconOption.Community(it) }
-        val emoji = GlyphIconLibrary.names.map { IconOption.Emoji(it) }
-        options = presets + custom + community + emoji
+        val standard = GlyphIconLibrary.names.map { IconOption.Standard(it) }
+        options = presets + custom + community + standard
     }
 
     val filtered =
@@ -227,6 +229,7 @@ private fun GlyphIconRow(
     busy: Boolean,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     Row(
         modifier =
             Modifier
@@ -237,14 +240,14 @@ private fun GlyphIconRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        if (option is IconOption.Community) {
-            val design = remember(option.item.preview) { glyphPreviewFromJson(option.item.preview) }
-            design?.let {
-                GlyphDesignThumbnail(
-                    design = it,
-                    modifier = Modifier.padding(end = NothingSpacing.sm).height(36.dp),
-                )
-            }
+        // Every option previews as the real matrix frame — what you see is
+        // what the hardware lights up.
+        val design = remember(option.key) { option.previewDesign(context) }
+        if (design != null) {
+            GlyphDesignThumbnail(
+                design = design,
+                modifier = Modifier.padding(end = NothingSpacing.sm).height(36.dp),
+            )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -273,7 +276,26 @@ private fun GlyphIconRow(
     }
 }
 
-/** A readable title for [key] across bundled presets, emoji, and custom glyphs. */
+/** Decode the first frame of [this] option into a thumbnail design. */
+private fun IconOption.previewDesign(context: Context): GlyphFrameCodec.Design? =
+    when (this) {
+        is IconOption.Preset -> GlyphMuseumPresets(context).design(info.key)
+        is IconOption.Custom -> CustomGlyphStore(context).design(key)
+        is IconOption.Community -> glyphPreviewFromJson(item.preview)
+        is IconOption.Standard ->
+            GlyphIconLibrary.frameFor(key)?.let { pixels ->
+                GlyphFrameCodec.Design(
+                    version = 1,
+                    gridSize = GlyphIconLibrary.SIZE,
+                    frames = listOf(GlyphFrameCodec.Frame(pixels, null)),
+                    author = null,
+                    postId = null,
+                    url = null,
+                )
+            }
+    }
+
+/** A readable title for [key] across bundled presets, standard icons, and custom glyphs. */
 @Composable
 fun glyphIconTitle(
     context: Context = LocalContext.current,
@@ -281,8 +303,7 @@ fun glyphIconTitle(
 ): String =
     remember(key) {
         GlyphMuseumPresets(context).info(key)?.title
-            ?: GlyphIconLibrary.emojiFor(key)
-            ?: key
+            ?: key.replace('_', ' ').replaceFirstChar { it.uppercase() }
     }
 
 /** Field that opens the full glyph icon/preset picker. */

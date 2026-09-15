@@ -29,6 +29,47 @@
 - TimeWindow trigger/condition use real time pickers and a timezone dropdown instead of raw text fields
 - Long TimeWindow descriptions no longer include the timezone when it matches the device zone
 
+## [0.15.0]
+
+### Added
+- App-name resolution everywhere: package IDs like `com.whatsapp` render as "WhatsApp" in trigger descriptions, the recent-notification picker, and the execution log
+- Notification trigger fields carry explanations (title/text/sender/group-conversation matching) and the recent-notification picker
+- Device-state triggers show live "Now:" values; thermal trigger explains its 0–6 severity scale
+- Settings: Creator Profile (display name, handle, email, GitHub) feeds the publish sheet; Interface style selector explains itself; Shizuku section explains what it is and why it is optional
+- Onboarding explains Shizuku in plain language and installs it from the Play Store
+- Engine: `endAutomation()` + service-side removal dispatch so deleted or disabled modes restore snapshots and deactivate
+- `rememberAppLabelResolver()` shared app-label cache
+- Unit coverage: 10 new matcher tests (battery crossings, POWER bridge, phone-number formats, overnight windows) and 11 canonical-JSON tests
+
+### Changed
+- Community library is the sole template source — featured templates section removed
+- Template install sheet lists the trigger and every action, flattening groups; capability summaries are human-readable
+- Catalog requirement badges use readable words (CALENDAR, NOTIFICATIONS, USAGE ACCESS); filter chips are labeled
+- Builder: Enabled toggle is always visible (moved out of Advanced); Save bar only appears when dirty; action grouping and deletion use icons; Create is disabled until a mode has an action
+- Execution log shows mode names instead of IDs, plain event names, full stat labels, and pagination
+- Glyph config is one combined sheet with a design-type selector and live matrix thumbnails on every picker entry
+- Millisecond fields replaced by seconds/minutes or named presets (dwell delay, blink speed, glyph timeout, wait)
+- Action/trigger summaries humanized — no more DND/AOD/app(s)/raw-enum output
+- Mode detail shows consistent enabled state and clickable numbered action rows; share exports a real `.nothingmode.json` file
+- Shizuku install flow prefers the Play Store, with GitHub releases as fallback
+
+### Fixed
+- Editing an action inside a group no longer deletes the whole group
+- Day-filtered overnight windows deactivate on the correct day instead of staying active forever
+- Wi-Fi-connected modes end on disconnect; network hops end SSID-filtered modes correctly
+- Deleting or disabling an active mode restores snapshotted settings instead of leaving them stuck
+- A malformed geofence no longer aborts rescheduling of every other automation on boot
+- Cooldown is consumed only when a mode actually fires — manual runs, condition-blocked candidates, and window ends no longer burn it; window ends also bypass conditions
+- Engine access is serialized, removing snapshot races between simultaneous triggers
+- PendingIntents carry unique data URIs — hashCode collisions can no longer overwrite scheduled alarms
+- Stale "starting soon" notifications re-check that the rule still exists before posting
+- Battery triggers fire on threshold crossings even when broadcasts skip levels
+- Geofence dwell delay actually reaches the geofencing request
+- Legacy POWER connectivity triggers bridge to the charger event; phone-number filters match E.164 and national formats
+- Import hash check no longer rejects valid files (canonical JSON now matches `JSON.stringify` exactly)
+- No more false "this may not run" warnings for device-state triggers and monitor-backed capabilities
+- Row subtitles wrap to two lines instead of truncating mid-word
+
 ## [0.10.0]
 
 ### Added

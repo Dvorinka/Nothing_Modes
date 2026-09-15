@@ -57,9 +57,14 @@ fun actionDescription(action: Action): String =
             is Action.SetWifi -> "Wi-Fi: ${if (action.on) "On" else "Off"}"
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
-            is Action.SetDnd -> "DND: ${action.mode.displayName()}"
+            is Action.SetDnd -> "Do Not Disturb: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"
-            is Action.LaunchApp -> if (action.packages.isEmpty()) "Launch app" else "Launch: ${action.packages.size} app(s)"
+            is Action.LaunchApp ->
+                if (action.packages.isEmpty()) {
+                    "Launch app"
+                } else {
+                    "Launch: ${action.packages.size} ${if (action.packages.size == 1) "app" else "apps"}"
+                }
             is Action.OpenUrl -> {
                 val prefix = if (action.packageName != null) "Open in ${action.packageName}: " else "Open URL: "
                 if (action.url.isBlank()) "Open URL" else prefix + action.url
@@ -92,7 +97,8 @@ fun actionDescription(action: Action): String =
             is Action.SetWallpaper -> "Wallpaper: ${action.which} (${action.uri.take(30)})"
             is Action.SetGlyph -> "Glyph: ${if (action.on) "On" else "Off"}"
             is Action.SetGlyphMatrix -> "Glyph Matrix: ${if (action.restore) "Restore" else "Set"}"
-            is Action.GlyphAnimate -> "Glyph Animate: ${action.zone ?: "all"} ${action.periodMs}ms x${action.cycles}"
+            is Action.GlyphAnimate ->
+                "Glyph Animate: ${action.zone ?: "all"} zones, every ${action.periodMs}ms, ${action.cycles}x"
             is Action.GlyphProgress -> "Glyph Progress: ${action.progress}%"
             is Action.GlyphText -> "Glyph Text: ${action.text.take(30)}"
             is Action.GlyphScrollingText -> "Glyph Scroll: ${action.text.take(30)}"
@@ -124,7 +130,7 @@ fun actionDescription(action: Action): String =
             is Action.SetLocationMode -> "Location: ${action.mode.name.enumLabel()}"
             is Action.SetAutoSync -> "Auto-sync: ${if (action.on) "On" else "Off"}"
             is Action.ClearNotifications -> "Clear notifications"
-            is Action.SetAlwaysOnDisplay -> "AOD: ${action.mode.name.enumLabel()}"
+            is Action.SetAlwaysOnDisplay -> "Always-on display: ${action.mode.name.enumLabel()}"
             is Action.TakeScreenshot -> "Screenshot" + if (action.force) " (override)" else ""
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }

@@ -318,7 +318,7 @@ class AutomationListViewModel
                 val share =
                     Intent(Intent.ACTION_SEND).apply {
                         type = "application/json"
-                        putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes export (${result.count} mode(s))")
+                        putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes export (${result.count} ${if (result.count == 1) "mode" else "modes"})")
                         putExtra(Intent.EXTRA_TEXT, result.json)
                     }
                 val chooser = Intent.createChooser(share, "Share modes")
@@ -622,7 +622,7 @@ fun AutomationListScreen(
                         viewModel.runSelected()
                         scope.launch {
                             snackbarHostState.showSnackbar(
-                                "Running ${selected.size} mode(s)",
+                                "Running ${selected.size} ${if (selected.size == 1) "mode" else "modes"}",
                                 withDismissAction = true,
                             )
                         }
@@ -715,6 +715,7 @@ private fun ModeTile(
             justRan = false
         }
     }
+    val appLabel = rememberAppLabelResolver()
     val iconTextColor = MaterialTheme.colorScheme.onSurface
     val borderColor =
         when {
@@ -832,7 +833,7 @@ private fun ModeTile(
             Spacer(modifier = Modifier.height(NothingSpacing.md))
 
             Text(
-                text = triggerDescription(automation.trigger),
+                text = triggerDescription(automation.trigger, appLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

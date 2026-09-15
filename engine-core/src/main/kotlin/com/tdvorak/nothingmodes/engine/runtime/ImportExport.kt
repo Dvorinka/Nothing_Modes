@@ -137,7 +137,9 @@ class ImportExportService(
             )
         }
 
-        if (expectedContentHash != null) {
+        // Blank hashes (seed fallback, legacy rows) mean "no hash available",
+        // not an expected value — verifying them guarantees a false mismatch.
+        if (!expectedContentHash.isNullOrBlank()) {
             val actual =
                 com.tdvorak.nothingmodes.engine
                     .jsonSha256(json)

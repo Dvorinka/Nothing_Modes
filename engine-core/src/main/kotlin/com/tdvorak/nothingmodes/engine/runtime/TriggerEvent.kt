@@ -34,6 +34,8 @@ sealed interface TriggerEvent {
         val title: String?,
         val text: String?,
         val sender: String?,
+        val isGroup: Boolean? = null,
+        val conversationId: String? = null,
     ) : TriggerEvent
 
     data class PhoneStateChanged(
@@ -58,6 +60,9 @@ sealed interface TriggerEvent {
         override val eventId: String,
         val level: Int,
         val isCharging: Boolean,
+        /** Last observed level, or null on first reading — enables threshold
+         *  crossing detection when a broadcast was missed. */
+        val previousLevel: Int? = null,
     ) : TriggerEvent
 
     data class ScreenStateChanged(

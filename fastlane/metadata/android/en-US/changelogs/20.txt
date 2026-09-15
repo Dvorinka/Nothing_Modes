@@ -1,0 +1,8 @@
+- Reliability overhaul: modes now restore settings when deleted or disabled, Wi-Fi modes end on disconnect, overnight schedules deactivate correctly, and one bad geofence no longer breaks all scheduling
+- Cooldowns, priorities, and alarms are race-free — manual Run always works, and notifications can't fire for rules you already removed
+- Community library is now the only template source — featured section removed; every template lists its full trigger and actions before you install
+- Everything explains itself: catalog rows describe what they need in plain words, fields have tooltips, app names replace package IDs, and jargon badges are gone
+- Builder rework: Enabled toggle is always visible, action grouping uses real icons, and Save only appears once you've changed something
+- Execution log shows mode names and plain event names, paginated
+- Onboarding explains Shizuku and installs it from the Play Store
+- Mode sharing exports a real file; publishing prefills from your saved creator profile

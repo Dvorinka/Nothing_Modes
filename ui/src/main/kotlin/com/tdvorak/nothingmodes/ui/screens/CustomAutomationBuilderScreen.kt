@@ -25,6 +25,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -156,6 +159,10 @@ class CustomBuilderViewModel
         private val _editingId = MutableStateFlow<String?>(null)
         val editingId: StateFlow<String?> = _editingId.asStateFlow()
 
+        /** Snapshot taken when an existing automation was loaded — dirty check. */
+        private val _originalState = MutableStateFlow<BuilderState?>(null)
+        val originalState: StateFlow<BuilderState?> = _originalState.asStateFlow()
+
         fun clearSaveError() {
             _saveError.value = null
         }
@@ -184,6 +191,7 @@ class CustomBuilderViewModel
                         cooldownMs = automation.cooldownMs,
                         notifyRules = automation.notifyRules,
                     )
+                _originalState.value = _state.value
             }
         }
 
@@ -240,9 +248,10 @@ class CustomBuilderViewModel
         }
 
         fun addAction(action: Action) {
-            // Identical duplicates are never useful — flashlight on x2, the
-            // same glyph design twice — and only produce "why twice" noise.
-            if (action in _state.value.actions) return
+            // Identical duplicates are usually noise — except the Glyph light
+            // on/off, which users deliberately stack to blink or sequence.
+            val repeatable = action is Action.SetGlyph || action is Action.SetGlyphMatrix
+            if (!repeatable && action in _state.value.actions) return
             _state.value = _state.value.copy(actions = _state.value.actions + action)
         }
 
@@ -412,6 +421,7 @@ class CustomBuilderViewModel
                 runCatching {
                     store.save(automation)
                     WidgetRefreshHelper.refresh(context)
+                    _originalState.value = s
                     _saved.value = true
                 }.onFailure { _saveError.value = it.message ?: "Save failed" }
             }
@@ -487,7 +497,11 @@ fun CustomAutomationBuilderScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val saved by viewModel.saved.collectAsState()
+    val originalState by viewModel.originalState.collectAsState()
     val context = LocalContext.current
+
+    // Dirty tracking — editing an untouched mode shows no save/cancel UI.
+    val dirty = automationId == null || (originalState != null && state != originalState)
 
     var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
     androidx.compose.runtime.LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
@@ -552,6 +566,7 @@ fun CustomAutomationBuilderScreen(
 
     // Handle action result from catalog (already configured by the catalog sheets).
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
+    var editingChildIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
@@ -572,9 +587,8 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
-    // Intercept system back and the back-swipe gesture so leaving always
-    // goes through the same Save / Discard / Cancel prompt.
-    BackHandler { showDiscardDialog = true }
+    // Intercept system back and the back-swipe gesture — prompt only when dirty.
+    BackHandler { if (dirty) showDiscardDialog = true else onBack() }
 
     val saveError by viewModel.saveError.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -599,16 +613,25 @@ fun CustomAutomationBuilderScreen(
         topBar = {
             NothingTopBar(
                 title = stringResource(if (automationId != null) R.string.screen_edit_mode else R.string.screen_new_mode),
-                onBack = { showDiscardDialog = true },
+                onBack = { if (dirty) showDiscardDialog = true else onBack() },
             )
         },
-        // Sticky bottom bar — save button always visible, not clipped by system insets.
+        // Sticky bottom bar — shown only when there is something to save.
         bottomBar = {
-            NothingBottomActionBar(
-                text = if (automationId != null) "Save Changes" else "Create Mode",
-                onClick = { viewModel.save() },
-                subtitle = saveHint,
-            )
+            if (dirty) {
+                NothingBottomActionBar(
+                    text = if (automationId != null) "Save Changes" else "Create Mode",
+                    onClick = { viewModel.save() },
+                    // A mode with no actions does nothing — keep it un-savable.
+                    enabled = state.actions.isNotEmpty(),
+                    subtitle =
+                        if (state.actions.isEmpty()) {
+                            "Add at least one action under THEN"
+                        } else {
+                            saveHint
+                        },
+                )
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -703,7 +726,7 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.conditions.isEmpty()) {
                         Text(
-                            "ALWAYS — RUNS WHENEVER IF FIRES",
+                            "Always — runs whenever the trigger fires",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -751,7 +774,7 @@ fun CustomAutomationBuilderScreen(
                     NothingDivider()
                     if (state.actions.isEmpty()) {
                         Text(
-                            "0 ACTIONS",
+                            "No actions yet — add what this mode should do below.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -780,7 +803,13 @@ fun CustomAutomationBuilderScreen(
                                     onUpdate = { viewModel.updateAction(index, it) },
                                     onConfigure = { action ->
                                         editingActionIndex = index
+                                        editingChildIndex = -1
                                         actionSheetAction = action
+                                    },
+                                    onConfigureChild = { childIndex, child ->
+                                        editingActionIndex = index
+                                        editingChildIndex = childIndex
+                                        actionSheetAction = child
                                     },
                                     onGroupWithNext = {
                                         if (index < state.actions.lastIndex) {
@@ -891,6 +920,22 @@ fun CustomAutomationBuilderScreen(
                 }
             }
 
+            item {
+                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
+                    NothingListRow(
+                        title = "Enabled",
+                        subtitle = "Off means the mode is saved but never fires",
+                        onClick = { viewModel.updateEnabled(!state.enabled) },
+                        trailing = {
+                            NothingToggle(
+                                checked = state.enabled,
+                                onCheckedChange = viewModel::updateEnabled,
+                            )
+                        },
+                    )
+                }
+            }
+
             // Advanced — folded away; most modes never need it.
             item {
                 var showAdvanced by rememberSaveable { mutableStateOf(false) }
@@ -918,19 +963,6 @@ fun CustomAutomationBuilderScreen(
                         )
                     }
                     if (showAdvanced) {
-                        NothingDivider()
-
-                        NothingListRow(
-                            title = "Enabled",
-                            subtitle = "Mode is saved and will fire",
-                            onClick = { viewModel.updateEnabled(!state.enabled) },
-                            trailing = {
-                                NothingToggle(
-                                    checked = state.enabled,
-                                    onCheckedChange = viewModel::updateEnabled,
-                                )
-                            },
-                        )
                         NothingDivider()
 
                         Row(
@@ -1042,17 +1074,31 @@ fun CustomAutomationBuilderScreen(
                 onOpenGlyphStudio = navController?.let { nav -> { nav.navigate("glyph_editor") } },
                 onOpenGlyphMuseum = navController?.let { nav -> { nav.navigate("glyph_museum") } },
                 onDone = { updated ->
-                    if (editingActionIndex >= 0) {
+                    val parent =
+                        state.actions.getOrNull(editingActionIndex)
+                    if (editingChildIndex >= 0 && parent is Action.Group) {
+                        // Editing inside a group: rebuild the parent, keep siblings.
+                        val children = parent.actions.toMutableList()
+                        if (editingChildIndex < children.size) {
+                            children[editingChildIndex] = updated
+                            viewModel.updateAction(
+                                editingActionIndex,
+                                parent.copy(actions = children),
+                            )
+                        }
+                    } else if (editingActionIndex >= 0) {
                         viewModel.updateAction(editingActionIndex, updated)
                     } else {
                         viewModel.addAction(updated)
                     }
                     actionSheetAction = null
                     editingActionIndex = -1
+                    editingChildIndex = -1
                 },
                 onDismiss = {
                     actionSheetAction = null
                     editingActionIndex = -1
+                    editingChildIndex = -1
                 },
             )
         }
@@ -1187,9 +1233,10 @@ private fun TriggerEditor(
     onUpdate: (Trigger) -> Unit,
     onConfigure: () -> Unit,
 ) {
+    val appLabel = rememberAppLabelResolver()
     NothingListRow(
-        title = triggerDescription(trigger),
-        subtitle = "IF",
+        title = triggerDescription(trigger, appLabel),
+        subtitle = "When this happens — tap to change",
         onClick = onConfigure,
         leading = {
             NothingIconCircle(size = 44f) {
@@ -1214,12 +1261,13 @@ private fun ReorderableListItemScope.ActionRow(
     onRemove: () -> Unit,
     onUpdate: (Action) -> Unit = {},
     onConfigure: (Action) -> Unit = {},
+    onConfigureChild: (Int, Action) -> Unit = { _, child -> onConfigure(child) },
     onGroupWithNext: () -> Unit = {},
     onUngroup: () -> Unit = {},
     onToggleCollapsed: () -> Unit = {},
 ) {
     if (action is Action.Group) {
-        // jarvis: ceiling — child editing is via ungroup; nested reordering not supported in this pass.
+        // jarvis: ceiling — children edit in place; nested reordering still via ungroup.
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
@@ -1266,11 +1314,11 @@ private fun ReorderableListItemScope.ActionRow(
                                         .clickable(onClick = onGroupWithNext),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    text = "GRP",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontFamily = NothingFonts.mono(),
+                                Icon(
+                                    imageVector = Icons.Outlined.Link,
+                                    contentDescription = "Group with next",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
@@ -1281,11 +1329,11 @@ private fun ReorderableListItemScope.ActionRow(
                                     .clickable(onClick = onUngroup),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "UNGRP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = NothingFonts.mono(),
+                            Icon(
+                                imageVector = Icons.Outlined.LinkOff,
+                                contentDescription = "Ungroup",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                         Box(
@@ -1295,11 +1343,11 @@ private fun ReorderableListItemScope.ActionRow(
                                     .clickable(onClick = onRemove),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "DEL",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NothingColors.accent,
-                                fontFamily = NothingFonts.mono(),
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Remove",
+                                tint = NothingColors.accent,
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -1313,10 +1361,10 @@ private fun ReorderableListItemScope.ActionRow(
                         modifier = Modifier.padding(NothingSpacing.sm),
                         verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
                     ) {
-                        action.actions.forEach { child ->
+                        action.actions.forEachIndexed { childIndex, child ->
                             NothingListRow(
                                 title = actionDescription(child),
-                                onClick = { onConfigure(child) },
+                                onClick = { onConfigureChild(childIndex, child) },
                                 trailing = {
                                     Text(
                                         text = "∙",
@@ -1360,11 +1408,11 @@ private fun ReorderableListItemScope.ActionRow(
                                     .clickable(onClick = onGroupWithNext),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "GRP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontFamily = NothingFonts.mono(),
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = "Group with next",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -1375,11 +1423,11 @@ private fun ReorderableListItemScope.ActionRow(
                                 .clickable(onClick = onRemove),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = "DEL",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NothingColors.accent,
-                            fontFamily = NothingFonts.mono(),
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Remove",
+                            tint = NothingColors.accent,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -1424,11 +1472,11 @@ private fun ReorderableListItemScope.ConditionRow(
                         .clickable(onClick = onRemove),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "DEL",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NothingColors.accent,
-                    fontFamily = NothingFonts.mono(),
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = "Remove",
+                    tint = NothingColors.accent,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         },
@@ -1617,47 +1665,59 @@ private fun AutomationPreviewTile(
     }
 }
 
+private fun cmpSymbol(op: com.tdvorak.nothingmodes.engine.model.CmpOp): String =
+    when (op) {
+        com.tdvorak.nothingmodes.engine.model.CmpOp.EQ -> "="
+        com.tdvorak.nothingmodes.engine.model.CmpOp.NEQ -> "≠"
+        com.tdvorak.nothingmodes.engine.model.CmpOp.GT -> ">"
+        com.tdvorak.nothingmodes.engine.model.CmpOp.LT -> "<"
+        com.tdvorak.nothingmodes.engine.model.CmpOp.GTE -> "≥"
+        com.tdvorak.nothingmodes.engine.model.CmpOp.LTE -> "≤"
+        com.tdvorak.nothingmodes.engine.model.CmpOp.CONTAINS -> "contains"
+    }
+
 internal fun conditionDescription(condition: Condition): String =
     when (condition) {
         is Condition.TimeWindow -> "Time window: ${condition.startLocal}-${condition.endLocal}"
-        is Condition.DayOfWeekCondition -> "Days: ${condition.days.joinToString { it.wireName }}"
-        is Condition.BatteryLevel -> "Battery ${condition.op.name} ${condition.level}%"
+        is Condition.DayOfWeekCondition ->
+            "Days: ${condition.days.joinToString { it.wireName.replaceFirstChar { c -> c.uppercase() } }}"
+        is Condition.BatteryLevel -> "Battery ${cmpSymbol(condition.op)} ${condition.level}%"
         is Condition.Charging -> if (condition.isCharging) "Charging" else "Not charging"
         is Condition.WifiConnected -> "Wi-Fi connected${condition.ssid?.let { " ($it)" } ?: ""}"
         is Condition.BluetoothConnected -> "Bluetooth connected${condition.deviceName?.let { " ($it)" } ?: ""}"
-        is Condition.ScreenStateCondition -> "Screen ${condition.state.name}"
-        is Condition.CurrentModeActive -> "Mode ${condition.modeId} active"
+        is Condition.ScreenStateCondition -> "Screen ${condition.state.name.lowercase()}"
+        is Condition.CurrentModeActive -> "Another mode is active"
         is Condition.AppInForeground -> "App ${condition.pkg} in foreground"
         is Condition.DarkModeActive -> "Dark mode ${if (condition.active) "on" else "off"}"
         is Condition.PowerSaving -> "Power saving ${if (condition.on) "on" else "off"}"
         is Condition.MediaPlaying -> "Media ${if (condition.playing) "playing" else "not playing"}"
-        is Condition.RingerMode -> "Ringer: ${condition.mode}"
+        is Condition.RingerMode -> "Ringer: ${condition.mode.lowercase()}"
         is Condition.AirplaneModeOn -> "Airplane mode ${if (condition.on) "on" else "off"}"
         is Condition.NfcEnabled -> "NFC ${if (condition.enabled) "enabled" else "disabled"}"
         is Condition.LocationEnabled -> "Location ${if (condition.enabled) "enabled" else "disabled"}"
         is Condition.CallStateCondition -> "Call: ${condition.state.name.lowercase()}"
         is Condition.AlarmRinging -> "Alarm ringing${condition.titleMatch?.let { " ($it)" } ?: ""}"
-        is Condition.ScreenTime -> "Screen time ${condition.op.name} ${condition.minutes}m"
+        is Condition.ScreenTime -> "Screen time ${cmpSymbol(condition.op)} ${condition.minutes}m"
         is Condition.HeadphonesConnected -> "Headphones ${if (condition.connected) "connected" else "disconnected"}"
         is Condition.DataSaverOn -> "Data saver ${if (condition.on) "on" else "off"}"
         is Condition.AutoSyncOn -> "Auto-sync ${if (condition.on) "on" else "off"}"
         is Condition.AutoRotateOn -> "Auto-rotate ${if (condition.on) "on" else "off"}"
-        is Condition.VolumeLevel -> "Volume ${condition.stream.name.lowercase()} ${condition.op.name} ${condition.level}"
-        is Condition.ScreenOffFor -> "Screen off ${condition.op.name} ${condition.minutes}m"
+        is Condition.VolumeLevel -> "Volume ${condition.stream.name.lowercase()} ${cmpSymbol(condition.op)} ${condition.level}"
+        is Condition.ScreenOffFor -> "Screen off ${cmpSymbol(condition.op)} ${condition.minutes}m"
         is Condition.ChargingSource -> "Charging via ${condition.source.name.lowercase()}"
-        is Condition.BatteryTemp -> "Battery temp ${condition.op.name} ${condition.celsius}°C"
-        is Condition.ThermalLevel -> "Thermal ${condition.op.name} level ${condition.level}"
+        is Condition.BatteryTemp -> "Battery temp ${cmpSymbol(condition.op)} ${condition.celsius}°C"
+        is Condition.ThermalLevel -> "Heat level ${cmpSymbol(condition.op)} ${condition.level}"
         is Condition.BooleanState -> {
             val label = booleanStateLabel(condition.key).removeSuffix(" on").removeSuffix(" off")
             "$label ${if (condition.on) "on" else "off"}"
         }
-        is Condition.NumericState -> "${numericStateLabel(condition.key)} ${condition.op.name} ${condition.value}"
-        is Condition.AtLocation -> "Within ${condition.radiusM}m of ${condition.lat}, ${condition.lng}"
+        is Condition.NumericState -> "${numericStateLabel(condition.key)} ${cmpSymbol(condition.op)} ${condition.value}"
+        is Condition.AtLocation -> "Within ${condition.radiusM}m of pinned spot"
         is Condition.EventActive -> "Calendar event contains \"${condition.titleMatch}\""
         is Condition.NotificationPresent -> "Notification from ${condition.pkg} contains \"${condition.titleMatch}\""
-        is Condition.And -> "AND (${condition.all.size} conditions)"
-        is Condition.Or -> "OR (${condition.any.size} conditions)"
-        is Condition.Not -> "NOT"
+        is Condition.And -> "All of ${condition.all.size} conditions"
+        is Condition.Or -> "Any of ${condition.any.size} conditions"
+        is Condition.Not -> "Not"
     }
 
 /** Friendly per-type description for the catalog — what the condition checks,

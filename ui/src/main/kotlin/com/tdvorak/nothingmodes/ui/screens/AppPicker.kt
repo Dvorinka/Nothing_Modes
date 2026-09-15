@@ -46,6 +46,34 @@ private data class InstalledApp(
     val resolveInfo: ResolveInfo,
 )
 
+/**
+ * Package name → user-facing app label, cached per composition.
+ * Falls back to the raw package when the app isn't installed.
+ */
+@Composable
+fun rememberAppLabelResolver(): (String) -> String {
+    val context = LocalContext.current
+    return remember(context) {
+        val pm = context.packageManager
+        val cache = mutableMapOf<String, String>()
+        val resolver: (String) -> String = { pkg ->
+            cache.getOrPut(pkg) {
+                runCatching {
+                    val info =
+                        if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            pm.getApplicationInfo(pkg, android.content.pm.PackageManager.ApplicationInfoFlags.of(0))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            pm.getApplicationInfo(pkg, 0)
+                        }
+                    pm.getApplicationLabel(info).toString()
+                }.getOrDefault(pkg)
+            }
+        }
+        resolver
+    }
+}
+
 @Composable
 fun AppPicker(
     currentPackage: String,

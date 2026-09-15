@@ -12,6 +12,7 @@ import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import kotlinx.coroutines.CancellationException
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -62,13 +63,18 @@ class Engine(
             try {
                 if (event is TriggerEvent.ManualFired && event.automationId != automation.id) continue
 
+                // An explicit Run targets one automation and skips the trigger
+                // match, day filter, and cooldown — the user asked for it now.
+                // ONLY IF conditions still gate it.
+                val forcedRun = event is TriggerEvent.ManualFired
+
                 // Window semantics come from the trigger, not the legacy type
                 // flag — but edge triggers (charger on, torch on, ...) become
                 // modes too via AutomationType.MODE.
                 val isWindowed = automation.trigger is Trigger.TimeWindow
                 val modeLike = automation.type == AutomationType.MODE || isWindowed
 
-                if (!matcher.matches(automation.trigger, event)) {
+                if (!forcedRun && !matcher.matches(automation.trigger, event)) {
                     // Inverse edge of a state-lifecycle trigger: the state the
                     // mode is bound to ended — restore and deactivate without
                     // re-running actions, cooldown, or condition gates.
@@ -82,25 +88,32 @@ class Engine(
                 if (modeLike && event !is TriggerEvent.ModeWindowEnd && isLifecycleActive(automation)) continue
 
                 // Check day-of-week filter for time-based triggers
-                if (!shouldFireOnDay(automation.trigger, batchNow)) continue
+                if (!forcedRun && !shouldFireOnDay(automation.trigger, event, batchNow)) continue
 
-                when (val decision = firePolicy.evaluate(automation, event, batchNow)) {
-                    FirePolicy.Decision.Allow -> Unit
-                    is FirePolicy.Decision.Block -> {
-                        audit.record(
-                            AuditEvent(
-                                automationId = automation.id,
-                                kind = AuditKind.SUPPRESSED_COOLDOWN,
-                                atMillis = batchNow,
-                                detail = decision.code,
-                                eventId = envelope.id,
-                            ),
-                        )
-                        continue
+                // Window ends must always run — blocking them strands the mode
+                // ACTIVE and never restores settings.
+                if (event !is TriggerEvent.ModeWindowEnd && !forcedRun) {
+                    when (val decision = firePolicy.evaluate(automation, event, batchNow)) {
+                        FirePolicy.Decision.Allow -> Unit
+                        is FirePolicy.Decision.Block -> {
+                            audit.record(
+                                AuditEvent(
+                                    automationId = automation.id,
+                                    kind = AuditKind.SUPPRESSED_COOLDOWN,
+                                    atMillis = batchNow,
+                                    detail = decision.code,
+                                    eventId = envelope.id,
+                                ),
+                            )
+                            continue
+                        }
                     }
                 }
 
-                if (automation.conditions != null) {
+                // Window ends bypass the condition gate too — an unmet ONLY IF
+                // at end-time would otherwise strand the mode ACTIVE with its
+                // settings still applied.
+                if (automation.conditions != null && event !is TriggerEvent.ModeWindowEnd) {
                     val state = runCatching { stateProvider.read() }.getOrDefault(DeviceState(now = batchNow))
                     when (evaluator.result(automation.conditions, state)) {
                         ConditionEvaluator.Result.MET -> Unit
@@ -141,6 +154,13 @@ class Engine(
                         ),
                     )
                     continue
+                }
+
+                // Committed to firing — consume the cooldown only now, so a
+                // condition- or conflict-blocked candidate doesn't eat it.
+                // Manual runs and window ends don't consume it either.
+                if (event !is TriggerEvent.ModeWindowEnd && !forcedRun) {
+                    firePolicy.markFired(automation.id, batchNow)
                 }
 
                 // Mode-end: restore snapshots and stop — the action list must
@@ -391,6 +411,25 @@ class Engine(
         )
     }
 
+    /**
+     * Ends a mode outside the trigger path — delete, disable, import replace.
+     * Restores snapshots, clears glyph output, deactivates. No-op when the
+     * mode isn't lifecycle-active.
+     */
+    suspend fun endAutomation(automation: Automation) {
+        if (!isLifecycleActive(automation)) return
+        val batchNow = now()
+        endModeSideEffects(automation, batchNow)
+        modeActivationSink.deactivate(automation.id, batchNow)
+        audit.record(
+            AuditEvent(
+                automationId = automation.id,
+                kind = AuditKind.MODE_DEACTIVATED,
+                atMillis = batchNow,
+            ),
+        )
+    }
+
     private suspend fun restoreSnapshots(
         id: AutomationId,
         batchNow: Long,
@@ -504,13 +543,14 @@ class Engine(
     private fun namespaceForKey(key: String): String =
         when (key) {
             "reduce_bright_colors_activated", "aod_enabled", "location_mode" -> "secure"
-            "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled", "led_effect_enable" -> "global"
+            "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled", "led_effect_enable", "stay_on_while_plugged_in" -> "global"
             else -> "system"
         }
 
-    /** Checks if a time-based trigger should fire on the current day. */
+    /** Checks if a time-based trigger should fire on the relevant day. */
     private fun shouldFireOnDay(
         trigger: Trigger,
+        event: TriggerEvent,
         nowMillis: Long,
     ): Boolean {
         val days =
@@ -527,7 +567,13 @@ class Engine(
                 else -> return true
             }
         val zone = runCatching { ZoneId.of(tz) }.getOrNull() ?: return true
-        val javaDay = ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowMillis), zone).dayOfWeek
+        var zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowMillis), zone)
+        // The end of an overnight window fires the next morning but belongs to
+        // the day the window started — same rule as TriggerMatcher.isWindowActive.
+        if (event is TriggerEvent.ModeWindowEnd && trigger is Trigger.TimeWindow && isOvernight(trigger)) {
+            zdt = zdt.minusDays(1)
+        }
+        val javaDay = zdt.dayOfWeek
         val engineDay =
             when (javaDay) {
                 java.time.DayOfWeek.MONDAY -> com.tdvorak.nothingmodes.engine.model.DayOfWeek.MONDAY
@@ -540,4 +586,11 @@ class Engine(
             }
         return engineDay in days
     }
+
+    /** True when the window crosses midnight (e.g. 22:00 → 07:00). */
+    private fun isOvernight(trigger: Trigger.TimeWindow): Boolean =
+        runCatching {
+            val fmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+            LocalTime.parse(trigger.startLocal, fmt) > LocalTime.parse(trigger.endLocal, fmt)
+        }.getOrDefault(false)
 }

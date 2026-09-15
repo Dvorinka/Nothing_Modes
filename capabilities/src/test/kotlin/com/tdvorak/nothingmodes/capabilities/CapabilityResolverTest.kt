@@ -30,6 +30,8 @@ class CapabilityResolverTest {
             CapabilityIds.TRIGGER_CALENDAR_EVENT,
             CapabilityIds.TRIGGER_TORCH_STATE,
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
+            CapabilityIds.TRIGGER_DEVICE_STATE,
+            CapabilityIds.TRIGGER_CONNECTIVITY_AIRPLANE,
             CapabilityIds.STATE_READER_BUILTIN,
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -86,6 +88,8 @@ class CapabilityResolverTest {
             CapabilityIds.ACTION_SET_AOD,
             CapabilityIds.ACTION_SET_WALLPAPER,
             CapabilityIds.ACTION_TAKE_SCREENSHOT,
+            CapabilityIds.ACTION_SET_STAY_AWAKE,
+            CapabilityIds.ACTION_SET_GLYPH_INTERFACE,
             CapabilityIds.SHIZUKU_REQUIRED,
         )
 
@@ -132,7 +136,7 @@ class CapabilityResolverTest {
 
         assertFalse(resolution.canRun)
         assertEquals(setOf(CapabilityIds.SHIZUKU_REQUIRED), resolution.missing)
-        assertEquals("Shizuku required but not authorized", resolution.missingReasons[CapabilityIds.SHIZUKU_REQUIRED])
+        assertEquals("Needs Shizuku — a free companion app that grants extra permissions", resolution.missingReasons[CapabilityIds.SHIZUKU_REQUIRED])
     }
 
     @Test
@@ -178,7 +182,22 @@ class CapabilityResolverTest {
         val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.ACTION_LOCK_SCREEN))
 
         assertFalse(resolution.canRun)
-        assertEquals("Detected: may not work on this device", resolution.missingReasons[CapabilityIds.ACTION_LOCK_SCREEN])
+        assertEquals("Needs Shizuku — a free companion app that grants extra permissions", resolution.missingReasons[CapabilityIds.ACTION_LOCK_SCREEN])
+    }
+
+    @Test
+    fun deviceStateTriggerSatisfiedWithoutPermissions() {
+        // DeviceStateMonitor reads every key locally — nothing to grant.
+        val caps =
+            everything().copy(
+                hasNotificationListenerAccess = false,
+                hasWriteSettings = false,
+                hasUsageAccess = false,
+                shizukuStatus = ShizukuCapabilityStatus.NOT_INSTALLED,
+            )
+        val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.TRIGGER_DEVICE_STATE))
+
+        assertTrue(resolution.canRun)
     }
 
     @Test
@@ -187,7 +206,7 @@ class CapabilityResolverTest {
         val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK))
 
         assertFalse(resolution.canRun)
-        assertEquals("Notification listener access required", resolution.missingReasons[CapabilityIds.TRIGGER_MEDIA_PLAYBACK])
+        assertEquals("Notification access required — the app can't see media sessions", resolution.missingReasons[CapabilityIds.TRIGGER_MEDIA_PLAYBACK])
     }
 
     @Test
@@ -209,6 +228,6 @@ class CapabilityResolverTest {
 
         assertFalse(resolution.canRun)
         assertTrue(CapabilityIds.SHIZUKU_REQUIRED in resolution.missing)
-        assertEquals("Detected: may not work on this device", resolution.missingReasons[CapabilityIds.ACTION_TAKE_SCREENSHOT])
+        assertEquals("Needs Shizuku — a free companion app that grants extra permissions", resolution.missingReasons[CapabilityIds.ACTION_TAKE_SCREENSHOT])
     }
 }

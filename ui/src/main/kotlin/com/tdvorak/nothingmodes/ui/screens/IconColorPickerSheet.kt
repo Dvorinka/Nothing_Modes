@@ -376,7 +376,7 @@ fun IconColorPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Advanced",
+                    text = "Background & icon colors",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = NothingFonts.mono(),

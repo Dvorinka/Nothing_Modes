@@ -9,6 +9,7 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 
 /**
@@ -39,14 +40,37 @@ class SchedulingAutomationStore(
                 if (automation.trigger is Trigger.Immediate) {
                     dispatchRegistered(automation.id)
                 }
+            } else {
+                // Disabled/held modes may still be lifecycle-active — restore
+                // their snapshots before they go dark.
+                dispatchRemoved(automation)
             }
         }.onFailure { Log.w(TAG, "Failed to reschedule ${automation.id.value}", it) }
     }
 
     override suspend fun delete(id: AutomationId) {
+        val existing = runCatching { delegate.get(id) }.getOrNull()
         delegate.delete(id)
         runCatching { scheduler.cancel(id) }
             .onFailure { Log.w(TAG, "Failed to cancel schedules for ${id.value}", it) }
+        existing?.let { dispatchRemoved(it) }
+    }
+
+    /**
+     * Asks the engine to tear down a live mode (restore snapshots, glyph off,
+     * deactivate) after it was deleted or disabled — the trigger path never
+     * sees these removals, so without this the settings stay stuck.
+     */
+    private fun dispatchRemoved(automation: Automation) {
+        runCatching {
+            val json = EngineJson.json.encodeToString(Automation.serializer(), automation)
+            val intent =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_AUTOMATION_REMOVED
+                    putExtra(AutomationService.EXTRA_AUTOMATION_JSON, json)
+                }
+            ContextCompat.startForegroundService(context, intent)
+        }.onFailure { Log.w(TAG, "Failed to dispatch removal for ${automation.id.value}", it) }
     }
 
     private fun dispatchRegistered(id: AutomationId) {

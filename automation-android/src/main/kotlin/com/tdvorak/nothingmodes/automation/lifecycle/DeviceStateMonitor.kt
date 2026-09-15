@@ -14,6 +14,7 @@ import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -255,6 +256,12 @@ class DeviceStateMonitor(
         }
     }
 
+    private fun readChargingStatus(): String {
+        val intent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        return if (plugged != 0) "charging" else "discharging"
+    }
+
     // --- settings observer ----------------------------------------------------
 
     private fun registerSettingsObserver() {
@@ -486,6 +493,23 @@ class DeviceStateMonitor(
                 DeviceStateKeys.WIFI_RADIO to { readWifiRadio() },
                 DeviceStateKeys.BLUETOOTH_RADIO to { readBluetoothRadio() },
                 DeviceStateKeys.THERMAL to { readThermal() },
+                DeviceStateKeys.CHARGING_STATUS to { readChargingStatus() },
             )
+
+        /**
+         * Reads the live value of [key] without starting the monitor or
+         * emitting events — for "current value" previews in the trigger UI.
+         */
+        fun currentValue(
+            context: Context,
+            key: String,
+        ): String? =
+            runCatching {
+                val monitor = DeviceStateMonitor(context.applicationContext)
+                (SETTINGS_KEYS + RUNTIME_KEYS)
+                    .firstOrNull { it.first == key }
+                    ?.second
+                    ?.invoke(monitor)
+            }.getOrNull()
     }
 }

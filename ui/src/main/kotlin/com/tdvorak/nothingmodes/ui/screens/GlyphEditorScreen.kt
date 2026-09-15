@@ -766,10 +766,10 @@ fun GlyphEditorScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                                 ) {
-                                    GlyphPill("+", Modifier.weight(1f)) { addBlankFrame() }
-                                    GlyphPill("DUP", Modifier.weight(1f)) { duplicateFrame() }
+                                    GlyphPill("ADD", Modifier.weight(1f)) { addBlankFrame() }
+                                    GlyphPill("COPY", Modifier.weight(1f)) { duplicateFrame() }
                                     GlyphPill(
-                                        "DEL",
+                                        "DELETE",
                                         Modifier.weight(1f),
                                         enabled = frames.size > 1,
                                     ) { deleteFrame() }

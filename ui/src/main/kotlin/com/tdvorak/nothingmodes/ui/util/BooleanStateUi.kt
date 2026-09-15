@@ -65,7 +65,7 @@ internal val BOOLEAN_STATE_ITEMS: List<BooleanStateItem> =
         ),
         BooleanStateItem(
             StateKeys.TORCH,
-            "Torch on",
+            "Flashlight on",
             "Device status",
             Icons.Outlined.FlashlightOn,
         ),

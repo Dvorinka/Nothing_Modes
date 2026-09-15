@@ -1,5 +1,5 @@
 import { type NeonQueryFunction } from '@neondatabase/serverless';
-import { ensureSharedTable, getSql, sha256Hex } from './db';
+import { canonicalJson, ensureSharedTable, getSql, sha256Hex } from './db';
 import { analyzeGlyph, analyzeTemplate } from './analyze';
 
 export interface SeedItem {
@@ -17,7 +17,9 @@ export async function seedDemos(sql: NeonQueryFunction<false, false>, items: See
       console.warn('seed rejected:', item.title, analysis.findings);
       continue;
     }
-    const contentHash = await sha256Hex(JSON.stringify(analysis.sanitized));
+    // Hash the canonical form — same function share.ts uses — so seeded
+    // items verify on the client like user submissions do.
+    const contentHash = await sha256Hex(canonicalJson(analysis.sanitized));
     const exists = await sql`
       SELECT 1 FROM shared_items WHERE content_hash = ${contentHash} LIMIT 1
     `;

@@ -52,6 +52,14 @@ fun CapabilityWarningDialog(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = NothingFonts.doto(),
                 )
+                Text(
+                    text =
+                        "The mode stays saved, but it won't fire until " +
+                            "the items below are sorted.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
                 Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
                     gaps.forEach { gap ->
                         Row(
@@ -74,19 +82,21 @@ fun CapabilityWarningDialog(
                                 fontFamily = NothingFonts.mono(),
                                 modifier = Modifier.weight(1f),
                             )
-                            Spacer(modifier = Modifier.width(NothingSpacing.sm))
-                            Text(
-                                text = gap.fixLabel.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NothingColors.accent,
-                                fontFamily = NothingFonts.mono(),
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier =
-                                    Modifier
-                                        .clickable(onClick = gap.onFix)
-                                        .padding(vertical = NothingSpacing.xs),
-                            )
+                            gap.fixLabel?.let { label ->
+                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                                Text(
+                                    text = label.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = NothingColors.accent,
+                                    fontFamily = NothingFonts.mono(),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier =
+                                        Modifier
+                                            .clickable(onClick = gap.onFix)
+                                            .padding(vertical = NothingSpacing.xs),
+                                )
+                            }
                         }
                     }
                 }

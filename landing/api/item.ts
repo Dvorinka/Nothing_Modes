@@ -1,4 +1,4 @@
-import { ensureSharedTable, getSql } from './lib/db';
+import { canonicalJson, ensureSharedTable, getSql, sha256Hex } from './lib/db';
 
 export const config = { runtime: 'edge' };
 
@@ -27,5 +27,10 @@ export default async function handler(req: Request): Promise<Response> {
   `;
   if (rows.length === 0) return new Response('not found', { status: 404 });
 
-  return Response.json({ item: rows[0] });
+  // Recompute the hash from the stored payload instead of trusting the row.
+  // Items seeded or written before canonical hashing self-heal here.
+  const item = rows[0] as { content_hash?: string; payload?: unknown };
+  item.content_hash = await sha256Hex(canonicalJson(item.payload));
+
+  return Response.json({ item });
 }

@@ -32,7 +32,7 @@ class FlipReceiver : BroadcastReceiver() {
         val serviceIntent =
             Intent(context, AutomationService::class.java).apply {
                 action = AutomationService.ACTION_SCREEN_STATE
-                putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
+                putExtra(AutomationService.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
             }
         ContextCompat.startForegroundService(context, serviceIntent)
     }

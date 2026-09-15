@@ -41,6 +41,7 @@ class GeofenceMonitor(
         lng: Double,
         radiusM: Float,
         transition: Transition,
+        loiteringDelayMs: Long = 0,
     ) {
         if (!hasLocationPermission()) {
             Log.w(TAG, "No location permission, skipping geofence $id")
@@ -61,6 +62,10 @@ class GeofenceMonitor(
                 .setCircularRegion(lat, lng, radiusM)
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
                 .setTransitionTypes(geofenceTransition)
+                .apply {
+                    // DWELL needs a dwell time; ENTER/EXIT ignore it.
+                    if (loiteringDelayMs > 0) setLoiteringDelay(loiteringDelayMs.toInt())
+                }
                 .build()
 
         val request =

@@ -32,10 +32,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -65,6 +69,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 import java.io.File
 import javax.inject.Inject
 
@@ -98,6 +103,7 @@ class AutomationDetailViewModel
             }
         }
 
+        /** Shares the mode as a downloadable .json file via FileProvider. */
         fun share() {
             val current = _automation.value ?: return
             viewModelScope.launch {
@@ -111,13 +117,24 @@ class AutomationDetailViewModel
                         com.tdvorak.nothingmodes.engine.runtime
                             .ImportExportService(store, appVersion)
                             .export(listOf(current.id), creator)
+                    val dir = File(context.cacheDir, "mode_exports").apply { mkdirs() }
+                    val safeName = current.name.replace(Regex("[^A-Za-z0-9._-]+"), "_").ifBlank { "mode" }
+                    val file = File(dir, "$safeName.nothingmode.json")
+                    file.writeText(export.json)
+                    val uri =
+                        FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file,
+                        )
                     val share =
                         Intent(Intent.ACTION_SEND).apply {
                             type = "application/json"
+                            putExtra(Intent.EXTRA_STREAM, uri)
                             putExtra(Intent.EXTRA_SUBJECT, "Nothing Modes mode: ${current.name}")
-                            putExtra(Intent.EXTRA_TEXT, export.json)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
-                    val chooser = Intent.createChooser(share, "Share mode")
+                    val chooser = Intent.createChooser(share, "Save or share mode file")
                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(chooser)
                 }.onFailure {
@@ -261,6 +278,8 @@ fun AutomationDetailScreen(
     val shareOpen by viewModel.shareOpen.collectAsState()
     val sharing by viewModel.sharing.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
+    val appLabel = rememberAppLabelResolver()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -303,18 +322,26 @@ fun AutomationDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 val statusText =
-                    when (data.status) {
-                        AutomationStatus.ARMED -> "ARMED"
-                        AutomationStatus.DISABLED -> "DISABLED"
-                        AutomationStatus.PENDING_APPROVAL -> "PENDING"
-                        AutomationStatus.NEEDS_REVIEW -> "REVIEW"
+                    if (!data.enabled) {
+                        "OFF"
+                    } else {
+                        when (data.status) {
+                            AutomationStatus.ARMED -> "ON"
+                            AutomationStatus.DISABLED -> "OFF"
+                            AutomationStatus.PENDING_APPROVAL -> "PENDING REVIEW"
+                            AutomationStatus.NEEDS_REVIEW -> "NEEDS REVIEW"
+                        }
                     }
                 val statusColor =
-                    when (data.status) {
-                        AutomationStatus.ARMED -> MaterialTheme.colorScheme.primary
-                        AutomationStatus.DISABLED -> MaterialTheme.colorScheme.onSurfaceVariant
-                        AutomationStatus.PENDING_APPROVAL -> NothingColors.accent
-                        AutomationStatus.NEEDS_REVIEW -> NothingColors.accent
+                    if (!data.enabled) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        when (data.status) {
+                            AutomationStatus.ARMED -> MaterialTheme.colorScheme.primary
+                            AutomationStatus.DISABLED -> MaterialTheme.colorScheme.onSurfaceVariant
+                            AutomationStatus.PENDING_APPROVAL -> NothingColors.accent
+                            AutomationStatus.NEEDS_REVIEW -> NothingColors.accent
+                        }
                     }
 
                 NothingCardLarge(
@@ -378,7 +405,7 @@ fun AutomationDetailScreen(
                 NothingCardLarge {
                     NothingSectionHeader(text = "Trigger")
                     NothingListRow(
-                        title = triggerDescription(data.trigger),
+                        title = triggerDescription(data.trigger, appLabel),
                         subtitle = "Tap to reconfigure",
                         onClick = onEdit,
                         leading = {
@@ -409,7 +436,8 @@ fun AutomationDetailScreen(
                             NothingDivider()
                             NothingListRow(
                                 title = actionDescription(action),
-                                onClick = onEdit,
+                                subtitle = actionFeatureDescription(action) ?: "Tap for details",
+                                onClick = { detailAction = action },
                                 leading = {
                                     NothingIconCircle(size = 40f) {
                                         Text(
@@ -467,6 +495,14 @@ fun AutomationDetailScreen(
         }
     }
 
+    detailAction?.let { action ->
+        com.tdvorak.nothingmodes.ui.components.InfoDialog(
+            title = actionDescription(action),
+            text = actionDetailText(action),
+            onDismiss = { detailAction = null },
+        )
+    }
+
     if (shareOpen) {
         ModalBottomSheet(
             onDismissRequest = { viewModel.dismissShare() },
@@ -483,4 +519,12 @@ fun AutomationDetailScreen(
             )
         }
     }
+}
+
+/** Detail text for the action overview dialog — description plus requirement. */
+private fun actionDetailText(action: com.tdvorak.nothingmodes.engine.model.Action): String {
+    val lines = mutableListOf<String>()
+    actionFeatureDescription(action)?.let { lines += it }
+    actionRequirementHint(action)?.let { lines += "\nRequires: $it" }
+    return lines.joinToString("\n").ifBlank { "No extra details." }
 }

@@ -40,25 +40,28 @@ fun isHardwareBlocked(
     return false
 }
 
-/** Short badges for required capability IDs, shown on catalog rows — always
- *  visible (a satisfied requirement still tells the user what the row needs). */
+/** Badges for required capability IDs, shown on catalog rows — always
+ *  visible (a satisfied requirement still tells the user what the row needs).
+ *  Labels stay readable words, not abbreviations. */
 fun requirementBadges(required: Set<String>): List<String> {
     val badges = mutableSetOf<String>()
     if (CapabilityIds.SHIZUKU_REQUIRED in required) badges += "SHIZUKU"
     if (required.any { it.startsWith("state_reader_") && it != CapabilityIds.STATE_READER_BUILTIN }) badges += "SHIZUKU"
-    if (CapabilityIds.TRIGGER_NOTIFICATION in required || CapabilityIds.ACTION_CLEAR_NOTIFICATIONS in required) {
-        badges += "NOTIF"
+    if (CapabilityIds.TRIGGER_NOTIFICATION in required || CapabilityIds.ACTION_CLEAR_NOTIFICATIONS in required ||
+        CapabilityIds.TRIGGER_MEDIA_PLAYBACK in required
+    ) {
+        badges += "NOTIFICATIONS"
     }
     if (CapabilityIds.TRIGGER_APP_OPENED in required || CapabilityIds.STATE_FOREGROUND_APP in required) {
-        badges += "USAGE"
+        badges += "USAGE ACCESS"
     }
     if (CapabilityIds.TRIGGER_PHONE_SMS in required || CapabilityIds.TRIGGER_PHONE_CALL in required || CapabilityIds.ACTION_SEND_SMS in required) {
         badges += "PHONE"
     }
     if (CapabilityIds.TRIGGER_GEOFENCE in required || CapabilityIds.STATE_LOCATION in required) {
-        badges += "LOC"
+        badges += "LOCATION"
     }
-    if (CapabilityIds.TRIGGER_CALENDAR_EVENT in required) badges += "CAL"
+    if (CapabilityIds.TRIGGER_CALENDAR_EVENT in required) badges += "CALENDAR"
     if (required.any { it.startsWith("action_set_glyph") || it.startsWith("action_glyph") }) badges += "GLYPH"
 
     val known =
@@ -66,6 +69,7 @@ fun requirementBadges(required: Set<String>): List<String> {
             CapabilityIds.SHIZUKU_REQUIRED,
             CapabilityIds.TRIGGER_NOTIFICATION,
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
             CapabilityIds.TRIGGER_APP_OPENED,
             CapabilityIds.STATE_FOREGROUND_APP,
             CapabilityIds.TRIGGER_PHONE_SMS,
@@ -74,11 +78,30 @@ fun requirementBadges(required: Set<String>): List<String> {
             CapabilityIds.TRIGGER_GEOFENCE,
             CapabilityIds.STATE_LOCATION,
             CapabilityIds.TRIGGER_CALENDAR_EVENT,
+            // Always-satisfied monitor/broadcast-backed triggers — never a
+            // setup step, so no badge.
+            CapabilityIds.TRIGGER_DEVICE_STATE,
+            CapabilityIds.TRIGGER_CONNECTIVITY_AIRPLANE,
+            CapabilityIds.TRIGGER_CONNECTIVITY_POWER,
+            CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
+            CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
+            CapabilityIds.TRIGGER_CONNECTIVITY_BT,
+            CapabilityIds.TRIGGER_BT_DEVICE,
+            CapabilityIds.TRIGGER_WIFI_CONNECTED,
+            CapabilityIds.TRIGGER_TIME,
+            CapabilityIds.TRIGGER_TIME_WINDOW,
+            CapabilityIds.TRIGGER_IMMEDIATE,
+            CapabilityIds.TRIGGER_BOOT,
+            CapabilityIds.TRIGGER_BATTERY_LEVEL,
+            CapabilityIds.TRIGGER_SCREEN_STATE,
+            CapabilityIds.TRIGGER_MANUAL,
+            CapabilityIds.TRIGGER_TORCH_STATE,
+            CapabilityIds.STATE_READER_BUILTIN,
         )
     val shizukuReaders = required.filter { it.startsWith("state_reader_") && it != CapabilityIds.STATE_READER_BUILTIN }
     val glyphActions = required.filter { it.startsWith("action_set_glyph") || it.startsWith("action_glyph") }
     val other = required - known - shizukuReaders.toSet() - glyphActions.toSet()
-    if (other.isNotEmpty() && badges.isEmpty()) badges += "SETUP"
+    if (other.isNotEmpty() && badges.isEmpty()) badges += "SETUP NEEDED"
     return badges.toList()
 }
 
@@ -89,13 +112,13 @@ fun missingCapabilityHint(
     fallback: String,
 ): String =
     when {
-        "SHIZUKU" in badges -> "Requires Shizuku"
-        "LOC" in badges -> "Requires location permission"
+        "SHIZUKU" in badges -> "Requires Shizuku — a free companion app"
+        "LOCATION" in badges -> "Requires location permission"
         "PHONE" in badges -> "Requires phone permission"
-        "NOTIF" in badges -> "Requires notification access"
-        "USAGE" in badges -> "Requires usage access"
-        "CAL" in badges -> "Requires calendar permission"
+        "NOTIFICATIONS" in badges -> "Requires notification access"
+        "USAGE ACCESS" in badges -> "Requires usage access"
+        "CALENDAR" in badges -> "Requires calendar permission"
         "GLYPH" in badges -> "Requires a Nothing phone"
-        "SETUP" in badges -> "Needs setup"
+        "SETUP NEEDED" in badges -> "Needs setup"
         else -> fallback
     }

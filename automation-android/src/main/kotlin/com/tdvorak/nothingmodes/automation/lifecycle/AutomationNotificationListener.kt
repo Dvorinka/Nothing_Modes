@@ -81,6 +81,10 @@ class AutomationNotificationListener : NotificationListenerService() {
                 putExtra(EXTRA_TEXT, text)
                 putExtra(EXTRA_CATEGORY, category)
                 putExtra(EXTRA_SENDER, sender)
+                putExtra(EXTRA_IS_GROUP, sbn.isGroup)
+                // groupKey is the stable per-conversation identifier Android
+                // gives the listener (no public conversation-id extra exists).
+                sbn.groupKey?.let { putExtra(EXTRA_CONVERSATION_ID, it) }
             }
         ContextCompat.startForegroundService(this, intent)
         refreshActiveNotifications()
@@ -116,5 +120,7 @@ class AutomationNotificationListener : NotificationListenerService() {
         const val EXTRA_TEXT = "notification_text"
         const val EXTRA_CATEGORY = "notification_category"
         const val EXTRA_SENDER = "notification_sender"
+        const val EXTRA_IS_GROUP = "notification_is_group"
+        const val EXTRA_CONVERSATION_ID = "notification_conversation_id"
     }
 }

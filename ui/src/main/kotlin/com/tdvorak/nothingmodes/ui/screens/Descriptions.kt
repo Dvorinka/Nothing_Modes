@@ -50,7 +50,17 @@ private fun monthName(month: String): String =
         .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
 
 /** Human label for enum-style names: INCOMING_CALL_ENDED -> "Incoming call ended". */
-internal fun String.enumLabel(): String = lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+internal fun String.enumLabel(): String =
+    when (this) {
+        "WIFI" -> "Wi-Fi"
+        "SSID" -> "Wi-Fi name"
+        "AOD" -> "Always-on display"
+        "DND" -> "Do Not Disturb"
+        "SMS" -> "SMS"
+        "BT" -> "Bluetooth"
+        "NFC" -> "NFC"
+        else -> lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+    }
 
 /** Display labels for every entry of an enum, e.g. for pickers. */
 internal inline fun <reified E : Enum<E>> enumLabelList(): List<String> = enumValues<E>().map { it.name.enumLabel() }
@@ -108,11 +118,25 @@ fun deviceStateValueLabel(
     key: String,
     value: String,
 ): String =
-    when (value) {
-        DeviceStateKeys.ANY_VALUE -> "Any change"
-        "true" -> "On"
-        "false" -> "Off"
+    when {
+        value == DeviceStateKeys.ANY_VALUE -> "Any change"
+        key == DeviceStateKeys.THERMAL -> thermalStatusLabel(value)
+        value == "true" -> "On"
+        value == "false" -> "Off"
         else -> value.replaceFirstChar { it.uppercase() }
+    }
+
+/** PowerManager.THERMAL_STATUS_* — severity levels, not temperatures. */
+private fun thermalStatusLabel(value: String): String =
+    when (value) {
+        "0" -> "None"
+        "1" -> "Light"
+        "2" -> "Moderate"
+        "3" -> "Severe"
+        "4" -> "Critical"
+        "5" -> "Emergency"
+        "6" -> "Shutdown"
+        else -> value
     }
 
 /** Shared description functions for triggers and actions. */
@@ -144,7 +168,10 @@ fun triggerTypeDescription(trigger: Trigger): String =
         is Trigger.DeviceState -> "While ${deviceStateLabel(trigger.key).lowercase()} matches a state"
     }
 
-fun triggerDescription(trigger: Trigger): String =
+fun triggerDescription(
+    trigger: Trigger,
+    appLabel: (String) -> String = { it },
+): String =
     (
         when (trigger) {
             is Trigger.Time -> {
@@ -155,17 +182,17 @@ fun triggerDescription(trigger: Trigger): String =
             }
             is Trigger.TimeWindow -> "${trigger.startLocal}–${trigger.endLocal}"
             is Trigger.Immediate -> "Immediate"
-            is Trigger.Notification -> "Notification from ${trigger.pkg}"
+            is Trigger.Notification -> "Notification from ${appLabel(trigger.pkg)}"
             is Trigger.PhoneState -> "Phone: ${trigger.event.name.enumLabel()}"
             is Trigger.Connectivity -> "${trigger.medium.name.enumLabel()} ${trigger.state.name}"
             is Trigger.Boot -> "On boot"
             is Trigger.BatteryLevel -> "Battery at ${trigger.level}%"
             is Trigger.ScreenStateTrigger -> "Screen ${trigger.state}"
-            is Trigger.AppOpened -> "App opened: ${trigger.pkg}"
-            is Trigger.Geofence -> "Geofence (${trigger.lat}, ${trigger.lng}) r=${trigger.radiusM}m"
+            is Trigger.AppOpened -> "App opened: ${appLabel(trigger.pkg)}"
+            is Trigger.Geofence -> "Area trigger · radius ${trigger.radiusM.toInt()} m"
             is Trigger.Manual -> "Manual"
-            is Trigger.BluetoothDevice -> "BT device ${trigger.state}${trigger.deviceName?.let { ": $it" } ?: ""}"
-            is Trigger.WifiConnected -> "WiFi connected${trigger.ssid?.let { ": $it" } ?: ""}"
+            is Trigger.BluetoothDevice -> "Bluetooth device ${trigger.state.name.enumLabel().lowercase()}${trigger.deviceName?.let { ": $it" } ?: ""}"
+            is Trigger.WifiConnected -> "Wi-Fi connected${trigger.ssid?.let { ": $it" } ?: ""}"
             is Trigger.CalendarEvent ->
                 "Calendar ${trigger.direction.name.lowercase()}" +
                     if (trigger.events.isNotEmpty()) {
@@ -177,8 +204,8 @@ fun triggerDescription(trigger: Trigger): String =
             is Trigger.ChargerConnected -> "${if (trigger.connected) "Charger connected" else "Charger unplugged"}${trigger.source?.let { " (${it.name.lowercase()})" } ?: ""}"
             is Trigger.DeviceUnlocked -> "Device unlocked"
             is Trigger.DeviceLocked -> "Device locked"
-            is Trigger.TorchState -> "Torch ${if (trigger.on) "on" else "off"}"
-            is Trigger.MediaPlayback -> "Media ${if (trigger.playing) "playing" else "stopped"}${trigger.packageName?.let { ": $it" } ?: ""}"
+            is Trigger.TorchState -> "Flashlight ${if (trigger.on) "on" else "off"}"
+            is Trigger.MediaPlayback -> "Media ${if (trigger.playing) "playing" else "stopped"}${trigger.packageName?.let { ": ${appLabel(it)}" } ?: ""}"
             is Trigger.DeviceState ->
                 "${deviceStateLabel(trigger.key)} = ${deviceStateValueLabel(trigger.key, trigger.value)}"
         }

@@ -43,8 +43,11 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_BT_DEVICE,
             -> capabilities.hasBluetooth
             CapabilityIds.TRIGGER_CONNECTIVITY_POWER -> true
+            CapabilityIds.TRIGGER_CONNECTIVITY_AIRPLANE -> true
             CapabilityIds.TRIGGER_BATTERY_LEVEL -> true
             CapabilityIds.TRIGGER_SCREEN_STATE -> true
+            // DeviceStateMonitor watches all keys locally — no permission needed.
+            CapabilityIds.TRIGGER_DEVICE_STATE -> true
             CapabilityIds.TRIGGER_TORCH_STATE -> capabilities.hasFlashlight
             CapabilityIds.TRIGGER_APP_OPENED -> capabilities.hasUsageAccess
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
@@ -91,12 +94,15 @@ class CapabilityResolver(
             CapabilityIds.ACTION_VIBRATE -> capabilities.hasVibrator
             CapabilityIds.ACTION_SET_GLYPH -> capabilities.hasGlyphLightStripe
             CapabilityIds.ACTION_SET_GLYPH_MATRIX -> capabilities.hasGlyphMatrix
-            CapabilityIds.ACTION_GLYPH_ANIMATE -> capabilities.hasGlyphLightStripe
-            CapabilityIds.ACTION_GLYPH_PROGRESS -> capabilities.hasGlyphLightStripe
+            // Animate/progress degrade to the matrix on stripe-less hardware —
+            // the executor accepts either glyph surface.
+            CapabilityIds.ACTION_GLYPH_ANIMATE -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
+            CapabilityIds.ACTION_GLYPH_PROGRESS -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_GLYPH_TEXT -> capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_GLYPH_PRESET -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_GLYPH_TURNOFF -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
+            CapabilityIds.ACTION_SET_GLYPH_INTERFACE -> capabilities.hasGlyphLightStripe || capabilities.hasGlyphMatrix
             CapabilityIds.ACTION_GLYPH_ICON,
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
@@ -141,7 +147,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             CapabilityIds.ACTION_SET_STAY_AWAKE,
-            -> "Shizuku required but not authorized"
+            -> "Needs Shizuku — a free companion app that grants extra permissions"
 
             CapabilityIds.ACTION_SET_DND -> "Notification policy access required"
             CapabilityIds.ACTION_SET_BRIGHTNESS,
@@ -151,39 +157,40 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             CapabilityIds.ACTION_SET_AOD,
-            -> "WRITE_SETTINGS permission required"
+            -> "'Modify system settings' permission required"
 
             CapabilityIds.ACTION_SET_GLYPH -> "No Glyph light stripe on this device"
             CapabilityIds.ACTION_SET_GLYPH_MATRIX -> "No Glyph Matrix on this device"
-            CapabilityIds.ACTION_GLYPH_ANIMATE -> "No Glyph light stripe on this device"
-            CapabilityIds.ACTION_GLYPH_PROGRESS -> "No Glyph light stripe on this device"
+            CapabilityIds.ACTION_GLYPH_ANIMATE -> "No Glyph hardware on this device"
+            CapabilityIds.ACTION_GLYPH_PROGRESS -> "No Glyph hardware on this device"
             CapabilityIds.ACTION_GLYPH_TEXT -> "No Glyph Matrix on this device"
             CapabilityIds.ACTION_GLYPH_SCROLLING_TEXT -> "No Glyph Matrix on this device"
             CapabilityIds.ACTION_GLYPH_PRESET -> "No Glyph hardware on this device"
             CapabilityIds.ACTION_GLYPH_TURNOFF -> "No Glyph hardware on this device"
+            CapabilityIds.ACTION_SET_GLYPH_INTERFACE -> "No Glyph hardware on this device"
             CapabilityIds.ACTION_GLYPH_ICON,
             CapabilityIds.ACTION_GLYPH_NUMBER,
             CapabilityIds.ACTION_GLYPH_COUNTDOWN,
             CapabilityIds.ACTION_GLYPH_MUSIC,
             -> "No Glyph Matrix on this device"
-            CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access required"
-            CapabilityIds.TRIGGER_APP_OPENED -> "Usage access required (Settings > Usage Access)"
-            CapabilityIds.TRIGGER_GEOFENCE -> "Location permission and GPS required"
-            CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required (Settings > Usage Access)"
-            CapabilityIds.STATE_LOCATION -> "Location permission and GPS required"
+            CapabilityIds.TRIGGER_NOTIFICATION -> "Notification access required — the app can't see incoming notifications"
+            CapabilityIds.TRIGGER_APP_OPENED -> "Usage access required — the app can't see which app is open"
+            CapabilityIds.TRIGGER_GEOFENCE -> "Location permission required"
+            CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required — the app can't see which app is open"
+            CapabilityIds.STATE_LOCATION -> "Location permission required"
             CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
-            CapabilityIds.TRIGGER_PHONE_CALL -> "READ_PHONE_STATE and READ_CALL_LOG permissions required"
-            CapabilityIds.TRIGGER_CALENDAR_EVENT -> "READ_CALENDAR permission required"
-            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification listener access required"
+            CapabilityIds.TRIGGER_PHONE_CALL -> "Phone state permission required"
+            CapabilityIds.TRIGGER_CALENDAR_EVENT -> "Calendar permission required"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification access required — the app can't see media sessions"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
-            CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access required"
-            CapabilityIds.ACTION_SET_WALLPAPER -> "SET_WALLPAPER permission required"
-            CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Detected: may not work on this device"
-            CapabilityIds.ACTION_LOCK_SCREEN -> "Detected: may not work on this device"
-            CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware unavailable"
-            CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware unavailable"
-            CapabilityIds.ACTION_SET_FLASHLIGHT -> "Flashlight unavailable"
-            CapabilityIds.ACTION_VIBRATE -> "Vibrator unavailable"
+            CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification access required"
+            CapabilityIds.ACTION_SET_WALLPAPER -> "Wallpaper permission required"
+            CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Needs Shizuku — a free companion app that grants extra permissions"
+            CapabilityIds.ACTION_LOCK_SCREEN -> "Needs Shizuku — a free companion app that grants extra permissions"
+            CapabilityIds.ACTION_SET_WIFI -> "This device has no Wi-Fi hardware"
+            CapabilityIds.ACTION_SET_BLUETOOTH -> "This device has no Bluetooth hardware"
+            CapabilityIds.ACTION_SET_FLASHLIGHT -> "This device has no flashlight"
+            CapabilityIds.ACTION_VIBRATE -> "This device has no vibrator"
             else -> "Capability not available: $capability"
         }
 }

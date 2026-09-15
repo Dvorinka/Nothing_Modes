@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import com.tdvorak.nothingmodes.automation.lifecycle.GeofenceMonitor
@@ -62,7 +63,25 @@ class AutomationScheduler(
         id: AutomationId,
         trigger: Trigger.Geofence,
     ) {
-        geofenceMonitor.addGeofence(id.value, trigger.lat, trigger.lng, trigger.radiusM.toFloat(), trigger.transition)
+        // Geofence.Builder throws on out-of-range values — reject them here so
+        // one bad config can't take down the whole reschedule loop.
+        val valid =
+            trigger.lat in -90.0..90.0 &&
+                trigger.lng in -180.0..180.0 &&
+                trigger.radiusM.isFinite() &&
+                trigger.radiusM > 0
+        if (!valid) {
+            Log.w(TAG, "Skipping invalid geofence for ${id.value}: lat=${trigger.lat} lng=${trigger.lng} r=${trigger.radiusM}")
+            return
+        }
+        geofenceMonitor.addGeofence(
+            id.value,
+            trigger.lat,
+            trigger.lng,
+            trigger.radiusM.toFloat(),
+            trigger.transition,
+            trigger.loiteringDelayMs,
+        )
         registeredGeofences.add(id.value)
         Log.i(TAG, "Geofence scheduled for ${id.value} at (${trigger.lat}, ${trigger.lng}) r=${trigger.radiusM}m")
     }
@@ -228,6 +247,9 @@ class AutomationScheduler(
         val intent =
             Intent(context, AutomationAlarmReceiver::class.java).apply {
                 action = AutomationAlarmReceiver.ACTION_TIME_FIRED
+                // Distinct data URI per automation — requestCode is hash-based
+                // and can collide, but filterEquals includes data.
+                data = Uri.parse("nothingmodes://alarm/${id.value}/time")
                 putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
             }
         return PendingIntent.getBroadcast(
@@ -250,6 +272,7 @@ class AutomationScheduler(
                     } else {
                         AutomationAlarmReceiver.ACTION_WINDOW_END
                     }
+                data = Uri.parse("nothingmodes://alarm/${id.value}/window/$isStart")
                 putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
             }
         return PendingIntent.getBroadcast(
@@ -325,6 +348,7 @@ class AutomationScheduler(
         val intent =
             Intent(context, AutomationAlarmReceiver::class.java).apply {
                 action = AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE
+                data = Uri.parse("nothingmodes://alarm/${id.value}/before/$minutes")
                 putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
                 putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_NAME, name)
                 putExtra(AutomationAlarmReceiver.EXTRA_LEAD_MINUTES, minutes)

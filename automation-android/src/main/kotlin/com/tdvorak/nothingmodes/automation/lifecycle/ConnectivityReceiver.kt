@@ -65,19 +65,25 @@ class ConnectivityReceiver : BroadcastReceiver() {
 
     private fun handleWifiConnected(context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
-        val network = connectivityManager.activeNetwork ?: return
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return
+        val capabilities =
+            connectivityManager.activeNetwork
+                ?.let { connectivityManager.getNetworkCapabilities(it) }
+        val wifiUp =
+            capabilities != null &&
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-        if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return
-        if (!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return
+        val ssid = if (wifiUp) getSsid(context, capabilities) else null
+        // Connected but SSID unreadable (no location permission) — nothing
+        // matchable, and a null ssid means "disconnected" downstream.
+        if (wifiUp && ssid == null) return
 
-        val ssid = getSsid(context, capabilities) ?: return
-        Log.d(TAG, "WiFi connected: ssid=$ssid")
+        Log.d(TAG, if (ssid != null) "WiFi connected: ssid=$ssid" else "WiFi disconnected")
 
         val serviceIntent =
             Intent(context, AutomationService::class.java).apply {
                 action = AutomationService.ACTION_WIFI_CONNECTED
-                putExtra(EXTRA_WIFI_SSID, ssid)
+                if (ssid != null) putExtra(EXTRA_WIFI_SSID, ssid)
             }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
@@ -131,6 +137,16 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
             }
         ContextCompat.startForegroundService(context, serviceIntent)
+
+        // Turning Wi-Fi off is also a disconnect — NETWORK_STATE_CHANGED is not
+        // guaranteed to fire, so emit the drop explicitly for "while on Wi-Fi" modes.
+        if (state == WifiManager.WIFI_STATE_DISABLED) {
+            val dropIntent =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_WIFI_CONNECTED
+                }
+            ContextCompat.startForegroundService(context, dropIntent)
+        }
     }
 
     private fun handleBtState(

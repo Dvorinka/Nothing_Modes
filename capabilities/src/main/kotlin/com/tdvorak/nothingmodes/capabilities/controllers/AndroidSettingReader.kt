@@ -41,8 +41,11 @@ class AndroidSettingReader(
                 readGlobalSettingAsString(key)
             "reduce_bright_colors_activated" ->
                 readSecureSettingAsString(key)
+            // Refresh-rate keys moved to the secure table — match the write order.
+            "peak_refresh_rate", "min_refresh_rate" ->
+                readSecureSettingAsString(key) ?: readSystemSettingAsString(key)
             "screen_off_timeout", "screen_brightness", "screen_brightness_mode",
-            "accelerometer_rotation", "user_rotation", "peak_refresh_rate", "min_refresh_rate",
+            "accelerometer_rotation", "user_rotation",
             -> readSystemSettingAsString(key)
             else ->
                 when {

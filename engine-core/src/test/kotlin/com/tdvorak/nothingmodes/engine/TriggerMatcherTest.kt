@@ -672,4 +672,83 @@ class TriggerMatcherTest {
         val event = TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.AIRPLANE, value = "0", previous = "1")
         assertFalse(matcher.isInverseEdge(trigger, event))
     }
+
+    // --- Battery threshold crossing ---
+
+    @Test
+    fun `BatteryLevel trigger fires when level crosses threshold downward`() {
+        val trigger = Trigger.BatteryLevel(level = 20)
+        val event = TriggerEvent.BatteryLevelChanged("e1", level = 19, isCharging = false, previousLevel = 21)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `BatteryLevel trigger fires when level crosses threshold upward`() {
+        val trigger = Trigger.BatteryLevel(level = 80)
+        val event = TriggerEvent.BatteryLevelChanged("e1", level = 81, isCharging = true, previousLevel = 79)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `BatteryLevel trigger does not fire when threshold not crossed`() {
+        val trigger = Trigger.BatteryLevel(level = 50)
+        val event = TriggerEvent.BatteryLevelChanged("e1", level = 30, isCharging = false, previousLevel = 31)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- Legacy POWER connectivity ---
+
+    @Test
+    fun `legacy POWER connectivity trigger matches charger connect`() {
+        val trigger = Trigger.Connectivity(medium = ConnMedium.POWER, state = ConnState.CONNECTED)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = true, source = null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `legacy POWER connectivity trigger has inverse edge on unplug`() {
+        val trigger = Trigger.Connectivity(medium = ConnMedium.POWER, state = ConnState.CONNECTED)
+        val event = TriggerEvent.ChargerConnectedChanged("e1", connected = false, source = null)
+        assertTrue(matcher.isInverseEdge(trigger, event))
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- Phone number normalization ---
+
+    @Test
+    fun `PhoneState number filter matches national format against E164`() {
+        val trigger = Trigger.PhoneState(event = PhoneEvent.INCOMING_CALL, number = "777 123 456")
+        val event = TriggerEvent.PhoneStateChanged("e1", PhoneEvent.INCOMING_CALL, "+420777123456", null)
+        assertTrue(matcher.matches(trigger, event))
+    }
+
+    @Test
+    fun `PhoneState short number does not suffix-match`() {
+        val trigger = Trigger.PhoneState(event = PhoneEvent.INCOMING_CALL, number = "456")
+        val event = TriggerEvent.PhoneStateChanged("e1", PhoneEvent.INCOMING_CALL, "+420777123456", null)
+        assertFalse(matcher.matches(trigger, event))
+    }
+
+    // --- Wi-Fi network switch ---
+
+    @Test
+    fun `SSID-filtered WifiConnected trigger has inverse edge on network hop`() {
+        val trigger = Trigger.WifiConnected(ssid = "HomeNet")
+        val event = TriggerEvent.WifiConnectedChanged("e1", ssid = "CafeWifi")
+        assertTrue(matcher.isInverseEdge(trigger, event))
+    }
+
+    @Test
+    fun `WifiConnected trigger has inverse edge when link drops`() {
+        val trigger = Trigger.WifiConnected(ssid = "HomeNet")
+        val event = TriggerEvent.WifiConnectedChanged("e1", ssid = null)
+        assertTrue(matcher.isInverseEdge(trigger, event))
+    }
+
+    @Test
+    fun `match-filtered Connectivity trigger has inverse edge on different network`() {
+        val trigger = Trigger.Connectivity(medium = ConnMedium.WIFI, state = ConnState.CONNECTED, match = "Home")
+        val event = TriggerEvent.ConnectivityChanged("e1", ConnMedium.WIFI, ConnState.CONNECTED, "Office")
+        assertTrue(matcher.isInverseEdge(trigger, event))
+    }
 }

@@ -157,6 +157,8 @@ class FirePolicy {
     private val lastFired = java.util.concurrent.ConcurrentHashMap<AutomationId, Long>()
     private val lock = Any()
 
+    /** Read-only check — [markFired] records the actual fire so a
+     * condition-blocked or conflicted candidate doesn't consume the window. */
     fun evaluate(
         automation: Automation,
         event: TriggerEvent,
@@ -168,9 +170,17 @@ class FirePolicy {
             if (last != null && now - last < automation.cooldownMs) {
                 return Decision.Block("cooldown_active")
             }
-            lastFired[automation.id] = now
         }
         return Decision.Allow
+    }
+
+    fun markFired(
+        id: AutomationId,
+        now: Long,
+    ) {
+        synchronized(lock) {
+            lastFired[id] = now
+        }
     }
 
     fun reset(id: AutomationId) {

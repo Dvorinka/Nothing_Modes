@@ -130,7 +130,7 @@ fun ActionConfigSheet(
             // Combined glyph composer — one sheet for every design type.
             // Switching types swaps `current` to that variant's defaults; the
             // per-type editor below and the live preview follow automatically.
-            if (current.isGlyphAction && current !is Action.Group) {
+            if (current.isGlyphAction) {
                 val designTypes = remember(caps) { glyphDesignTypes(caps) }
                 NothingEnumSelector(
                     label = "Design type",
@@ -677,16 +677,16 @@ fun ActionConfigContent(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
-                value = a.glyphTimeoutMs.toString(),
+                value = (a.glyphTimeoutMs / 1000).toString(),
                 onValueChange = {
                     onActionChange(
                         a.copy(
-                            glyphTimeoutMs = it.toIntOrNull()?.coerceIn(0, 60_000) ?: a.glyphTimeoutMs,
+                            glyphTimeoutMs = (it.toIntOrNull()?.coerceIn(0, 60) ?: 0) * 1000,
                         ),
                     )
                 },
-                label = "Glyph timeout (ms, 0 = manual)",
-                infoText = "How long the glyph stays lit after the notification posts. 0 keeps it on until the mode ends or the user clears it.",
+                label = "Glyph timeout (seconds, 0 = stays on)",
+                infoText = "How long the glyph stays lit after the notification posts. 0 keeps it on until the mode ends or you turn it off.",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -901,13 +901,27 @@ fun ActionConfigContent(
                 onSelect = { onActionChange(a.copy(zone = if (it == "All") null else it)) },
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = a.periodMs.toString(),
-                onValueChange = { onActionChange(a.copy(periodMs = it.toIntOrNull() ?: a.periodMs)) },
-                label = "Blink speed (ms per cycle)",
-                infoText = "Milliseconds for one on-off blink. Lower = faster. 500ms is a gentle pulse.",
-                modifier = Modifier.fillMaxWidth(),
+            NothingEnumSelector(
+                label = "Blink speed",
+                value = blinkPresets.firstOrNull { it.second == a.periodMs }?.first ?: "Custom",
+                options = blinkPresets.map { it.first } + "Custom",
+                infoText = "How fast the light blinks. Normal is a gentle pulse.",
+                onSelect = { label ->
+                    blinkPresets.firstOrNull { it.first == label }?.let {
+                        onActionChange(a.copy(periodMs = it.second))
+                    }
+                },
             )
+            if (blinkPresets.none { it.second == a.periodMs }) {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = a.periodMs.toString(),
+                    onValueChange = { onActionChange(a.copy(periodMs = it.toIntOrNull() ?: a.periodMs)) },
+                    label = "Custom blink (ms per cycle)",
+                    infoText = "Milliseconds for one on-off blink. Lower = faster. 500 is a gentle pulse.",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
                 value = a.cycles.toString(),
@@ -1008,7 +1022,7 @@ fun ActionConfigContent(
         is Action.Wait -> {
             val customLabel = "Custom"
             val selected = waitPresets.firstOrNull { it.second == a.durationMs }?.first ?: customLabel
-            var customMs by remember(a.durationMs) { mutableStateOf(a.durationMs.toString()) }
+            var customSecs by remember(a.durationMs) { mutableStateOf((a.durationMs / 1000).toString()) }
             Column {
                 NothingEnumSelector(
                     label = "Wait for",
@@ -1023,12 +1037,12 @@ fun ActionConfigContent(
                 if (selected == customLabel) {
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
                     NothingInput(
-                        value = customMs,
+                        value = customSecs,
                         onValueChange = {
-                            customMs = it
-                            it.toLongOrNull()?.let { ms -> onActionChange(a.copy(durationMs = ms)) }
+                            customSecs = it
+                            it.toLongOrNull()?.let { s -> onActionChange(a.copy(durationMs = s * 1000)) }
                         },
-                        label = "Custom ms",
+                        label = "Custom seconds",
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -1061,6 +1075,21 @@ internal fun glyphDesignTypes(caps: DeviceCapabilities): List<Pair<String, Actio
         "Countdown" to Action.GlyphCountdown(30),
         "Music visualizer" to Action.GlyphMusic(),
         "Light stripe" to Action.SetGlyph(true),
+        "Light" to Action.SetGlyphMatrix(colors = List(625) { 0xFFFFFF.toInt() }),
+        // Torch plus glyph at full brightness — a flashlight that works face-down.
+        "Flashlight" to
+            Action.Group(
+                name = "Glyph flashlight",
+                actions =
+                    listOf(
+                        Action.SetFlashlight(true),
+                        if (caps.hasGlyphMatrix) {
+                            Action.SetGlyphMatrix(colors = List(625) { 0xFFFFFF.toInt() })
+                        } else {
+                            Action.SetGlyph(true)
+                        },
+                    ),
+            ),
     ).filter { (_, action) ->
         val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
         !com.tdvorak.nothingmodes.ui.util.isHardwareBlocked(
@@ -1160,6 +1189,14 @@ internal val waitPresets =
         "30 seconds" to 30_000L,
         "1 minute" to 60_000L,
         "5 minutes" to 300_000L,
+    )
+
+private val blinkPresets =
+    listOf(
+        "Slow pulse" to 1_000,
+        "Normal" to 500,
+        "Fast" to 250,
+        "Strobe" to 100,
     )
 
 private fun actionTitle(action: Action): String =

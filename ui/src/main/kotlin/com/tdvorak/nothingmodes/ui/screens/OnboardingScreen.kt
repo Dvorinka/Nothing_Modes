@@ -203,7 +203,7 @@ fun OnboardingScreen(
                     OnboardingStep(
                         step = 5,
                         title = "Location",
-                        description = "Geofence triggers, WiFi SSID detection.",
+                        description = "Geofence triggers, Wi-Fi network detection.",
                         done = capabilities.hasLocationPermission,
                         onAction = {
                             showLocationDisclosure = true
@@ -225,21 +225,30 @@ fun OnboardingScreen(
                         title = "Shizuku (Optional)",
                         description =
                             when (shizukuStatus) {
-                                ShizukuGatewayStatus.NOT_INSTALLED -> "Wi-Fi, Bluetooth, mobile data toggles. Needs the Shizuku app."
-                                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Installed — open Shizuku and start the service first."
-                                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Running — tap to authorize Nothing Modes."
-                                ShizukuGatewayStatus.AUTHORIZED -> "Wi-Fi, Bluetooth, mobile data toggles."
-                                ShizukuGatewayStatus.UNSUPPORTED -> "Shizuku is too old — update it first."
+                                ShizukuGatewayStatus.NOT_INSTALLED ->
+                                    "Shizuku is a free companion app that lets Nothing Modes change settings Android normally blocks — dark mode, mobile data, and more. Optional; skip if you don't need those."
+                                ShizukuGatewayStatus.INSTALLED_NOT_RUNNING -> "Installed — open Shizuku and tap Start in it first."
+                                ShizukuGatewayStatus.RUNNING_NOT_AUTHORIZED -> "Running — tap to allow Nothing Modes to use it."
+                                ShizukuGatewayStatus.AUTHORIZED -> "Connected — system-level actions are available."
+                                ShizukuGatewayStatus.UNSUPPORTED -> "Shizuku is installed but too old — update it first."
                             },
                         done = shizukuStatus == ShizukuGatewayStatus.AUTHORIZED,
                         onAction = {
                             when (shizukuStatus) {
                                 ShizukuGatewayStatus.NOT_INSTALLED,
                                 ShizukuGatewayStatus.UNSUPPORTED,
-                                ->
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest")),
-                                    )
+                                -> {
+                                    val market =
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=moe.shizuku.privileged.api"))
+                                    runCatching { context.startActivity(market) }.onFailure {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"),
+                                            ),
+                                        )
+                                    }
+                                }
                                 ShizukuGatewayStatus.INSTALLED_NOT_RUNNING ->
                                     context.packageManager
                                         .getLaunchIntentForPackage("moe.shizuku.privileged.api")

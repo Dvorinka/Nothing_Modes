@@ -81,14 +81,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-private enum class RowKind { CONFIG, GLYPH_PICKER, DIRECT }
-
 private data class ActionItem(
     val label: String,
     val category: String,
     val icon: ImageVector,
     val action: Action?,
-    val kind: RowKind = RowKind.CONFIG,
     val desc: String? = null,
 )
 
@@ -149,40 +146,66 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Media control", "Apps", Icons.AutoMirrored.Outlined.VolumeUp, Action.MediaControl(MediaCommand.PLAY_PAUSE)),
                 ActionItem("Wait", "Apps", Icons.Outlined.Snooze, Action.Wait(1000)),
                 ActionItem("Send SMS", "Apps", Icons.Outlined.Sms, Action.SendSms("", "")),
-                // One entry into every Glyph design type — the picker below.
+                ActionItem("Copy text", "Apps", Icons.Outlined.ContentCopy, Action.CopyText(""), desc = "Copies text to the clipboard."),
+                // One row per Glyph capability — each opens the same composer
+                // sheet, where the design-type selector can still switch.
+                // Hardware-blocked twins (stripe vs matrix) drop out below, so
+                // exactly one row per label shows per device.
                 ActionItem(
-                    "Glyph",
-                    "Glyph",
-                    Icons.Outlined.WbTwilight,
-                    action = Action.GlyphTurnOff, // meta carrier — picks open the design picker
-                    kind = RowKind.GLYPH_PICKER,
-                    desc = "Show a design, animation, or the music visualizer on the Glyph.",
-                ),
-                ActionItem(
-                    "Glyph on",
+                    "Glyph light",
                     "Glyph",
                     Icons.Outlined.Lightbulb,
                     action = Action.SetGlyph(true),
-                    kind = RowKind.DIRECT,
-                    desc = "Switches the Glyph light on.",
+                    desc = "Switch the Glyph light on or off. Add it multiple times to blink or sequence.",
                 ),
-                // Same "Glyph on" for matrix phones — the stripe variant is
-                // hardware-hidden there, so exactly one row shows per device.
                 ActionItem(
-                    "Glyph on",
+                    "Glyph light",
                     "Glyph",
                     Icons.Outlined.Lightbulb,
-                    action = Action.SetGlyphMatrix(colors = List(625) { 255 }),
-                    kind = RowKind.DIRECT,
-                    desc = "Lights the whole Glyph Matrix.",
+                    action = Action.SetGlyphMatrix(colors = List(625) { 0xFFFFFF.toInt() }),
+                    desc = "Switch the Glyph Matrix on or off. Add it multiple times to blink or sequence.",
                 ),
                 ActionItem(
-                    "Glyph interface",
+                    "Glyph design",
                     "Glyph",
-                    Icons.Outlined.ToggleOn,
-                    action = Action.SetGlyphInterface(true),
-                    kind = RowKind.CONFIG,
-                    desc = "Nothing OS master switch for all Glyph lights. Needs Shizuku.",
+                    Icons.Outlined.WbTwilight,
+                    action = Action.GlyphIcon("check"),
+                    desc = "A saved, bundled, or community matrix design — icons and pixel art.",
+                ),
+                ActionItem(
+                    "Glyph preset",
+                    "Glyph",
+                    Icons.Outlined.Animation,
+                    action = Action.GlyphPreset("sleep"),
+                    desc = "A named animation shipped with the app — sleep, charging, timer, notifications.",
+                ),
+                ActionItem(
+                    "Glyph animation",
+                    "Glyph",
+                    Icons.Outlined.Waves,
+                    action = Action.GlyphAnimate(),
+                    desc = "Breathing blink on a light zone — set speed and repeats.",
+                ),
+                ActionItem(
+                    "Glyph progress",
+                    "Glyph",
+                    Icons.Outlined.LinearScale,
+                    action = Action.GlyphProgress(50),
+                    desc = "Progress bar filling the matrix, 0-100%.",
+                ),
+                ActionItem(
+                    "Glyph countdown",
+                    "Glyph",
+                    Icons.Outlined.Timer,
+                    action = Action.GlyphCountdown(30),
+                    desc = "Countdown timer rendered on the matrix, ticking once per second.",
+                ),
+                ActionItem(
+                    "Glyph music visualizer",
+                    "Glyph",
+                    Icons.Outlined.GraphicEq,
+                    action = Action.GlyphMusic(),
+                    desc = "Live music-reactive visualizer. Runs until Glyph off or another glyph action.",
                 ),
                 ActionItem(
                     "Glyph flashlight",
@@ -194,19 +217,32 @@ fun ActionCatalogScreen(navController: NavController) {
                             actions =
                                 listOf(
                                     Action.SetFlashlight(true),
-                                    Action.SetGlyphMatrix(colors = List(625) { 255 }),
+                                    Action.SetGlyphMatrix(colors = List(625) { 0xFFFFFF.toInt() }),
                                 ),
                         ),
-                    kind = RowKind.DIRECT,
-                    desc = "Torch plus Glyph at full brightness — an always-available torch.",
+                    desc = "Camera flashlight plus Glyph at full brightness — works face-down.",
                 ),
                 ActionItem(
-                    "Glyph off",
+                    "Glyph flashlight",
                     "Glyph",
-                    Icons.Outlined.PowerSettingsNew,
-                    action = Action.GlyphTurnOff,
-                    kind = RowKind.DIRECT,
-                    desc = "Clears anything currently on the Glyph.",
+                    Icons.Outlined.FlashlightOn,
+                    action =
+                        Action.Group(
+                            name = "Glyph flashlight",
+                            actions =
+                                listOf(
+                                    Action.SetFlashlight(true),
+                                    Action.SetGlyph(true),
+                                ),
+                        ),
+                    desc = "Camera flashlight plus Glyph at full brightness — works face-down.",
+                ),
+                ActionItem(
+                    "Glyph interface",
+                    "Glyph",
+                    Icons.Outlined.ToggleOn,
+                    action = Action.SetGlyphInterface(true),
+                    desc = "Master switch for the Glyph interface — the LED light system on the back of Nothing phones. Off disables every Glyph feature device-wide. Needs Shizuku.",
                 ),
                 ActionItem("Write setting", "Advanced", Icons.Outlined.Settings, Action.WriteSetting(SettingNamespace.GLOBAL, "animator_duration_scale", "1.0")),
             ).filter { it.action !is Action.LockScreen || FeatureFlags.enableLockScreen }
@@ -270,36 +306,20 @@ fun ActionCatalogScreen(navController: NavController) {
                 entries = catalogEntries,
                 onSelect = { entry ->
                     // Hardware-blocked rows never become catalog entries, so a
-                    // label alone can point at the wrong twin (e.g. "Glyph on"
+                    // label alone can point at the wrong twin (e.g. "Glyph light"
                     // stripe vs matrix) — pick the first non-blocked match.
                     val actionItem =
                         items.firstOrNull {
                             it.label == entry.label && it.action != null &&
                                 !actionCatalogMeta(it.action!!, caps).third
                         } ?: return@CatalogPickerContent
+                    val action = actionItem.action ?: return@CatalogPickerContent
                     editingIndex = null
-                    when (actionItem.kind) {
-                        RowKind.GLYPH_PICKER -> {
-                            val action = Action.GlyphIcon("check")
-                            val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
-                            if (resolver.resolve(actionItem.label, required).canRun) {
-                                configAction = action
-                            } else {
-                                pendingAction = action
-                            }
-                        }
-                        RowKind.DIRECT -> actionItem.action?.let {
-                            if (it !in selected) selected = selected + it
-                        }
-                        RowKind.CONFIG -> {
-                            val action = actionItem.action ?: return@CatalogPickerContent
-                            val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
-                            if (resolver.resolve(actionItem.label, required).canRun) {
-                                configAction = action
-                            } else {
-                                pendingAction = action
-                            }
-                        }
+                    val required = CapabilityRequirements.derive(Trigger.Immediate, listOf(action))
+                    if (resolver.resolve(actionItem.label, required).canRun) {
+                        configAction = action
+                    } else {
+                        pendingAction = action
                     }
                 },
                 searchPlaceholder = stringResource(R.string.picker_find_action),

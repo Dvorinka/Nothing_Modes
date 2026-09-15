@@ -123,7 +123,7 @@ fun NotifyRulesEditor(
             val hasOnEnd = rules.contains(NotifyRule.OnEnd)
 
             AddRuleChip(
-                text = "+ Before",
+                text = "+ Early",
                 onClick = {
                     val next = rules.toMutableList()
                     if (!hasBefore) next.add(NotifyRule.Before(15))
@@ -132,13 +132,13 @@ fun NotifyRulesEditor(
                 modifier = Modifier.weight(1f),
             )
             AddRuleChip(
-                text = "+ Trigger",
+                text = "+ On start",
                 onClick = { onChange(rules + NotifyRule.OnTrigger) },
                 modifier = Modifier.weight(1f),
                 enabled = !hasOnTrigger,
             )
             AddRuleChip(
-                text = "+ End",
+                text = "+ On end",
                 onClick = { onChange(rules + NotifyRule.OnEnd) },
                 modifier = Modifier.weight(1f),
                 enabled = !hasOnEnd,

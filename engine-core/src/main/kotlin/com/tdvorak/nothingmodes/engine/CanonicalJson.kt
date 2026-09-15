@@ -32,11 +32,35 @@ fun JsonElement.canonicalJson(): String =
 private fun JsonPrimitive.canonicalPrimitive(): String {
     if (isString) return "\"${escape(content)}\""
     booleanOrNull?.let { return it.toString() }
-    // Preserve the original textual form for integers and doubles.
+    // Preserve the original textual form for integers.
     intOrNull?.let { return it.toString() }
     longOrNull?.let { return it.toString() }
-    doubleOrNull?.let { return it.toString() }
+    doubleOrNull?.let { return jsNumber(it) }
     return content
+}
+
+/**
+ * Reproduces ECMAScript Number→String, which the server's canonicalJson
+ * gets from JSON.stringify: decimal for 1e-6 ≤ |d| < 1e21 (integral or not),
+ * "me±X" exponential outside that, "0" for negative zero, "null" for
+ * non-finite values. Kotlin's toString differs — it switches to E-notation
+ * at 1e7 and saturates toLong past Long range, so format explicitly.
+ */
+private fun jsNumber(d: Double): String {
+    if (!d.isFinite()) return "null" // JS stringifies NaN/Infinity as null
+    if (d == 0.0) return "0" // JSON.stringify(-0) → "0"
+    val abs = kotlin.math.abs(d)
+    return if (abs in 1e-6..<1e21) {
+        // BigDecimal on the shortest-round-trip repr expands exactly like JS.
+        java.math.BigDecimal(d.toString()).stripTrailingZeros().toPlainString()
+    } else {
+        val s = d.toString() // e.g. "1.5E21", "1.0E-7"
+        val ei = s.indexOf('E')
+        if (ei < 0) return s
+        val mantissa = s.substring(0, ei).removeSuffix(".0")
+        val exp = s.substring(ei + 1).toInt()
+        mantissa + "e" + (if (exp >= 0) "+$exp" else "$exp")
+    }
 }
 
 private fun escape(s: String): String =
@@ -46,6 +70,7 @@ private fun escape(s: String): String =
                 '"' -> append("\\\"")
                 '\\' -> append("\\\\")
                 '\b' -> append("\\b")
+                '\u000C' -> append("\\f") // JS uses the \f shorthand, not \u000c
                 '\n' -> append("\\n")
                 '\r' -> append("\\r")
                 '\t' -> append("\\t")

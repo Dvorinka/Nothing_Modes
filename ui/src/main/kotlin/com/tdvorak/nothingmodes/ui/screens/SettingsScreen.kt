@@ -330,7 +330,10 @@ fun SettingsScreen(
                         NothingDivider()
                         NothingInfoRow(label = "Model", value = capabilities.deviceModel)
                         NothingDivider()
-                        NothingInfoRow(label = "Android", value = "API ${capabilities.androidVersion}")
+                        NothingInfoRow(
+                            label = "Android",
+                            value = androidVersionName(capabilities.androidVersion),
+                        )
                         NothingDivider()
                         NothingInfoRow(
                             label = "Nothing Device",
@@ -567,6 +570,17 @@ fun SettingsScreen(
                     // ── Shizuku ───────────────────────────────────────────────
                     NothingSectionHeader(text = "Shizuku")
                     NothingCard {
+                        Text(
+                            text =
+                                "Shizuku is a free companion app that lets Nothing Modes change " +
+                                    "things Android normally blocks — dark mode, airplane mode, " +
+                                    "mobile data and more. Optional: everything that doesn't need " +
+                                    "it keeps working without it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
                         val shizukuStatusText =
                             when (shizukuStatus) {
                                 ShizukuGatewayStatus.NOT_INSTALLED -> "Not Installed"
@@ -610,20 +624,7 @@ fun SettingsScreen(
                                     modifier = Modifier.padding(vertical = NothingSpacing.sm),
                                 )
                                 NothingPillButton(
-                                    text = "Download Shizuku APK",
-                                    onClick = {
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
-                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                        )
-                                    },
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = NothingSpacing.sm),
-                                )
-                                NothingGhostButton(
-                                    text = "Get from Play Store",
+                                    text = "Get Shizuku from Play Store",
                                     onClick = {
                                         runCatching {
                                             context.startActivity(
@@ -638,6 +639,19 @@ fun SettingsScreen(
                                                 ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                                             )
                                         }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = NothingSpacing.sm),
+                                )
+                                NothingGhostButton(
+                                    text = "Download APK instead (GitHub)",
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases"))
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
                                     },
                                 )
                             }
@@ -781,7 +795,7 @@ fun SettingsScreen(
                         var defaultRules by remember { mutableStateOf(notificationPrefs.getDefaultRules()) }
 
                         Text(
-                            text = "Default for modes that haven't chosen",
+                            text = "When a mode should notify you — the default for modes that haven't set their own timing.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -1473,6 +1487,11 @@ private fun ThemeSection() {
         onSelected = { index -> themeManager.setUiStyle(styles[index]) },
         modifier = Modifier.padding(vertical = NothingSpacing.sm),
     )
+    Text(
+        text = "Nothing = dot-matrix look. Classic = standard Android. Auto = match your phone.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -1599,4 +1618,21 @@ private fun PlayBuildBanner(onDismiss: () -> Unit) {
             )
         }
     }
+}
+
+/** SDK int → "Android 16 (API 36)" style label for the About card. */
+private fun androidVersionName(sdk: Int): String {
+    val name =
+        when (sdk) {
+            36 -> "16"
+            35 -> "15"
+            34 -> "14"
+            33 -> "13"
+            32 -> "12.1"
+            31 -> "12"
+            30 -> "11"
+            29 -> "10"
+            else -> null
+        }
+    return if (name != null) "$name (API $sdk)" else "API $sdk"
 }

@@ -43,9 +43,21 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        policy.markFired(automation.id, 10_000L)
         val decision = policy.evaluate(automation, bootEvent, 30_000L)
         assertTrue(decision is FirePolicy.Decision.Block)
         assertEquals("cooldown_active", (decision as FirePolicy.Decision.Block).code)
+    }
+
+    @Test
+    fun `evaluate alone does not consume the cooldown`() {
+        val policy = FirePolicy()
+        val automation = makeAutomation(cooldownMs = 60_000)
+        // Repeated checks without markFired never enter cooldown — a
+        // condition-blocked candidate must not eat the window.
+        assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 20_000L))
+        assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 30_000L))
     }
 
     @Test
@@ -53,6 +65,7 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        policy.markFired(automation.id, 10_000L)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 70_001L))
     }
 
@@ -61,6 +74,7 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        policy.markFired(automation.id, 10_000L)
         // At exactly 70_000 (10_000 + 60_000), now - last = 60_000 which is NOT < 60_000, so allowed
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 70_000L))
     }
@@ -70,6 +84,7 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        policy.markFired(automation.id, 10_000L)
         val decision = policy.evaluate(automation, bootEvent, 69_999L)
         assertTrue(decision is FirePolicy.Decision.Block)
     }
@@ -79,6 +94,7 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 10_000L))
+        policy.markFired(automation.id, 10_000L)
         assertTrue(policy.evaluate(automation, bootEvent, 20_000L) is FirePolicy.Decision.Block)
         policy.reset(automation.id)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 20_000L))
@@ -90,7 +106,9 @@ class FirePolicyTest {
         val a1 = makeAutomation(cooldownMs = 60_000).copy(id = AutomationId("a1"))
         val a2 = makeAutomation(cooldownMs = 60_000).copy(id = AutomationId("a2"))
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(a1, bootEvent, 10_000L))
+        policy.markFired(a1.id, 10_000L)
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(a2, bootEvent, 10_000L))
+        policy.markFired(a2.id, 10_000L)
         // a1 is in cooldown, a2 is also in cooldown now but they are independent
         assertTrue(policy.evaluate(a1, bootEvent, 20_000L) is FirePolicy.Decision.Block)
         assertTrue(policy.evaluate(a2, bootEvent, 20_000L) is FirePolicy.Decision.Block)
@@ -102,10 +120,12 @@ class FirePolicyTest {
         val automation = makeAutomation(cooldownMs = 1000)
         // Fire at t=0
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 0L))
+        policy.markFired(automation.id, 0L)
         // Blocked at t=500
         assertTrue(policy.evaluate(automation, bootEvent, 500L) is FirePolicy.Decision.Block)
         // Allowed at t=1000
         assertEquals(FirePolicy.Decision.Allow, policy.evaluate(automation, bootEvent, 1000L))
+        policy.markFired(automation.id, 1000L)
         // Blocked at t=1500
         assertTrue(policy.evaluate(automation, bootEvent, 1500L) is FirePolicy.Decision.Block)
         // Allowed at t=2000
@@ -117,6 +137,7 @@ class FirePolicyTest {
         val policy = FirePolicy()
         val automation = makeAutomation(cooldownMs = 60_000)
         policy.evaluate(automation, bootEvent, 10_000L)
+        policy.markFired(automation.id, 10_000L)
         val decision = policy.evaluate(automation, bootEvent, 20_000L)
         assertTrue(decision is FirePolicy.Decision.Block)
         assertFalse((decision as FirePolicy.Decision.Block).needsReview)

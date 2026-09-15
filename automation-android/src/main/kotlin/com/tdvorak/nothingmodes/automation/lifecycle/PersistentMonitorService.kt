@@ -114,8 +114,8 @@ class PersistentMonitorService : Service() {
                                 val serviceIntent =
                                     Intent(context, AutomationService::class.java).apply {
                                         action = AutomationService.ACTION_BATTERY_CHANGED
-                                        putExtra(DeviceStateReceiver.EXTRA_BATTERY_LEVEL, percent)
-                                        putExtra(DeviceStateReceiver.EXTRA_BATTERY_CHARGING, isCharging)
+                                        putExtra(AutomationService.EXTRA_BATTERY_LEVEL, percent)
+                                        putExtra(AutomationService.EXTRA_BATTERY_CHARGING, isCharging)
                                         putExtra(EXTRA_BATTERY_SOURCE, source)
                                         putExtra(EXTRA_BATTERY_TEMP, temperature)
                                     }
@@ -165,7 +165,7 @@ class PersistentMonitorService : Service() {
                     val serviceIntent =
                         Intent(context, AutomationService::class.java).apply {
                             action = AutomationService.ACTION_SCREEN_STATE
-                            putExtra(DeviceStateReceiver.EXTRA_SCREEN_STATE, state.name)
+                            putExtra(AutomationService.EXTRA_SCREEN_STATE, state.name)
                         }
                     ContextCompat.startForegroundService(context, serviceIntent)
                 }
@@ -277,17 +277,27 @@ class PersistentMonitorService : Service() {
             val region = detectRegion(tm)
             val listener =
                 object : PhoneStateListener() {
+                    // IDLE arrives with a null number — carry the number that
+                    // rang/went off-hook so CALL_ENDED number filters can match.
+                    private var lastNumber: String? = null
+
                     override fun onCallStateChanged(
                         state: Int,
                         incomingNumber: String?,
                     ) {
                         when (state) {
-                            TelephonyManager.CALL_STATE_RINGING ->
+                            TelephonyManager.CALL_STATE_RINGING -> {
+                                lastNumber = incomingNumber
                                 dispatchPhoneState("ringing", incomingNumber, region)
-                            TelephonyManager.CALL_STATE_IDLE ->
-                                dispatchPhoneState("idle", null, region)
-                            TelephonyManager.CALL_STATE_OFFHOOK ->
-                                dispatchPhoneState("offhook", incomingNumber, region)
+                            }
+                            TelephonyManager.CALL_STATE_OFFHOOK -> {
+                                if (!incomingNumber.isNullOrBlank()) lastNumber = incomingNumber
+                                dispatchPhoneState("offhook", incomingNumber ?: lastNumber, region)
+                            }
+                            TelephonyManager.CALL_STATE_IDLE -> {
+                                dispatchPhoneState("idle", lastNumber, region)
+                                lastNumber = null
+                            }
                         }
                     }
                 }

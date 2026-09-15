@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
+import com.tdvorak.nothingmodes.automation.lifecycle.DeviceStateMonitor
 import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
@@ -122,6 +123,10 @@ private data class TriggerType(
     val category: String,
     val icon: ImageVector,
     val trigger: Trigger,
+    /** Device-state keys this row matches — volume streams share one row. */
+    val stateKeys: Set<String> = emptySet(),
+    /** Catalog row description override — device-state rows carry spec info. */
+    val description: String? = null,
 )
 
 /** A device-state row in the trigger catalog. */
@@ -131,41 +136,86 @@ private data class DeviceStateSpec(
     val icon: ImageVector,
     /** value -> label pairs; null means free-form numeric input. */
     val values: List<Pair<String, String>>?,
+    /** What this state is — shown as the ⓘ hint on the value selector. */
+    val info: String = "",
+    /** Catalog label override — defaults to deviceStateLabel(key). */
+    val label: String? = null,
+    /** Extra keys this row also configures (e.g. the volume streams). */
+    val altKeys: List<Pair<String, String>> = emptyList(),
 )
 
 private val BOOL_VALUES = listOf("true" to "On", "false" to "Off")
 
+/** Android thermal severity levels — PowerManager.THERMAL_STATUS_*. */
+private val THERMAL_VALUES =
+    listOf(
+        "0" to "None",
+        "1" to "Light",
+        "2" to "Moderate",
+        "3" to "Severe",
+        "4" to "Critical",
+        "5" to "Emergency",
+        "6" to "Shutdown",
+    )
+
+private val VOLUME_STREAMS =
+    listOf(
+        DeviceStateKeys.VOLUME_MEDIA to "Media",
+        DeviceStateKeys.VOLUME_RING to "Ring",
+        DeviceStateKeys.VOLUME_ALARM to "Alarm",
+    )
+
 private fun deviceStateSpecs(): List<DeviceStateSpec> =
     listOf(
-        // Battery
-        DeviceStateSpec(DeviceStateKeys.CHARGING_STATUS, "Battery", Icons.Outlined.BatteryChargingFull, listOf("charging" to "Charging", "discharging" to "Discharging")),
-        DeviceStateSpec(DeviceStateKeys.POWER_SAVING, "Battery", Icons.Outlined.BatterySaver, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.CHARGING_LIMIT, "Battery", Icons.Outlined.BatteryChargingFull, null),
-        DeviceStateSpec(DeviceStateKeys.BATTERY_SHARE, "Battery", Icons.Outlined.BatteryChargingFull, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.BATTERY_SHARE_LIMIT, "Battery", Icons.Outlined.BatteryChargingFull, null),
+        // Battery — charging on/off lives on the dedicated Charger trigger.
+        DeviceStateSpec(DeviceStateKeys.POWER_SAVING, "Battery", Icons.Outlined.BatterySaver, BOOL_VALUES,
+            info = "Fires when the system battery saver turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.CHARGING_LIMIT, "Battery", Icons.Outlined.BatteryChargingFull, null,
+            info = "Nothing OS charge limit percent (battery protection). Fires when the limit value changes."),
+        DeviceStateSpec(DeviceStateKeys.BATTERY_SHARE, "Battery", Icons.Outlined.BatteryChargingFull, BOOL_VALUES,
+            info = "Nothing OS reverse wireless charging (battery share). Fires when it turns on or off."),
         // Device
-        DeviceStateSpec(DeviceStateKeys.DND_ACTIVE, "Device", Icons.Outlined.DoNotDisturbOn, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.RINGER_MODE, "Device", Icons.Outlined.VolumeUp, listOf("normal" to "Normal", "vibrate" to "Vibrate", "silent" to "Silent")),
-        DeviceStateSpec(DeviceStateKeys.VOLUME_MEDIA, "Device", Icons.Outlined.MusicNote, null),
-        DeviceStateSpec(DeviceStateKeys.VOLUME_RING, "Device", Icons.Outlined.Notifications, null),
-        DeviceStateSpec(DeviceStateKeys.VOLUME_ALARM, "Device", Icons.Outlined.Alarm, null),
-        DeviceStateSpec(DeviceStateKeys.HEADPHONES, "Device", Icons.Outlined.Headphones, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.DARK_MODE, "Device", Icons.Outlined.DarkMode, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.AUTO_ROTATE, "Device", Icons.Outlined.ScreenRotation, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.AOD, "Device", Icons.Outlined.WatchLater, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.THERMAL, "Device", Icons.Outlined.Thermostat, null),
+        DeviceStateSpec(DeviceStateKeys.DND_ACTIVE, "Device", Icons.Outlined.DoNotDisturbOn, BOOL_VALUES,
+            info = "Fires when Do Not Disturb turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.RINGER_MODE, "Device", Icons.Outlined.VolumeUp, listOf("normal" to "Normal", "vibrate" to "Vibrate", "silent" to "Silent"),
+            info = "Fires when the ringer switches between normal, vibrate, and silent."),
+        DeviceStateSpec(DeviceStateKeys.VOLUME_MEDIA, "Device", Icons.Outlined.VolumeUp, null,
+            label = "Volume",
+            info = "Fires when the picked volume stream changes — or reaches a level.",
+            altKeys = VOLUME_STREAMS),
+        DeviceStateSpec(DeviceStateKeys.HEADPHONES, "Device", Icons.Outlined.Headphones, BOOL_VALUES,
+            info = "Fires when headphones connect or disconnect — wired, Bluetooth, BLE, and USB headsets all count."),
+        DeviceStateSpec(DeviceStateKeys.DARK_MODE, "Device", Icons.Outlined.DarkMode, BOOL_VALUES,
+            info = "Fires when the system dark theme turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.AUTO_ROTATE, "Device", Icons.Outlined.ScreenRotation, BOOL_VALUES,
+            info = "Fires when auto-rotate turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.AOD, "Device", Icons.Outlined.WatchLater, BOOL_VALUES,
+            info = "Fires when Always-on Display turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.THERMAL, "Device", Icons.Outlined.Thermostat, THERMAL_VALUES,
+            info = "Android thermal severity level (0–6), reported by the system — not a temperature. " +
+                "0 none, 1 light, 2 moderate, 3 severe, 4 critical, 5 emergency, 6 shutdown."),
         // Connections
-        DeviceStateSpec(DeviceStateKeys.WIFI_RADIO, "Connections", Icons.Outlined.Wifi, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.BLUETOOTH_RADIO, "Connections", Icons.Outlined.Bluetooth, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.NFC, "Connections", Icons.Outlined.Nfc, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.LOCATION, "Location", Icons.Outlined.LocationOn, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.HOTSPOT, "Connections", Icons.Outlined.WifiTethering, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.MOBILE_DATA, "Connections", Icons.Outlined.SignalCellularAlt, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.DATA_SAVER, "Connections", Icons.Outlined.DataSaverOn, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.AIRPLANE, "Connections", Icons.Outlined.AirplanemodeActive, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.WIFI_RADIO, "Connections", Icons.Outlined.Wifi, BOOL_VALUES,
+            info = "Fires when the Wi-Fi radio turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.BLUETOOTH_RADIO, "Connections", Icons.Outlined.Bluetooth, BOOL_VALUES,
+            info = "Fires when the Bluetooth radio turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.NFC, "Connections", Icons.Outlined.Nfc, BOOL_VALUES,
+            info = "Fires when NFC turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.LOCATION, "Location", Icons.Outlined.LocationOn, BOOL_VALUES,
+            info = "Fires when location services turn on or off."),
+        DeviceStateSpec(DeviceStateKeys.HOTSPOT, "Connections", Icons.Outlined.WifiTethering, BOOL_VALUES,
+            info = "Fires when the mobile hotspot turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.MOBILE_DATA, "Connections", Icons.Outlined.SignalCellularAlt, BOOL_VALUES,
+            info = "Fires when mobile data turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.DATA_SAVER, "Connections", Icons.Outlined.DataSaverOn, BOOL_VALUES,
+            info = "Fires when data saver turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.AIRPLANE, "Connections", Icons.Outlined.AirplanemodeActive, BOOL_VALUES,
+            info = "Fires when airplane mode turns on or off."),
         // Glyph
-        DeviceStateSpec(DeviceStateKeys.GLYPH_INTERFACE, "Glyph", Icons.Outlined.Lightbulb, BOOL_VALUES),
-        DeviceStateSpec(DeviceStateKeys.GLYPH_CHARGE_LED, "Glyph", Icons.Outlined.FlashlightOn, BOOL_VALUES),
+        DeviceStateSpec(DeviceStateKeys.GLYPH_INTERFACE, "Glyph", Icons.Outlined.Lightbulb, BOOL_VALUES,
+            info = "Fires when the Nothing Glyph interface (the rear LED lights master switch) turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.GLYPH_CHARGE_LED, "Glyph", Icons.Outlined.FlashlightOn, BOOL_VALUES,
+            info = "Fires when the Glyph charging indicator LED turns on or off."),
     )
 
 /** Default value for a new device-state trigger of the given key. */
@@ -173,9 +223,7 @@ private fun defaultDeviceStateValue(spec: DeviceStateSpec): String =
     spec.values?.first()?.first
         ?: when (spec.key) {
             DeviceStateKeys.RINGER_MODE -> "silent"
-            DeviceStateKeys.CHARGING_STATUS -> "charging"
-            DeviceStateKeys.THERMAL -> "3"
-            DeviceStateKeys.CHARGING_LIMIT, DeviceStateKeys.BATTERY_SHARE_LIMIT -> "50"
+            DeviceStateKeys.CHARGING_LIMIT -> "50"
             else -> "true"
         }
 
@@ -191,22 +239,24 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Charger", "Battery", Icons.Outlined.BatteryChargingFull, Trigger.ChargerConnected()),
         TriggerType("Device unlocked", "Device", Icons.Outlined.LockOpen, Trigger.DeviceUnlocked),
         TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
-        TriggerType("Torch", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
+        TriggerType("Flashlight", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
         TriggerType("Media playback", "Device", Icons.Outlined.PlayCircle, Trigger.MediaPlayback()),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
         TriggerType("Connectivity", "Connections", Icons.Outlined.Wifi, Trigger.Connectivity(ConnMedium.WIFI, ConnState.CONNECTED)),
-        TriggerType("WiFi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
+        TriggerType("Wi-Fi", "Connections", Icons.Outlined.Wifi, Trigger.WifiConnected()),
         TriggerType("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Trigger.BluetoothDevice(ConnState.CONNECTED)),
         TriggerType("Geofence", "Location", Icons.Outlined.LocationOn, Trigger.Geofence(0.0, 0.0, 100.0, Transition.ENTER)),
     ) +
         deviceStateSpecs().map { spec ->
             TriggerType(
-                label = deviceStateLabel(spec.key),
+                label = spec.label ?: deviceStateLabel(spec.key),
                 category = spec.category,
                 icon = spec.icon,
                 trigger = Trigger.DeviceState(spec.key, defaultDeviceStateValue(spec)),
+                stateKeys = (spec.altKeys.map { it.first } + spec.key).toSet(),
+                description = spec.info.ifBlank { null },
             )
         }
 
@@ -220,7 +270,7 @@ private fun matchesRow(
         row.trigger is Trigger.Time ->
             trigger is Trigger.Time || trigger is Trigger.TimeWindow
         row.trigger is Trigger.DeviceState && trigger is Trigger.DeviceState ->
-            row.trigger.key == trigger.key
+            trigger.key in row.stateKeys || row.trigger.key == trigger.key
         else -> row.trigger::class == trigger::class
     }
 
@@ -381,7 +431,7 @@ private fun TriggerTypePickerDialog(
                     icon = type.icon,
                     description =
                         if (resolution.canRun) {
-                            triggerTypeDescription(type.trigger)
+                            type.description ?: triggerTypeDescription(type.trigger)
                         } else {
                             missingCapabilityHint(
                                 badges,
@@ -463,6 +513,7 @@ private fun TriggerConfigContent(
     onUpdate: (Trigger) -> Unit,
     caps: DeviceCapabilities,
 ) {
+    val appLabel = rememberAppLabelResolver()
     when (val t = trigger) {
         is Trigger.Time ->
             Column {
@@ -502,11 +553,35 @@ private fun TriggerConfigContent(
         is Trigger.DeviceUnlocked,
         is Trigger.DeviceLocked,
         -> {
+            // Parameterless triggers get a plain-English explainer so the
+            // config sheet isn't an empty card with one word on it.
             Text(
-                text = triggerDescription(trigger),
+                text = triggerDescription(trigger, appLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            HelpText(
+                text =
+                    when (trigger) {
+                        is Trigger.Manual ->
+                            "This mode has no automatic trigger. It only runs " +
+                                "when you press Run on its detail page."
+                        is Trigger.Immediate ->
+                            "Fires the moment the mode is armed — useful for " +
+                                "one-shot setups you trigger once."
+                        is Trigger.Boot ->
+                            "Fires after the phone finishes starting up. " +
+                                "The mode must be armed when the phone reboots."
+                        is Trigger.DeviceUnlocked ->
+                            "Fires when you unlock the phone with your PIN, " +
+                                "fingerprint, or face."
+                        is Trigger.DeviceLocked ->
+                            "Fires when the screen turns off and the lock " +
+                                "engages — not just any screen-off."
+                        else -> "Nothing to set up — this trigger works as soon as the mode is armed."
+                    },
             )
         }
 
@@ -692,15 +767,17 @@ private fun ScreenStateContent(
     state: ScreenState,
     onUpdate: (ScreenState) -> Unit,
 ) {
-    ScreenState.entries.forEach { option ->
-        RadioOption(
-            text = option.name.enumLabel(),
-            selected = state == option,
-            onClick = { onUpdate(option) },
+    Column {
+        NothingEnumSelector(
+            label = "Screen",
+            value = state.name.enumLabel(),
+            options = enumLabelList<ScreenState>(),
+            onSelect = { onUpdate(enumByLabel(it)) },
+            infoText = "On fires when the screen turns on; Off when it turns off. A mode using this stays active while the state holds and restores when it flips.",
         )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(text = "Fires when the screen turns on or off.")
     }
-    Spacer(modifier = Modifier.height(NothingSpacing.sm))
-    HelpText(text = "Fires when the screen turns on or off.")
 }
 
 @Composable
@@ -766,9 +843,23 @@ private fun DeviceStateContent(
     trigger: Trigger.DeviceState,
     onUpdate: (Trigger.DeviceState) -> Unit,
 ) {
-    val spec = deviceStateSpecs().firstOrNull { it.key == trigger.key }
+    val context = LocalContext.current
+    val spec = deviceStateSpecs().firstOrNull { trigger.key in (it.altKeys.map { a -> a.first } + it.key) }
     val label = deviceStateLabel(trigger.key)
     Column {
+        if (spec != null && spec.altKeys.isNotEmpty()) {
+            NothingEnumSelector(
+                label = "Stream",
+                value = spec.altKeys.firstOrNull { it.first == trigger.key }?.second ?: label,
+                options = spec.altKeys.map { it.second },
+                onSelect = { selected ->
+                    spec.altKeys.firstOrNull { it.second == selected }?.let {
+                        onUpdate(trigger.copy(key = it.first))
+                    }
+                },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
         val options = spec?.values
         if (options != null) {
             NothingEnumSelector(
@@ -790,6 +881,7 @@ private fun DeviceStateContent(
                         }
                     onUpdate(trigger.copy(value = value))
                 },
+                infoText = spec.info.ifBlank { null },
             )
         } else {
             BooleanRow(
@@ -810,19 +902,27 @@ private fun DeviceStateContent(
                     onValueChange = { onUpdate(trigger.copy(value = it)) },
                     label = "Value",
                     infoText =
-                        when (trigger.key) {
-                            DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.VOLUME_RING, DeviceStateKeys.VOLUME_ALARM ->
-                                "Stream volume level, 0 to max."
-                            DeviceStateKeys.THERMAL ->
-                                "0 none, 1 light, 2 moderate, 3 severe, 4 critical, 5 emergency, 6 shutdown."
-                            DeviceStateKeys.CHARGING_LIMIT, DeviceStateKeys.BATTERY_SHARE_LIMIT ->
-                                "Percent, 0–100."
-                            else -> "Raw value the monitor reports for this key."
-                        },
+                        spec?.info?.ifBlank { null }
+                            ?: when (trigger.key) {
+                                DeviceStateKeys.VOLUME_MEDIA, DeviceStateKeys.VOLUME_RING, DeviceStateKeys.VOLUME_ALARM ->
+                                    "Stream volume level, 0 to max."
+                                else -> "Raw value the monitor reports for this key."
+                            },
                 )
             }
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        // Live readout so the picked value can be compared to the real state.
+        val now = remember(trigger.key) { DeviceStateMonitor.currentValue(context, trigger.key) }
+        if (now != null) {
+            Text(
+                text = "Now: ${deviceStateValueLabel(trigger.key, now)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        }
         HelpText(
             text =
                 if (trigger.value == DeviceStateKeys.ANY_VALUE) {
@@ -841,7 +941,7 @@ private fun TorchStateContent(
 ) {
     Column {
         BooleanRow(
-            label = "When torch turns on",
+            label = "When flashlight turns on",
             checked = trigger.on,
             onChange = { onUpdate(trigger.copy(on = it)) },
         )
@@ -860,21 +960,26 @@ private fun MediaPlaybackContent(
     onUpdate: (Trigger.MediaPlayback) -> Unit,
 ) {
     Column {
-        BooleanRow(
-            label = "When media starts playing",
-            checked = trigger.playing,
-            onChange = { onUpdate(trigger.copy(playing = it)) },
+        NothingEnumSelector(
+            label = "When media",
+            value = if (trigger.playing) "Starts playing" else "Stops playing",
+            options = listOf("Starts playing", "Stops playing"),
+            onSelect = { onUpdate(trigger.copy(playing = it == "Starts playing")) },
+            infoText = "Starts playing fires when playback begins; Stops playing fires when it pauses or ends. A mode using this stays active while the state holds.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        NothingInput(
-            label = "App package (optional)",
-            value = trigger.packageName ?: "",
-            onValueChange = { onUpdate(trigger.copy(packageName = it.ifBlank { null })) },
-            infoText = "Limit to one player — e.g. com.spotify.music or a package from the app's detail page. Blank matches every media app.",
+        AppPicker(
+            currentPackage = trigger.packageName ?: "",
+            onPkgChange = { onUpdate(trigger.copy(packageName = it.ifBlank { null })) },
         )
+        if (trigger.packageName != null) {
+            TextButton(onClick = { onUpdate(trigger.copy(packageName = null)) }) {
+                Text("Match any app", fontFamily = NothingFonts.mono())
+            }
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(
-            text = "Fires when any media session starts or stops playing. Leave the package blank to match all apps.",
+            text = "Fires when a media session starts or stops playing. Pick an app to limit it to one player, or leave unselected to match every media app.",
         )
     }
 }
@@ -885,6 +990,7 @@ private fun NotificationContent(
     onUpdate: (Trigger.Notification) -> Unit,
 ) {
     val context = LocalContext.current
+    val appLabel = rememberAppLabelResolver()
     val recent by com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications.snapshots
         .collectAsState(emptyList())
 
@@ -903,6 +1009,7 @@ private fun NotificationContent(
             onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null })) },
             label = "Title contains",
             placeholder = "e.g. New message",
+            infoText = "Only fires when the notification's title contains this text. Case-insensitive; leave empty to ignore the title.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -910,6 +1017,7 @@ private fun NotificationContent(
             onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
             label = "Text contains",
             placeholder = "e.g. arrived",
+            infoText = "Only fires when the notification's body text contains this text. Case-insensitive; leave empty to match any content.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
@@ -917,6 +1025,7 @@ private fun NotificationContent(
             onValueChange = { onUpdate(trigger.copy(sender = it.ifBlank { null })) },
             label = "Sender (optional)",
             placeholder = "e.g. John",
+            infoText = "Matches the person or conversation name shown on messaging notifications — the contact or chat name in WhatsApp, Telegram, Messages, etc.",
         )
 
         if (recent.isNotEmpty()) {
@@ -925,7 +1034,7 @@ private fun NotificationContent(
             Spacer(modifier = Modifier.height(NothingSpacing.xs))
             recent.take(10).forEach { notif ->
                 NothingListRow(
-                    title = notif.title.ifBlank { notif.pkg },
+                    title = notif.title.ifBlank { appLabel(notif.pkg) },
                     subtitle = notif.text,
                     onClick = {
                         onUpdate(
@@ -951,6 +1060,9 @@ private fun NotificationContent(
             label = "Group conversation",
             checked = trigger.isGroup == true,
             onChange = { onUpdate(trigger.copy(isGroup = if (it) true else null)) },
+        )
+        HelpText(
+            text = "On: only fires for notifications from group conversations — chats with more than two participants (Android marks them as group conversations). Off: matches all notifications.",
         )
     }
 }
@@ -1031,7 +1143,8 @@ private fun ConnectivityContent(
         NothingEnumSelector(
             label = "Medium",
             value = trigger.medium.name.enumLabel(),
-            options = enumLabelList<ConnMedium>(),
+            // POWER has no connectivity producer — the Charger trigger covers it.
+            options = enumLabelList<ConnMedium>().filter { it != ConnMedium.POWER.name.enumLabel() },
             onSelect = { onUpdate(trigger.copy(medium = enumByLabel(it))) },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -1294,16 +1407,20 @@ private fun GeofenceContent(
             onSelect = { onUpdate(trigger.copy(transition = enumByLabel(it))) },
             infoText =
                 "When the mode should fire. Enter = arriving inside the area, " +
-                    "Exit = leaving it, Dwell = staying inside for the loitering delay.",
+                    "Exit = leaving it, Dwell = staying inside for the dwell delay below.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = trigger.loiteringDelayMs.toString(),
-            onValueChange = { onUpdate(trigger.copy(loiteringDelayMs = it.toLongOrNull() ?: trigger.loiteringDelayMs)) },
-            label = "Loitering delay (ms)",
+            value = (trigger.loiteringDelayMs / 1000).toString(),
+            onValueChange = {
+                val seconds = it.toLongOrNull() ?: (trigger.loiteringDelayMs / 1000)
+                onUpdate(trigger.copy(loiteringDelayMs = seconds * 1000))
+            },
+            label = "Dwell delay (seconds)",
             infoText =
-                "How long you must stay in the state before it fires. 0 fires instantly. " +
-                    "Use e.g. 300000 (5 min) so driving past the area does not trigger the mode.",
+                "Only used with Dwell — how long you must stay inside before it " +
+                    "fires. 0 fires instantly. Use e.g. 300 (5 minutes) so driving " +
+                    "past the area does not trigger the mode.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(text = "Fires when you enter or leave the circular area. Tap the map to move the pin. Location access is required.")
@@ -1338,6 +1455,7 @@ private fun CalendarEventContent(
     onUpdate: (Trigger) -> Unit,
 ) {
     var showEventPicker by remember { mutableStateOf(false) }
+    var manualMode by remember { mutableStateOf(trigger.titleMatch != null) }
 
     PermissionGate(
         permissions = listOf(android.Manifest.permission.READ_CALENDAR),
@@ -1348,13 +1466,45 @@ private fun CalendarEventContent(
                 "Calendar data is processed on your device and is never uploaded, sold, or shared.",
     ) {
         Column {
-            NothingPillButton(
-                text = "Browse upcoming events",
-                onClick = { showEventPicker = true },
-                modifier = Modifier.fillMaxWidth(),
+            NothingEnumSelector(
+                label = "Match by",
+                value = if (manualMode) "Title match" else "Picked events",
+                options = listOf("Picked events", "Title match"),
+                onSelect = { sel ->
+                    manualMode = sel == "Title match"
+                    // Keep the two match modes exclusive — events win silently
+                    // otherwise, which reads as the title filter not working.
+                    onUpdate(
+                        if (manualMode) {
+                            trigger.copy(events = emptyList())
+                        } else {
+                            trigger.copy(titleMatch = null)
+                        },
+                    )
+                },
+                infoText = "Picked events: choose exact upcoming events from your calendar. " +
+                    "Title match: fires on any event whose title contains the text — no need to pick events in advance.",
             )
 
-            if (trigger.events.isNotEmpty()) {
+            if (manualMode) {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = trigger.titleMatch ?: "",
+                    onValueChange = { onUpdate(trigger.copy(titleMatch = it.ifBlank { null }, events = emptyList())) },
+                    label = "Event title contains",
+                    placeholder = "e.g. Gym",
+                    infoText = "Fires on any event whose title contains this text. Case-insensitive. Empty matches every event.",
+                )
+            } else {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingPillButton(
+                    text = "Browse upcoming events",
+                    onClick = { showEventPicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            if (!manualMode && trigger.events.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
@@ -1424,8 +1574,12 @@ private fun CalendarEventContent(
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             HelpText(
                 text =
-                    "The mode fires when a picked event starts or ends. Tap a selected " +
-                        "event to remove it. With nothing picked, any calendar event matches.",
+                    if (manualMode) {
+                        "The mode fires when an event with a matching title starts or ends."
+                    } else {
+                        "The mode fires when a picked event starts or ends. Tap a selected " +
+                            "event to remove it. With nothing picked, any calendar event matches."
+                    },
             )
         }
     }

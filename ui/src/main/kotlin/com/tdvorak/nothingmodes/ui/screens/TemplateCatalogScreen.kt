@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,9 +47,9 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
 import com.tdvorak.nothingmodes.engine.model.EngineJson
-import com.tdvorak.nothingmodes.engine.model.TemplateIndex
 import com.tdvorak.nothingmodes.engine.model.TemplateSummary
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ExportBundle
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
@@ -76,13 +78,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.jsonPrimitive
-import java.net.HttpURLConnection
-import java.net.URL
 import javax.inject.Inject
-
-// jarvis: ceiling raw GitHub index; upgrade to a pinned release asset if the repo layout changes
-private const val TEMPLATE_BASE_URL =
-    "https://raw.githubusercontent.com/Dvorinka/Nothing_Modes/main/templates"
 
 /** A template whose bundle was fetched and inspected, awaiting user confirmation. */
 data class PendingTemplateInstall(
@@ -102,9 +98,6 @@ class TemplateCatalogViewModel
         @ApplicationContext private val context: android.content.Context,
         private val store: AutomationStore,
     ) : ViewModel() {
-        private val _templates = MutableStateFlow<List<TemplateSummary>>(emptyList())
-        val templates: StateFlow<List<TemplateSummary>> = _templates.asStateFlow()
-
         private val _userTemplates =
             MutableStateFlow<List<com.tdvorak.nothingmodes.engine.model.UserTemplate>>(emptyList())
         val userTemplates: StateFlow<List<com.tdvorak.nothingmodes.engine.model.UserTemplate>> =
@@ -161,15 +154,12 @@ class TemplateCatalogViewModel
                 _loading.value = true
                 _error.value = null
                 _userTemplates.value = loadUserTemplates()
-                try {
-                    val indexJson = fetchText("$TEMPLATE_BASE_URL/index.json")
-                    val index = EngineJson.json.decodeFromString(TemplateIndex.serializer(), indexJson)
-                    _templates.value = index.templates
-                } catch (e: Exception) {
-                    _error.value = "Could not load templates: ${e.message}"
-                }
                 _library.value =
-                    runCatching { CommunityApi.list(type = "template") }.getOrDefault(emptyList())
+                    runCatching { CommunityApi.list(type = "template") }
+                        .getOrElse {
+                            _error.value = "Could not load the community library: ${it.message}"
+                            emptyList()
+                        }
                 _loading.value = false
             }
         }
@@ -313,49 +303,6 @@ class TemplateCatalogViewModel
                 )
         }
 
-        /** Fetch a template bundle and stage it for review before install. */
-        fun select(template: TemplateSummary) {
-            viewModelScope.launch {
-                _error.value = null
-                try {
-                    val bundleJson = fetchText("$TEMPLATE_BASE_URL/${template.file}")
-                    val preview = importExportService.preview(bundleJson)
-                    if (!preview.isSupported) {
-                        _pending.value =
-                            PendingTemplateInstall(
-                                summary = template,
-                                automations = emptyList(),
-                                warnings = emptyList(),
-                                satisfied = emptyList(),
-                                errors = preview.errors,
-                            )
-                        return@launch
-                    }
-
-                    val caps = CapabilitiesCache.peek() ?: CapabilitiesCache.refresh(context)
-                    val resolver = CapabilityResolver(caps)
-                    val resolution = resolver.resolve(template.id, preview.requiredCapabilities)
-                    val missing =
-                        resolution.missing
-                            .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
-                    val satisfied =
-                        (preview.requiredCapabilities - resolution.missing)
-                            .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
-
-                    _pending.value =
-                        PendingTemplateInstall(
-                            summary = template,
-                            automations = preview.automations,
-                            warnings = missing.distinct(),
-                            satisfied = satisfied.distinct(),
-                            errors = emptyList(),
-                        )
-                } catch (e: Exception) {
-                    _error.value = "Could not load template: ${e.message}"
-                }
-            }
-        }
-
         /** Install with fresh IDs and local timezone so templates never collide and fire correctly. */
         fun confirmInstall() {
             val pending = _pending.value ?: return
@@ -407,18 +354,6 @@ class TemplateCatalogViewModel
                 is Trigger.TimeWindow -> trigger.copy(tz = tz)
                 else -> trigger
             }
-
-        private suspend fun fetchText(url: String): String =
-            withContext(Dispatchers.IO) {
-                val conn = URL(url).openConnection() as HttpURLConnection
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 10_000
-                try {
-                    conn.inputStream.bufferedReader().use { it.readText() }
-                } finally {
-                    conn.disconnect()
-                }
-            }
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -427,7 +362,6 @@ fun TemplateCatalogScreen(
     onBack: () -> Unit,
     viewModel: TemplateCatalogViewModel = hiltViewModel(),
 ) {
-    val templates by viewModel.templates.collectAsState()
     val userTemplates by viewModel.userTemplates.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -443,13 +377,6 @@ fun TemplateCatalogScreen(
     var selectedCaps by remember { mutableStateOf<Set<String>>(emptySet()) }
     val allCaps = remember(library) { library.flatMap { it.capabilities }.distinct().sorted() }
 
-    val visibleRemote =
-        templates.filter {
-            search.isBlank() ||
-                it.name.contains(search, true) ||
-                it.description.contains(search, true) ||
-                it.tags.any { tag -> tag.contains(search, true) }
-        }
     val visibleUser =
         userTemplates.filter {
             search.isBlank() ||
@@ -501,7 +428,7 @@ fun TemplateCatalogScreen(
                             fontFamily = NothingFonts.mono(),
                         )
                     }
-                error != null ->
+                error != null && library.isEmpty() && userTemplates.isEmpty() ->
                     NothingEmptyState(
                         title = "Templates unavailable",
                         description = error.orEmpty(),
@@ -512,7 +439,7 @@ fun TemplateCatalogScreen(
                             )
                         },
                     )
-                templates.isEmpty() && userTemplates.isEmpty() ->
+                userTemplates.isEmpty() && library.isEmpty() ->
                     NothingEmptyState(
                         title = "No templates yet",
                         description = "Save a mode as a template from its detail page, or check back for community templates",
@@ -546,7 +473,8 @@ fun TemplateCatalogScreen(
                                         title = template.name,
                                         subtitle =
                                             template.description.ifBlank {
-                                                "${template.automations.size} mode(s)"
+                                                val n = template.automations.size
+                                                if (n == 1) "1 mode" else "$n modes"
                                             },
                                         onClick = { viewModel.selectUserTemplate(template) },
                                         trailing = {
@@ -580,18 +508,6 @@ fun TemplateCatalogScreen(
                             }
                         }
 
-                        if (visibleRemote.isNotEmpty()) {
-                            item {
-                                NothingLabel(text = "Featured templates")
-                            }
-                            items(visibleRemote, key = { it.id }) { template ->
-                                TemplateRow(
-                                    template = template,
-                                    onClick = { viewModel.select(template) },
-                                )
-                            }
-                        }
-
                         if (library.isNotEmpty()) {
                             item {
                                 NothingLabel(text = "Community library — reviewed")
@@ -600,7 +516,10 @@ fun TemplateCatalogScreen(
                                 Column(verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm)) {
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .horizontalScroll(rememberScrollState()),
                                     ) {
                                         listOf(
                                             "newest" to "Newest",
@@ -615,13 +534,18 @@ fun TemplateCatalogScreen(
                                         }
                                     }
                                     if (allCaps.isNotEmpty()) {
+                                        NothingLabel(text = "Filter by what your phone supports")
+                                        // Scrollable — the row clips to "a…" otherwise.
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
                                         ) {
                                             allCaps.forEach { cap ->
                                                 NothingTag(
-                                                    text = cap.replace("_", " "),
+                                                    text = friendlyCapabilityName(cap),
                                                     active = selectedCaps.contains(cap),
                                                     onClick = {
                                                         selectedCaps =
@@ -693,7 +617,7 @@ fun TemplateCatalogScreen(
                 NothingLabel(text = "Install complete")
                 Spacer(modifier = Modifier.height(NothingSpacing.sm))
                 Text(
-                    text = "Imported ${result.imported} mode(s). They start disabled — enable them when ready.",
+                    text = "Imported ${result.imported} ${if (result.imported == 1) "mode" else "modes"}. They start disabled — enable them when ready.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -714,47 +638,6 @@ fun TemplateCatalogScreen(
                     onClick = { viewModel.clearInstalled() },
                     modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TemplateRow(
-    template: TemplateSummary,
-    onClick: () -> Unit,
-) {
-    NothingCard(modifier = Modifier.fillMaxWidth()) {
-        NothingListRow(
-            title = template.name,
-            subtitle = template.description,
-            onClick = onClick,
-            leading = {
-                NothingIconCircle {
-                    Icon(
-                        imageVector = if (template.icon.isNotBlank()) iconForName(template.icon) else iconForEmoji(template.emoji),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            },
-        )
-        if (template.creator.isNotBlank() || template.tags.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (template.creator.isNotBlank()) {
-                    Text(
-                        text = "by ${template.creator}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                    )
-                }
-                template.tags.take(3).forEach { tag ->
-                    NothingTag(text = tag, active = false)
-                }
             }
         }
     }
@@ -837,6 +720,7 @@ private fun TemplateInstallSheet(
                 .padding(NothingSpacing.lg)
                 .navigationBarsPadding(),
     ) {
+        val appLabel = rememberAppLabelResolver()
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
@@ -874,14 +758,44 @@ private fun TemplateInstallSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(NothingSpacing.md))
-        NothingLabel(text = "Includes")
-        install.automations.forEach { automation ->
-            Text(
-                text = "• ${automation.name} — ${triggerDescription(automation.trigger)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+        if (install.automations.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+            NothingLabel(text = "Includes")
+            install.automations.forEach { automation ->
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                Text(
+                    text = automation.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Text(
+                    text = "Trigger: ${triggerDescription(automation.trigger, appLabel)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                automation.actions.forEach { action ->
+                    if (action is com.tdvorak.nothingmodes.engine.model.Action.Group) {
+                        // List the group's children so users see what it does.
+                        action.actions.forEach { child ->
+                            Text(
+                                text = "  ▸ ${actionDescription(child)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "  ▸ ${actionDescription(action)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                }
+            }
         }
 
         if (install.errors.isNotEmpty()) {
@@ -913,7 +827,7 @@ private fun TemplateInstallSheet(
         if (install.satisfied.isNotEmpty()) {
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             Text(
-                text = "Supported: ${install.satisfied.joinToString(", ")}",
+                text = "Works on this device: ${install.satisfied.map { friendlyCapabilityName(it) }.distinct().joinToString(", ")}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
@@ -930,3 +844,21 @@ private fun TemplateInstallSheet(
         Spacer(modifier = Modifier.height(NothingSpacing.md))
     }
 }
+
+/** Human-readable name for a satisfied capability ID in the install sheet. */
+private fun friendlyCapabilityName(id: String): String =
+    when {
+        id.contains("glyph_matrix") -> "Glyph matrix"
+        id.contains("glyph") -> "Glyph lights"
+        id.contains("flashlight") -> "Flashlight"
+        id.contains("vibrate") -> "Vibration"
+        id.contains("wifi") -> "Wi-Fi"
+        id.contains("bluetooth") || id.contains("bt") -> "Bluetooth"
+        id.contains("notification") -> "Notification access"
+        id.contains("foreground_app") || id.contains("app_opened") -> "Usage access"
+        id.contains("location") || id.contains("geofence") -> "Location"
+        id.contains("calendar") -> "Calendar"
+        id.contains("phone") || id.contains("sms") -> "Phone"
+        id.contains("shizuku") || id.startsWith("state_reader") -> "Shizuku"
+        else -> id.substringAfterLast('_').replaceFirstChar { it.uppercase() }
+    }
