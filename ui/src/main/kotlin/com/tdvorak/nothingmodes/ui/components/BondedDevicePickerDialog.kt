@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,17 +16,27 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
  * by callers, but still distinguishes "permission denied" and "no adapter"
  * from a genuinely empty bond table instead of pretending the list is empty.
  */
+// BLUETOOTH_CONNECT is checked explicitly below before touching bondedDevices;
+// lint can't see through the runCatching boundary.
+@SuppressLint("MissingPermission")
 @Composable
 fun BondedDevicePickerDialog(
     onSelect: (name: String?, address: String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    // Read once at composition; a SecurityException becomes a distinct state
-    // instead of silently looking like "no paired devices".
+    // Read once at composition; a missing grant or SecurityException becomes a
+    // distinct state instead of silently looking like "no paired devices".
     val devicesResult =
         remember {
             runCatching {
+                val granted =
+                    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S ||
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.BLUETOOTH_CONNECT,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (!granted) throw SecurityException("BLUETOOTH_CONNECT not granted")
                 val adapter =
                     (
                         context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
