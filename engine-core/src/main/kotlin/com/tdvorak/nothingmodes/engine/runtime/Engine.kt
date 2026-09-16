@@ -353,6 +353,22 @@ class Engine(
         batchNow: Long,
     ) {
         restoreSnapshots(automation.id, batchNow)
+        // Custom end values run AFTER snapshot restore so an explicit
+        // "set volume to X" wins over "revert to previous" for that setting.
+        automation.endActions.forEachIndexed { index, action ->
+            runCatching {
+                executor.execute(
+                    action,
+                    FireContext(
+                        eventId = "end:${automation.id.value}",
+                        executionId = "end:${automation.id.value}:$batchNow",
+                        automationId = automation.id,
+                        actionIndex = -10 - index,
+                        priority = 100,
+                    ),
+                )
+            }
+        }
         // Glyph output isn't a settings key — clear it explicitly so
         // text/matrix/stripes never linger after the mode ends.
         if (automation.actions.any { it.isGlyphAction }) {

@@ -346,6 +346,15 @@ export function analyzeTemplate(payload: unknown): AnalysisResult {
       checkAction(act, `${path}.actions[${j}]`, findings, caps);
       if (typeOf(act) === 'wait') totalWait += Number(act.durationMs ?? 0);
     });
+    // endActions run when the mode ends — same rules as regular actions.
+    const endActions = Array.isArray(a.endActions) ? a.endActions : [];
+    endActions.forEach((act, j) => {
+      if (!isRecord(act)) {
+        findings.push({ severity: 'block', code: 'shape', detail: `${path}.endActions[${j}]: not an object` });
+        return;
+      }
+      checkAction(act, `${path}.endActions[${j}]`, findings, caps);
+    });
     if (a.conditions != null) {
       findings.push({ severity: 'info', code: 'conditions', detail: `${path}: has conditions — reviewed manually` });
     }
@@ -559,24 +568,111 @@ function actionSummary(action: Record<string, unknown>): string {
   }
 }
 
-function conditionSummary(cond: Record<string, unknown>): string {
+/**
+ * Normalizes the two on-wire condition shapes into a flat display list:
+ * the app exports `conditions` as ONE nullable object (often a nested
+ * `{"type":"and","all":[…]}`), while older tooling may emit an array.
+ * `and` unwraps; `or`/`not` stay atomic so their phrasing keeps meaning.
+ */
+export function flattenConditions(node: unknown, depth = 0): Record<string, unknown>[] {
+  if (depth > LIMITS.conditionsDepth || node == null) return [];
+  if (Array.isArray(node)) {
+    return node.flatMap((c) => flattenConditions(c, depth + 1));
+  }
+  if (!isRecord(node)) return [];
+  if (typeOf(node) === 'and' && Array.isArray(node.all)) {
+    return (node.all as unknown[]).flatMap((c) => flattenConditions(c, depth + 1));
+  }
+  return [node];
+}
+
+function conditionSummary(cond: Record<string, unknown>, depth = 0): string {
   const t = typeOf(cond);
-  if (t === 'boolean_state' || t === 'numeric_state') {
-    return `${String(cond.key ?? '')} is ${String(cond.value ?? '')}`;
+  if (depth > LIMITS.conditionsDepth) return t ? t.replace(/_/g, ' ') : 'condition met';
+  switch (t) {
+    case 'and': {
+      const all = Array.isArray(cond.all) ? cond.all as Record<string, unknown>[] : [];
+      return all.length ? all.map((c) => conditionSummary(c, depth + 1)).join(' and ') : 'all conditions met';
+    }
+    case 'or': {
+      const any = Array.isArray(cond.any) ? cond.any as Record<string, unknown>[] : [];
+      return any.length ? `(${any.map((c) => conditionSummary(c, depth + 1)).join(' or ')})` : 'any condition met';
+    }
+    case 'not': {
+      const inner = isRecord(cond.cond) ? conditionSummary(cond.cond, depth + 1) : 'condition';
+      return `not ${inner}`;
+    }
+    case 'boolean_state':
+      return `${String(cond.key ?? 'state').replace(/_/g, ' ')} is ${cond.on ? 'on' : 'off'}`;
+    case 'numeric_state':
+      return `${String(cond.key ?? 'value').replace(/_/g, ' ')} ${String(cond.op ?? '=')} ${String(cond.value ?? '')}`;
+    case 'at_location':
+      return `within ${Math.round(Number(cond.radiusM ?? 0))}m of (${Number(cond.lat ?? 0).toFixed(4)}, ${Number(cond.lng ?? 0).toFixed(4)})`;
+    case 'time_window':
+      return `time between ${String(cond.startLocal ?? '?')} and ${String(cond.endLocal ?? '?')}`;
+    case 'day_of_week':
+      return Array.isArray(cond.days) && cond.days.length ? `on ${(cond.days as unknown[]).join('/')}` : 'on selected days';
+    case 'battery_level':
+      return `battery ${String(cond.op ?? '=')} ${Number(cond.level ?? 0)}%`;
+    case 'charging':
+      return cond.isCharging ? 'charging' : 'not charging';
+    case 'wifi_connected':
+      return `wifi connected${typeof cond.ssid === 'string' && cond.ssid ? ` to ${cond.ssid}` : ''}`;
+    case 'bluetooth_connected':
+      return `bluetooth connected${typeof cond.deviceName === 'string' && cond.deviceName ? ` to ${cond.deviceName}` : ''}`;
+    case 'screen_state':
+      return `screen ${String(cond.state ?? 'changes')}`;
+    case 'app_in_foreground':
+      return `${typeof cond.pkg === 'string' ? cond.pkg : 'app'} in foreground`;
+    case 'current_mode_active':
+      return 'another mode is active';
+    case 'dark_mode_active':
+      return `dark mode ${cond.active ? 'on' : 'off'}`;
+    case 'power_saving':
+      return `power saving ${cond.on ? 'on' : 'off'}`;
+    case 'media_playing':
+      return `media ${cond.playing ? 'playing' : 'stopped'}`;
+    case 'ringer_mode':
+      return `ringer is ${String(cond.mode ?? '')}`;
+    case 'airplane_mode_on':
+      return `airplane mode ${cond.on ? 'on' : 'off'}`;
+    case 'nfc_enabled':
+      return `NFC ${cond.enabled ? 'on' : 'off'}`;
+    case 'location_enabled':
+      return `location ${cond.enabled ? 'on' : 'off'}`;
+    case 'call_state':
+      return `call state ${String(cond.state ?? '')}`;
+    case 'alarm_ringing':
+      return 'alarm ringing';
+    case 'screen_time':
+      return `screen time ${String(cond.op ?? '=')} ${Number(cond.minutes ?? 0)}min`;
+    case 'headphones_connected':
+      return `headphones ${cond.connected ? 'connected' : 'disconnected'}`;
+    case 'data_saver_on':
+      return `data saver ${cond.on ? 'on' : 'off'}`;
+    case 'auto_sync_on':
+      return `auto-sync ${cond.on ? 'on' : 'off'}`;
+    case 'auto_rotate_on':
+      return `auto-rotate ${cond.on ? 'on' : 'off'}`;
+    case 'volume_level':
+      return `${String(cond.stream ?? 'volume')} volume ${String(cond.op ?? '=')} ${Number(cond.level ?? 0)}`;
+    case 'screen_off_for':
+      return `screen off for ${String(cond.op ?? '=')} ${Number(cond.minutes ?? 0)}min`;
+    case 'charging_source':
+      return `charging via ${String(cond.source ?? '')}`;
+    case 'battery_temp':
+      return `battery temp ${String(cond.op ?? '=')} ${Number(cond.celsius ?? 0)}°C`;
+    case 'thermal_level':
+      return `thermal level ${String(cond.op ?? '=')} ${Number(cond.level ?? 0)}`;
+    case 'event_active':
+      return `calendar event active${typeof cond.titleMatch === 'string' && cond.titleMatch ? ` matching "${cond.titleMatch}"` : ''}`;
+    case 'notification_present':
+      return `notification from ${typeof cond.pkg === 'string' ? cond.pkg : 'an app'}`;
+    case 'torch_on':
+      return `torch is ${cond.on ? 'on' : 'off'}`;
+    default:
+      return t ? t.replace(/_/g, ' ') : 'condition met';
   }
-  if (t === 'at_location') {
-    return `near (${Number(cond.lat ?? 0).toFixed(4)}, ${Number(cond.lng ?? 0).toFixed(4)})`;
-  }
-  if (t === 'event_active') {
-    return 'calendar event active';
-  }
-  if (t === 'notification_present') {
-    return `notification from ${typeof cond.pkg === 'string' ? cond.pkg : 'an app'}`;
-  }
-  if (t === 'torch_on') {
-    return `torch is ${cond.on ? 'on' : 'off'}`;
-  }
-  return t ? t.replace(/_/g, ' ') : 'condition met';
 }
 
 export function describeTemplate(payload: Record<string, unknown>): string {
@@ -585,11 +681,13 @@ export function describeTemplate(payload: Record<string, unknown>): string {
   const parts = autos.map((a) => {
     const trigger = isRecord(a.trigger) ? a.trigger : {};
     const actions = Array.isArray(a.actions) ? a.actions as Record<string, unknown>[] : [];
-    const conditions = Array.isArray(a.conditions) ? a.conditions as Record<string, unknown>[] : [];
+    const conditions = flattenConditions(a.conditions);
+    const endActions = Array.isArray(a.endActions) ? a.endActions as Record<string, unknown>[] : [];
     const when = triggerSummary(trigger);
     const then = actions.map(actionSummary).join(', ');
     const onlyIf = conditions.length > 0 ? `, only if ${conditions.map(conditionSummary).join(' and ')}` : '';
-    return `When ${when}, ${then ? `then ${then}` : 'do nothing'}${onlyIf}`;
+    const onEnd = endActions.length > 0 ? `; when it ends, ${endActions.map(actionSummary).join(', ')}` : '';
+    return `When ${when}, ${then ? `then ${then}` : 'do nothing'}${onlyIf}${onEnd}`;
   });
   return sentence(parts.join(' / ').slice(0, 1000));
 }

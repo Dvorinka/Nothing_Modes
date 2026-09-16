@@ -86,13 +86,15 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             )
         }
 
-        composable(Routes.AUTOMATION_LIST) {
+        composable(Routes.AUTOMATION_LIST) { entry ->
             AutomationListScreen(
                 onAutomationClick = { id -> navController.navigate(Routes.automationDetail(id)) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 onLogClick = { navController.navigate(Routes.EXECUTION_LOG) },
                 onCreateClick = { navController.navigate(Routes.CREATE_AUTOMATION) },
                 onTemplatesClick = { navController.navigate(Routes.TEMPLATES) },
+                savedMessageFlow = entry.savedStateHandle.getStateFlow("mode_saved_msg", ""),
+                onSavedMessageConsumed = { entry.savedStateHandle["mode_saved_msg"] = "" },
             )
         }
 
@@ -111,8 +113,11 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         composable(Routes.CREATE_AUTOMATION) {
             CustomAutomationBuilderScreen(
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
-                onSaved = {
+                onSaved = { message ->
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                    navController
+                        .getBackStackEntry(Routes.AUTOMATION_LIST)
+                        .savedStateHandle["mode_saved_msg"] = message
                 },
                 navController = navController,
                 onConfigureTrigger = { json ->
@@ -132,8 +137,11 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         composable(Routes.CUSTOM_BUILDER) {
             CustomAutomationBuilderScreen(
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
-                onSaved = {
+                onSaved = { message ->
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                    navController
+                        .getBackStackEntry(Routes.AUTOMATION_LIST)
+                        .savedStateHandle["mode_saved_msg"] = message
                 },
                 navController = navController,
                 onConfigureTrigger = { json ->
@@ -158,8 +166,11 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             CustomAutomationBuilderScreen(
                 automationId = id,
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
-                onSaved = {
+                onSaved = { message ->
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                    navController
+                        .getBackStackEntry(Routes.AUTOMATION_LIST)
+                        .savedStateHandle["mode_saved_msg"] = message
                 },
                 navController = navController,
                 onConfigureTrigger = { json ->
@@ -184,8 +195,11 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             CustomAutomationBuilderScreen(
                 automationId = id,
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
-                onSaved = {
+                onSaved = { message ->
                     navController.popBackStack(Routes.AUTOMATION_LIST, inclusive = false)
+                    navController
+                        .getBackStackEntry(Routes.AUTOMATION_LIST)
+                        .savedStateHandle["mode_saved_msg"] = message
                 },
                 navController = navController,
                 onConfigureTrigger = { json ->

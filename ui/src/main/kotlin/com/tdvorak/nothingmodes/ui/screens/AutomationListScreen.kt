@@ -367,6 +367,8 @@ fun AutomationListScreen(
     onLogClick: () -> Unit,
     onCreateClick: () -> Unit = {},
     onTemplatesClick: () -> Unit = {},
+    savedMessageFlow: StateFlow<String>? = null,
+    onSavedMessageConsumed: () -> Unit = {},
     viewModel: AutomationListViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -407,6 +409,16 @@ fun AutomationListScreen(
             }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Save confirmation arrives here from the builder — navigation back is
+    // instant, this snackbar is shown on the destination instead of blocking it.
+    val savedMessage by (savedMessageFlow ?: remember { MutableStateFlow("") }).collectAsState()
+    LaunchedEffect(savedMessage) {
+        if (savedMessage.isNotBlank()) {
+            snackbarHostState.showSnackbar(savedMessage, withDismissAction = true)
+            onSavedMessageConsumed()
+        }
     }
 
     Scaffold(
@@ -839,6 +851,16 @@ private fun ModeTile(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            val onlyIf = flattenConditions(automation.conditions)
+            if (onlyIf.isNotEmpty()) {
+                Text(
+                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it) },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
                 text =
                     pluralStringResource(

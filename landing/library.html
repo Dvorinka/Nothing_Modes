@@ -684,6 +684,7 @@ function formatTrigger(t) {
   const type = t.type || 'unknown';
   if (type === 'time' && t.at) return `Daily at ${esc(t.at)}${t.tz ? ' (' + esc(t.tz) + ')' : ''}`;
   if (type === 'time_window' && t.startLocal && t.endLocal) return `Between ${esc(t.startLocal)} and ${esc(t.endLocal)}${t.tz ? ' (' + esc(t.tz) + ')' : ''}`;
+  if (type === 'geofence') return `Area (${Number(t.lat || 0).toFixed(4)}, ${Number(t.lng || 0).toFixed(4)}) · radius ${Math.round(Number(t.radiusM || 0))} m`;
   return `${esc(type)}${t.at ? ' at ' + esc(t.at) : ''}`;
 }
 
@@ -697,12 +698,44 @@ function formatAction(a) {
   return esc(type) + (extra ? ` — ${extra}` : '');
 }
 
-function formatCondition(c) {
+/* The app exports `conditions` as ONE nullable object (often a nested
+   {"type":"and","all":[…]}); older tooling may emit an array. Normalize both
+   into a flat display list — `and` unwraps, `or`/`not` stay atomic. */
+function flattenConditions(node, depth) {
+  depth = depth || 0;
+  if (depth > 6 || node == null) return [];
+  if (Array.isArray(node)) return node.flatMap((c) => flattenConditions(c, depth + 1));
+  if (typeof node !== 'object') return [];
+  if (node.type === 'and' && Array.isArray(node.all)) {
+    return node.all.flatMap((c) => flattenConditions(c, depth + 1));
+  }
+  return [node];
+}
+
+function formatCondition(c, depth) {
   if (!c || typeof c !== 'object') return '—';
+  depth = depth || 0;
   const type = (c.type || 'condition').replace(/_/g, ' ');
+  if (depth < 6) {
+    if (c.type === 'and' && Array.isArray(c.all)) {
+      return 'ALL OF: ' + c.all.map((x) => formatCondition(x, depth + 1)).join('; ');
+    }
+    if (c.type === 'or' && Array.isArray(c.any)) {
+      return 'ANY OF: ' + c.any.map((x) => formatCondition(x, depth + 1)).join('; ');
+    }
+    if (c.type === 'not' && c.cond && typeof c.cond === 'object') {
+      return 'NOT ' + formatCondition(c.cond, depth + 1);
+    }
+  }
+  if (c.type === 'at_location') {
+    const r = Math.round(Number(c.radiusM || 0));
+    const lat = Number(c.lat || 0).toFixed(4);
+    const lng = Number(c.lng || 0).toFixed(4);
+    return `within ${r} m of (${lat}, ${lng})`;
+  }
   const extra = Object.entries(c)
     .filter(([k]) => k !== 'type')
-    .map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(String(v))}`)
+    .map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(typeof v === 'object' ? JSON.stringify(v) : String(v))}`)
     .join(', ');
   return esc(type) + (extra ? ` — ${extra}` : '');
 }
@@ -725,12 +758,16 @@ function renderTemplateModal(it, payload) {
   if (automations.length > 0) {
     for (const a of automations) {
       const trigger = a.trigger || {};
-      const conditions = Array.isArray(a.conditions) ? a.conditions : [];
+      const conditions = flattenConditions(a.conditions);
       const actions = Array.isArray(a.actions) ? a.actions : [];
+      const endActions = Array.isArray(a.endActions) ? a.endActions : [];
       const title = automations.length > 1 ? `<div class="section-title">${esc(a.name || 'Automation')}</div>` : '';
       const when = formatTrigger(trigger);
       const conds = conditions.length ? conditions.map(formatCondition).map(c => `<div class="item">${c}</div>`).join('') : '<div class="empty-list">none</div>';
       const then = actions.length ? actions.map(formatAction).map(c => `<div class="item">${c}</div>`).join('') : '<div class="empty-list">no actions</div>';
+      const onEnd = endActions.length
+        ? `<div class="section-title">When it ends</div><div class="section-body">${endActions.map(formatAction).map(c => `<div class="item">${c}</div>`).join('')}</div>`
+        : '';
       const div = document.createElement('div');
       div.className = 'section';
       div.innerHTML = `${title}
@@ -739,7 +776,8 @@ function renderTemplateModal(it, payload) {
         <div class="section-title">Only if</div>
         <div class="section-body">${conds}</div>
         <div class="section-title">Then</div>
-        <div class="section-body">${then}</div>`;
+        <div class="section-body">${then}</div>
+        ${onEnd}`;
       body.appendChild(div);
     }
   } else {

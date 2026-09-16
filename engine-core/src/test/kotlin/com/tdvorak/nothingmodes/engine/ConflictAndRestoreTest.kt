@@ -273,6 +273,64 @@ class ConflictAndRestoreTest {
         }
 
     @Test
+    fun `mode window end runs endActions after snapshot restore`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val mode =
+                makeMode(
+                    "mode-end",
+                    "End",
+                    priority = 10,
+                    actions = listOf(Action.SetBrightness(26, restore = true)),
+                ).copy(
+                    endActions =
+                        listOf(
+                            Action.SetVolume(
+                                volumes = mapOf(com.tdvorak.nothingmodes.engine.model.VolumeStream.MEDIA to 5),
+                                restore = false,
+                            ),
+                        ),
+                )
+            store.save(mode)
+
+            val snapshots =
+                mutableListOf(
+                    StateSnapshot(AutomationId("mode-end"), "screen_brightness", "128", 1000),
+                )
+            val snapshotStore =
+                object : StateSnapshotStore {
+                    override suspend fun save(snapshot: StateSnapshot) {
+                        snapshots.add(snapshot)
+                    }
+
+                    override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> = snapshots.filter { it.automationId == id }
+
+                    override suspend fun deleteForAutomation(id: AutomationId) {
+                        snapshots.removeAll { it.automationId == id }
+                    }
+                }
+
+            val executed = mutableListOf<Action>()
+            val engine =
+                Engine(
+                    store = store,
+                    executor =
+                        ActionExecutor { action, _ ->
+                            executed.add(action)
+                            ActionResult.Success
+                        },
+                    snapshotStore = snapshotStore,
+                )
+            engine.onTrigger(envelope("evt1", TriggerEvent.ModeWindowEnd("evt1", AutomationId("mode-end"), 1000L)))
+
+            // Snapshot restore (WriteSetting) first, then the explicit end value.
+            assertEquals(2, executed.size)
+            assertTrue(executed[0] is Action.WriteSetting)
+            assertTrue(executed[1] is Action.SetVolume)
+            assertEquals(0, snapshots.size)
+        }
+
+    @Test
     fun `disabled automation does not fire`() =
         runTest {
             val store = InMemoryAutomationStore()

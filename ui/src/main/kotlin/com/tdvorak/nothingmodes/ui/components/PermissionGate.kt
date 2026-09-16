@@ -46,13 +46,33 @@ fun PermissionGate(
             },
         )
     }
+    var requestAttempted by remember { mutableStateOf(false) }
     var showDisclosure by remember { mutableStateOf(false) }
     val launcher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions(),
         ) { result ->
+            requestAttempted = true
             allGranted = result.values.all { it }
         }
+
+    // Re-check on resume — a grant made in system settings while this gate is
+    // visible must be picked up when the user returns.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    allGranted =
+                        permissions.all {
+                            ContextCompat.checkSelfPermission(context, it) ==
+                                PackageManager.PERMISSION_GRANTED
+                        }
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     if (allGranted) {
         content()
@@ -86,6 +106,22 @@ fun PermissionGate(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // Once a system prompt was dismissed/denied, Android may stop
+                // showing it — give a direct path to the app settings page.
+                if (requestAttempted && !allGranted) {
+                    NothingPillButton(
+                        text = "Open app settings",
+                        onClick = {
+                            val intent =
+                                android.content.Intent(
+                                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    android.net.Uri.fromParts("package", context.packageName, null),
+                                )
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

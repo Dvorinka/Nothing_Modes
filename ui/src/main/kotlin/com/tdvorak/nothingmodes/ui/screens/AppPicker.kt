@@ -74,6 +74,31 @@ fun rememberAppLabelResolver(): (String) -> String {
     }
 }
 
+/**
+ * Package name → app icon bitmap, cached per composition.
+ * Returns null for blank/unknown packages.
+ */
+@Composable
+fun rememberAppIconResolver(): (String) -> androidx.compose.ui.graphics.ImageBitmap? {
+    val context = LocalContext.current
+    return remember(context) {
+        val pm = context.packageManager
+        val cache = mutableMapOf<String, androidx.compose.ui.graphics.ImageBitmap?>()
+        val resolver: (String) -> androidx.compose.ui.graphics.ImageBitmap? = { pkg ->
+            if (pkg.isBlank()) {
+                null
+            } else {
+                cache.getOrPut(pkg) {
+                    runCatching {
+                        pm.getApplicationIcon(pkg).toBitmap(96, 96).asImageBitmap()
+                    }.getOrNull()
+                }
+            }
+        }
+        resolver
+    }
+}
+
 @Composable
 fun AppPicker(
     currentPackage: String,
@@ -122,7 +147,14 @@ fun AppPicker(
             }
         }
 
-    val selectedLabel = installedApps.find { it.pkg == currentPackage }?.label ?: currentPackage
+    val selectedApp = installedApps.find { it.pkg == currentPackage }
+    val selectedLabel = selectedApp?.label ?: currentPackage
+    val selectedIcon =
+        remember(selectedApp?.pkg) {
+            selectedApp?.let {
+                runCatching { it.resolveInfo.loadIcon(context.packageManager)?.toBitmap(96, 96)?.asImageBitmap() }.getOrNull()
+            }
+        }
 
     Column {
         Text(
@@ -147,13 +179,21 @@ fun AppPicker(
                         .fillMaxWidth()
                         .padding(NothingSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
             ) {
+                if (selectedIcon != null) {
+                    Image(
+                        bitmap = selectedIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
                 Text(
                     text = selectedLabel.ifBlank { "Tap to select an app" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = if (showList) "[CLOSE]" else "[OPEN]",
@@ -182,6 +222,15 @@ fun AppPicker(
                 verticalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
             ) {
                 items(filteredApps, key = { it.pkg }) { app ->
+                    val icon =
+                        remember(app.pkg) {
+                            runCatching {
+                                app.resolveInfo
+                                    .loadIcon(context.packageManager)
+                                    ?.toBitmap(96, 96)
+                                    ?.asImageBitmap()
+                            }.getOrNull()
+                        }
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
                         shape = NothingShapes.input,
@@ -201,6 +250,7 @@ fun AppPicker(
                                     .fillMaxWidth()
                                     .padding(NothingSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
                         ) {
                             if (app.pkg == currentPackage) {
                                 Box(
@@ -210,14 +260,35 @@ fun AppPicker(
                                             .height(20.dp)
                                             .background(NothingColors.accent),
                                 )
-                                Spacer(modifier = Modifier.width(NothingSpacing.sm))
                             }
-                            Text(
-                                text = app.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = NothingFonts.mono(),
-                            )
+                            if (icon != null) {
+                                Image(
+                                    bitmap = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(32.dp)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = app.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = NothingFonts.mono(),
+                                )
+                                Text(
+                                    text = app.pkg,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = NothingFonts.mono(),
+                                )
+                            }
                         }
                     }
                 }

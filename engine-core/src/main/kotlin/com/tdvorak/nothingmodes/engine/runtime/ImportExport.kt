@@ -169,7 +169,7 @@ class ImportExportService(
     private fun capabilitiesOf(automations: List<Automation>): Set<String> =
         automations
             .flatMap {
-                CapabilityRequirements.derive(it.trigger, it.actions, it.conditions)
+                CapabilityRequirements.derive(it.trigger, it.actions, it.conditions, it.endActions)
             }.toSet()
 
     /** Import automations from a JSON string. Validates schema version and deduplicates by ID. */

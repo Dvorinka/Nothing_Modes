@@ -152,10 +152,12 @@ object CapabilityRequirements {
         trigger: Trigger,
         actions: List<Action>,
         conditions: Condition? = null,
+        endActions: List<Action> = emptyList(),
     ): Set<String> {
         val caps = mutableSetOf<String>()
         caps += triggerCapabilities(trigger)
         actions.forEach { caps += actionCapabilities(it) }
+        endActions.forEach { caps += actionCapabilities(it) }
         conditions?.let { caps += conditionCapabilities(it) }
         return caps
     }

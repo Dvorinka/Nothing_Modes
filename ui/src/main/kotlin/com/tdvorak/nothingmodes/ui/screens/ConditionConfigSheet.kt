@@ -460,13 +460,41 @@ private fun DeviceNameSheetContent(
     name: String,
     onChange: (String) -> Unit,
 ) {
-    NothingInput(
-        value = name,
-        onValueChange = onChange,
-        label = "Device name (blank = any)",
-        infoText = "The Bluetooth device's broadcast name — e.g. the name your earbuds or car stereo report. Blank matches any connected device.",
-        modifier = Modifier.fillMaxWidth(),
-    )
+    var showDevicePicker by remember { mutableStateOf(false) }
+    Column {
+        com.tdvorak.nothingmodes.ui.components.PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                ),
+            rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            com.tdvorak.nothingmodes.ui.theme.NothingPillButton(
+                text = "Pick paired device",
+                onClick = { showDevicePicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingInput(
+            value = name,
+            onValueChange = onChange,
+            label = "Device name (blank = any)",
+            infoText = "The Bluetooth device's broadcast name — e.g. the name your earbuds or car stereo report. Blank matches any connected device.",
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    if (showDevicePicker) {
+        com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog(
+            onSelect = { deviceName, _ ->
+                onChange(deviceName ?: "")
+                showDevicePicker = false
+            },
+            onDismiss = { showDevicePicker = false },
+        )
+    }
 }
 
 @Composable

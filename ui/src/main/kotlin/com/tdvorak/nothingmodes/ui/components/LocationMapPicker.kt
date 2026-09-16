@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.ui.components
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -76,6 +77,26 @@ fun LocationMapPicker(
     var styleReady by remember { mutableStateOf(false) }
     var addressQuery by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<android.location.Address>>(emptyList()) }
+    // Set when a suggestion was just picked — suppresses the next query's
+    // suggestion pass so the list doesn't reopen under the chosen label.
+    var suppressSuggest by remember { mutableStateOf(false) }
+
+    // Live suggestions: debounce the query, geocode up to 5 candidates.
+    LaunchedEffect(addressQuery) {
+        val q = addressQuery.trim()
+        if (suppressSuggest) {
+            suppressSuggest = false
+            suggestions = emptyList()
+            return@LaunchedEffect
+        }
+        if (q.length < 3) {
+            suggestions = emptyList()
+            return@LaunchedEffect
+        }
+        kotlinx.coroutines.delay(400)
+        suggestions = geocodeSuggestions(context, q, 5)
+    }
 
     // MapLibre must be initialised before a MapView can be constructed.
     val mapView =
@@ -175,7 +196,7 @@ fun LocationMapPicker(
                 placeholder = "Street, city, place...",
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { searchAddress() }),
-                infoText = "Type a place and press search — works worldwide.",
+                infoText = "Suggestions appear as you type — tap one, or tap the map.",
             )
             if (searching) {
                 androidx.compose.material3.Text(
@@ -185,6 +206,47 @@ fun LocationMapPicker(
                     fontFamily = com.tdvorak.nothingmodes.ui.theme.NothingFonts.mono(),
                     modifier = Modifier.padding(top = com.tdvorak.nothingmodes.ui.theme.NothingSpacing.xs),
                 )
+            }
+            suggestions.forEach { address ->
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = NothingShapes.input,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = com.tdvorak.nothingmodes.ui.theme.NothingSpacing.xs)
+                            .clip(NothingShapes.input)
+                            .clickable {
+                                suppressSuggest = true
+                                addressQuery = addressLabel(address)
+                                suggestions = emptyList()
+                                focusManager.clearFocus()
+                                onPick(address.latitude, address.longitude)
+                            },
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        modifier = Modifier.padding(com.tdvorak.nothingmodes.ui.theme.NothingSpacing.sm),
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = addressLabel(address),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = com.tdvorak.nothingmodes.ui.theme.NothingFonts.mono(),
+                        )
+                        androidx.compose.material3.Text(
+                            text =
+                                String.format(
+                                    "%.5f, %.5f",
+                                    address.latitude,
+                                    address.longitude,
+                                ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = com.tdvorak.nothingmodes.ui.theme.NothingFonts.mono(),
+                        )
+                    }
+                }
             }
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(com.tdvorak.nothingmodes.ui.theme.NothingSpacing.sm))
         }
@@ -232,25 +294,56 @@ fun LocationMapPicker(
     }
 }
 
+/** Human label for a geocoder result: feature/place name plus address bits. */
+private fun addressLabel(address: android.location.Address): String {
+    val primary =
+        address.featureName
+            ?: address.thoroughfare
+            ?: address.locality
+            ?: address.getAddressLine(0)
+            ?: "Unnamed place"
+    val parts =
+        listOfNotNull(
+            address.locality,
+            address.adminArea,
+            address.countryName,
+        ).distinct()
+    val secondary = parts.joinToString(", ")
+    return if (secondary.isBlank() || secondary == primary) {
+        primary
+    } else {
+        "$primary — $secondary"
+    }
+}
+
 /** Device-geocodes an address string — resolves worldwide. */
 private suspend fun geocodeAddress(
     context: android.content.Context,
     query: String,
-): android.location.Address? =
+): android.location.Address? = geocodeSuggestions(context, query, 1).firstOrNull()
+
+/** Device-geocodes up to [maxResults] candidates; empty on failure or when
+ *  the platform has no geocoder backend. */
+private suspend fun geocodeSuggestions(
+    context: android.content.Context,
+    query: String,
+    maxResults: Int,
+): List<android.location.Address> =
     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         runCatching {
+            if (!android.location.Geocoder.isPresent()) return@withContext emptyList()
             val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                 kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-                    geocoder.getFromLocationName(query, 1) { results ->
-                        cont.resume(results.firstOrNull()) {}
+                    geocoder.getFromLocationName(query, maxResults) { results ->
+                        cont.resume(results.orEmpty()) {}
                     }
                 }
             } else {
                 @Suppress("DEPRECATION")
-                geocoder.getFromLocationName(query, 1)?.firstOrNull()
+                geocoder.getFromLocationName(query, maxResults).orEmpty()
             }
-        }.getOrNull()
+        }.getOrDefault(emptyList())
     }
 
 /** Draw (or redraw) the fence fill + outline + centre pin on a loaded style. */

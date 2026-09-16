@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,10 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.model.actionDescription
+import com.tdvorak.nothingmodes.engine.model.affectedSettings
+import com.tdvorak.nothingmodes.engine.model.canRestore
+import com.tdvorak.nothingmodes.engine.model.hasStateLifecycle
+import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
@@ -280,6 +285,7 @@ fun AutomationDetailScreen(
     val shareResult by viewModel.shareResult.collectAsState()
     var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
     val appLabel = rememberAppLabelResolver()
+    val appIconResolver = rememberAppIconResolver()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -403,26 +409,77 @@ fun AutomationDetailScreen(
                 Spacer(modifier = Modifier.height(NothingSpacing.xl))
 
                 NothingCardLarge {
-                    NothingSectionHeader(text = "Trigger")
+                    NothingSectionHeader(text = "If")
                     NothingListRow(
                         title = triggerDescription(data.trigger, appLabel),
                         subtitle = "Tap to reconfigure",
                         onClick = onEdit,
                         leading = {
                             NothingIconCircle(size = 44f, accent = true) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp),
-                                )
+                                val iconBitmap = appPackageOf(data.trigger)?.let(appIconResolver)
+                                if (iconBitmap != null) {
+                                    Image(
+                                        bitmap = iconBitmap,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = iconForTrigger(data.trigger),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
                             }
                         },
                     )
 
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
 
-                    NothingSectionHeader(text = "Actions")
+                    NothingSectionHeader(text = "Only if")
+                    val conditionRows = flattenConditions(data.conditions)
+                    if (conditionRows.isEmpty()) {
+                        NothingDivider()
+                        Text(
+                            text = "Always — no extra conditions",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = NothingSpacing.md),
+                        )
+                    } else {
+                        conditionRows.forEach { condition ->
+                            NothingDivider()
+                            NothingListRow(
+                                title = conditionDescription(condition),
+                                subtitle = "Must hold while the mode runs",
+                                onClick = onEdit,
+                                leading = {
+                                    NothingIconCircle(size = 40f) {
+                                        val iconBitmap = appPackageOf(condition)?.let(appIconResolver)
+                                        if (iconBitmap != null) {
+                                            Image(
+                                                bitmap = iconBitmap,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = iconForCondition(condition),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+
+                    NothingSectionHeader(text = "Then")
                     if (data.actions.isEmpty()) {
                         NothingDivider()
                         Text(
@@ -432,7 +489,7 @@ fun AutomationDetailScreen(
                             modifier = Modifier.padding(vertical = NothingSpacing.md),
                         )
                     } else {
-                        data.actions.forEachIndexed { index, action ->
+                        data.actions.forEach { action ->
                             NothingDivider()
                             NothingListRow(
                                 title = actionDescription(action),
@@ -440,15 +497,88 @@ fun AutomationDetailScreen(
                                 onClick = { detailAction = action },
                                 leading = {
                                     NothingIconCircle(size = 40f) {
-                                        Text(
-                                            text = String.format("%02d", index + 1),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontFamily = NothingFonts.mono(),
-                                        )
+                                        val iconBitmap = appPackageOf(action)?.let(appIconResolver)
+                                        if (iconBitmap != null) {
+                                            Image(
+                                                bitmap = iconBitmap,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = iconForAction(action),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
                                     }
                                 },
                             )
+                        }
+                    }
+
+                    // Imported modes can carry endActions on non-lifecycle
+                    // triggers (e.g. a Manual MODE stopped via disable) — show
+                    // them whenever there is something to display.
+                    if (data.trigger.hasStateLifecycle || data.endActions.isNotEmpty()) {
+                        val restorable = data.actions.filter { it.canRestore }
+                        if (restorable.isNotEmpty() || data.endActions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(NothingSpacing.md))
+                            NothingSectionHeader(text = "When it ends")
+                            restorable.forEach { action ->
+                                val endAction =
+                                    data.endActions.firstOrNull {
+                                        (it.affectedSettings intersect action.affectedSettings).isNotEmpty()
+                                    }
+                                val label =
+                                    when {
+                                        endAction != null -> "Then set to: ${actionDescription(endAction)}"
+                                        action.supportsRestore -> "Reverts to previous value"
+                                        else -> "Keeps the mode's value"
+                                    }
+                                NothingDivider()
+                                NothingListRow(
+                                    title = actionDescription(action),
+                                    subtitle = label,
+                                    onClick = onEdit,
+                                    leading = {
+                                        NothingIconCircle(size = 40f) {
+                                            Icon(
+                                                imageVector = iconForAction(action),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                            data.endActions.forEach { endAction ->
+                                val claimed =
+                                    data.actions.any {
+                                        it.canRestore &&
+                                            (it.affectedSettings intersect endAction.affectedSettings).isNotEmpty()
+                                    }
+                                if (!claimed) {
+                                    NothingDivider()
+                                    NothingListRow(
+                                        title = actionDescription(endAction),
+                                        subtitle = "Runs when the mode ends",
+                                        onClick = onEdit,
+                                        leading = {
+                                            NothingIconCircle(size = 40f) {
+                                                Icon(
+                                                    imageVector = iconForAction(endAction),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(20.dp),
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }

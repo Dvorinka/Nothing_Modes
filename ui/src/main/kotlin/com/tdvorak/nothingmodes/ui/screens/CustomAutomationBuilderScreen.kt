@@ -78,6 +78,7 @@ import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.canRestore
 import com.tdvorak.nothingmodes.engine.model.hasStateLifecycle
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
+import com.tdvorak.nothingmodes.engine.model.affectedSettings
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.model.withRestore
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
@@ -129,6 +130,7 @@ data class BuilderState(
     val type: AutomationType = AutomationType.ROUTINE,
     val trigger: Trigger = Trigger.Manual,
     val actions: List<Action> = emptyList(),
+    val endActions: List<Action> = emptyList(),
     val conditions: List<Condition> = emptyList(),
     val priority: Int = 5,
     val icon: String = "",
@@ -139,6 +141,9 @@ data class BuilderState(
     val cooldownMs: Long = 0,
     val notifyRules: List<NotifyRule> = emptyList(),
 )
+
+/** Per-action "when the mode ends" behavior shown in the AFTER IT ENDS card. */
+private enum class EndChoice { REVERT, KEEP, SET }
 
 @HiltViewModel
 class CustomBuilderViewModel
@@ -181,7 +186,8 @@ class CustomBuilderViewModel
                         type = automation.type,
                         trigger = automation.trigger,
                         actions = automation.actions,
-                        conditions = listOfNotNull(automation.conditions),
+                        endActions = automation.endActions,
+                        conditions = flattenConditions(automation.conditions),
                         priority = automation.priority,
                         icon = automation.icon,
                         iconBackground = automation.iconBackground,
@@ -332,6 +338,33 @@ class CustomBuilderViewModel
             _state.value = _state.value.copy(actions = actions)
         }
 
+        fun addEndAction(action: Action) {
+            _state.value = _state.value.copy(endActions = _state.value.endActions + action)
+        }
+
+        fun updateEndAction(
+            index: Int,
+            action: Action,
+        ) {
+            _state.value =
+                _state.value.copy(
+                    endActions =
+                        _state.value.endActions
+                            .toMutableList()
+                            .also { it[index] = action },
+                )
+        }
+
+        fun removeEndAction(index: Int) {
+            _state.value =
+                _state.value.copy(
+                    endActions =
+                        _state.value.endActions
+                            .toMutableList()
+                            .also { it.removeAt(index) },
+                )
+        }
+
         fun addCondition(condition: Condition) {
             _state.value = _state.value.copy(conditions = _state.value.conditions + condition)
         }
@@ -403,11 +436,14 @@ class CustomBuilderViewModel
                         name = s.name.ifBlank { "Untitled" },
                         // jarvis: modes and routines merged — any state-lifecycle
                         // trigger (window, charger on, torch on, ...) is a mode.
-                        type = if (s.trigger.hasStateLifecycle) AutomationType.MODE else AutomationType.ROUTINE,
+                        // So is anything with end actions: they only run on the
+                        // mode-end path, which requires mode semantics.
+                        type = if (s.trigger.hasStateLifecycle || s.endActions.isNotEmpty()) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = existing?.createdBy ?: CreatedBy.USER,
                         status = existing?.status ?: AutomationStatus.ARMED,
                         trigger = s.trigger,
                         actions = s.actions,
+                        endActions = s.endActions,
                         conditions = conditions,
                         priority = s.priority,
                         quickAction = s.quickAction,
@@ -455,11 +491,12 @@ class CustomBuilderViewModel
                     Automation(
                         id = id,
                         name = "${s.name.ifBlank { "Untitled" }} (copy)",
-                        type = if (s.trigger.hasStateLifecycle) AutomationType.MODE else AutomationType.ROUTINE,
+                        type = if (s.trigger.hasStateLifecycle || s.endActions.isNotEmpty()) AutomationType.MODE else AutomationType.ROUTINE,
                         createdBy = CreatedBy.USER,
                         status = AutomationStatus.ARMED,
                         trigger = s.trigger,
                         actions = s.actions,
+                        endActions = s.endActions,
                         conditions = conditions,
                         priority = s.priority,
                         quickAction = s.quickAction,
@@ -485,7 +522,7 @@ class CustomBuilderViewModel
 @Composable
 fun CustomAutomationBuilderScreen(
     onBack: () -> Unit,
-    onSaved: () -> Unit,
+    onSaved: (message: String) -> Unit,
     automationId: String? = null,
     navController: NavController? = null,
     onConfigureTrigger: ((String) -> Unit)? = null,
@@ -568,6 +605,8 @@ fun CustomAutomationBuilderScreen(
     var editingActionIndex by rememberSaveable { mutableStateOf(-1) }
     var editingChildIndex by rememberSaveable { mutableStateOf(-1) }
     var actionSheetAction by remember { mutableStateOf<Action?>(null) }
+    var editingEndActionIndex by rememberSaveable { mutableStateOf(-1) }
+    var endActionSheetAction by remember { mutableStateOf<Action?>(null) }
     var showIconPicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     val actionsResultFlow =
@@ -599,11 +638,12 @@ fun CustomAutomationBuilderScreen(
         }
     }
 
+    // Navigate out the moment the write lands — the confirmation snackbar is
+    // shown by the destination (list) screen, not awaited here.
     androidx.compose.runtime.LaunchedEffect(saved) {
         if (saved) {
-            snackbarHostState.showSnackbar(if (automationId != null) "Mode updated" else "Mode saved")
             viewModel.clearSaved()
-            onSaved()
+            onSaved(if (automationId != null) "Mode updated" else "Mode saved")
         }
     }
 
@@ -830,20 +870,29 @@ fun CustomAutomationBuilderScreen(
                 }
             }
 
-            // AFTER IT ENDS — windowed modes revert by default; per-action opt-out.
-            if (state.trigger is Trigger.TimeWindow) {
+            // AFTER IT ENDS — every state-lifecycle trigger (time window, charger,
+            // Bluetooth device, torch, ...) restores by default. Per action:
+            // revert to previous / keep new value / set a specific end value.
+            // Also shown when imported endActions exist on a non-lifecycle
+            // trigger so they stay visible and editable.
+            if (state.trigger.hasStateLifecycle || state.endActions.isNotEmpty()) {
                 item {
-                    val endLocal = (state.trigger as Trigger.TimeWindow).endLocal
+                    val endLocal = (state.trigger as? Trigger.TimeWindow)?.endLocal
                     NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                         Text(
-                            text = "AFTER IT ENDS ($endLocal)",
+                            text =
+                                if (endLocal != null) {
+                                    "AFTER IT ENDS ($endLocal)"
+                                } else {
+                                    "WHEN THE MODE ENDS"
+                                },
                             style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontFamily = NothingFonts.doto(),
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
                         )
                         Text(
-                            text = "Ticked items return to how they were before the mode started. Unticked items keep their new value.",
+                            text = "Per change: revert to how it was, keep the mode's value, or set a specific value for after it ends.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -852,7 +901,7 @@ fun CustomAutomationBuilderScreen(
                         val restorable =
                             state.actions
                                 .mapIndexedNotNull { i, a -> if (a.canRestore) i to a else null }
-                        if (restorable.isEmpty()) {
+                        if (restorable.isEmpty() && state.endActions.isEmpty()) {
                             Text(
                                 text = "No revertible changes — the mode just stops.",
                                 style = MaterialTheme.typography.labelSmall,
@@ -863,29 +912,150 @@ fun CustomAutomationBuilderScreen(
                         } else {
                             NothingDivider()
                             restorable.forEach { (index, action) ->
+                                // An end action matches by the setting it writes —
+                                // e.g. a SetVolume end action binds to the volume row.
+                                val endIndex =
+                                    state.endActions.indexOfFirst {
+                                        (it.affectedSettings intersect action.affectedSettings).isNotEmpty()
+                                    }
+                                val endAction = state.endActions.getOrNull(endIndex)
+                                val endChoice =
+                                    when {
+                                        endAction != null -> EndChoice.SET
+                                        action.supportsRestore -> EndChoice.REVERT
+                                        else -> EndChoice.KEEP
+                                    }
+                                Column {
+                                    NothingListRow(
+                                        title = actionDescription(action),
+                                        subtitle =
+                                            when (endChoice) {
+                                                EndChoice.REVERT -> "Revert to previous value"
+                                                EndChoice.KEEP -> "Keep the mode's value"
+                                                EndChoice.SET -> "Set to: ${actionDescription(endAction!!)}"
+                                            },
+                                        onClick = {
+                                            editingActionIndex = index
+                                            editingChildIndex = -1
+                                            actionSheetAction = action
+                                        },
+                                    )
+                                    Row(
+                                        modifier =
+                                            Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(
+                                                        start = NothingSpacing.lg,
+                                                        bottom = NothingSpacing.xs,
+                                                    ),
+                                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+                                    ) {
+                                        EndChoice.entries.forEach { choice ->
+                                            val selected = choice == endChoice
+                                            Text(
+                                                text =
+                                                    when (choice) {
+                                                        EndChoice.REVERT -> "REVERT"
+                                                        EndChoice.KEEP -> "KEEP"
+                                                        EndChoice.SET -> "SET…"
+                                                    },
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color =
+                                                    if (selected) {
+                                                        MaterialTheme.colorScheme.onPrimary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                    },
+                                                fontFamily = NothingFonts.mono(),
+                                                modifier =
+                                                    Modifier
+                                                        .clip(NothingShapes.pill)
+                                                        .background(
+                                                            if (selected) {
+                                                                MaterialTheme.colorScheme.primary
+                                                            } else {
+                                                                MaterialTheme.colorScheme.surfaceVariant
+                                                            },
+                                                        ).clickable {
+                                                            when (choice) {
+                                                                EndChoice.REVERT -> {
+                                                                    if (endIndex >= 0) {
+                                                                        viewModel.removeEndAction(endIndex)
+                                                                    }
+                                                                    viewModel.updateAction(index, action.withRestore(true))
+                                                                }
+                                                                EndChoice.KEEP -> {
+                                                                    if (endIndex >= 0) {
+                                                                        viewModel.removeEndAction(endIndex)
+                                                                    }
+                                                                    viewModel.updateAction(index, action.withRestore(false))
+                                                                }
+                                                                EndChoice.SET -> {
+                                                                    viewModel.updateAction(index, action.withRestore(false))
+                                                                    if (endAction != null) {
+                                                                        editingEndActionIndex = endIndex
+                                                                        endActionSheetAction = endAction
+                                                                    } else {
+                                                                        // Seed the end action from the
+                                                                        // same action; user edits the value.
+                                                                        viewModel.addEndAction(action.withRestore(false))
+                                                                        editingEndActionIndex =
+                                                                            state.endActions.size
+                                                                        endActionSheetAction =
+                                                                            action.withRestore(false)
+                                                                    }
+                                                                }
+                                                            }
+                                                        }.padding(
+                                                            horizontal = NothingSpacing.sm,
+                                                            vertical = NothingSpacing.xs,
+                                                        ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            // End actions whose source action was removed still
+                            // run — list them so they stay editable/removable.
+                            val orphanEndActions =
+                                state.endActions.mapIndexedNotNull { i, a ->
+                                    val claimed =
+                                        state.actions.any { src ->
+                                            src.canRestore &&
+                                                (src.affectedSettings intersect a.affectedSettings).isNotEmpty()
+                                        }
+                                    if (claimed) null else i to a
+                                }
+                            orphanEndActions.forEach { (endIndex, endAction) ->
                                 NothingListRow(
-                                    title = actionDescription(action),
-                                    subtitle = "Revert to previous value",
+                                    title = actionDescription(endAction),
+                                    subtitle = "Also runs when the mode ends",
                                     onClick = {
-                                        viewModel.updateAction(
-                                            index,
-                                            action.withRestore(!action.supportsRestore),
-                                        )
+                                        editingEndActionIndex = endIndex
+                                        endActionSheetAction = endAction
                                     },
                                     trailing = {
-                                        NothingToggle(
-                                            checked = action.supportsRestore,
-                                            onCheckedChange = {
-                                                viewModel.updateAction(index, action.withRestore(it))
-                                            },
-                                        )
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                                    .clickable { viewModel.removeEndAction(endIndex) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Delete,
+                                                contentDescription = "Remove",
+                                                tint = NothingColors.accent,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
                                     },
                                 )
                             }
                         }
                         if (state.actions.any { it.isGlyphAction }) {
                             Text(
-                                text = "Glyph lights always turn off when the window ends.",
+                                text = "Glyph lights always turn off when the mode ends.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = NothingFonts.mono(),
@@ -1103,6 +1273,30 @@ fun CustomAutomationBuilderScreen(
             )
         }
 
+        endActionSheetAction?.let { action ->
+            ActionConfigSheet(
+                action = action,
+                caps = caps,
+                onOpenGlyphStudio = null,
+                onOpenGlyphMuseum = null,
+                onDone = { updated ->
+                    if (editingEndActionIndex >= 0 &&
+                        editingEndActionIndex < state.endActions.size
+                    ) {
+                        viewModel.updateEndAction(editingEndActionIndex, updated)
+                    } else {
+                        viewModel.addEndAction(updated)
+                    }
+                    endActionSheetAction = null
+                    editingEndActionIndex = -1
+                },
+                onDismiss = {
+                    endActionSheetAction = null
+                    editingEndActionIndex = -1
+                },
+            )
+        }
+
         if (showIconPicker) {
             IconColorPickerSheet(
                 initialIcon = state.icon,
@@ -1234,18 +1428,28 @@ private fun TriggerEditor(
     onConfigure: () -> Unit,
 ) {
     val appLabel = rememberAppLabelResolver()
+    val appIcon = rememberAppIconResolver()
     NothingListRow(
         title = triggerDescription(trigger, appLabel),
         subtitle = "When this happens — tap to change",
         onClick = onConfigure,
         leading = {
             NothingIconCircle(size = 44f) {
-                Text(
-                    text = "T",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.mono(),
-                )
+                val iconBitmap = appPackageOf(trigger)?.let(appIcon)
+                if (iconBitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = iconBitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                } else {
+                    Icon(
+                        imageVector = iconForTrigger(trigger),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         },
     )
@@ -1276,17 +1480,12 @@ private fun ReorderableListItemScope.ActionRow(
                 title = actionDescription(action),
                 onClick = { onConfigure(action) },
                 leading = {
-                    Box(
-                        modifier =
-                            Modifier
-                                .draggableHandle()
-                                .size(44.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "≡",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    NothingIconCircle(size = 44f) {
+                        Icon(
+                            imageVector = iconForAction(action),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                 },
@@ -1350,6 +1549,21 @@ private fun ReorderableListItemScope.ActionRow(
                                 modifier = Modifier.size(20.dp),
                             )
                         }
+                        // Drag affordance lives on the trailing edge so the
+                        // leading slot can carry the action's real icon.
+                        Box(
+                            modifier =
+                                Modifier
+                                    .draggableHandle()
+                                    .size(40.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "≡",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 },
             )
@@ -1380,22 +1594,27 @@ private fun ReorderableListItemScope.ActionRow(
             }
         }
     } else {
+        val appIcon = rememberAppIconResolver()
         NothingListRow(
             title = actionDescription(action),
             onClick = { onConfigure(action) },
             leading = {
-                Box(
-                    modifier =
-                        Modifier
-                            .draggableHandle()
-                            .size(44.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "≡",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                NothingIconCircle(size = 44f) {
+                    val iconBitmap = appPackageOf(action)?.let(appIcon)
+                    if (iconBitmap != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = iconBitmap,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = iconForAction(action),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             },
             trailing = {
@@ -1430,6 +1649,19 @@ private fun ReorderableListItemScope.ActionRow(
                             modifier = Modifier.size(20.dp),
                         )
                     }
+                    Box(
+                        modifier =
+                            Modifier
+                                .draggableHandle()
+                                .size(40.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "≡",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             },
         )
@@ -1446,38 +1678,58 @@ private fun ReorderableListItemScope.ConditionRow(
     onUpdate: (Condition) -> Unit = {},
     onConfigure: (Condition) -> Unit = {},
 ) {
+    val appIcon = rememberAppIconResolver()
     NothingListRow(
         title = conditionDescription(condition),
         onClick = { onConfigure(condition) },
         leading = {
-            Box(
-                modifier =
-                    Modifier
-                        .draggableHandle()
-                        .size(44.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "≡",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            NothingIconCircle(size = 44f) {
+                val iconBitmap = appPackageOf(condition)?.let(appIcon)
+                if (iconBitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = iconBitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                } else {
+                    Icon(
+                        imageVector = iconForCondition(condition),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         },
         trailing = {
-            Box(
-                modifier =
-                    Modifier
-                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .clickable(onClick = onRemove),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Remove",
-                    tint = NothingColors.accent,
-                    modifier = Modifier.size(20.dp),
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .clickable(onClick = onRemove),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = "Remove",
+                        tint = NothingColors.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Box(
+                    modifier =
+                        Modifier
+                            .draggableHandle()
+                            .size(40.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "≡",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         },
     )
@@ -1712,7 +1964,9 @@ internal fun conditionDescription(condition: Condition): String =
             "$label ${if (condition.on) "on" else "off"}"
         }
         is Condition.NumericState -> "${numericStateLabel(condition.key)} ${cmpSymbol(condition.op)} ${condition.value}"
-        is Condition.AtLocation -> "Within ${condition.radiusM}m of pinned spot"
+        is Condition.AtLocation ->
+            "Within ${condition.radiusM.toInt()} m of " +
+                String.format("%.4f, %.4f", condition.lat, condition.lng)
         is Condition.EventActive -> "Calendar event contains \"${condition.titleMatch}\""
         is Condition.NotificationPresent -> "Notification from ${condition.pkg} contains \"${condition.titleMatch}\""
         is Condition.And -> "All of ${condition.all.size} conditions"

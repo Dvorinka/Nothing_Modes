@@ -33,6 +33,10 @@ data class Automation(
     val status: AutomationStatus,
     val trigger: Trigger,
     val actions: List<Action>,
+    /** Actions executed when a state-lifecycle mode ends — after snapshot
+     *  restore, so an explicit end value wins over "revert to previous". */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val endActions: List<Action> = emptyList(),
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val conditions: Condition? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)

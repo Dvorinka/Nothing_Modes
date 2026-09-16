@@ -2,8 +2,18 @@ package com.tdvorak.nothingmodes.ui.screens
 
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
+import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
+
+/** Flattens a stored condition tree into display rows: `And` unwraps to its
+ *  members (nested `Or`/`Not` stay as single rows describing themselves). */
+fun flattenConditions(condition: Condition?): List<Condition> =
+    when (condition) {
+        null -> emptyList()
+        is Condition.And -> condition.all.flatMap { flattenConditions(it) }
+        else -> listOf(condition)
+    }
 
 fun cronToSummary(cron: String): String {
     val parts = cron.split(" ").filter { it.isNotBlank() }
@@ -189,7 +199,9 @@ fun triggerDescription(
             is Trigger.BatteryLevel -> "Battery at ${trigger.level}%"
             is Trigger.ScreenStateTrigger -> "Screen ${trigger.state}"
             is Trigger.AppOpened -> "App opened: ${appLabel(trigger.pkg)}"
-            is Trigger.Geofence -> "Area trigger · radius ${trigger.radiusM.toInt()} m"
+            is Trigger.Geofence ->
+                "Area · ${String.format("%.4f", trigger.lat)}, " +
+                    "${String.format("%.4f", trigger.lng)} · ${trigger.radiusM.toInt()} m"
             is Trigger.Manual -> "Manual"
             is Trigger.BluetoothDevice -> "Bluetooth device ${trigger.state.name.enumLabel().lowercase()}${trigger.deviceName?.let { ": $it" } ?: ""}"
             is Trigger.WifiConnected -> "Wi-Fi connected${trigger.ssid?.let { ": $it" } ?: ""}"

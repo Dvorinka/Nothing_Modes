@@ -1,0 +1,7 @@
+- Modes save instantly — the editor returns to the list immediately and the confirmation appears there
+- ONLY IF conditions are visible everywhere: mode cards, detail view, shared links, and the website library
+- Location conditions show their area — coordinates and radius in every view
+- What happens when a mode ends is now configurable per change: revert to previous, keep the mode's value, or set a specific value (e.g. a volume level)
+- Bluetooth device pickers ask for permission and list your actually paired devices
+- Location picker suggests places as you type — pick the right spot straight from the list
+- Consistent icons for triggers, conditions, and actions across builder and detail views

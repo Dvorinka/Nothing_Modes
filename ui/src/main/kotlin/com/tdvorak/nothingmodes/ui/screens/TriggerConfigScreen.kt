@@ -84,6 +84,7 @@ import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
+import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.theme.Doto
@@ -1183,11 +1184,21 @@ private fun BluetoothDeviceContent(
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         // Paired-device picker — no system picker exists, so list bonded devices.
-        NothingPillButton(
-            text = "Pick paired device",
-            onClick = { showDevicePicker = true },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Needs BLUETOOTH_CONNECT (and SCAN for discovery-adjacent reads).
+        PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                ),
+            rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+        ) {
+            NothingPillButton(
+                text = "Pick paired device",
+                onClick = { showDevicePicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
             value = trigger.deviceName ?: "",
@@ -1218,60 +1229,6 @@ private fun BluetoothDeviceContent(
             onDismiss = { showDevicePicker = false },
         )
     }
-}
-
-@Composable
-private fun BondedDevicePickerDialog(
-    onSelect: (name: String?, address: String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val devices =
-        remember {
-            runCatching {
-                val adapter =
-                    (
-                        context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
-                            as? android.bluetooth.BluetoothManager
-                    )?.adapter
-                @SuppressLint("MissingPermission")
-                adapter?.bondedDevices?.map { it.name to it.address } ?: emptyList()
-            }.getOrDefault(emptyList())
-        }
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(text = "Paired devices", fontFamily = NothingFonts.mono())
-        },
-        text = {
-            Column {
-                NothingListRow(
-                    title = "Any device",
-                    subtitle = "Matches every Bluetooth device",
-                    onClick = { onSelect(null, null) },
-                )
-                if (devices.isEmpty()) {
-                    Text(
-                        text = "No paired devices found.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                    )
-                } else {
-                    devices.forEach { (name, address) ->
-                        NothingListRow(
-                            title = name ?: address,
-                            subtitle = address,
-                            onClick = { onSelect(name, address) },
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL") }
-        },
-    )
 }
 
 @Composable
