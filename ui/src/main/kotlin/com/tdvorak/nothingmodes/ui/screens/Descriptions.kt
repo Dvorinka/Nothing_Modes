@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.ui.util.DisplayUnits
 
 /** Flattens a stored condition tree into display rows: `And` unwraps to its
  *  members (nested `Or`/`Not` stay as single rows describing themselves). */
@@ -15,7 +16,10 @@ fun flattenConditions(condition: Condition?): List<Condition> =
         else -> listOf(condition)
     }
 
-fun cronToSummary(cron: String): String {
+fun cronToSummary(
+    cron: String,
+    units: DisplayUnits,
+): String {
     val parts = cron.split(" ").filter { it.isNotBlank() }
     if (parts.size < 5) return cron
 
@@ -27,7 +31,10 @@ fun cronToSummary(cron: String): String {
 
     if (hour == "*" || minute == "*") return "Every minute"
 
-    val time = "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}"
+    val time =
+        units.formatLocalTime(
+            "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}",
+        )
     val dayLabel =
         when {
             dayOfMonth != "*" && month != "*" -> {
@@ -180,17 +187,19 @@ fun triggerTypeDescription(trigger: Trigger): String =
 
 fun triggerDescription(
     trigger: Trigger,
+    units: DisplayUnits,
     appLabel: (String) -> String = { it },
 ): String =
     (
         when (trigger) {
             is Trigger.Time -> {
-                trigger.at?.let { "Once · ${it.take(16).replace("T", " ")}" }
-                    ?: trigger.cron?.let { cronToSummary(it) }
+                trigger.at?.let { "Once · ${units.formatIsoMinute(it)}" }
+                    ?: trigger.cron?.let { cronToSummary(it, units) }
                     ?: trigger.afterMs?.let { "In ${it / 1000}s" }
                     ?: "Time-based"
             }
-            is Trigger.TimeWindow -> "${trigger.startLocal}–${trigger.endLocal}"
+            is Trigger.TimeWindow ->
+                "${units.formatLocalTime(trigger.startLocal)}–${units.formatLocalTime(trigger.endLocal)}"
             is Trigger.Immediate -> "Immediate"
             is Trigger.Notification -> "Notification from ${appLabel(trigger.pkg)}"
             is Trigger.PhoneState -> "Phone: ${trigger.event.name.enumLabel()}"
@@ -201,7 +210,7 @@ fun triggerDescription(
             is Trigger.AppOpened -> "App opened: ${appLabel(trigger.pkg)}"
             is Trigger.Geofence ->
                 "Area · ${String.format("%.4f", trigger.lat)}, " +
-                    "${String.format("%.4f", trigger.lng)} · ${trigger.radiusM.toInt()} m"
+                    "${String.format("%.4f", trigger.lng)} · ${units.formatDistance(trigger.radiusM)}"
             is Trigger.Manual -> "Manual"
             is Trigger.BluetoothDevice -> "Bluetooth device ${trigger.state.name.enumLabel().lowercase()}${trigger.deviceName?.let { ": $it" } ?: ""}"
             is Trigger.WifiConnected -> "Wi-Fi connected${trigger.ssid?.let { ": $it" } ?: ""}"

@@ -47,6 +47,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.util.DisplayUnits
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -177,7 +179,10 @@ private fun loadCalendarEventCounts(context: Context): Map<String, Int> {
     }.getOrDefault(emptyMap())
 }
 
-fun formatEventTime(millis: Long): String {
+fun formatEventTime(
+    millis: Long,
+    units: DisplayUnits,
+): String {
     val zdt =
         java.time.ZonedDateTime.ofInstant(
             java.time.Instant.ofEpochMilli(millis),
@@ -185,7 +190,7 @@ fun formatEventTime(millis: Long): String {
         )
     return zdt.format(
         java.time.format.DateTimeFormatter
-            .ofPattern("EEE MMM d HH:mm"),
+            .ofPattern(if (units.clock12h) "EEE MMM d h:mm a" else "EEE MMM d HH:mm"),
     )
 }
 
@@ -208,6 +213,7 @@ fun CalendarEventPickerDialog(
     val knownEvents = remember { mutableStateMapOf<Long, UpcomingEvent>() }
     var eventCounts by remember { mutableStateOf(emptyMap<String, Int>()) }
     var calendarListOpen by remember { mutableStateOf(false) }
+    val units = rememberUnits()
 
     LaunchedEffect(Unit) {
         eventCounts = withContext(Dispatchers.IO) { loadCalendarEventCounts(context) }
@@ -430,7 +436,7 @@ fun CalendarEventPickerDialog(
                             val isSelected = event.eventId in selectedIds
                             NothingListRow(
                                 title = event.title,
-                                subtitle = "${formatEventTime(event.startMillis)} · ${event.calendarName}",
+                                subtitle = "${formatEventTime(event.startMillis, units)} · ${event.calendarName}",
                                 selected = isSelected,
                                 onClick = {
                                     selectedIds =

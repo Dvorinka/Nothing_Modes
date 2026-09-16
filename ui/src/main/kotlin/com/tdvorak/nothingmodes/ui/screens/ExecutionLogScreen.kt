@@ -38,14 +38,12 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 private const val LOG_PAGE_SIZE = 15
@@ -150,7 +148,7 @@ fun ExecutionLogScreen(
     val entries by viewModel.entries.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val names by viewModel.names.collectAsState()
-    val dateFormat = remember { SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()) }
+    val units = rememberUnits()
     var page by remember { mutableIntStateOf(0) }
     val pageCount = maxOf(1, (entries.size + LOG_PAGE_SIZE - 1) / LOG_PAGE_SIZE)
     val safePage = page.coerceIn(0, pageCount - 1)
@@ -299,7 +297,7 @@ fun ExecutionLogScreen(
                                     },
                                     trailing = {
                                         Text(
-                                            text = dateFormat.format(Date(entry.timestamp)),
+                                            text = units.formatTimestamp(entry.timestamp),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = if (isError) NothingColors.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontFamily = NothingFonts.mono(),

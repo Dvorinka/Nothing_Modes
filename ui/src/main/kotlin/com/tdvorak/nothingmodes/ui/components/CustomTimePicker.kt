@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -325,7 +326,7 @@ fun CustomTimePicker(
     }
 
     Spacer(modifier = Modifier.height(NothingSpacing.sm))
-    val preview = triggerDescription(schedule.toTrigger())
+    val preview = triggerDescription(schedule.toTrigger(), rememberUnits())
     Text(
         text = preview,
         style = MaterialTheme.typography.labelSmall,

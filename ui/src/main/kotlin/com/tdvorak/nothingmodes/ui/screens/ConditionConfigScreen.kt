@@ -39,6 +39,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.popBackStackOr
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -54,6 +55,7 @@ fun ConditionConfigScreen(
                 ?: Condition.BatteryLevel(CmpOp.LT, 20)
         }
     var condition by remember { mutableStateOf(initial) }
+    val units = rememberUnits()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -456,11 +458,11 @@ fun ConditionConfigScreen(
                             }
                             Box(modifier = Modifier.weight(0.65f)) {
                                 NothingInput(
-                                    value = c.celsius.toString(),
+                                    value = units.tempToInput(c.celsius),
                                     onValueChange = { text ->
-                                        condition = c.copy(celsius = text.toDoubleOrNull() ?: c.celsius)
+                                        condition = c.copy(celsius = units.inputToCelsius(text) ?: c.celsius)
                                     },
-                                    label = "Celsius",
+                                    label = units.tempUnit,
                                 )
                             }
                         }
@@ -542,7 +544,7 @@ fun ConditionConfigScreen(
 
                     else -> {
                         Text(
-                            text = conditionDescription(condition),
+                            text = conditionDescription(condition, units),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = NothingFonts.mono(),
@@ -629,6 +631,7 @@ private fun AtLocationScreenContent(
     condition: Condition.AtLocation,
     onChange: (Condition.AtLocation) -> Unit,
 ) {
+    val units = rememberUnits()
     Column {
         NothingInput(
             value = condition.lat.toString(),
@@ -649,11 +652,11 @@ private fun AtLocationScreenContent(
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = condition.radiusM.toString(),
+            value = units.distanceToInput(condition.radiusM),
             onValueChange = { text ->
-                text.toDoubleOrNull()?.let { onChange(condition.copy(radiusM = it)) }
+                units.inputToDistance(text)?.let { onChange(condition.copy(radiusM = it)) }
             },
-            label = "Radius (meters)",
+            label = "Radius (${units.distanceUnit})",
             modifier = Modifier.fillMaxWidth(),
         )
     }

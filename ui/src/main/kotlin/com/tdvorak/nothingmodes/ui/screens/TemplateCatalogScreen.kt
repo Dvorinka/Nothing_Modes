@@ -68,6 +68,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -721,6 +722,7 @@ private fun TemplateInstallSheet(
                 .navigationBarsPadding(),
     ) {
         val appLabel = rememberAppLabelResolver()
+        val units = rememberUnits()
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(NothingSpacing.md),
@@ -770,7 +772,7 @@ private fun TemplateInstallSheet(
                     fontFamily = NothingFonts.mono(),
                 )
                 Text(
-                    text = "Trigger: ${triggerDescription(automation.trigger, appLabel)}",
+                    text = "Trigger: ${triggerDescription(automation.trigger, units, appLabel)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),

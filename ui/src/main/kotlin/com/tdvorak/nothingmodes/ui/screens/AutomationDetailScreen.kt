@@ -69,6 +69,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -286,6 +287,7 @@ fun AutomationDetailScreen(
     var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
     val appLabel = rememberAppLabelResolver()
     val appIconResolver = rememberAppIconResolver()
+    val units = rememberUnits()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -411,7 +413,7 @@ fun AutomationDetailScreen(
                 NothingCardLarge {
                     NothingSectionHeader(text = "If")
                     NothingListRow(
-                        title = triggerDescription(data.trigger, appLabel),
+                        title = triggerDescription(data.trigger, units, appLabel),
                         subtitle = "Tap to reconfigure",
                         onClick = onEdit,
                         leading = {
@@ -451,7 +453,7 @@ fun AutomationDetailScreen(
                         conditionRows.forEach { condition ->
                             NothingDivider()
                             NothingListRow(
-                                title = conditionDescription(condition),
+                                title = conditionDescription(condition, units),
                                 subtitle = "Must hold while the mode runs",
                                 onClick = onEdit,
                                 leading = {

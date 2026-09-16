@@ -94,6 +94,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.tdvorak.nothingmodes.ui.R
@@ -728,6 +729,7 @@ private fun ModeTile(
         }
     }
     val appLabel = rememberAppLabelResolver()
+    val units = rememberUnits()
     val iconTextColor = MaterialTheme.colorScheme.onSurface
     val borderColor =
         when {
@@ -845,7 +847,7 @@ private fun ModeTile(
             Spacer(modifier = Modifier.height(NothingSpacing.md))
 
             Text(
-                text = triggerDescription(automation.trigger, appLabel),
+                text = triggerDescription(automation.trigger, units, appLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -854,7 +856,7 @@ private fun ModeTile(
             val onlyIf = flattenConditions(automation.conditions)
             if (onlyIf.isNotEmpty()) {
                 Text(
-                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it) },
+                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it, units) },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

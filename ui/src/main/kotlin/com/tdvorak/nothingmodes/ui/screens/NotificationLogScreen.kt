@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -28,13 +27,11 @@ import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -59,7 +56,7 @@ fun NotificationLogScreen(
     viewModel: NotificationLogViewModel = hiltViewModel(),
 ) {
     val entries by viewModel.recent.collectAsState()
-    val dateFormat = remember { SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()) }
+    val units = rememberUnits()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -99,7 +96,7 @@ fun NotificationLogScreen(
                                     subtitle = listOfNotNull(entry.packageName, entry.text.takeIf { it.isNotEmpty() }).joinToString(" · "),
                                     trailing = {
                                         Text(
-                                            text = dateFormat.format(Date(entry.postTime)),
+                                            text = units.formatTimestamp(entry.postTime),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontFamily = NothingFonts.mono(),

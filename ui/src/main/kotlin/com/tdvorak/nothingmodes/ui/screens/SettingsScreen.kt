@@ -66,6 +66,8 @@ import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
+import com.tdvorak.nothingmodes.ui.util.UnitSystem
+import com.tdvorak.nothingmodes.ui.util.UnitsManager
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -814,6 +816,26 @@ fun SettingsScreen(
                     NothingSectionHeader(text = "Theme")
                     NothingCard {
                         ThemeSection()
+                    }
+
+                    // ── Units ─────────────────────────────────────────────────
+                    NothingSectionHeader(text = "Units")
+                    NothingCard {
+                        val unitsManager = remember { UnitsManager.get(context) }
+                        val unitSystem by unitsManager.system.collectAsState()
+                        NothingEnumSelector(
+                            label = "Measurement system",
+                            value = unitSystem.label,
+                            options = UnitSystem.entries.map { it.label },
+                            onSelect = { label ->
+                                UnitSystem.entries.firstOrNull { it.label == label }
+                                    ?.let { unitsManager.set(it) }
+                            },
+                            infoText =
+                                "Freedom units: miles, feet, Fahrenheit, and the 12-hour clock. " +
+                                    "Metric: meters, Celsius, and 24-hour time. " +
+                                    "System default follows your device locale.",
+                        )
                     }
 
                     // ── Backup ────────────────────────────────────────────────
