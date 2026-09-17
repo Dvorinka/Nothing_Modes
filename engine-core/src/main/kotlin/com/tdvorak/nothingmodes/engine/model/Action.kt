@@ -32,6 +32,7 @@ object ActionTypeIds {
     const val SET_BRIGHTNESS = "set_brightness"
     const val SET_AUTO_BRIGHTNESS = "set_auto_brightness"
     const val SET_EXTRA_DIM = "set_extra_dim"
+    const val SET_ULTRA_DIM = "set_ultra_dim"
     const val SET_SCREEN_TIMEOUT = "set_screen_timeout"
     const val SET_WALLPAPER = "set_wallpaper"
     const val SET_GLYPH = "set_glyph"
@@ -197,6 +198,19 @@ sealed interface Action {
     data class SetExtraDim(
         val on: Boolean,
         val restore: Boolean = false,
+    ) : Action
+
+    /**
+     * Ultra-dim overlay: draws a black layer over the whole screen to push
+     * brightness below the hardware minimum. percent = 0 turns it off,
+     * 1-100 sets dimming intensity. Requires "display over other apps".
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_ULTRA_DIM)
+    data class SetUltraDim(
+        val percent: Int,
+        /** Hide the overlay when a windowed mode ends (restores pre-run level). */
+        val restore: Boolean = true,
     ) : Action
 
     /** Screen timeout in milliseconds. restore = restore previous value. */
@@ -545,6 +559,7 @@ val Action.canRestore: Boolean
             is Action.SetBrightness,
             is Action.SetAutoBrightness,
             is Action.SetExtraDim,
+            is Action.SetUltraDim,
             is Action.SetScreenTimeout,
             is Action.SetDnd,
             is Action.SetVolume,
@@ -580,6 +595,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetBrightness -> copy(restore = restore)
         is Action.SetAutoBrightness -> copy(restore = restore)
         is Action.SetExtraDim -> copy(restore = restore)
+        is Action.SetUltraDim -> copy(restore = restore)
         is Action.SetScreenTimeout -> copy(restore = restore)
         is Action.SetDnd -> copy(restore = restore)
         is Action.SetVolume -> copy(restore = restore)
@@ -615,6 +631,7 @@ val Action.supportsRestore: Boolean
             is Action.SetBrightness -> restore
             is Action.SetAutoBrightness -> restore
             is Action.SetExtraDim -> restore
+            is Action.SetUltraDim -> restore
             is Action.SetScreenTimeout -> restore
             is Action.SetDnd -> restore
             is Action.SetVolume -> restore
@@ -650,6 +667,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetBrightness -> setOf("screen_brightness")
             is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
             is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
+            is Action.SetUltraDim -> setOf("ultra_dim")
             is Action.SetScreenTimeout -> setOf("screen_off_timeout")
             is Action.SetWallpaper -> setOf("wallpaper_$which")
             is Action.SetDarkMode -> setOf("night_mode")

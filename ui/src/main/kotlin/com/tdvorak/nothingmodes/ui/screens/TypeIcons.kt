@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Brightness6
+import androidx.compose.material.icons.outlined.BrightnessLow
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -157,6 +158,7 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetBrightness -> Icons.Outlined.Brightness6
         is Action.SetAutoBrightness -> Icons.Outlined.Lightbulb
         is Action.SetExtraDim -> Icons.Outlined.Brightness6
+        is Action.SetUltraDim -> Icons.Outlined.BrightnessLow
         is Action.SetScreenTimeout -> Icons.Outlined.Timer
         is Action.SetStayAwake -> Icons.Outlined.Bedtime
         is Action.SetWallpaper -> Icons.Outlined.Wallpaper

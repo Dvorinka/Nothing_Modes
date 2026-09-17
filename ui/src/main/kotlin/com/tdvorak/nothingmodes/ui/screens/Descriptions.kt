@@ -293,6 +293,9 @@ fun actionRequirementHint(action: Action): String? =
         ->
             "Needs the Write Settings permission (Settings → Permissions)."
 
+        is Action.SetUltraDim ->
+            "Dims the screen below the minimum with a dark overlay layer. Needs 'Display over other apps' (Settings → Permissions)."
+
         is Action.SetDnd -> "Needs Do-Not-Disturb access (Settings → Permissions)."
         is Action.ShowNotification -> "Needs the notification permission."
         is Action.SendSms -> "Needs the SMS permission."
@@ -322,6 +325,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetBrightness -> "Sets screen brightness."
         is Action.SetAutoBrightness -> "Toggles adaptive brightness."
         is Action.SetExtraDim -> "Dims the display below the usual minimum."
+        is Action.SetUltraDim -> "Dims the display below the hardware minimum."
         is Action.SetScreenTimeout -> "Sets the screen-off timeout."
         is Action.SetAutoRotate -> "Toggles auto-rotation."
         is Action.SetScreenRotation -> "Forces a screen orientation."

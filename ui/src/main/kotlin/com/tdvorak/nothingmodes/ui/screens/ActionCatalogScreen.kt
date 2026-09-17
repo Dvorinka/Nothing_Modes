@@ -119,6 +119,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Brightness", "Display", Icons.Outlined.Brightness6, Action.SetBrightness(128, restore = true)),
                 ActionItem("Auto brightness", "Display", Icons.Outlined.Lightbulb, Action.SetAutoBrightness(true)),
                 ActionItem("Extra dim", "Display", Icons.Outlined.Brightness6, Action.SetExtraDim(true, restore = true)),
+                ActionItem("Ultra dim", "Display", Icons.Outlined.Brightness2, Action.SetUltraDim(50), desc = "Dark overlay dims the screen below the hardware minimum. Needs 'Display over other apps'."),
                 ActionItem("Screen timeout", "Display", Icons.Outlined.Timer, Action.SetScreenTimeout(30_000)),
                 ActionItem("Stay awake", "Display", Icons.Outlined.Bedtime, Action.SetStayAwake(true)),
                 ActionItem("Wallpaper", "Display", Icons.Outlined.Wallpaper, Action.SetWallpaper("")),

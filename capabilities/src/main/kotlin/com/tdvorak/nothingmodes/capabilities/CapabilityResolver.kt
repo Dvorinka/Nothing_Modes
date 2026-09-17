@@ -125,6 +125,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
             CapabilityIds.ACTION_SET_WALLPAPER -> true
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> capabilities.hasOverlayPermission
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -184,6 +185,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification access required — the app can't see media sessions"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification access required"
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> "'Display over other apps' permission required"
             CapabilityIds.ACTION_SET_WALLPAPER -> "Wallpaper permission required"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Needs Shizuku — a free companion app that grants extra permissions"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Needs Shizuku — a free companion app that grants extra permissions"

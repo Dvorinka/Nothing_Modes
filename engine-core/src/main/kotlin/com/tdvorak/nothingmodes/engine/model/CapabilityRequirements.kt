@@ -53,6 +53,7 @@ object CapabilityIds {
     const val ACTION_SET_BRIGHTNESS = "action_set_brightness"
     const val ACTION_SET_AUTO_BRIGHTNESS = "action_set_auto_brightness"
     const val ACTION_SET_EXTRA_DIM = "action_set_extra_dim"
+    const val ACTION_SET_ULTRA_DIM = "action_set_ultra_dim"
     const val ACTION_SET_SCREEN_TIMEOUT = "action_set_screen_timeout"
     const val ACTION_SET_WALLPAPER = "action_set_wallpaper"
     const val ACTION_SET_GLYPH = "action_set_glyph"
@@ -106,6 +107,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             -> "Write system settings permission"
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> "Display over other apps permission"
             CapabilityIds.ACTION_SET_WALLPAPER -> "Set wallpaper permission"
             CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
             CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
@@ -215,6 +217,7 @@ object CapabilityRequirements {
             is Action.SetBrightness -> setOf(CapabilityIds.ACTION_SET_BRIGHTNESS)
             is Action.SetAutoBrightness -> setOf(CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS)
             is Action.SetExtraDim -> setOf(CapabilityIds.ACTION_SET_EXTRA_DIM, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetUltraDim -> setOf(CapabilityIds.ACTION_SET_ULTRA_DIM)
             is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
             is Action.SetWallpaper -> setOf(CapabilityIds.ACTION_SET_WALLPAPER)
             is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)

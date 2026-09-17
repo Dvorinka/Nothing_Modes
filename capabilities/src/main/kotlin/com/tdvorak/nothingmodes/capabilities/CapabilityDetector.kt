@@ -99,6 +99,7 @@ class CapabilityDetector(
                 hasExactAlarm = checkExactAlarm(),
                 hasBluetoothConnect = checkBluetoothConnect(),
                 hasBluetoothScan = checkBluetoothScan(),
+                hasOverlayPermission = android.provider.Settings.canDrawOverlays(context),
             )
 
         synchronized(cache) {

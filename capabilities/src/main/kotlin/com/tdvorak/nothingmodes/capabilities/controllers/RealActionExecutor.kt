@@ -91,6 +91,7 @@ class RealActionExecutor(
             is Action.SetBrightness -> brightness.setBrightness(action.level).toActionResult()
             is Action.SetAutoBrightness -> brightness.setAutoBrightness(action.on).toActionResult()
             is Action.SetExtraDim -> setExtraDim(action.on)
+            is Action.SetUltraDim -> setUltraDim(action.percent)
             is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
             is Action.SetWallpaper -> wallpaper.setWallpaper(action.uri, action.which).toActionResult()
             is Action.SetVolume -> {
@@ -401,6 +402,16 @@ class RealActionExecutor(
                 if (on) "1" else "0",
             ),
         )
+    }
+
+    private fun setUltraDim(percent: Int): ActionResult {
+        if (!UltraDimController.canDrawOverlays(context)) {
+            return ActionResult.Failure("overlay: 'Display over other apps' permission not granted — enable it in system settings")
+        }
+        return runCatching {
+            if (percent <= 0) UltraDimController.hide(context) else UltraDimController.show(context, percent)
+            ActionResult.Success
+        }.getOrElse { ActionResult.Failure("overlay: ${it.message ?: "failed to draw dim layer"}") }
     }
 
     // --- Glyph Matrix ---

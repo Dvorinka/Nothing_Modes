@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
@@ -64,6 +66,8 @@ import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -269,6 +273,84 @@ fun ActionConfigContent(
                 checked = a.on,
                 onChange = { onActionChange(a.copy(on = it)) },
             )
+        }
+
+        is Action.SetUltraDim -> {
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+            var previewing by remember { mutableStateOf(false) }
+            val enabled = a.percent > 0
+            val level = if (enabled) a.percent else 50
+            BooleanRow(
+                label = "Ultra dim overlay",
+                checked = enabled,
+                onChange = { on -> onActionChange(a.copy(percent = if (on) level else 0)) },
+            )
+            if (enabled) {
+                Text(
+                    text = "DIMMING INTENSITY",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                ) {
+                    Text(
+                        text = "$level%",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = NothingFonts.mono(),
+                        modifier = Modifier.width(56.dp),
+                    )
+                    androidx.compose.material3.Slider(
+                        value = level.toFloat(),
+                        onValueChange = { v -> onActionChange(a.copy(percent = v.toInt().coerceIn(5, 95))) },
+                        valueRange = 5f..95f,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            val canOverlay = UltraDimController.canDrawOverlays(context)
+            NothingPillButton(
+                text =
+                    when {
+                        previewing -> "Previewing…"
+                        canOverlay -> "Preview on screen"
+                        else -> "Grant overlay permission"
+                    },
+                onClick = {
+                    if (!canOverlay) {
+                        runCatching { context.startActivity(UltraDimController.permissionIntent(context)) }
+                    } else if (!previewing) {
+                        previewing = true
+                        scope.launch {
+                            UltraDimController.show(context, if (enabled) level else 50)
+                            delay(2500)
+                            UltraDimController.hide(context)
+                            previewing = false
+                        }
+                    }
+                },
+            )
+            if (!canOverlay) {
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                Text(
+                    text = "The overlay needs the \"Display over other apps\" permission to dim the screen.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
         }
 
         is Action.SetScreenTimeout -> {
@@ -1209,6 +1291,7 @@ private fun actionTitle(action: Action): String =
         is Action.SetBrightness -> "Brightness"
         is Action.SetAutoBrightness -> "Auto brightness"
         is Action.SetExtraDim -> "Extra dim"
+        is Action.SetUltraDim -> "Ultra dim"
         is Action.SetScreenTimeout -> "Screen timeout"
         is Action.SetWallpaper -> "Wallpaper"
         is Action.SetAlwaysOnDisplay -> "Always-on display"

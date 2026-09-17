@@ -547,6 +547,8 @@ class Engine(
                 value.toBooleanStrictOrNull()?.let { Action.SetAutoSync(on = it, restore = false) }
             snapshot.settingKey == "ringer_mode" ->
                 Action.SetRinger(mode = value, restore = false)
+            snapshot.settingKey == "ultra_dim" ->
+                value.toIntOrNull()?.let { Action.SetUltraDim(percent = it, restore = false) }
             snapshot.settingKey.matches(volumeKeyRegex) -> {
                 val stream =
                     runCatching {

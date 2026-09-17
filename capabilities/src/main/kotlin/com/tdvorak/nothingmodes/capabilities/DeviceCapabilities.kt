@@ -37,6 +37,7 @@ data class DeviceCapabilities(
     val hasExactAlarm: Boolean = false,
     val hasBluetoothConnect: Boolean = false,
     val hasBluetoothScan: Boolean = false,
+    val hasOverlayPermission: Boolean = false,
     // Shizuku
     val shizukuStatus: ShizukuCapabilityStatus = ShizukuCapabilityStatus.NOT_CHECKED,
     // Nothing SDK

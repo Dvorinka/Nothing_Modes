@@ -183,6 +183,44 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.SetUltraDim -> {
+                        val enabled = a.percent > 0
+                        val level = if (enabled) a.percent else 50
+                        BooleanRow(
+                            label = "Ultra dim overlay",
+                            checked = enabled,
+                            onChange = { on -> action = a.copy(percent = if (on) level else 0) },
+                        )
+                        if (enabled) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                            ) {
+                                Text(
+                                    text = "$level%",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontFamily = NothingFonts.mono(),
+                                    modifier = Modifier.width(56.dp),
+                                )
+                                Slider(
+                                    value = level.toFloat(),
+                                    onValueChange = { v ->
+                                        action = a.copy(percent = v.toInt().coerceIn(5, 95))
+                                    },
+                                    valueRange = 5f..95f,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        BooleanRow(
+                            label = "Revert when mode ends",
+                            checked = a.restore,
+                            onChange = { action = a.copy(restore = it) },
+                        )
+                    }
+
                     is Action.SetScreenTimeout -> {
                         NothingInput(
                             value = a.timeoutMs.toString(),

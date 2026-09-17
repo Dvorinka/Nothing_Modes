@@ -90,6 +90,7 @@ fun actionDescription(action: Action): String =
             is Action.SetBrightness -> "Brightness: ${action.level}"
             is Action.SetAutoBrightness -> "Auto Brightness: ${if (action.on) "On" else "Off"}"
             is Action.SetExtraDim -> "Extra Dim: ${if (action.on) "On" else "Off"}"
+            is Action.SetUltraDim -> if (action.percent <= 0) "Ultra Dim: Off" else "Ultra Dim: ${action.percent}%"
             is Action.SetScreenTimeout -> {
                 val label = screenTimeoutPresets.firstOrNull { it.second == action.timeoutMs }?.first ?: "${action.timeoutMs}ms"
                 "Screen Timeout: $label"
