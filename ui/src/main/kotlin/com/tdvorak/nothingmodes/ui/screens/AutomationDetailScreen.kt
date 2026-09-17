@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -297,6 +298,7 @@ fun AutomationDetailScreen(
     automationId: String,
     onBack: () -> Unit,
     onEdit: () -> Unit = {},
+    onGraph: () -> Unit = {},
     viewModel: AutomationDetailViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(automationId) { viewModel.load(automationId) }
@@ -321,6 +323,7 @@ fun AutomationDetailScreen(
                         TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
                         TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
+                        TopBarAction("Graph", icon = Icons.Filled.AccountTree, onClick = onGraph),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
                         TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
                     ),
