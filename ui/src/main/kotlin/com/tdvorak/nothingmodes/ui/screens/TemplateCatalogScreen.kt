@@ -90,6 +90,9 @@ data class PendingTemplateInstall(
     /** Human-readable requirements the device can satisfy. */
     val satisfied: List<String>,
     val errors: List<String>,
+    /** Automation id → private fields scrubbed from the shared template that
+     *  must be configured before the automation works. */
+    val setupRequirements: Map<String, List<String>> = emptyMap(),
 )
 
 @HiltViewModel
@@ -206,17 +209,27 @@ class TemplateCatalogViewModel
             viewModelScope.launch {
                 _sharing.value = true
                 try {
+                    // Templates go to a public catalog — scrub private fields
+                    // before anything leaves the device.
+                    val scrubbed =
+                        template.automations.map(
+                            com.tdvorak.nothingmodes.engine.runtime.PrivacyScrubber::scrub,
+                        )
                     val bundle =
                         ExportBundle(
                             schemaVersion = 1,
                             exportedAt = System.currentTimeMillis(),
-                            automations = template.automations,
+                            automations = scrubbed.map { it.first },
                             appVersion =
                                 runCatching {
                                     context.packageManager
                                         .getPackageInfo(context.packageName, 0)
                                         .versionName
                                 }.getOrNull().orEmpty(),
+                            setupRequirements =
+                                scrubbed
+                                    .filter { it.second.isNotEmpty() }
+                                    .associate { it.first.id.value to it.second },
                         )
                     val payload =
                         com.tdvorak.nothingmodes.engine.model.EngineJson.json
@@ -274,6 +287,7 @@ class TemplateCatalogViewModel
                                     .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
                                     .distinct(),
                             errors = emptyList(),
+                            setupRequirements = preview.setupRequirements,
                         )
                 } catch (e: Exception) {
                     _error.value = "Could not load item: ${e.message}"
@@ -319,12 +333,21 @@ class TemplateCatalogViewModel
                                 trigger = localizeTz(automation.trigger, tz),
                             )
                         }
+                    // Setup requirements were keyed by the original ids —
+                    // remap onto the fresh localized ids.
+                    val setupRequirements =
+                        pending.automations
+                            .mapIndexedNotNull { index, automation ->
+                                pending.setupRequirements[automation.id.value]
+                                    ?.let { localized[index].id.value to it }
+                            }.toMap()
                     val bundle =
                         ExportBundle(
                             schemaVersion = 1,
                             exportedAt = now,
                             automations = localized,
                             appVersion = "template:${pending.summary.id}",
+                            setupRequirements = setupRequirements,
                         )
                     _installed.value =
                         importExportService.import(
@@ -806,6 +829,26 @@ private fun TemplateInstallSheet(
             install.errors.forEach { err ->
                 Text(
                     text = err,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NothingColors.accent,
+                    fontFamily = NothingFonts.mono(),
+                )
+            }
+        }
+
+        val setupFields = install.setupRequirements.values.flatten().distinct()
+        if (setupFields.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(NothingSpacing.md))
+            NothingLabel(text = "Setup required after install")
+            Text(
+                text = "Private values were removed from this shared template. Open each mode and fill in:",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            setupFields.forEach { field ->
+                Text(
+                    text = "• $field",
                     style = MaterialTheme.typography.labelSmall,
                     color = NothingColors.accent,
                     fontFamily = NothingFonts.mono(),

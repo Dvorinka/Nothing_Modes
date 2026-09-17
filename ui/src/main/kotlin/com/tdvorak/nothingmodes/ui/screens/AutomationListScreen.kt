@@ -289,7 +289,8 @@ class AutomationListViewModel
             viewModelScope.launch {
                 val ids = _selected.value.toList()
                 if (ids.isEmpty()) return@launch
-                val result = withContext(Dispatchers.IO) { importExportService.export(ids) }
+                // File export = local backup — keep every field.
+                val result = withContext(Dispatchers.IO) { importExportService.exportBackup(ids) }
                 _exportReady.value = result.json
                 _selected.value = emptySet()
             }
@@ -333,10 +334,17 @@ class AutomationListViewModel
             viewModelScope.launch {
                 // Surface compatibility warnings before the write, not after.
                 val preview = importExportService.preview(json)
-                _importWarnings.value =
+                val capWarnings =
                     preview.requiredCapabilities
                         .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                // Scrubbed private fields need the importer's own values —
+                // name them so the template isn't silently non-functional.
+                val setupWarnings =
+                    preview.setupRequirements.values
+                        .flatten()
                         .distinct()
+                        .map { "$it — fill it in or the mode won't work" }
+                _importWarnings.value = (capWarnings + setupWarnings).distinct()
                 _importResult.value = importExportService.import(json)
                 load()
                 WidgetRefreshHelper.refresh(context)
@@ -839,6 +847,14 @@ private fun ModeTile(
             if (automation.status == AutomationStatus.PENDING_APPROVAL) {
                 NothingLabel(
                     text = "Pending Approval",
+                    color = NothingColors.accent,
+                    modifier = Modifier.padding(top = NothingSpacing.xs),
+                )
+            }
+
+            if (automation.status == AutomationStatus.NEEDS_REVIEW) {
+                NothingLabel(
+                    text = "Needs setup",
                     color = NothingColors.accent,
                     modifier = Modifier.padding(top = NothingSpacing.xs),
                 )

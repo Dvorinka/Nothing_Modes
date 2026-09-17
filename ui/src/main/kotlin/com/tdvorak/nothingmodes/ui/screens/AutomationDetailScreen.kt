@@ -420,7 +420,12 @@ fun AutomationDetailScreen(
                             NothingStatusDot(color = NothingColors.accent, size = 6f)
                             Spacer(modifier = Modifier.width(NothingSpacing.sm))
                             Text(
-                                text = "DISABLED — open the editor to enable.",
+                                text =
+                                    if (data.status == AutomationStatus.NEEDS_REVIEW) {
+                                        "SETUP REQUIRED — this shared template had private values removed. Fill them in, then enable."
+                                    } else {
+                                        "DISABLED — open the editor to enable."
+                                    },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = NothingColors.accent,
                                 fontFamily = NothingFonts.mono(),

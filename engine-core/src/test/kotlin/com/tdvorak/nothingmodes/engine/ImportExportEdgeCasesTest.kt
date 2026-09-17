@@ -277,7 +277,8 @@ class ImportExportEdgeCasesTest {
             store.save(original)
             val service = ImportExportService(store) { 1000L }
 
-            val exported = service.export()
+            // Backup keeps every field; shareable export() would scrub the SSID.
+            val exported = service.exportBackup()
             val newStore = InMemoryAutomationStore()
             val newService = ImportExportService(newStore) { 2000L }
             newService.import(exported.json)

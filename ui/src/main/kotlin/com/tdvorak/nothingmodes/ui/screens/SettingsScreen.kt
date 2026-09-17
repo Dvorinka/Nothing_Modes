@@ -160,7 +160,8 @@ class SettingsViewModel
 
         fun export() {
             viewModelScope.launch {
-                val result = withContext(Dispatchers.IO) { importExportService.export() }
+                // Local backup path — keep every field, nothing is scrubbed.
+                val result = withContext(Dispatchers.IO) { importExportService.exportBackup() }
                 _exportReady.value = result.json
             }
         }
