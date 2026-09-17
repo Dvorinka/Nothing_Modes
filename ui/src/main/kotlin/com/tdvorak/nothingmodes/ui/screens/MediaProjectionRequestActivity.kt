@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import com.tdvorak.nothingmodes.automation.capture.MediaProjectionCaptureService
 import com.tdvorak.nothingmodes.nothing.MediaProjectionHolder
 
 /**
@@ -24,10 +25,15 @@ class MediaProjectionRequestActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data
             if (result.resultCode == RESULT_OK && data != null) {
-                val projection = projectionManager.getMediaProjection(result.resultCode, data)
-                if (projection != null) {
-                    MediaProjectionHolder.set(projection)
-                    Log.i(TAG, "MediaProjection granted")
+                // Android 14+: getMediaProjection must run inside a live
+                // mediaProjection-type foreground service or it throws
+                // SecurityException. The service performs the call.
+                runCatching {
+                    MediaProjectionCaptureService.startWithGrant(this, result.resultCode, data)
+                }.onSuccess {
+                    Log.i(TAG, "MediaProjection granted — capture service started")
+                }.onFailure {
+                    Log.e(TAG, "failed to start capture service", it)
                 }
             } else {
                 Log.d(TAG, "MediaProjection denied")
