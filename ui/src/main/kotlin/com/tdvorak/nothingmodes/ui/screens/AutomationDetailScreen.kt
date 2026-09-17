@@ -85,9 +85,15 @@ class AutomationDetailViewModel
     constructor(
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
         private val store: AutomationStore,
+        db: com.tdvorak.nothingmodes.data.NothingModesDatabase,
     ) : ViewModel() {
         private val _automation = MutableStateFlow<Automation?>(null)
         val automation: StateFlow<Automation?> = _automation.asStateFlow()
+
+        private val auditDao = db.auditDao()
+
+        private val _recentEvents = MutableStateFlow<List<AuditEntry>>(emptyList())
+        val recentEvents: StateFlow<List<AuditEntry>> = _recentEvents.asStateFlow()
 
         fun runNow() {
             val current = _automation.value ?: return
@@ -106,6 +112,20 @@ class AutomationDetailViewModel
                         com.tdvorak.nothingmodes.engine.model
                             .AutomationId(id),
                     )
+            }
+            viewModelScope.launch {
+                auditDao.observeForAutomation(id, limit = 6).collect { entities ->
+                    _recentEvents.value =
+                        entities.map {
+                            AuditEntry(
+                                automationId = it.automationId,
+                                kind = it.kind,
+                                timestamp = it.atMillis,
+                                detail = it.detail,
+                                latencyMillis = it.latencyMillis,
+                            )
+                        }
+                }
             }
         }
 
@@ -284,6 +304,7 @@ fun AutomationDetailScreen(
     val shareOpen by viewModel.shareOpen.collectAsState()
     val sharing by viewModel.sharing.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    val recentEvents by viewModel.recentEvents.collectAsState()
     var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
     val appLabel = rememberAppLabelResolver()
     val appIconResolver = rememberAppIconResolver()
@@ -581,6 +602,38 @@ fun AutomationDetailScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (recentEvents.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+                    NothingCardLarge {
+                        NothingSectionHeader(text = "Recent activity")
+                        recentEvents.forEachIndexed { index, entry ->
+                            if (index > 0) NothingDivider()
+                            val isFailure = entry.kind == "ACTION_FAILED" || entry.kind == "ERROR"
+                            NothingListRow(
+                                title = auditKindLabel(entry.kind),
+                                titleColor = if (isFailure) NothingColors.accent else null,
+                                subtitle =
+                                    (if (entry.detail.isNotEmpty()) "${entry.detail} · " else "") +
+                                        units.formatTimestamp(entry.timestamp),
+                                trailing = {
+                                    Text(
+                                        text = units.formatTimestamp(entry.timestamp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color =
+                                            if (isFailure) {
+                                                NothingColors.accent
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                },
+                            )
                         }
                     }
                 }

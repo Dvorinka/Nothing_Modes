@@ -49,9 +49,10 @@ import javax.inject.Inject
 private const val LOG_PAGE_SIZE = 15
 
 /** User-facing label for an audit kind — raw enum names read as jargon. */
-private fun auditKindLabel(kind: String): String =
+internal fun auditKindLabel(kind: String): String =
     when (kind) {
         "FIRED" -> "Fired"
+        "ACTION_FAILED" -> "Action failed"
         "MODE_ACTIVATED" -> "Mode started"
         "MODE_DEACTIVATED" -> "Mode ended"
         "SUPPRESSED_COOLDOWN" -> "Skipped — cooldown"
@@ -133,7 +134,7 @@ class ExecutionLogViewModel
             val deactivated = entries.count { it.kind == "MODE_DEACTIVATED" }
             val suppressed = entries.count { it.kind == "SUPPRESSED_COOLDOWN" }
             val notMet = entries.count { it.kind == "CONDITIONS_NOT_MET" }
-            val errors = entries.count { it.kind == "ERROR" }
+            val errors = entries.count { it.kind == "ERROR" || it.kind == "ACTION_FAILED" }
             val successful = fired + activated + deactivated
             val rate = if (total > 0) successful.toFloat() / total else 0f
             return ExecutionStats(total, fired, activated, deactivated, suppressed, notMet, errors, rate)
@@ -260,7 +261,7 @@ fun ExecutionLogScreen(
                         NothingSectionHeader(text = "Timeline")
                         NothingCard {
                             pageEntries.forEachIndexed { index, entry ->
-                                val isError = entry.kind == "ERROR"
+                                val isError = entry.kind == "ERROR" || entry.kind == "ACTION_FAILED"
                                 val kindColor =
                                     when (entry.kind) {
                                         "FIRED" -> MaterialTheme.colorScheme.primary
@@ -268,7 +269,7 @@ fun ExecutionLogScreen(
                                         "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
                                         "SUPPRESSED_COOLDOWN" -> MaterialTheme.colorScheme.onSurfaceVariant
                                         "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        "ERROR" -> NothingColors.accent
+                                        "ERROR", "ACTION_FAILED" -> NothingColors.accent
                                         else -> MaterialTheme.colorScheme.onSurface
                                     }
                                 if (index > 0) NothingDivider()

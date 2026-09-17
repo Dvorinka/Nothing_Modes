@@ -20,6 +20,12 @@ interface AuditDao {
         limit: Int = 100,
     ): List<AuditEntity>
 
+    @Query("SELECT * FROM audit_log WHERE automationId = :id ORDER BY atMillis DESC LIMIT :limit")
+    fun observeForAutomation(
+        id: String,
+        limit: Int = 20,
+    ): Flow<List<AuditEntity>>
+
     @Query("SELECT * FROM audit_log WHERE executionId = :executionId ORDER BY atMillis ASC")
     suspend fun forExecution(executionId: String): List<AuditEntity>
 

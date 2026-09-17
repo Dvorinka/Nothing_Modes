@@ -70,6 +70,8 @@ enum class AuditKind {
     MODE_ACTIVATED,
     MODE_DEACTIVATED,
     RULE_NEEDS_REVIEW,
+    /** One or more actions failed — `detail` carries the readable reasons. */
+    ACTION_FAILED,
 }
 
 fun interface AuditSink {

@@ -196,6 +196,27 @@ class Engine(
                             }
                         actionResults += result
                     }
+
+                    // Surface concrete per-action failure reasons — the audit
+                    // trail feeds the execution log and the detail screen.
+                    val failures =
+                        automation.actions
+                            .zip(actionResults)
+                            .mapNotNull { (a, r) -> r.failureLabel(a) }
+                    if (failures.isNotEmpty()) {
+                        audit.record(
+                            AuditEvent(
+                                automationId = automation.id,
+                                kind = AuditKind.ACTION_FAILED,
+                                atMillis = batchNow,
+                                detail =
+                                    failures.take(3).joinToString("; ") +
+                                        if (failures.size > 3) "; +${failures.size - 3} more" else "",
+                                eventId = envelope.id,
+                                executionId = executionId,
+                            ),
+                        )
+                    }
                 }
 
                 claimedSettings += affected
