@@ -40,24 +40,28 @@ jobs:
           echo "${{ secrets.NOTHING_MODES_KEYSTORE_BASE64 }}" | base64 -d > $HOME/nothing-modes-release.jks
           echo "NOTHING_MODES_KEYSTORE=$HOME/nothing-modes-release.jks" >> $GITHUB_ENV
 
-      - name: Build signed release APK
-        run: ./gradlew assembleGithubRelease --no-daemon --parallel --build-cache --stacktrace
+      - name: Build signed release APK + Play AAB
+        run: ./gradlew assembleGithubRelease bundlePlayRelease --no-daemon --parallel --build-cache --stacktrace
         env:
           NOTHING_MODES_KEYSTORE: ${{ env.NOTHING_MODES_KEYSTORE }}
           NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
           NOTHING_MODES_KEY_ALIAS: ${{ secrets.NOTHING_MODES_KEY_ALIAS }}
           NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
 
-      - name: Rename APK
+      - name: Rename APK + AAB
         id: apk
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           cp app/build/outputs/apk/github/release/app-github-release.apk "nothing-modes-v${VERSION}.apk"
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab "nothing-modes-play-v${VERSION}.aab"
           echo "path=nothing-modes-v${VERSION}.apk" >> $GITHUB_OUTPUT
+          echo "aab_path=nothing-modes-play-v${VERSION}.aab" >> $GITHUB_OUTPUT
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: ${{ steps.apk.outputs.path }}
+          files: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.aab_path }}
           draft: false
           generate_release_notes: true
