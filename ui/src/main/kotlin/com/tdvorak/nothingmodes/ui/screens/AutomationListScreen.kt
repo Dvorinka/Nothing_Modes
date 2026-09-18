@@ -764,7 +764,7 @@ private fun ModeTile(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NothingIconCircle(size = 44f) {
+                NothingIconCircle(size = 44f, accent = isActive) {
                     if (automation.icon.isNotBlank()) {
                         Icon(
                             imageVector = iconForName(automation.icon),
@@ -784,27 +784,6 @@ private fun ModeTile(
                             fontFamily = GeistSans,
                         )
                     }
-                }
-
-                if (isActive) {
-                    Text(
-                        text = "ACTIVE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.mono(),
-                        letterSpacing = 1.0.sp,
-                        modifier = Modifier.padding(end = NothingSpacing.sm),
-                    )
-                } else if (isFiringSoon && nextFireAt != null) {
-                    val minutes = ((nextFireAt - System.currentTimeMillis()) / 60_000).toInt().coerceAtLeast(1)
-                    Text(
-                        text = "IN $minutes MIN",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.mono(),
-                        letterSpacing = 1.0.sp,
-                        modifier = Modifier.padding(end = NothingSpacing.sm),
-                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -840,7 +819,24 @@ private fun ModeTile(
             )
 
             NothingLabel(
-                text = "Mode",
+                text =
+                    when {
+                        isActive -> "Mode · Active"
+                        isFiringSoon && nextFireAt != null -> {
+                            val minutes =
+                                ((nextFireAt - System.currentTimeMillis()) / 60_000)
+                                    .toInt()
+                                    .coerceAtLeast(1)
+                            "Mode · In $minutes min"
+                        }
+                        else -> "Mode"
+                    },
+                color =
+                    if (isActive || isFiringSoon) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 modifier = Modifier.padding(top = NothingSpacing.xs),
             )
 
