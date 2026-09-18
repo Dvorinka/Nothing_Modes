@@ -89,17 +89,26 @@ object AutomationModule {
 
     @Provides
     @Singleton
+    fun providePendingUnlockStore(
+        @ApplicationContext context: Context,
+    ): com.tdvorak.nothingmodes.capabilities.PendingUnlockStore =
+        com.tdvorak.nothingmodes.capabilities.PendingUnlockStore(context)
+
+    @Provides
+    @Singleton
     fun provideActionExecutor(
         @ApplicationContext context: Context,
         shellFactory: PrivilegedShellFactory,
         glyphProvider: NothingGlyphProvider,
         glyphMatrixProvider: NothingGlyphMatrixProvider,
+        pendingUnlockStore: com.tdvorak.nothingmodes.capabilities.PendingUnlockStore,
     ): ActionExecutor =
         RealActionExecutor.create(
             context = context,
             shellFactory = shellFactory,
             glyphProvider = glyphProvider,
             glyphMatrixProvider = glyphMatrixProvider,
+            pendingUnlockStore = pendingUnlockStore,
         )
 
     @Provides

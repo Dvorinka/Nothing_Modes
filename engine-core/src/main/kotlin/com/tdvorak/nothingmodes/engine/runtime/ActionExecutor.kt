@@ -18,6 +18,12 @@ sealed interface ActionResult {
 
     /** The system can't toggle silently — a panel/settings page was opened for the user. */
     data object NeedsUserAction : ActionResult
+
+    /**
+     * The action needs to show UI but the keyguard is locked, so it was queued
+     * and will be re-executed the moment the user unlocks the device.
+     */
+    data object DeferredUntilUnlock : ActionResult
 }
 
 /**

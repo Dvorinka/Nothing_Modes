@@ -91,6 +91,16 @@
             </intent-filter>
         </service>
 
+        <!-- Notification-tap drain for actions queued behind the keyguard.
+             Non-exported: only our own notification PendingIntent may fire it. -->
+        <receiver
+            android:name=".pending.PendingUnlockReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.tdvorak.nothingmodes.automation.DRAIN_PENDING_UNLOCK" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".glyph.NothingModesToyService"
             android:exported="true"

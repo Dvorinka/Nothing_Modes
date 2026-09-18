@@ -231,7 +231,9 @@ class Engine(
                         atMillis = completedAt,
                         status =
                             if (actionResults.all {
-                                    it is ActionResult.Success || it is ActionResult.NeedsUserAction
+                                    it is ActionResult.Success ||
+                                        it is ActionResult.NeedsUserAction ||
+                                        it is ActionResult.DeferredUntilUnlock
                                 }
                             ) {
                                 ExecutionStatus.COMPLETED

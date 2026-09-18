@@ -48,7 +48,11 @@ class ModeNotificationHelper(
         val applied =
             automation.actions
                 .zip(results)
-                .filter { (_, result) -> result is ActionResult.Success || result is ActionResult.NeedsUserAction }
+                .filter { (_, result) ->
+                    result is ActionResult.Success ||
+                        result is ActionResult.NeedsUserAction ||
+                        result is ActionResult.DeferredUntilUnlock
+                }
                 .map { (action, _) -> actionDescription(action) }
         val failed = results.size - applied.size
         if (failed > 0) {
