@@ -42,6 +42,11 @@ open real sheets, wired, capability-gated). What's not yet proven end-to-end:
 
 ## 4. Play Console — manual only, cannot be automated
 
+- [ ] **Foreground Service permissions declaration** (BLOCKING releases) —
+  App content → FGS declaration: the first `gplay release` for 0.17.0
+  uploaded vc22 to the internal track but the edit can't commit until this
+  is done. One-time per permission type; also needed before CI auto-publish
+  can complete.
 - [ ] Content rating questionnaire (if not already complete)
 - [ ] Data safety form (if not already complete) — answer is "no data
   collected" except voluntary community submissions

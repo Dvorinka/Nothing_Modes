@@ -65,3 +65,21 @@ jobs:
             ${{ steps.apk.outputs.aab_path }}
           draft: false
           generate_release_notes: true
+
+      - name: Install gplay
+        run: |
+          curl -L -o /tmp/gplay \
+            https://github.com/tamtom/play-console-cli/releases/download/v0.10.0/gplay-linux-amd64
+          chmod +x /tmp/gplay
+
+      - name: Publish to Play internal track
+        run: |
+          echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > /tmp/play-account.json
+          /tmp/gplay auth login --service-account /tmp/play-account.json
+          VC=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
+          jq -Rn --arg t "$(cat "fastlane/metadata/android/en-US/changelogs/${VC}.txt")" \
+            '[{language:"en-US",text:$t}]' > /tmp/play-notes.json
+          /tmp/gplay release --package com.tdvorak.nothingmodes \
+            --track internal \
+            --bundle app/build/outputs/bundle/playRelease/app-play-release.aab \
+            --release-notes @/tmp/play-notes.json
