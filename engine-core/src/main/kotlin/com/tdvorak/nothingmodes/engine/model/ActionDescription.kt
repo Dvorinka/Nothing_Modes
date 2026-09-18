@@ -133,6 +133,25 @@ fun actionDescription(action: Action): String =
             is Action.ClearNotifications -> "Clear notifications"
             is Action.SetAlwaysOnDisplay -> "Always-on display: ${action.mode.name.enumLabel()}"
             is Action.TakeScreenshot -> "Screenshot" + if (action.force) " (override)" else ""
+            is Action.SetFontScale -> "Font scale: ${(action.scale * 100).toInt()}%"
+            is Action.SetNightLight -> {
+                val temp = action.temperature?.let { " (${it}K)" } ?: ""
+                "Night light: ${if (action.on) "On" else "Off"}$temp"
+            }
+            is Action.SetColorInversion -> "Color inversion: ${if (action.on) "On" else "Off"}"
+            is Action.SetDaltonizer -> "Color correction: ${if (action.on) "On" else "Off"}"
+            is Action.SetSensorPrivacy ->
+                "${action.sensor.name.enumLabel()} sensor: ${if (action.blocked) "Blocked" else "Unblocked"}"
+            is Action.SetOneHandedMode -> "One-handed mode: ${if (action.on) "On" else "Off"}"
+            is Action.SetAlarm -> {
+                val label = if (action.label.isBlank()) "" else " (${action.label.take(20)})"
+                "Alarm %02d:%02d".format(action.hour, action.minute) + label
+            }
+            is Action.SetTimer -> {
+                val label = if (action.label.isBlank()) "" else " (${action.label.take(20)})"
+                "Timer ${formatDuration(action.seconds * 1_000L)}$label"
+            }
+            is Action.OpenClock -> "Open clock: ${action.section.name.enumLabel()}"
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()

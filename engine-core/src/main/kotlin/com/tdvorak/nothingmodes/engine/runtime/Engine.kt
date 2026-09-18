@@ -583,7 +583,10 @@ class Engine(
     /** Maps a setting key to its Android Settings namespace. */
     private fun namespaceForKey(key: String): String =
         when (key) {
-            "reduce_bright_colors_activated", "aod_enabled", "location_mode" -> "secure"
+            "reduce_bright_colors_activated", "aod_enabled", "location_mode",
+            "night_display_activated", "night_display_color_temperature",
+            "accessibility_display_inversion_enabled", "accessibility_display_daltonizer_enabled",
+            "one_handed_mode_enabled" -> "secure"
             "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled", "led_effect_enable", "stay_on_while_plugged_in" -> "global"
             else -> "system"
         }

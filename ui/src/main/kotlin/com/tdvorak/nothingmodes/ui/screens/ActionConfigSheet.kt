@@ -41,6 +41,8 @@ import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
+import com.tdvorak.nothingmodes.engine.model.ClockSection
+import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
 import com.tdvorak.nothingmodes.engine.model.actionDescription
@@ -1131,6 +1133,220 @@ fun ActionConfigContent(
             }
         }
 
+        is Action.SetFontScale -> {
+            val percent = (a.scale * 100).toInt().coerceIn(85, 130)
+            Text(
+                text = "FONT SCALE",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+            ) {
+                Text(
+                    text = "$percent%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = NothingFonts.mono(),
+                    modifier = Modifier.width(56.dp),
+                )
+                androidx.compose.material3.Slider(
+                    value = percent.toFloat(),
+                    onValueChange = { v -> onActionChange(a.copy(scale = (v / 100f))) },
+                    valueRange = 85f..130f,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+        }
+
+        is Action.SetNightLight -> {
+            BooleanRow(
+                label = "Night light enabled",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+            if (a.on) {
+                BooleanRow(
+                    label = "Custom warmth",
+                    checked = a.temperature != null,
+                    onChange = { on -> onActionChange(a.copy(temperature = if (on) 3900 else null)) },
+                )
+                if (a.temperature != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        Text(
+                            text = "${a.temperature}K",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.width(56.dp),
+                        )
+                        androidx.compose.material3.Slider(
+                            value = a.temperature!!.toFloat(),
+                            onValueChange = { v -> onActionChange(a.copy(temperature = v.toInt())) },
+                            valueRange = 2000f..4500f,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+        }
+
+        is Action.SetColorInversion -> {
+            BooleanRow(
+                label = "Color inversion enabled",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+        }
+
+        is Action.SetDaltonizer -> {
+            BooleanRow(
+                label = "Color correction enabled",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+        }
+
+        is Action.SetOneHandedMode -> {
+            BooleanRow(
+                label = "One-handed mode enabled",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+            BooleanRow(
+                label = "Revert when mode ends",
+                checked = a.restore,
+                onChange = { onActionChange(a.copy(restore = it)) },
+            )
+        }
+
+        is Action.SetSensorPrivacy -> {
+            NothingEnumSelector(
+                label = "Sensor",
+                value = a.sensor.name.enumLabel(),
+                options = enumLabelList<PrivacySensor>(),
+                onSelect = { onActionChange(a.copy(sensor = enumByLabel<PrivacySensor>(it))) },
+                infoText = "Which privacy sensor this toggle controls.",
+            )
+            BooleanRow(
+                label = "Sensor blocked",
+                checked = a.blocked,
+                onChange = { onActionChange(a.copy(blocked = it)) },
+            )
+        }
+
+        is Action.SetAlarm -> {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                NothingInput(
+                    value = a.hour.toString(),
+                    onValueChange = {
+                        onActionChange(a.copy(hour = it.toIntOrNull()?.coerceIn(0, 23) ?: 0))
+                    },
+                    label = "Hour",
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                NothingInput(
+                    value = a.minute.toString(),
+                    onValueChange = {
+                        onActionChange(a.copy(minute = it.toIntOrNull()?.coerceIn(0, 59) ?: 0))
+                    },
+                    label = "Minute",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.label,
+                onValueChange = { onActionChange(a.copy(label = it)) },
+                label = "Label (optional)",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            BooleanRow(
+                label = "Set silently (no clock UI)",
+                checked = a.skipUi,
+                onChange = { onActionChange(a.copy(skipUi = it)) },
+            )
+        }
+
+        is Action.SetTimer -> {
+            val customLabel = "Custom"
+            val selected = waitPresets.firstOrNull { it.second == a.seconds * 1_000L }?.first ?: customLabel
+            var customSecs by remember(a.seconds) { mutableStateOf(a.seconds.toString()) }
+            NothingEnumSelector(
+                label = "Duration",
+                value = selected,
+                options = waitPresets.map { it.first } + customLabel,
+                onSelect = { label ->
+                    waitPresets.firstOrNull { it.first == label }?.let {
+                        onActionChange(a.copy(seconds = (it.second / 1_000).toInt()))
+                    }
+                },
+            )
+            if (selected == customLabel) {
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                NothingInput(
+                    value = customSecs,
+                    onValueChange = {
+                        customSecs = it
+                        it.toIntOrNull()?.let { s -> onActionChange(a.copy(seconds = s)) }
+                    },
+                    label = "Custom seconds",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.label,
+                onValueChange = { onActionChange(a.copy(label = it)) },
+                label = "Label (optional)",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            BooleanRow(
+                label = "Set silently (no clock UI)",
+                checked = a.skipUi,
+                onChange = { onActionChange(a.copy(skipUi = it)) },
+            )
+        }
+
+        is Action.OpenClock -> {
+            NothingEnumSelector(
+                label = "Section",
+                value = a.section.name.enumLabel(),
+                options = enumLabelList<ClockSection>(),
+                onSelect = { onActionChange(a.copy(section = enumByLabel<ClockSection>(it))) },
+                infoText = "Which clock app tab to open.",
+            )
+        }
+
         else -> {
             Text(
                 text = actionDescription(action),
@@ -1335,6 +1551,15 @@ private fun actionTitle(action: Action): String =
         is Action.GlyphProgress -> "Glyph progress"
         is Action.GlyphAnimate -> "Glyph animate"
         is Action.GlyphTurnOff -> "Glyph off"
+        is Action.SetFontScale -> "Font scale"
+        is Action.SetNightLight -> "Night light"
+        is Action.SetColorInversion -> "Color inversion"
+        is Action.SetDaltonizer -> "Color correction"
+        is Action.SetSensorPrivacy -> "Sensor privacy"
+        is Action.SetOneHandedMode -> "One-handed mode"
+        is Action.SetAlarm -> "Set alarm"
+        is Action.SetTimer -> "Set timer"
+        is Action.OpenClock -> "Open clock"
         is Action.Group -> action.name
         else -> "Action"
     }

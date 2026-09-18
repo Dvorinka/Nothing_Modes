@@ -287,6 +287,30 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetStayAwake ->
             "Keeps the screen on while the device is charging. Needs Shizuku."
 
+        is Action.SetNightLight ->
+            "Turns Night Light on or off, optionally setting warmth. Silent toggling needs Shizuku; without it the Night Light settings page opens."
+
+        is Action.SetColorInversion ->
+            "Inverts every color on the display. Silent toggling needs Shizuku; without it the accessibility settings page opens."
+
+        is Action.SetDaltonizer ->
+            "Turns color correction (daltonizer) on or off. Silent toggling needs Shizuku; without it the accessibility settings page opens."
+
+        is Action.SetOneHandedMode ->
+            "Turns one-handed mode on or off. Silent toggling needs Shizuku; without it the display settings page opens."
+
+        is Action.SetSensorPrivacy ->
+            "Blocks or unblocks the microphone or camera device-wide. Needs Shizuku; without it the privacy settings page opens."
+
+        is Action.SetFontScale ->
+            "Needs the Write Settings permission (Settings → Permissions)."
+
+        is Action.SetAlarm, is Action.SetTimer ->
+            "Hands the request to the default clock app. While locked, it runs right after you unlock."
+
+        is Action.OpenClock ->
+            "Opens the default clock app. While locked, it runs right after you unlock."
+
         is Action.SetBrightness, is Action.SetAutoBrightness, is Action.SetExtraDim,
         is Action.SetScreenTimeout, is Action.SetAutoRotate, is Action.SetScreenRotation,
         is Action.SetRefreshRate, is Action.SetDarkMode,
@@ -362,6 +386,15 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetBatterySaver -> "Turns battery saver on or off."
         is Action.SetAlwaysOnDisplay -> "Turns Always-on Display on or off."
         is Action.SetLocationMode -> "Changes the device location mode."
+        is Action.SetNightLight -> "Turns Night Light on or off."
+        is Action.SetColorInversion -> "Inverts every color on the display."
+        is Action.SetDaltonizer -> "Turns color correction on or off."
+        is Action.SetOneHandedMode -> "Turns one-handed mode on or off."
+        is Action.SetSensorPrivacy -> "Blocks or unblocks a privacy sensor."
+        is Action.SetFontScale -> "Sets the system font scale."
+        is Action.SetAlarm -> "Creates an alarm in the clock app."
+        is Action.SetTimer -> "Starts a countdown timer."
+        is Action.OpenClock -> "Opens the clock app."
         is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."

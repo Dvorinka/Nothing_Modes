@@ -6,6 +6,7 @@ import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -17,6 +18,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.provider.AlarmClock
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.capabilities.PendingUnlockStore
@@ -24,7 +26,9 @@ import com.tdvorak.nothingmodes.device.DeviceTools
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
+import com.tdvorak.nothingmodes.engine.model.ClockSection
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
@@ -236,6 +240,35 @@ class RealActionExecutor(
                     context,
                 )
             is Action.TakeScreenshot -> if (action.force) takeScreenshot() else ActionResult.Failure("Detected: may not work on this device")
+
+            // Settings & clock batch
+            is Action.SetFontScale -> setFontScale(action.scale)
+            is Action.SetNightLight -> setNightLight(action, context)
+            is Action.SetColorInversion ->
+                shellOrPanel(
+                    secureToggleCommand("accessibility_display_inversion_enabled", action.on),
+                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetDaltonizer ->
+                shellOrPanel(
+                    secureToggleCommand("accessibility_display_daltonizer_enabled", action.on),
+                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetSensorPrivacy -> setSensorPrivacy(action, context)
+            is Action.SetOneHandedMode ->
+                shellOrPanel(
+                    secureToggleCommand("one_handed_mode_enabled", action.on),
+                    Settings.ACTION_DISPLAY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetAlarm -> setAlarm(action, context)
+            is Action.SetTimer -> setTimerAction(action, context)
+            is Action.OpenClock -> openClock(action, context)
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
                 when {
@@ -1311,6 +1344,150 @@ class RealActionExecutor(
             openPanel(Settings.ACTION_LOCATION_SOURCE_SETTINGS, source, ctx)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "setLocationMode failed")
+        }
+    }
+
+    // --- Settings & clock batch ---
+
+    private fun secureToggleCommand(
+        key: String,
+        on: Boolean,
+    ) = listOf("settings", "put", "secure", key, if (on) "1" else "0")
+
+    private suspend fun setFontScale(scale: Float): ActionResult {
+        val clamped = scale.coerceIn(0.85f, 1.3f)
+        // Public path first (WRITE_SETTINGS); privileged shell as fallback.
+        val written =
+            try {
+                Settings.System.canWrite(context) &&
+                    Settings.System.putFloat(
+                        context.contentResolver,
+                        Settings.System.FONT_SCALE,
+                        clamped,
+                    )
+            } catch (_: Exception) {
+                false
+            }
+        if (written) return ActionResult.Success
+        val shell =
+            executeShell(listOf("settings", "put", "system", "font_scale", clamped.toString()))
+        return if (shell is ActionResult.ShizukuRequired) ActionResult.PermissionRequired else shell
+    }
+
+    private suspend fun setNightLight(
+        action: Action.SetNightLight,
+        ctx: FireContext,
+    ): ActionResult {
+        // night_display_* lives in Settings.Secure — shell first, Night Light
+        // panel as the unprivileged fallback.
+        val commands =
+            buildList {
+                if (action.on && action.temperature != null) {
+                    add(
+                        listOf(
+                            "settings", "put", "secure",
+                            "night_display_color_temperature", action.temperature.toString(),
+                        ),
+                    )
+                }
+                add(
+                    listOf(
+                        "settings", "put", "secure",
+                        "night_display_activated", if (action.on) "1" else "0",
+                    ),
+                )
+            }
+        return shellAllOrPanel(commands, Settings.ACTION_NIGHT_DISPLAY_SETTINGS, action, ctx)
+    }
+
+    private suspend fun setSensorPrivacy(
+        action: Action.SetSensorPrivacy,
+        ctx: FireContext,
+    ): ActionResult {
+        // `cmd sensor_privacy enable|disable USER_ID SENSOR` — enable blocks
+        // the sensor. Android 16+ takes a name ("microphone"/"camera"); older
+        // builds take the SensorPrivacyManager int id (1 = mic, 2 = camera).
+        val (name, id) =
+            when (action.sensor) {
+                PrivacySensor.MIC -> "microphone" to 1
+                PrivacySensor.CAMERA -> "camera" to 2
+            }
+        val verb = if (action.blocked) "enable" else "disable"
+        // `cmd` can fail under a bare Shizuku exec; `sh -c` gives it a real shell.
+        var result =
+            executeShell(listOf("sh", "-c", "cmd sensor_privacy $verb 0 $name"))
+        if (result is ActionResult.Failure) {
+            result = executeShell(listOf("cmd", "sensor_privacy", verb, "0", name))
+        }
+        if (result is ActionResult.Failure) {
+            result = executeShell(listOf("cmd", "sensor_privacy", verb, "0", id.toString()))
+        }
+        if (result !is ActionResult.ShizukuRequired) return result
+        return openPanel(Settings.ACTION_PRIVACY_SETTINGS, action, ctx)
+    }
+
+    private fun setAlarm(
+        action: Action.SetAlarm,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        return try {
+            val intent =
+                Intent(AlarmClock.ACTION_SET_ALARM).apply {
+                    putExtra(AlarmClock.EXTRA_HOUR, action.hour.coerceIn(0, 23))
+                    putExtra(AlarmClock.EXTRA_MINUTES, action.minute.coerceIn(0, 59))
+                    if (action.label.isNotBlank()) putExtra(AlarmClock.EXTRA_MESSAGE, action.label)
+                    putExtra(AlarmClock.EXTRA_SKIP_UI, action.skipUi)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            context.startActivity(intent)
+            if (action.skipUi) ActionResult.Success else ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setAlarm failed")
+        }
+    }
+
+    private fun setTimerAction(
+        action: Action.SetTimer,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        return try {
+            val intent =
+                Intent(AlarmClock.ACTION_SET_TIMER).apply {
+                    putExtra(AlarmClock.EXTRA_LENGTH, action.seconds.coerceAtLeast(1).toString())
+                    if (action.label.isNotBlank()) putExtra(AlarmClock.EXTRA_MESSAGE, action.label)
+                    putExtra(AlarmClock.EXTRA_SKIP_UI, action.skipUi)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            context.startActivity(intent)
+            if (action.skipUi) ActionResult.Success else ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setTimer failed")
+        }
+    }
+
+    private fun openClock(
+        action: Action.OpenClock,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        val intentAction =
+            when (action.section) {
+                ClockSection.ALARMS -> AlarmClock.ACTION_SHOW_ALARMS
+                ClockSection.TIMERS -> AlarmClock.ACTION_SHOW_TIMERS
+            }
+        return try {
+            context.startActivity(Intent(intentAction).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "openClock failed")
         }
     }
 

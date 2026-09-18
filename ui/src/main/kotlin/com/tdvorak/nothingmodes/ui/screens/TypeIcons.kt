@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MobileScreenShare
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.Apps
@@ -26,17 +27,21 @@ import androidx.compose.material.icons.outlined.ElectricBolt
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.InvertColors
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.OpenInBrowser
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -57,6 +62,7 @@ import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.WatchLater
+import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -189,6 +195,15 @@ fun iconForAction(action: Action): ImageVector =
         is Action.CopyText -> Icons.Outlined.ContentCopy
         is Action.WriteSetting -> Icons.Outlined.Settings
         is Action.SetGlyphInterface -> Icons.Outlined.ToggleOn
+        is Action.SetFontScale -> Icons.Outlined.FormatSize
+        is Action.SetNightLight -> Icons.Outlined.WbTwilight
+        is Action.SetColorInversion -> Icons.Outlined.InvertColors
+        is Action.SetDaltonizer -> Icons.Outlined.Palette
+        is Action.SetSensorPrivacy -> Icons.Outlined.MicOff
+        is Action.SetOneHandedMode -> Icons.Outlined.PhoneAndroid
+        is Action.SetAlarm -> Icons.Outlined.Alarm
+        is Action.SetTimer -> Icons.Outlined.Timer
+        is Action.OpenClock -> Icons.Outlined.AccessTime
         is Action.Group -> Icons.Outlined.Bolt
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
