@@ -126,8 +126,9 @@ fun GlyphPreviewScreen(
 
                     // Ownership verdict — Nothing arbitrates the matrix:
                     // exactly one toy can drive the lights at a time.
-                    val ours = systemToys.firstOrNull { it.packageName == context.packageName }
-                    val weOwnMatrix = ours?.let { it.isActive || it.isAodActive } == true
+                    // is_active means "enabled in the carousel", not "on the
+                    // lights" — interactive ownership is tracked live.
+                    val weOwnMatrix = toysBridge.ownsMatrix()
                     NothingDivider(modifier = Modifier.padding(top = NothingSpacing.md))
                     Row(
                         modifier =

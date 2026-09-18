@@ -1,0 +1,4 @@
+- Scheduled modes now finish after unlock: actions that need the screen (open app, link, settings) queue while locked and replay the moment you unlock — no lockscreen takeover
+- New actions: font size, night light + warmth, colour inversion, colour correction, mic/camera privacy, one-handed mode, set alarm, set timer, open clock
+- Active-mode cards no longer crowd the status text
+- Honest requirement labels for Shizuku and "modify system settings"

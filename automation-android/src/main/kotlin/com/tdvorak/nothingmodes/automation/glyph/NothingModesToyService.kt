@@ -8,42 +8,39 @@ import android.os.Looper
 import android.os.Messenger
 import android.util.Log
 import com.nothing.ketchum.GlyphToy
+import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+import com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider
+import com.tdvorak.nothingmodes.nothing.GlyphToyState
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Glyph Toy Service for Nothing Phones with Glyph Matrix (Phone 3, Phone 4a Pro).
  *
  * Registers as a Glyph Toy that appears in the system's Glyph Toys manager.
  * Handles:
- * - Short press (EVENT_ACTION_DOWN/UP): touch feedback
- * - Long press (EVENT_CHANGE): cycle through mode visualizations
- * - AOD (EVENT_AOD): update always-on display
- *
- * Manifest registration required:
- * <service android:name=".automation.glyph.NothingModesToyService"
- *     android:exported="true">
- *     <intent-filter>
- *         <action android:name="com.nothing.glyph.TOY"/>
- *     </intent-filter>
- *     <meta-data android:name="com.nothing.glyph.toy.name" android:value="Nothing Modes"/>
- *     <meta-data android:name="com.nothing.glyph.toy.summary" android:value="Display active automation modes on Glyph Matrix"/>
- *     <meta-data android:name="com.nothing.glyph.toy.longpress" android:value="1"/>
- *     <meta-data android:name="com.nothing.glyph.toy.aod_support" android:value="1"/>
- * </service>
+ * - STATUS_START/END: marks interactive ownership in [GlyphToyState] so
+ *   automation actions know whether their frames can reach the lights.
+ * - Long press (EVENT_CHANGE): cycles through currently active modes.
+ * - AOD (EVENT_AOD): shows real mode state — the active mode's initials,
+ *   or "ZZ" when nothing is running (the idle/sleep glyph).
  */
+@AndroidEntryPoint
 class NothingModesToyService : Service() {
-    private lateinit var provider: NothingGlyphMatrixProvider
-    private var currentModeIndex = 0
+    @Inject lateinit var store: AutomationStore
 
-    private val modes =
-        listOf(
-            "Sleep" to "ZZ",
-            "Morning" to "AM",
-            "Work" to "WK",
-            "DND" to "DN",
-            "Movie" to "MV",
-            "Off" to "--",
-        )
+    @Inject lateinit var modeActivationProvider: ModeActivationProvider
+
+    private lateinit var provider: NothingGlyphMatrixProvider
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var cycleIndex = 0
 
     private val serviceHandler =
         Handler(Looper.getMainLooper()) { msg ->
@@ -55,12 +52,19 @@ class NothingModesToyService : Service() {
                     when (event) {
                         // Lifecycle statuses sent through the same channel.
                         GlyphToy.STATUS_PREPARE -> { /* system warming up the toy */ }
-                        GlyphToy.STATUS_START -> displayCurrentMode()
-                        GlyphToy.STATUS_END -> provider.turnOff()
-                        GlyphToy.EVENT_CHANGE -> onLongPress()
-                        GlyphToy.EVENT_AOD -> onAodTick()
-                        GlyphToy.EVENT_ACTION_DOWN -> onTouchDown()
-                        GlyphToy.EVENT_ACTION_UP -> onTouchUp()
+                        GlyphToy.STATUS_START -> {
+                            GlyphToyState.interactiveActive = true
+                            displayCurrentState()
+                        }
+                        GlyphToy.STATUS_END -> {
+                            GlyphToyState.interactiveActive = false
+                            provider.turnOff()
+                        }
+                        GlyphToy.EVENT_CHANGE -> {
+                            cycleIndex++
+                            displayCurrentState()
+                        }
+                        GlyphToy.EVENT_AOD -> displayCurrentState()
                         else -> Log.d(TAG, "Unknown event: $event")
                     }
                     true
@@ -75,7 +79,7 @@ class NothingModesToyService : Service() {
         super.onCreate()
         provider = NothingGlyphMatrixProvider(this)
         provider.init(
-            onConnected = { displayCurrentMode() },
+            onConnected = { displayCurrentState() },
             onDisconnected = { Log.w(TAG, "Glyph Matrix disconnected") },
         )
     }
@@ -85,44 +89,50 @@ class NothingModesToyService : Service() {
     override fun onUnbind(intent: Intent?): Boolean = false
 
     override fun onDestroy() {
+        GlyphToyState.interactiveActive = false
+        scope.cancel()
         provider.turnOff()
         provider.unInit()
         super.onDestroy()
     }
 
-    // -- Event handlers --
-
-    /** Long press: cycle to next mode. */
-    private fun onLongPress() {
-        currentModeIndex = (currentModeIndex + 1) % modes.size
-        displayCurrentMode()
-    }
-
-    /** AOD tick: refresh display. */
-    private fun onAodTick() {
-        displayCurrentMode()
-    }
-
-    private fun onTouchDown() {
-        // Visual feedback on touch-down could be added here
-    }
-
-    private fun onTouchUp() {
-        // Finalize touch feedback here
-    }
-
     // -- Display --
 
-    private fun displayCurrentMode() {
-        val (_, abbrev) = modes[currentModeIndex]
-        if (abbrev == "--") {
-            provider.turnOff()
-        } else {
-            provider.displayText(abbrev)
+    /**
+     * Renders the real mode state. If the provider isn't connected yet —
+     * e.g. an AOD tick lands before init finished — kick init and render
+     * from its callback instead of silently showing nothing.
+     */
+    private fun displayCurrentState() {
+        if (!provider.isConnected()) {
+            provider.init(onConnected = { renderState() })
+            return
+        }
+        renderState()
+    }
+
+    private fun renderState() {
+        scope.launch {
+            val names =
+                runCatching {
+                    modeActivationProvider
+                        .activeModeIds()
+                        .mapNotNull { store.get(AutomationId(it))?.name }
+                        .filter { it.isNotBlank() }
+                }.getOrDefault(emptyList())
+
+            if (names.isEmpty()) {
+                provider.displayText(IDLE_GLYPH)
+            } else {
+                provider.displayText(abbrev(names[cycleIndex % names.size]))
+            }
         }
     }
 
+    private fun abbrev(name: String): String = name.take(2).uppercase()
+
     companion object {
         private const val TAG = "NothingModesToyService"
+        private const val IDLE_GLYPH = "ZZ"
     }
 }

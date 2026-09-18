@@ -44,6 +44,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -67,6 +68,7 @@ fun ConditionConfigSheet(
 ) {
     var current by remember(condition) { mutableStateOf(condition) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val units = rememberUnits()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -306,7 +308,7 @@ fun ConditionConfigSheet(
 
                 else -> {
                     Text(
-                        text = conditionDescription(current),
+                        text = conditionDescription(current, units),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = NothingFonts.mono(),
@@ -836,12 +838,20 @@ private fun BatteryTempSheetContent(
     condition: Condition.BatteryTemp,
     onChange: (Condition.BatteryTemp) -> Unit,
 ) {
+    val units = rememberUnits()
     Column {
         NothingInput(
-            value = condition.celsius.toString(),
-            onValueChange = { onChange(condition.copy(celsius = it.toDoubleOrNull() ?: condition.celsius)) },
-            label = "Celsius",
-            infoText = "Battery temperature threshold. Above ~40 °C the battery is getting hot; below ~5 °C charging slows down.",
+            value = units.tempToInput(condition.celsius),
+            onValueChange = {
+                onChange(condition.copy(celsius = units.inputToCelsius(it) ?: condition.celsius))
+            },
+            label = units.tempUnit,
+            infoText =
+                if (units.fahrenheit) {
+                    "Battery temperature threshold. Above ~104 °F the battery is getting hot; below ~41 °F charging slows down."
+                } else {
+                    "Battery temperature threshold. Above ~40 °C the battery is getting hot; below ~5 °C charging slows down."
+                },
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
@@ -929,6 +939,7 @@ private fun AtLocationSheetContent(
     condition: Condition.AtLocation,
     onChange: (Condition.AtLocation) -> Unit,
 ) {
+    val units = rememberUnits()
     Column {
         com.tdvorak.nothingmodes.ui.components.PermissionGate(
             permissions =
@@ -949,7 +960,7 @@ private fun AtLocationSheetContent(
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         Text(
-            text = "Tap the map to place the point. Radius ${condition.radiusM.toInt()} m around it.",
+            text = "Tap the map to place the point. Radius ${units.formatDistance(condition.radiusM)} around it.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = NothingFonts.mono(),
@@ -957,14 +968,19 @@ private fun AtLocationSheetContent(
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = condition.radiusM.toString(),
+            value = units.distanceToInput(condition.radiusM),
             onValueChange = { text ->
-                text.toDoubleOrNull()?.let { onChange(condition.copy(radiusM = it)) }
+                units.inputToDistance(text)?.let { onChange(condition.copy(radiusM = it)) }
             },
-            label = "Radius (meters)",
+            label = "Radius (${units.distanceUnit})",
             infoText =
-                "How far from the point counts as \"at location\". Below ~50 m GPS " +
-                    "jitter can flip the condition in and out — use 100 m or more.",
+                if (units.miles) {
+                    "How far from the point counts as \"at location\". Below ~150 ft GPS " +
+                        "jitter can flip the condition in and out — use 300 ft or more."
+                } else {
+                    "How far from the point counts as \"at location\". Below ~50 m GPS " +
+                        "jitter can flip the condition in and out — use 100 m or more."
+                },
             modifier = Modifier.fillMaxWidth(),
         )
     }

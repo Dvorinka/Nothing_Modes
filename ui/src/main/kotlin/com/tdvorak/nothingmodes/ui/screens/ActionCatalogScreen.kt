@@ -48,6 +48,7 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.NightMode
+import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
@@ -119,10 +120,15 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Brightness", "Display", Icons.Outlined.Brightness6, Action.SetBrightness(128, restore = true)),
                 ActionItem("Auto brightness", "Display", Icons.Outlined.Lightbulb, Action.SetAutoBrightness(true)),
                 ActionItem("Extra dim", "Display", Icons.Outlined.Brightness6, Action.SetExtraDim(true, restore = true)),
+                ActionItem("Ultra dim", "Display", Icons.Outlined.Brightness2, Action.SetUltraDim(50), desc = "Dark overlay dims the screen below the hardware minimum. Needs 'Display over other apps'."),
                 ActionItem("Screen timeout", "Display", Icons.Outlined.Timer, Action.SetScreenTimeout(30_000)),
                 ActionItem("Stay awake", "Display", Icons.Outlined.Bedtime, Action.SetStayAwake(true)),
                 ActionItem("Wallpaper", "Display", Icons.Outlined.Wallpaper, Action.SetWallpaper("")),
                 ActionItem("Always-on display", "Display", Icons.Outlined.PhoneAndroid, Action.SetAlwaysOnDisplay(AodMode.OFF)),
+                ActionItem("Night light", "Display", Icons.Outlined.WbTwilight, Action.SetNightLight(true)),
+                ActionItem("Font scale", "Display", Icons.Outlined.FormatSize, Action.SetFontScale(1.0f)),
+                ActionItem("Color inversion", "Display", Icons.Outlined.InvertColors, Action.SetColorInversion(true)),
+                ActionItem("Color correction", "Display", Icons.Outlined.Palette, Action.SetDaltonizer(true)),
                 ActionItem("Do not disturb", "Sound", Icons.Outlined.Notifications, Action.SetDnd(DndMode.OFF)),
                 ActionItem("Volume", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SetVolume(mapOf(VolumeStream.MEDIA to 8))),
                 ActionItem("Vibrate", "Sound", Icons.Outlined.Vibration, Action.Vibrate(500)),
@@ -139,6 +145,8 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Lock screen", "System", Icons.Outlined.Lock, Action.LockScreen()),
                 ActionItem("Screenshot", "System", Icons.AutoMirrored.Outlined.MobileScreenShare, Action.TakeScreenshot()),
                 ActionItem("Clear notifications", "System", Icons.Outlined.Notifications, Action.ClearNotifications),
+                ActionItem("One-handed mode", "System", Icons.Outlined.PhoneAndroid, Action.SetOneHandedMode(true)),
+                ActionItem("Sensor privacy", "System", Icons.Outlined.MicOff, Action.SetSensorPrivacy(PrivacySensor.MIC, blocked = true)),
                 ActionItem("Show notification", "Apps", Icons.Outlined.Campaign, Action.ShowNotification("", "")),
                 ActionItem("Open URL", "Apps", Icons.Outlined.Link, Action.OpenUrl("")),
                 ActionItem("Launch app", "Apps", Icons.Outlined.OpenInBrowser, Action.LaunchApp(emptyList())),
@@ -147,6 +155,9 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Wait", "Apps", Icons.Outlined.Snooze, Action.Wait(1000)),
                 ActionItem("Send SMS", "Apps", Icons.Outlined.Sms, Action.SendSms("", "")),
                 ActionItem("Copy text", "Apps", Icons.Outlined.ContentCopy, Action.CopyText(""), desc = "Copies text to the clipboard."),
+                ActionItem("Set alarm", "Apps", Icons.Outlined.Alarm, Action.SetAlarm(7, 0)),
+                ActionItem("Set timer", "Apps", Icons.Outlined.Timer, Action.SetTimer(300)),
+                ActionItem("Open clock", "Apps", Icons.Outlined.AccessTime, Action.OpenClock()),
                 // One row per Glyph capability — each opens the same composer
                 // sheet, where the design-type selector can still switch.
                 // Hardware-blocked twins (stripe vs matrix) drop out below, so

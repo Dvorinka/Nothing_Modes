@@ -196,6 +196,27 @@ class Engine(
                             }
                         actionResults += result
                     }
+
+                    // Surface concrete per-action failure reasons — the audit
+                    // trail feeds the execution log and the detail screen.
+                    val failures =
+                        automation.actions
+                            .zip(actionResults)
+                            .mapNotNull { (a, r) -> r.failureLabel(a) }
+                    if (failures.isNotEmpty()) {
+                        audit.record(
+                            AuditEvent(
+                                automationId = automation.id,
+                                kind = AuditKind.ACTION_FAILED,
+                                atMillis = batchNow,
+                                detail =
+                                    failures.take(3).joinToString("; ") +
+                                        if (failures.size > 3) "; +${failures.size - 3} more" else "",
+                                eventId = envelope.id,
+                                executionId = executionId,
+                            ),
+                        )
+                    }
                 }
 
                 claimedSettings += affected
@@ -210,7 +231,9 @@ class Engine(
                         atMillis = completedAt,
                         status =
                             if (actionResults.all {
-                                    it is ActionResult.Success || it is ActionResult.NeedsUserAction
+                                    it is ActionResult.Success ||
+                                        it is ActionResult.NeedsUserAction ||
+                                        it is ActionResult.DeferredUntilUnlock
                                 }
                             ) {
                                 ExecutionStatus.COMPLETED
@@ -526,6 +549,8 @@ class Engine(
                 value.toBooleanStrictOrNull()?.let { Action.SetAutoSync(on = it, restore = false) }
             snapshot.settingKey == "ringer_mode" ->
                 Action.SetRinger(mode = value, restore = false)
+            snapshot.settingKey == "ultra_dim" ->
+                value.toIntOrNull()?.let { Action.SetUltraDim(percent = it, restore = false) }
             snapshot.settingKey.matches(volumeKeyRegex) -> {
                 val stream =
                     runCatching {
@@ -558,7 +583,10 @@ class Engine(
     /** Maps a setting key to its Android Settings namespace. */
     private fun namespaceForKey(key: String): String =
         when (key) {
-            "reduce_bright_colors_activated", "aod_enabled", "location_mode" -> "secure"
+            "reduce_bright_colors_activated", "aod_enabled", "location_mode",
+            "night_display_activated", "night_display_color_temperature",
+            "accessibility_display_inversion_enabled", "accessibility_display_daltonizer_enabled",
+            "one_handed_mode_enabled" -> "secure"
             "airplane_mode_on", "low_power", "data_saver", "mobile_data_enabled", "led_effect_enable", "stay_on_while_plugged_in" -> "global"
             else -> "system"
         }

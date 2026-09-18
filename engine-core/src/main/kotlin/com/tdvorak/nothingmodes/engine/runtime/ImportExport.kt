@@ -3,6 +3,7 @@ package com.tdvorak.nothingmodes.engine.runtime
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationSchema
+import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.CreatedBy
 import com.tdvorak.nothingmodes.engine.model.CreatorProfile
@@ -27,6 +28,12 @@ data class ExportBundle(
     val requiredCapabilities: List<String> = emptyList(),
     /** Optional attribution metadata for published/shared routines. */
     val creatorProfile: CreatorProfile = CreatorProfile(),
+    /**
+     * Automation id → private fields scrubbed for sharing that the importer
+     * must configure before the automation can work. Empty in backups and
+     * older bundles.
+     */
+    val setupRequirements: Map<String, List<String>> = emptyMap(),
 )
 
 /** Result of an import operation. */
@@ -48,8 +55,13 @@ data class ImportPreview(
     val requiredCapabilities: Set<String>,
     val errors: List<String>,
     val creatorProfile: CreatorProfile = CreatorProfile(),
+    /** Automation id → private fields the user must fill in after import. */
+    val setupRequirements: Map<String, List<String>> = emptyMap(),
 ) {
     val isSupported: Boolean get() = errors.isEmpty()
+
+    /** True when any automation in this bundle needs manual setup to work. */
+    val requiresSetup: Boolean get() = setupRequirements.values.any { it.isNotEmpty() }
 }
 
 /** Result of an export operation. */
@@ -65,33 +77,67 @@ class ImportExportService(
     // now stays last: existing call sites pass it as a trailing lambda
     private val now: () -> Long = System::currentTimeMillis,
 ) {
-    /** Export all automations to a JSON string. */
+    /**
+     * Export automations as a shareable template — private fields are
+     * scrubbed (Bluetooth MAC/name, Wi-Fi SSID, phone numbers, locations,
+     * message content, ...) and replaced by setup requirements.
+     *
+     * For a full-fidelity local backup use [exportBackup] instead.
+     */
     suspend fun export(creator: CreatorProfile = CreatorProfile()): ExportResult {
         val automations = store.all()
-        return ExportResult(json = encode(automations, creator), count = automations.size)
+        return ExportResult(json = encode(automations, creator, sanitize = true), count = automations.size)
     }
 
-    /** Export specific automations by ID. */
+    /** Export specific automations by ID — private fields scrubbed. */
     suspend fun export(
         ids: List<AutomationId>,
         creator: CreatorProfile = CreatorProfile(),
     ): ExportResult {
         val automations = ids.mapNotNull { store.get(it) }
-        return ExportResult(json = encode(automations, creator), count = automations.size)
+        return ExportResult(json = encode(automations, creator, sanitize = true), count = automations.size)
+    }
+
+    /** Full-fidelity export for local backup — nothing is scrubbed. */
+    suspend fun exportBackup(creator: CreatorProfile = CreatorProfile()): ExportResult {
+        val automations = store.all()
+        return ExportResult(json = encode(automations, creator, sanitize = false), count = automations.size)
+    }
+
+    /** Full-fidelity export of specific automations for local backup. */
+    suspend fun exportBackup(
+        ids: List<AutomationId>,
+        creator: CreatorProfile = CreatorProfile(),
+    ): ExportResult {
+        val automations = ids.mapNotNull { store.get(it) }
+        return ExportResult(json = encode(automations, creator, sanitize = false), count = automations.size)
     }
 
     private fun encode(
         automations: List<Automation>,
         creator: CreatorProfile,
+        sanitize: Boolean,
     ): String {
+        val scrubbed =
+            if (sanitize) {
+                automations.map(PrivacyScrubber::scrub)
+            } else {
+                automations.map { it to emptyList() }
+            }
+        val out = scrubbed.map { it.first }
+        val setupRequirements =
+            scrubbed
+                .filter { it.second.isNotEmpty() }
+                .associate { it.first.id.value to it.second }
         val bundle =
             ExportBundle(
                 schemaVersion = AutomationSchema.supportedVersions.max(),
                 exportedAt = now(),
-                automations = automations,
+                automations = out,
                 appVersion = appVersion,
-                requiredCapabilities = capabilitiesOf(automations).toList(),
+                requiredCapabilities = capabilitiesOf(out).toList(),
                 creatorProfile = creator.sanitized(),
+                setupRequirements = setupRequirements,
             )
         return EngineJson.json.encodeToString(bundle)
     }
@@ -163,6 +209,7 @@ class ImportExportService(
             requiredCapabilities = capabilitiesOf(bundle.automations),
             errors = emptyList(),
             creatorProfile = bundle.creatorProfile,
+            setupRequirements = bundle.setupRequirements,
         )
     }
 
@@ -196,10 +243,17 @@ class ImportExportService(
                     continue
                 }
 
+                val needsSetup = preview.setupRequirements[automation.id.value].orEmpty().isNotEmpty()
                 val toSave =
                     automation.copy(
                         createdBy = CreatedBy.IMPORT,
                         enabled = false,
+                        status =
+                            if (needsSetup) {
+                                AutomationStatus.NEEDS_REVIEW
+                            } else {
+                                automation.status
+                            },
                     )
                 store.save(toSave)
                 imported++

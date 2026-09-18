@@ -102,8 +102,10 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.DisplayUnits
 import com.tdvorak.nothingmodes.ui.util.booleanStateLabel
 import com.tdvorak.nothingmodes.ui.util.numericStateLabel
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -877,12 +879,13 @@ fun CustomAutomationBuilderScreen(
             // trigger so they stay visible and editable.
             if (state.trigger.hasStateLifecycle || state.endActions.isNotEmpty()) {
                 item {
+                    val units = rememberUnits()
                     val endLocal = (state.trigger as? Trigger.TimeWindow)?.endLocal
                     NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
                         Text(
                             text =
                                 if (endLocal != null) {
-                                    "AFTER IT ENDS ($endLocal)"
+                                    "AFTER IT ENDS (${units.formatLocalTime(endLocal)})"
                                 } else {
                                     "WHEN THE MODE ENDS"
                                 },
@@ -1429,8 +1432,9 @@ private fun TriggerEditor(
 ) {
     val appLabel = rememberAppLabelResolver()
     val appIcon = rememberAppIconResolver()
+    val units = rememberUnits()
     NothingListRow(
-        title = triggerDescription(trigger, appLabel),
+        title = triggerDescription(trigger, units, appLabel),
         subtitle = "When this happens — tap to change",
         onClick = onConfigure,
         leading = {
@@ -1679,8 +1683,9 @@ private fun ReorderableListItemScope.ConditionRow(
     onConfigure: (Condition) -> Unit = {},
 ) {
     val appIcon = rememberAppIconResolver()
+    val units = rememberUnits()
     NothingListRow(
-        title = conditionDescription(condition),
+        title = conditionDescription(condition, units),
         onClick = { onConfigure(condition) },
         leading = {
             NothingIconCircle(size = 44f) {
@@ -1928,9 +1933,13 @@ private fun cmpSymbol(op: com.tdvorak.nothingmodes.engine.model.CmpOp): String =
         com.tdvorak.nothingmodes.engine.model.CmpOp.CONTAINS -> "contains"
     }
 
-internal fun conditionDescription(condition: Condition): String =
+internal fun conditionDescription(
+    condition: Condition,
+    units: DisplayUnits,
+): String =
     when (condition) {
-        is Condition.TimeWindow -> "Time window: ${condition.startLocal}-${condition.endLocal}"
+        is Condition.TimeWindow ->
+            "Time window: ${units.formatLocalTime(condition.startLocal)}-${units.formatLocalTime(condition.endLocal)}"
         is Condition.DayOfWeekCondition ->
             "Days: ${condition.days.joinToString { it.wireName.replaceFirstChar { c -> c.uppercase() } }}"
         is Condition.BatteryLevel -> "Battery ${cmpSymbol(condition.op)} ${condition.level}%"
@@ -1957,7 +1966,7 @@ internal fun conditionDescription(condition: Condition): String =
         is Condition.VolumeLevel -> "Volume ${condition.stream.name.lowercase()} ${cmpSymbol(condition.op)} ${condition.level}"
         is Condition.ScreenOffFor -> "Screen off ${cmpSymbol(condition.op)} ${condition.minutes}m"
         is Condition.ChargingSource -> "Charging via ${condition.source.name.lowercase()}"
-        is Condition.BatteryTemp -> "Battery temp ${cmpSymbol(condition.op)} ${condition.celsius}°C"
+        is Condition.BatteryTemp -> "Battery temp ${cmpSymbol(condition.op)} ${units.formatTemperature(condition.celsius)}"
         is Condition.ThermalLevel -> "Heat level ${cmpSymbol(condition.op)} ${condition.level}"
         is Condition.BooleanState -> {
             val label = booleanStateLabel(condition.key).removeSuffix(" on").removeSuffix(" off")
@@ -1965,7 +1974,7 @@ internal fun conditionDescription(condition: Condition): String =
         }
         is Condition.NumericState -> "${numericStateLabel(condition.key)} ${cmpSymbol(condition.op)} ${condition.value}"
         is Condition.AtLocation ->
-            "Within ${condition.radiusM.toInt()} m of " +
+            "Within ${units.formatDistance(condition.radiusM)} of " +
                 String.format("%.4f, %.4f", condition.lat, condition.lng)
         is Condition.EventActive -> "Calendar event contains \"${condition.titleMatch}\""
         is Condition.NotificationPresent -> "Notification from ${condition.pkg} contains \"${condition.titleMatch}\""

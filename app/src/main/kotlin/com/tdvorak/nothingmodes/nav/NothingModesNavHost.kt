@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import com.tdvorak.nothingmodes.ui.screens.ActionCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.ActionConfigScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationDetailScreen
+import com.tdvorak.nothingmodes.ui.screens.AutomationGraphScreen
 import com.tdvorak.nothingmodes.ui.screens.AutomationListScreen
 import com.tdvorak.nothingmodes.ui.screens.ConditionCatalogScreen
 import com.tdvorak.nothingmodes.ui.screens.ConditionConfigScreen
@@ -37,6 +38,7 @@ object Routes {
     const val EDIT_AUTOMATION = "edit/{id}"
     const val CUSTOM_BUILDER = "builder"
     const val CUSTOM_BUILDER_EDIT = "builder/edit/{id}"
+    const val AUTOMATION_GRAPH = "graph/{id}"
     const val TRIGGER_CONFIG = "trigger_config?trigger={trigger_json}"
     const val CONDITION_CATALOG = "condition_catalog"
     const val CONDITION_CONFIG = "condition_config?condition={condition_json}"
@@ -56,6 +58,8 @@ object Routes {
     fun editAutomation(id: String) = "edit/$id"
 
     fun builderEdit(id: String) = "builder/edit/$id"
+
+    fun automationGraph(id: String) = "graph/$id"
 
     fun triggerConfig(triggerJson: String) = "trigger_config?trigger=" + URLEncoder.encode(triggerJson, "UTF-8")
 
@@ -107,6 +111,24 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
                 automationId = id,
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onEdit = { navController.navigate(Routes.builderEdit(id)) },
+                onGraph = { navController.navigate(Routes.automationGraph(id)) },
+            )
+        }
+
+        composable(
+            route = Routes.AUTOMATION_GRAPH,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: ""
+            AutomationGraphScreen(
+                automationId = id,
+                onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
+                navController = navController,
+                onConfigureTrigger = { json ->
+                    navController.navigate(Routes.triggerConfig(json))
+                },
+                onAddCondition = { navController.navigate(Routes.CONDITION_CATALOG) },
+                onAddAction = { navController.navigate(Routes.ACTION_CATALOG) },
             )
         }
 

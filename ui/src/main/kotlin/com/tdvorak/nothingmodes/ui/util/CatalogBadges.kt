@@ -97,6 +97,10 @@ fun requirementBadges(required: Set<String>): List<String> {
             CapabilityIds.TRIGGER_MANUAL,
             CapabilityIds.TRIGGER_TORCH_STATE,
             CapabilityIds.STATE_READER_BUILTIN,
+            // AlarmClock intents — SET_ALARM is install-grant, nothing to set up.
+            CapabilityIds.ACTION_SET_ALARM,
+            CapabilityIds.ACTION_SET_TIMER,
+            CapabilityIds.ACTION_OPEN_CLOCK,
         )
     val shizukuReaders = required.filter { it.startsWith("state_reader_") && it != CapabilityIds.STATE_READER_BUILTIN }
     val glyphActions = required.filter { it.startsWith("action_set_glyph") || it.startsWith("action_glyph") }

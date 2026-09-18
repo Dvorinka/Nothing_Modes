@@ -1,9 +1,12 @@
 package com.tdvorak.nothingmodes.capabilities.controllers
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -15,13 +18,17 @@ import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.provider.AlarmClock
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.capabilities.PendingUnlockStore
 import com.tdvorak.nothingmodes.device.DeviceTools
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
+import com.tdvorak.nothingmodes.engine.model.ClockSection
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
@@ -60,6 +67,7 @@ class RealActionExecutor(
     private val shellFactory: PrivilegedShellFactory? = null,
     private val glyphProvider: NothingGlyphProvider? = null,
     private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
+    private val pendingUnlockStore: PendingUnlockStore? = null,
 ) : ActionExecutor {
     override suspend fun execute(
         action: Action,
@@ -91,6 +99,7 @@ class RealActionExecutor(
             is Action.SetBrightness -> brightness.setBrightness(action.level).toActionResult()
             is Action.SetAutoBrightness -> brightness.setAutoBrightness(action.on).toActionResult()
             is Action.SetExtraDim -> setExtraDim(action.on)
+            is Action.SetUltraDim -> setUltraDim(action.percent)
             is Action.SetScreenTimeout -> screenTimeout.setScreenTimeout(action.timeoutMs).toActionResult()
             is Action.SetWallpaper -> wallpaper.setWallpaper(action.uri, action.which).toActionResult()
             is Action.SetVolume -> {
@@ -112,17 +121,19 @@ class RealActionExecutor(
             is Action.Vibrate -> vibrate(action.durationMs)
             is Action.CopyText -> copyText(action.text)
             is Action.LaunchApp -> {
-                val results = action.packages.map { launchApp(it) }
+                val results = action.packages.map { launchApp(it, action, context) }
                 when {
                     results.isEmpty() -> ActionResult.Success
                     results.all { it == ActionResult.Success } -> ActionResult.Success
+                    results.none { it is ActionResult.Failure } &&
+                        results.any { it is ActionResult.DeferredUntilUnlock } -> ActionResult.DeferredUntilUnlock
                     else ->
                         results.filterIsInstance<ActionResult.Failure>().firstOrNull()
                             ?: ActionResult.Failure("launch app failed")
                 }
             }
-            is Action.OpenUrl -> openUrl(action)
-            is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg)
+            is Action.OpenUrl -> openUrl(action, context)
+            is Action.OpenSettingsScreen -> openSettings(action.screen, action.pkg, action, context)
             is Action.ShowNotification -> showNotification(action)
             is Action.Wait -> {
                 val capped = action.durationMs.coerceIn(0, 300_000)
@@ -134,12 +145,14 @@ class RealActionExecutor(
                 }
             }
             // Shizuku-required actions (with public-API fallbacks where possible)
-            is Action.SetWifi -> setWifi(action.on)
-            is Action.SetBluetooth -> setBluetooth(action.on)
+            is Action.SetWifi -> setWifi(action.on, action, context)
+            is Action.SetBluetooth -> setBluetooth(action.on, action, context)
             is Action.SetMobileData ->
                 shellOrPanel(
                     mobileDataCommand(action.on),
                     connectivityPanel(),
+                    action,
+                    context,
                 )
             is Action.WriteSetting -> writeSetting(action)
 
@@ -171,24 +184,30 @@ class RealActionExecutor(
                 shellOrPanel(
                     batterySaverCommand(action.on),
                     Settings.ACTION_BATTERY_SAVER_SETTINGS,
+                    action,
+                    context,
                 )
-            is Action.SetAirplaneMode -> setAirplaneMode(action.on)
+            is Action.SetAirplaneMode -> setAirplaneMode(action.on, action, context)
             is Action.SetDataSaver ->
                 shellOrPanel(
                     dataSaverCommand(action.on),
                     // Not a public Settings constant; resolves on most skins.
                     "android.settings.DATA_SAVER_SETTINGS",
+                    action,
+                    context,
                 )
             is Action.SetHotspot ->
                 shellOrPanel(
                     hotspotCommand(action.on),
                     "android.settings.TETHER_SETTINGS",
+                    action,
+                    context,
                 )
             is Action.SetNfc -> {
                 // `svc nfc` is killed outright on Nothing OS 4.1 — when the
                 // shell attempt fails for any reason, fall through to the panel.
                 val r = executeShell(nfcCommand(action.on))
-                if (r is ActionResult.Success) r else openPanel(Settings.ACTION_NFC_SETTINGS)
+                if (r is ActionResult.Success) r else openPanel(Settings.ACTION_NFC_SETTINGS, action, context)
             }
             is Action.SetRefreshRate -> setRefreshRate(action.hz)
             is Action.SetScreenRotation -> setScreenRotation(action.orientation)
@@ -197,29 +216,66 @@ class RealActionExecutor(
             // Extended actions (Phase 5)
             is Action.SendSms -> sendSms(action.number, action.text)
             is Action.LockScreen -> if (action.force) lockScreen() else ActionResult.Failure("Detected: may not work on this device")
-            is Action.SetLocationMode -> setLocationMode(action.mode)
+            is Action.SetLocationMode -> setLocationMode(action.mode, action, context)
             is Action.SetAutoSync ->
                 shellOrPanel(
                     autoSyncCommand(action.on),
                     Settings.ACTION_SYNC_SETTINGS,
+                    action,
+                    context,
                 )
             is Action.ClearNotifications -> clearNotifications()
             is Action.SetAlwaysOnDisplay ->
                 shellAllOrPanel(
                     aodCommands(action),
                     Settings.ACTION_DISPLAY_SETTINGS,
+                    action,
+                    context,
                 )
             is Action.SetStayAwake ->
                 shellOrPanel(
                     stayAwakeCommand(action.on),
                     Settings.ACTION_DISPLAY_SETTINGS,
+                    action,
+                    context,
                 )
             is Action.TakeScreenshot -> if (action.force) takeScreenshot() else ActionResult.Failure("Detected: may not work on this device")
+
+            // Settings & clock batch
+            is Action.SetFontScale -> setFontScale(action.scale)
+            is Action.SetNightLight -> setNightLight(action, context)
+            is Action.SetColorInversion ->
+                shellOrPanel(
+                    secureToggleCommand("accessibility_display_inversion_enabled", action.on),
+                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetDaltonizer ->
+                shellOrPanel(
+                    secureToggleCommand("accessibility_display_daltonizer_enabled", action.on),
+                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetSensorPrivacy -> setSensorPrivacy(action, context)
+            is Action.SetOneHandedMode ->
+                shellOrPanel(
+                    secureToggleCommand("one_handed_mode_enabled", action.on),
+                    Settings.ACTION_DISPLAY_SETTINGS,
+                    action,
+                    context,
+                )
+            is Action.SetAlarm -> setAlarm(action, context)
+            is Action.SetTimer -> setTimerAction(action, context)
+            is Action.OpenClock -> openClock(action, context)
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
                 when {
                     results.isEmpty() -> ActionResult.Success
                     results.all { it is ActionResult.Success } -> ActionResult.Success
+                    results.none { it is ActionResult.Failure } &&
+                        results.any { it is ActionResult.DeferredUntilUnlock } -> ActionResult.DeferredUntilUnlock
                     else ->
                         results.filterIsInstance<ActionResult.Failure>().firstOrNull()
                             ?: ActionResult.Failure("group failed")
@@ -251,26 +307,74 @@ class RealActionExecutor(
     private suspend fun shellOrPanel(
         command: List<String>,
         panelAction: String,
+        source: Action,
+        ctx: FireContext,
     ): ActionResult {
         val shellResult = executeShell(command)
         if (shellResult !is ActionResult.ShizukuRequired) return shellResult
-        return openPanel(panelAction)
+        return openPanel(panelAction, source, ctx)
     }
 
     private suspend fun shellAllOrPanel(
         commands: List<List<String>>,
         panelAction: String,
+        source: Action,
+        ctx: FireContext,
     ): ActionResult {
         val results = commands.map { executeShell(it) }
         if (results.all { it == ActionResult.Success }) return ActionResult.Success
-        if (results.any { it is ActionResult.ShizukuRequired }) return openPanel(panelAction)
+        if (results.any { it is ActionResult.ShizukuRequired }) return openPanel(panelAction, source, ctx)
         return results.firstOrNull { it is ActionResult.Failure }
             ?: ActionResult.Failure("shell command failed")
     }
 
+    /**
+     * Queue the action for re-execution on unlock when the screen can't show
+     * UI right now. Returns null when launching is possible — the caller then
+     * proceeds with the normal startActivity path.
+     *
+     * Activities launched from a background service on a locked screen are
+     * silently dropped by background-activity-launch restrictions; deferring
+     * makes sure the action still runs once the user unlocks the device.
+     */
+    private fun deferIfLocked(
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult? {
+        if (canShowUi()) return null
+        val store = pendingUnlockStore ?: return null
+        store.enqueue(ctx.automationId, source)
+        return ActionResult.DeferredUntilUnlock
+    }
+
+    /**
+     * True when an activity we launch would actually be seen: the keyguard is
+     * open, or one of our activities is already visible in front of it.
+     */
+    private fun canShowUi(): Boolean {
+        val km = context.getSystemService(KeyguardManager::class.java)
+        if (km?.isDeviceLocked != true) return true
+        return appInForeground()
+    }
+
+    /** Own-process foreground check — our foreground services don't count. */
+    private fun appInForeground(): Boolean {
+        val am = context.getSystemService(ActivityManager::class.java) ?: return false
+        val processes = runCatching { am.runningAppProcesses }.getOrNull() ?: return false
+        return processes.any {
+            it.processName == context.packageName &&
+                it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+    }
+
     /** Open a system settings page/panel; returns NeedsUserAction on success. */
-    private fun openPanel(action: String): ActionResult =
-        try {
+    private fun openPanel(
+        action: String,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(source, ctx)?.let { return it }
+        return try {
             context.startActivity(
                 Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
@@ -278,6 +382,7 @@ class RealActionExecutor(
         } catch (e: Exception) {
             ActionResult.ShizukuRequired
         }
+    }
 
     /** Internet connectivity panel (API 29+); falls back to Wi-Fi settings. */
     private fun connectivityPanel(): String =
@@ -401,6 +506,16 @@ class RealActionExecutor(
                 if (on) "1" else "0",
             ),
         )
+    }
+
+    private fun setUltraDim(percent: Int): ActionResult {
+        if (!UltraDimController.canDrawOverlays(context)) {
+            return ActionResult.Failure("overlay: 'Display over other apps' permission not granted — enable it in system settings")
+        }
+        return runCatching {
+            if (percent <= 0) UltraDimController.hide(context) else UltraDimController.show(context, percent)
+            ActionResult.Success
+        }.getOrElse { ActionResult.Failure("overlay: ${it.message ?: "failed to draw dim layer"}") }
     }
 
     // --- Glyph Matrix ---
@@ -726,7 +841,12 @@ class RealActionExecutor(
             ActionResult.Failure(e.message ?: "copyText failed")
         }
 
-    private fun launchApp(pkg: String): ActionResult {
+    private fun launchApp(
+        pkg: String,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(source, ctx)?.let { return it }
         return try {
             // Validate package name format to prevent intent injection
             if (!pkg.matches(Regex("^[A-Za-z0-9][A-Za-z0-9_.]*$"))) {
@@ -743,7 +863,11 @@ class RealActionExecutor(
         }
     }
 
-    private fun openUrl(action: Action.OpenUrl): ActionResult {
+    private fun openUrl(
+        action: Action.OpenUrl,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(source = action, ctx = ctx)?.let { return it }
         return try {
             val uri = Uri.parse(action.url)
             val scheme = uri.scheme?.lowercase()
@@ -766,8 +890,11 @@ class RealActionExecutor(
     private fun openSettings(
         screen: SettingsScreen,
         pkg: String?,
-    ): ActionResult =
-        try {
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(source, ctx)?.let { return it }
+        return try {
             val action =
                 when (screen) {
                     SettingsScreen.WIFI -> android.provider.Settings.ACTION_WIFI_SETTINGS
@@ -796,6 +923,7 @@ class RealActionExecutor(
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "openSettings failed")
         }
+    }
 
     private suspend fun showNotification(action: Action.ShowNotification): ActionResult {
         val title = action.title
@@ -873,7 +1001,11 @@ class RealActionExecutor(
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun setBluetooth(on: Boolean): ActionResult {
+    private suspend fun setBluetooth(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
         // Try public API first (deprecated on API 33+ but functional on most Nothing OS builds)
         return try {
             val bm = context.getSystemService(BluetoothManager::class.java)
@@ -884,18 +1016,22 @@ class RealActionExecutor(
             if (enabled) {
                 ActionResult.Success
             } else {
-                shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
+                shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
             }
         } catch (_: SecurityException) {
-            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
+            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
         } catch (e: Exception) {
             // Public API failed — Shizuku, else the Bluetooth settings page
-            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS)
+            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
         }
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun setWifi(on: Boolean): ActionResult {
+    private suspend fun setWifi(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
         // WifiManager.setWifiEnabled() works on API <29. On API 29+ it throws or returns false.
         // Try public API first, fall back to Shizuku shell command.
         return try {
@@ -906,15 +1042,15 @@ class RealActionExecutor(
             if (enabled) {
                 ActionResult.Success
             } else {
-                shellOrPanel(wifiCommand(on), connectivityPanel())
+                shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
             }
         } catch (_: SecurityException) {
-            shellOrPanel(wifiCommand(on), connectivityPanel())
+            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
         } catch (_: NoSuchMethodError) {
             // Method removed on newer API levels — Shizuku or the panel
-            shellOrPanel(wifiCommand(on), connectivityPanel())
+            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
         } catch (e: Exception) {
-            shellOrPanel(wifiCommand(on), connectivityPanel())
+            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
         }
     }
 
@@ -949,7 +1085,11 @@ class RealActionExecutor(
         return executeShell(writeSettingCommand(action))
     }
 
-    private suspend fun setAirplaneMode(on: Boolean): ActionResult {
+    private suspend fun setAirplaneMode(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
         // `cmd connectivity airplane-mode` toggles the radio and updates the
         // setting atomically (Android 12+); the AIRPLANE_MODE broadcast is
         // protected even for shell, so it is not usable.
@@ -961,6 +1101,8 @@ class RealActionExecutor(
                 if (on) "enable" else "disable",
             ),
             Settings.ACTION_AIRPLANE_MODE_SETTINGS,
+            source,
+            ctx,
         )
     }
 
@@ -1177,7 +1319,11 @@ class RealActionExecutor(
         }
     }
 
-    private suspend fun setLocationMode(mode: com.tdvorak.nothingmodes.engine.model.LocationMode): ActionResult {
+    private suspend fun setLocationMode(
+        mode: com.tdvorak.nothingmodes.engine.model.LocationMode,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
         val value =
             when (mode) {
                 com.tdvorak.nothingmodes.engine.model.LocationMode.HIGH_ACCURACY -> 3
@@ -1195,9 +1341,153 @@ class RealActionExecutor(
             Settings.Secure.putInt(context.contentResolver, Settings.Secure.LOCATION_MODE, value)
             ActionResult.Success
         } catch (e: SecurityException) {
-            openPanel(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            openPanel(Settings.ACTION_LOCATION_SOURCE_SETTINGS, source, ctx)
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "setLocationMode failed")
+        }
+    }
+
+    // --- Settings & clock batch ---
+
+    private fun secureToggleCommand(
+        key: String,
+        on: Boolean,
+    ) = listOf("settings", "put", "secure", key, if (on) "1" else "0")
+
+    private suspend fun setFontScale(scale: Float): ActionResult {
+        val clamped = scale.coerceIn(0.85f, 1.3f)
+        // Public path first (WRITE_SETTINGS); privileged shell as fallback.
+        val written =
+            try {
+                Settings.System.canWrite(context) &&
+                    Settings.System.putFloat(
+                        context.contentResolver,
+                        Settings.System.FONT_SCALE,
+                        clamped,
+                    )
+            } catch (_: Exception) {
+                false
+            }
+        if (written) return ActionResult.Success
+        val shell =
+            executeShell(listOf("settings", "put", "system", "font_scale", clamped.toString()))
+        return if (shell is ActionResult.ShizukuRequired) ActionResult.PermissionRequired else shell
+    }
+
+    private suspend fun setNightLight(
+        action: Action.SetNightLight,
+        ctx: FireContext,
+    ): ActionResult {
+        // night_display_* lives in Settings.Secure — shell first, Night Light
+        // panel as the unprivileged fallback.
+        val commands =
+            buildList {
+                if (action.on && action.temperature != null) {
+                    add(
+                        listOf(
+                            "settings", "put", "secure",
+                            "night_display_color_temperature", action.temperature.toString(),
+                        ),
+                    )
+                }
+                add(
+                    listOf(
+                        "settings", "put", "secure",
+                        "night_display_activated", if (action.on) "1" else "0",
+                    ),
+                )
+            }
+        return shellAllOrPanel(commands, Settings.ACTION_NIGHT_DISPLAY_SETTINGS, action, ctx)
+    }
+
+    private suspend fun setSensorPrivacy(
+        action: Action.SetSensorPrivacy,
+        ctx: FireContext,
+    ): ActionResult {
+        // `cmd sensor_privacy enable|disable USER_ID SENSOR` — enable blocks
+        // the sensor. Android 16+ takes a name ("microphone"/"camera"); older
+        // builds take the SensorPrivacyManager int id (1 = mic, 2 = camera).
+        val (name, id) =
+            when (action.sensor) {
+                PrivacySensor.MIC -> "microphone" to 1
+                PrivacySensor.CAMERA -> "camera" to 2
+            }
+        val verb = if (action.blocked) "enable" else "disable"
+        // `cmd` can fail under a bare Shizuku exec; `sh -c` gives it a real shell.
+        var result =
+            executeShell(listOf("sh", "-c", "cmd sensor_privacy $verb 0 $name"))
+        if (result is ActionResult.Failure) {
+            result = executeShell(listOf("cmd", "sensor_privacy", verb, "0", name))
+        }
+        if (result is ActionResult.Failure) {
+            result = executeShell(listOf("cmd", "sensor_privacy", verb, "0", id.toString()))
+        }
+        if (result !is ActionResult.ShizukuRequired) return result
+        return openPanel(Settings.ACTION_PRIVACY_SETTINGS, action, ctx)
+    }
+
+    private fun setAlarm(
+        action: Action.SetAlarm,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        return try {
+            val intent =
+                Intent(AlarmClock.ACTION_SET_ALARM).apply {
+                    putExtra(AlarmClock.EXTRA_HOUR, action.hour.coerceIn(0, 23))
+                    putExtra(AlarmClock.EXTRA_MINUTES, action.minute.coerceIn(0, 59))
+                    if (action.label.isNotBlank()) putExtra(AlarmClock.EXTRA_MESSAGE, action.label)
+                    putExtra(AlarmClock.EXTRA_SKIP_UI, action.skipUi)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            context.startActivity(intent)
+            if (action.skipUi) ActionResult.Success else ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setAlarm failed")
+        }
+    }
+
+    private fun setTimerAction(
+        action: Action.SetTimer,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        return try {
+            val intent =
+                Intent(AlarmClock.ACTION_SET_TIMER).apply {
+                    putExtra(AlarmClock.EXTRA_LENGTH, action.seconds.coerceAtLeast(1).toString())
+                    if (action.label.isNotBlank()) putExtra(AlarmClock.EXTRA_MESSAGE, action.label)
+                    putExtra(AlarmClock.EXTRA_SKIP_UI, action.skipUi)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            context.startActivity(intent)
+            if (action.skipUi) ActionResult.Success else ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "setTimer failed")
+        }
+    }
+
+    private fun openClock(
+        action: Action.OpenClock,
+        ctx: FireContext,
+    ): ActionResult {
+        deferIfLocked(action, ctx)?.let { return it }
+        val intentAction =
+            when (action.section) {
+                ClockSection.ALARMS -> AlarmClock.ACTION_SHOW_ALARMS
+                ClockSection.TIMERS -> AlarmClock.ACTION_SHOW_TIMERS
+            }
+        return try {
+            context.startActivity(Intent(intentAction).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            ActionResult.NeedsUserAction
+        } catch (e: ActivityNotFoundException) {
+            ActionResult.Unsupported
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "openClock failed")
         }
     }
 
@@ -1254,6 +1544,7 @@ class RealActionExecutor(
             shellFactory: PrivilegedShellFactory? = null,
             glyphProvider: NothingGlyphProvider? = null,
             glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
+            pendingUnlockStore: PendingUnlockStore? = null,
         ): RealActionExecutor =
             RealActionExecutor(
                 context = context.applicationContext,
@@ -1268,6 +1559,7 @@ class RealActionExecutor(
                 shellFactory = shellFactory,
                 glyphProvider = glyphProvider,
                 glyphMatrixProvider = glyphMatrixProvider,
+                pendingUnlockStore = pendingUnlockStore,
             )
     }
 }

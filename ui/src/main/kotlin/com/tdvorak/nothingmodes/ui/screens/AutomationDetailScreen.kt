@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -69,6 +70,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingStatusDot
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,9 +86,15 @@ class AutomationDetailViewModel
     constructor(
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
         private val store: AutomationStore,
+        db: com.tdvorak.nothingmodes.data.NothingModesDatabase,
     ) : ViewModel() {
         private val _automation = MutableStateFlow<Automation?>(null)
         val automation: StateFlow<Automation?> = _automation.asStateFlow()
+
+        private val auditDao = db.auditDao()
+
+        private val _recentEvents = MutableStateFlow<List<AuditEntry>>(emptyList())
+        val recentEvents: StateFlow<List<AuditEntry>> = _recentEvents.asStateFlow()
 
         fun runNow() {
             val current = _automation.value ?: return
@@ -105,6 +113,20 @@ class AutomationDetailViewModel
                         com.tdvorak.nothingmodes.engine.model
                             .AutomationId(id),
                     )
+            }
+            viewModelScope.launch {
+                auditDao.observeForAutomation(id, limit = 6).collect { entities ->
+                    _recentEvents.value =
+                        entities.map {
+                            AuditEntry(
+                                automationId = it.automationId,
+                                kind = it.kind,
+                                timestamp = it.atMillis,
+                                detail = it.detail,
+                                latencyMillis = it.latencyMillis,
+                            )
+                        }
+                }
             }
         }
 
@@ -276,6 +298,7 @@ fun AutomationDetailScreen(
     automationId: String,
     onBack: () -> Unit,
     onEdit: () -> Unit = {},
+    onGraph: () -> Unit = {},
     viewModel: AutomationDetailViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(automationId) { viewModel.load(automationId) }
@@ -283,9 +306,11 @@ fun AutomationDetailScreen(
     val shareOpen by viewModel.shareOpen.collectAsState()
     val sharing by viewModel.sharing.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    val recentEvents by viewModel.recentEvents.collectAsState()
     var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
     val appLabel = rememberAppLabelResolver()
     val appIconResolver = rememberAppIconResolver()
+    val units = rememberUnits()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -298,6 +323,7 @@ fun AutomationDetailScreen(
                         TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
                         TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
+                        TopBarAction("Graph", icon = Icons.Filled.AccountTree, onClick = onGraph),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
                         TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
                     ),
@@ -397,7 +423,12 @@ fun AutomationDetailScreen(
                             NothingStatusDot(color = NothingColors.accent, size = 6f)
                             Spacer(modifier = Modifier.width(NothingSpacing.sm))
                             Text(
-                                text = "DISABLED — open the editor to enable.",
+                                text =
+                                    if (data.status == AutomationStatus.NEEDS_REVIEW) {
+                                        "SETUP REQUIRED — this shared template had private values removed. Fill them in, then enable."
+                                    } else {
+                                        "DISABLED — open the editor to enable."
+                                    },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = NothingColors.accent,
                                 fontFamily = NothingFonts.mono(),
@@ -411,7 +442,7 @@ fun AutomationDetailScreen(
                 NothingCardLarge {
                     NothingSectionHeader(text = "If")
                     NothingListRow(
-                        title = triggerDescription(data.trigger, appLabel),
+                        title = triggerDescription(data.trigger, units, appLabel),
                         subtitle = "Tap to reconfigure",
                         onClick = onEdit,
                         leading = {
@@ -451,7 +482,7 @@ fun AutomationDetailScreen(
                         conditionRows.forEach { condition ->
                             NothingDivider()
                             NothingListRow(
-                                title = conditionDescription(condition),
+                                title = conditionDescription(condition, units),
                                 subtitle = "Must hold while the mode runs",
                                 onClick = onEdit,
                                 leading = {
@@ -579,6 +610,38 @@ fun AutomationDetailScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (recentEvents.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.xl))
+
+                    NothingCardLarge {
+                        NothingSectionHeader(text = "Recent activity")
+                        recentEvents.forEachIndexed { index, entry ->
+                            if (index > 0) NothingDivider()
+                            val isFailure = entry.kind == "ACTION_FAILED" || entry.kind == "ERROR"
+                            NothingListRow(
+                                title = auditKindLabel(entry.kind),
+                                titleColor = if (isFailure) NothingColors.accent else null,
+                                subtitle =
+                                    (if (entry.detail.isNotEmpty()) "${entry.detail} · " else "") +
+                                        units.formatTimestamp(entry.timestamp),
+                                trailing = {
+                                    Text(
+                                        text = units.formatTimestamp(entry.timestamp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color =
+                                            if (isFailure) {
+                                                NothingColors.accent
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                        fontFamily = NothingFonts.mono(),
+                                    )
+                                },
+                            )
                         }
                     }
                 }

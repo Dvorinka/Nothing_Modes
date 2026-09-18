@@ -191,6 +191,7 @@ object ModeExplainer {
             is Action.SetBrightness -> "set brightness to ${action.level}"
             is Action.SetAutoBrightness -> "set auto brightness ${if (action.on) "on" else "off"}"
             is Action.SetExtraDim -> "set extra dim ${if (action.on) "on" else "off"}"
+            is Action.SetUltraDim -> if (action.percent <= 0) "turn off ultra dim overlay" else "dim the screen ${action.percent}% with an overlay"
             is Action.SetScreenTimeout -> "set screen timeout to ${action.timeoutMs}ms"
             is Action.SetWallpaper -> "set wallpaper on ${action.which} from ${action.uri}"
             is Action.SetGlyph ->
@@ -228,6 +229,16 @@ object ModeExplainer {
             is Action.SetAlwaysOnDisplay -> "set AOD to ${action.mode.name.lowercase()}"
             is Action.SetStayAwake -> "set stay-awake-while-charging ${if (action.on) "on" else "off"}"
             is Action.TakeScreenshot -> "take a screenshot" + if (action.force) " (forced)" else ""
+            is Action.SetFontScale -> "set font scale to ${(action.scale * 100).toInt()}%"
+            is Action.SetNightLight -> "turn night light ${if (action.on) "on" else "off"}"
+            is Action.SetColorInversion -> "turn color inversion ${if (action.on) "on" else "off"}"
+            is Action.SetDaltonizer -> "turn color correction ${if (action.on) "on" else "off"}"
+            is Action.SetSensorPrivacy ->
+                "${if (action.blocked) "block" else "unblock"} the ${action.sensor.name.lowercase()} sensor"
+            is Action.SetOneHandedMode -> "turn one-handed mode ${if (action.on) "on" else "off"}"
+            is Action.SetAlarm -> "set an alarm for %02d:%02d".format(action.hour, action.minute)
+            is Action.SetTimer -> "start a ${action.seconds}s timer"
+            is Action.OpenClock -> "open the clock app (${action.section.name.lowercase()})"
             is Action.Group -> "group '${action.name}': " + action.actions.joinToString(", ") { explainAction(it) }
         }
 

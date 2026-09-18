@@ -13,8 +13,11 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.automation.notification.ModeNotificationHelper
+import com.tdvorak.nothingmodes.automation.pending.PendingUnlockDrain
+import com.tdvorak.nothingmodes.automation.pending.UnlockNotifier
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationScheduler
+import com.tdvorak.nothingmodes.capabilities.PendingUnlockStore
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.ChargerSource
@@ -26,6 +29,7 @@ import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.isOneShot
 import com.tdvorak.nothingmodes.engine.model.EngineJson
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
+import com.tdvorak.nothingmodes.engine.runtime.ActionResult
 import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
@@ -51,6 +55,10 @@ class AutomationService : Service() {
     @Inject lateinit var scheduler: AutomationScheduler
 
     @Inject lateinit var store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+
+    @Inject lateinit var pendingUnlockStore: PendingUnlockStore
+
+    @Inject lateinit var actionExecutor: com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeJobs = mutableSetOf<Job>()
@@ -270,6 +278,27 @@ class AutomationService : Service() {
 
     private fun handleUnlocked() {
         dispatchEvent(TriggerEvent.DeviceUnlockedEvent(eventId = "unlock:${System.currentTimeMillis()}"))
+        drainPendingAfterUnlock()
+    }
+
+    /**
+     * Replay actions queued behind the keyguard. With an overlay grant the
+     * system exempts us from background-activity-launch limits, so the drain
+     * runs right here. Without it, only a notification can surface the work —
+     * post a heads-up the user can tap to run the queue.
+     */
+    private fun drainPendingAfterUnlock() {
+        if (!pendingUnlockStore.hasPending()) return
+        if (android.provider.Settings.canDrawOverlays(this)) {
+            UnlockNotifier.cancel(this)
+            trackJob(
+                scope.launch {
+                    PendingUnlockDrain.run(pendingUnlockStore, actionExecutor)
+                },
+            )
+        } else {
+            UnlockNotifier.notifyPending(this, null, pendingUnlockStore.pending().size)
+        }
     }
 
     private fun handleScreenState(intent: Intent) {
@@ -560,6 +589,19 @@ class AutomationService : Service() {
                         } else {
                             helper.postOnTrigger(outcome.automation, outcome.results)
                         }
+                    }
+                    val deferred =
+                        outcomes.sumOf { outcome ->
+                            outcome.results.count { it is ActionResult.DeferredUntilUnlock }
+                        }
+                    if (deferred > 0) {
+                        val name =
+                            outcomes
+                                .firstOrNull { o ->
+                                    o.results.any { it is ActionResult.DeferredUntilUnlock }
+                                }?.automation
+                                ?.name
+                        UnlockNotifier.notifyPending(this@AutomationService, name, deferred)
                     }
                 } finally {
                     cancelProgressNotification(progress)

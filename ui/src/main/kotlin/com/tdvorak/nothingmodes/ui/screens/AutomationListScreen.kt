@@ -94,6 +94,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import com.tdvorak.nothingmodes.ui.theme.TopBarAction
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.tdvorak.nothingmodes.ui.R
@@ -288,7 +289,8 @@ class AutomationListViewModel
             viewModelScope.launch {
                 val ids = _selected.value.toList()
                 if (ids.isEmpty()) return@launch
-                val result = withContext(Dispatchers.IO) { importExportService.export(ids) }
+                // File export = local backup — keep every field.
+                val result = withContext(Dispatchers.IO) { importExportService.exportBackup(ids) }
                 _exportReady.value = result.json
                 _selected.value = emptySet()
             }
@@ -332,10 +334,17 @@ class AutomationListViewModel
             viewModelScope.launch {
                 // Surface compatibility warnings before the write, not after.
                 val preview = importExportService.preview(json)
-                _importWarnings.value =
+                val capWarnings =
                     preview.requiredCapabilities
                         .mapNotNull { CapabilityLabels.describe(it).ifBlank { null } }
+                // Scrubbed private fields need the importer's own values —
+                // name them so the template isn't silently non-functional.
+                val setupWarnings =
+                    preview.setupRequirements.values
+                        .flatten()
                         .distinct()
+                        .map { "$it — fill it in or the mode won't work" }
+                _importWarnings.value = (capWarnings + setupWarnings).distinct()
                 _importResult.value = importExportService.import(json)
                 load()
                 WidgetRefreshHelper.refresh(context)
@@ -728,6 +737,7 @@ private fun ModeTile(
         }
     }
     val appLabel = rememberAppLabelResolver()
+    val units = rememberUnits()
     val iconTextColor = MaterialTheme.colorScheme.onSurface
     val borderColor =
         when {
@@ -754,7 +764,7 @@ private fun ModeTile(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NothingIconCircle(size = 44f) {
+                NothingIconCircle(size = 44f, accent = isActive) {
                     if (automation.icon.isNotBlank()) {
                         Icon(
                             imageVector = iconForName(automation.icon),
@@ -774,27 +784,6 @@ private fun ModeTile(
                             fontFamily = GeistSans,
                         )
                     }
-                }
-
-                if (isActive) {
-                    Text(
-                        text = "ACTIVE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.mono(),
-                        letterSpacing = 1.0.sp,
-                        modifier = Modifier.padding(end = NothingSpacing.sm),
-                    )
-                } else if (isFiringSoon && nextFireAt != null) {
-                    val minutes = ((nextFireAt - System.currentTimeMillis()) / 60_000).toInt().coerceAtLeast(1)
-                    Text(
-                        text = "IN $minutes MIN",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.mono(),
-                        letterSpacing = 1.0.sp,
-                        modifier = Modifier.padding(end = NothingSpacing.sm),
-                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -830,7 +819,24 @@ private fun ModeTile(
             )
 
             NothingLabel(
-                text = "Mode",
+                text =
+                    when {
+                        isActive -> "Mode · Active"
+                        isFiringSoon && nextFireAt != null -> {
+                            val minutes =
+                                ((nextFireAt - System.currentTimeMillis()) / 60_000)
+                                    .toInt()
+                                    .coerceAtLeast(1)
+                            "Mode · In $minutes min"
+                        }
+                        else -> "Mode"
+                    },
+                color =
+                    if (isActive || isFiringSoon) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 modifier = Modifier.padding(top = NothingSpacing.xs),
             )
 
@@ -842,10 +848,18 @@ private fun ModeTile(
                 )
             }
 
+            if (automation.status == AutomationStatus.NEEDS_REVIEW) {
+                NothingLabel(
+                    text = "Needs setup",
+                    color = NothingColors.accent,
+                    modifier = Modifier.padding(top = NothingSpacing.xs),
+                )
+            }
+
             Spacer(modifier = Modifier.height(NothingSpacing.md))
 
             Text(
-                text = triggerDescription(automation.trigger, appLabel),
+                text = triggerDescription(automation.trigger, units, appLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -854,7 +868,7 @@ private fun ModeTile(
             val onlyIf = flattenConditions(automation.conditions)
             if (onlyIf.isNotEmpty()) {
                 Text(
-                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it) },
+                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it, units) },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

@@ -105,6 +105,7 @@ private fun iconFor(id: String): ImageVector =
 
         CapabilityIds.TRIGGER_CALENDAR_EVENT -> Icons.Outlined.CalendarMonth
         CapabilityIds.ACTION_LOCK_SCREEN -> Icons.Outlined.Lock
+        CapabilityIds.ACTION_SET_ULTRA_DIM -> Icons.Outlined.PhonelinkSetup
         CapabilityIds.ACTION_SET_WIFI -> Icons.Outlined.Wifi
         CapabilityIds.ACTION_SET_BLUETOOTH -> Icons.Outlined.Bluetooth
         CapabilityIds.ACTION_SET_FLASHLIGHT -> Icons.Outlined.FlashlightOn
@@ -184,6 +185,7 @@ private fun fixLabelFor(
 
         CapabilityIds.TRIGGER_CALENDAR_EVENT -> "Allow calendar"
         CapabilityIds.ACTION_LOCK_SCREEN -> "Enable device admin"
+        CapabilityIds.ACTION_SET_ULTRA_DIM -> "Allow display over other apps"
         // Missing hardware can't be fixed in settings — no button.
         CapabilityIds.ACTION_SET_WIFI -> null
         CapabilityIds.ACTION_SET_BLUETOOTH -> null
@@ -294,6 +296,15 @@ private fun openFixFor(
 
         CapabilityIds.ACTION_LOCK_SCREEN ->
             runCatching { context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS)) }
+        CapabilityIds.ACTION_SET_ULTRA_DIM ->
+            runCatching {
+                context.startActivity(
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    },
+                )
+            }
         CapabilityIds.ACTION_SET_WIFI ->
             runCatching { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
         CapabilityIds.ACTION_SET_BLUETOOTH ->

@@ -100,10 +100,12 @@ import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingToggle
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.DisplayUnits
 import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import androidx.compose.ui.res.pluralStringResource
@@ -289,6 +291,7 @@ fun TriggerConfigScreen(
     var trigger by remember { mutableStateOf(initial) }
     var showTypePicker by remember { mutableStateOf(false) }
     var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    val units = rememberUnits()
     LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
 
     Scaffold(
@@ -345,7 +348,7 @@ fun TriggerConfigScreen(
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = (currentType?.label ?: triggerTypeLabel(trigger)).uppercase(),
+                                    text = (currentType?.label ?: triggerTypeLabel(trigger, units)).uppercase(),
                                     style = MaterialTheme.typography.headlineMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontFamily = Doto,
@@ -403,9 +406,12 @@ fun TriggerConfigScreen(
 }
 
 /** Short label for the currently selected trigger type. */
-private fun triggerTypeLabel(trigger: Trigger): String =
+private fun triggerTypeLabel(
+    trigger: Trigger,
+    units: DisplayUnits,
+): String =
     triggerTypes().firstOrNull { it.trigger::class == trigger::class }?.label
-        ?: triggerDescription(trigger)
+        ?: triggerDescription(trigger, units)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -515,6 +521,7 @@ private fun TriggerConfigContent(
     caps: DeviceCapabilities,
 ) {
     val appLabel = rememberAppLabelResolver()
+    val units = rememberUnits()
     when (val t = trigger) {
         is Trigger.Time ->
             Column {
@@ -557,7 +564,7 @@ private fun TriggerConfigContent(
             // Parameterless triggers get a plain-English explainer so the
             // config sheet isn't an empty card with one word on it.
             Text(
-                text = triggerDescription(trigger, appLabel),
+                text = triggerDescription(trigger, units, appLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
@@ -1264,20 +1271,6 @@ private fun WifiConnectedContent(
     }
 }
 
-private fun triggerCapabilityHint(
-    trigger: Trigger,
-    caps: DeviceCapabilities,
-): String {
-    val static = triggerDescription(trigger)
-    val required = CapabilityRequirements.derive(trigger, emptyList())
-    val resolution = CapabilityResolver(caps).resolve("", required)
-    return if (!resolution.canRun) {
-        resolution.missingReasons.values.firstOrNull() ?: static
-    } else {
-        ""
-    }
-}
-
 /** SSID of the connected Wi-Fi network, or null. Needs location permission. */
 private fun currentSsid(context: android.content.Context): String? =
     runCatching {
@@ -1314,6 +1307,7 @@ private fun GeofenceContent(
     trigger: Trigger.Geofence,
     onUpdate: (Trigger.Geofence) -> Unit,
 ) {
+    val units = rememberUnits()
     Column {
         PermissionGate(
             permissions =
@@ -1349,12 +1343,21 @@ private fun GeofenceContent(
 
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingInput(
-            value = trigger.radiusM.toString(),
-            onValueChange = { onUpdate(trigger.copy(radiusM = it.toDoubleOrNull() ?: trigger.radiusM)) },
-            label = "Radius (m)",
+            value = units.distanceToInput(trigger.radiusM),
+            onValueChange = {
+                onUpdate(
+                    trigger.copy(radiusM = units.inputToDistance(it) ?: trigger.radiusM),
+                )
+            },
+            label = "Radius (${units.distanceUnitShort})",
             infoText =
-                "How far from the pin the fence reaches. 100 m is a good start — " +
-                    "below ~50 m GPS jitter can fire it accidentally, especially indoors.",
+                if (units.miles) {
+                    "How far from the pin the fence reaches. 300 ft is a good start — " +
+                        "below ~150 ft GPS jitter can fire it accidentally, especially indoors."
+                } else {
+                    "How far from the pin the fence reaches. 100 m is a good start — " +
+                        "below ~50 m GPS jitter can fire it accidentally, especially indoors."
+                },
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingEnumSelector(

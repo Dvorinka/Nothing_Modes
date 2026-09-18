@@ -57,6 +57,7 @@ import com.tdvorak.nothingmodes.ui.util.capabilityGaps
 import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
 import com.tdvorak.nothingmodes.ui.util.isHardwareBlocked
 import com.tdvorak.nothingmodes.ui.util.missingCapabilityHint
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import com.tdvorak.nothingmodes.ui.util.requirementBadges
 import com.tdvorak.nothingmodes.ui.util.popBackStackOr
 import androidx.compose.ui.res.pluralStringResource
@@ -85,6 +86,7 @@ fun ConditionCatalogScreen(navController: NavController) {
     var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
     LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
     val resolver = remember(caps) { CapabilityResolver(caps) }
+    val units = rememberUnits()
 
     val items =
         remember {
@@ -357,7 +359,7 @@ fun ConditionCatalogScreen(navController: NavController) {
                                 val item = items.find { it.condition::class == condition::class }
                                 NothingListRow(
                                     title = item?.label ?: "Condition",
-                                    subtitle = conditionDescription(condition),
+                                    subtitle = conditionDescription(condition, units),
                                     onClick = {
                                         editingIndex = index
                                         configCondition = condition

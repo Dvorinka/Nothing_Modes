@@ -41,6 +41,7 @@ class AndroidSettingReader(
                 readGlobalSettingAsString(key)
             "reduce_bright_colors_activated" ->
                 readSecureSettingAsString(key)
+            "ultra_dim" -> UltraDimController.percent.toString()
             // Refresh-rate keys moved to the secure table — match the write order.
             "peak_refresh_rate", "min_refresh_rate" ->
                 readSecureSettingAsString(key) ?: readSystemSettingAsString(key)

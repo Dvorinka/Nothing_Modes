@@ -55,6 +55,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingLabel
 import com.tdvorak.nothingmodes.ui.theme.NothingPillButton
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -75,6 +76,7 @@ fun NothingTimeField(
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
+    val units = rememberUnits()
 
     val (h, m) =
         remember(value) {
@@ -87,7 +89,7 @@ fun NothingTimeField(
     val now = remember { java.time.LocalTime.now() }
     val displayHour = h ?: now.hour
     val displayMinute = m ?: now.minute
-    val display = "%02d:%02d".format(displayHour, displayMinute)
+    val display = units.formatLocalTime("%02d:%02d".format(displayHour, displayMinute))
 
     FieldRow(
         label = label,
@@ -123,6 +125,7 @@ fun NothingTimeField(
         NothingTimePickerDialog(
             initialHour = displayHour,
             initialMinute = displayMinute,
+            use24Hour = !units.clock12h,
             onDismiss = { open = false },
             onConfirm = { hour, minute ->
                 onValueChange("%02d:%02d".format(hour, minute))
@@ -141,6 +144,7 @@ private const val WHEEL_VISIBLE_COUNT = 5
 fun NothingTimePickerDialog(
     initialHour: Int,
     initialMinute: Int,
+    use24Hour: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (hour: Int, minute: Int) -> Unit,
 ) {
@@ -163,12 +167,27 @@ fun NothingTimePickerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    WheelColumn(
-                        count = 24,
-                        initial = selectedHour,
-                        onSelected = { selectedHour = it },
-                        modifier = Modifier.weight(1f),
-                    )
+                    if (use24Hour) {
+                        WheelColumn(
+                            count = 24,
+                            initial = selectedHour,
+                            onSelected = { selectedHour = it },
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        // Wheel order is 12, 1..11 — index i shows ((i + 11) % 12) + 1.
+                        WheelColumn(
+                            count = 12,
+                            initial = selectedHour % 12,
+                            onSelected = { index ->
+                                val hour12 = ((index + 11) % 12) + 1
+                                val pmOffset = if (selectedHour >= 12) 12 else 0
+                                selectedHour = hour12 % 12 + pmOffset
+                            },
+                            label = { "%02d".format((it + 11) % 12 + 1) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     Text(
                         text = ":",
                         style = MaterialTheme.typography.displaySmall,
@@ -181,6 +200,19 @@ fun NothingTimePickerDialog(
                         onSelected = { selectedMinute = it },
                         modifier = Modifier.weight(1f),
                     )
+                    if (!use24Hour) {
+                        Spacer(modifier = Modifier.width(NothingSpacing.sm))
+                        WheelColumn(
+                            count = 2,
+                            initial = if (selectedHour >= 12) 1 else 0,
+                            onSelected = { index ->
+                                val pm = index == 1
+                                selectedHour = selectedHour % 12 + if (pm) 12 else 0
+                            },
+                            label = { if (it == 0) "AM" else "PM" },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
@@ -201,6 +233,7 @@ private fun WheelColumn(
     initial: Int,
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    label: (Int) -> String = { "%02d".format(it) },
 ) {
     // jarvis: near-infinite list (Int.MAX_VALUE rows). The selected value is the
     // item nearest the viewport center — read straight from layoutInfo, so no
@@ -275,7 +308,7 @@ private fun WheelColumn(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "%02d".format(value),
+                        text = label(value),
                         style = MaterialTheme.typography.headlineSmall,
                         color =
                             if (isSelected) {
@@ -301,8 +334,15 @@ fun NothingDateField(
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
-    val formatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH) }
-    val display = remember(date) { date.format(formatter) }
+    val units = rememberUnits()
+    val formatter =
+        remember(units) {
+            DateTimeFormatter.ofPattern(
+                if (units.clock12h) "MMM d, yyyy" else "dd MMM yyyy",
+                Locale.ENGLISH,
+            )
+        }
+    val display = remember(date, formatter) { date.format(formatter) }
 
     FieldRow(
         label = label,

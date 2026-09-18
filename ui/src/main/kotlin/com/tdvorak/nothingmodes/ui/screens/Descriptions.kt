@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.ChargerSource
 import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.ui.util.DisplayUnits
 
 /** Flattens a stored condition tree into display rows: `And` unwraps to its
  *  members (nested `Or`/`Not` stay as single rows describing themselves). */
@@ -15,7 +16,10 @@ fun flattenConditions(condition: Condition?): List<Condition> =
         else -> listOf(condition)
     }
 
-fun cronToSummary(cron: String): String {
+fun cronToSummary(
+    cron: String,
+    units: DisplayUnits,
+): String {
     val parts = cron.split(" ").filter { it.isNotBlank() }
     if (parts.size < 5) return cron
 
@@ -27,7 +31,10 @@ fun cronToSummary(cron: String): String {
 
     if (hour == "*" || minute == "*") return "Every minute"
 
-    val time = "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}"
+    val time =
+        units.formatLocalTime(
+            "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}",
+        )
     val dayLabel =
         when {
             dayOfMonth != "*" && month != "*" -> {
@@ -180,17 +187,19 @@ fun triggerTypeDescription(trigger: Trigger): String =
 
 fun triggerDescription(
     trigger: Trigger,
+    units: DisplayUnits,
     appLabel: (String) -> String = { it },
 ): String =
     (
         when (trigger) {
             is Trigger.Time -> {
-                trigger.at?.let { "Once · ${it.take(16).replace("T", " ")}" }
-                    ?: trigger.cron?.let { cronToSummary(it) }
+                trigger.at?.let { "Once · ${units.formatIsoMinute(it)}" }
+                    ?: trigger.cron?.let { cronToSummary(it, units) }
                     ?: trigger.afterMs?.let { "In ${it / 1000}s" }
                     ?: "Time-based"
             }
-            is Trigger.TimeWindow -> "${trigger.startLocal}–${trigger.endLocal}"
+            is Trigger.TimeWindow ->
+                "${units.formatLocalTime(trigger.startLocal)}–${units.formatLocalTime(trigger.endLocal)}"
             is Trigger.Immediate -> "Immediate"
             is Trigger.Notification -> "Notification from ${appLabel(trigger.pkg)}"
             is Trigger.PhoneState -> "Phone: ${trigger.event.name.enumLabel()}"
@@ -201,7 +210,7 @@ fun triggerDescription(
             is Trigger.AppOpened -> "App opened: ${appLabel(trigger.pkg)}"
             is Trigger.Geofence ->
                 "Area · ${String.format("%.4f", trigger.lat)}, " +
-                    "${String.format("%.4f", trigger.lng)} · ${trigger.radiusM.toInt()} m"
+                    "${String.format("%.4f", trigger.lng)} · ${units.formatDistance(trigger.radiusM)}"
             is Trigger.Manual -> "Manual"
             is Trigger.BluetoothDevice -> "Bluetooth device ${trigger.state.name.enumLabel().lowercase()}${trigger.deviceName?.let { ": $it" } ?: ""}"
             is Trigger.WifiConnected -> "Wi-Fi connected${trigger.ssid?.let { ": $it" } ?: ""}"
@@ -278,11 +287,38 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetStayAwake ->
             "Keeps the screen on while the device is charging. Needs Shizuku."
 
+        is Action.SetNightLight ->
+            "Turns Night Light on or off, optionally setting warmth. Silent toggling needs Shizuku; without it the Night Light settings page opens."
+
+        is Action.SetColorInversion ->
+            "Inverts every color on the display. Silent toggling needs Shizuku; without it the accessibility settings page opens."
+
+        is Action.SetDaltonizer ->
+            "Turns color correction (daltonizer) on or off. Silent toggling needs Shizuku; without it the accessibility settings page opens."
+
+        is Action.SetOneHandedMode ->
+            "Turns one-handed mode on or off. Silent toggling needs Shizuku; without it the display settings page opens."
+
+        is Action.SetSensorPrivacy ->
+            "Blocks or unblocks the microphone or camera device-wide. Needs Shizuku; without it the privacy settings page opens."
+
+        is Action.SetFontScale ->
+            "Needs the Write Settings permission (Settings → Permissions)."
+
+        is Action.SetAlarm, is Action.SetTimer ->
+            "Hands the request to the default clock app. While locked, it runs right after you unlock."
+
+        is Action.OpenClock ->
+            "Opens the default clock app. While locked, it runs right after you unlock."
+
         is Action.SetBrightness, is Action.SetAutoBrightness, is Action.SetExtraDim,
         is Action.SetScreenTimeout, is Action.SetAutoRotate, is Action.SetScreenRotation,
         is Action.SetRefreshRate, is Action.SetDarkMode,
         ->
             "Needs the Write Settings permission (Settings → Permissions)."
+
+        is Action.SetUltraDim ->
+            "Dims the screen below the minimum with a dark overlay layer. Needs 'Display over other apps' (Settings → Permissions)."
 
         is Action.SetDnd -> "Needs Do-Not-Disturb access (Settings → Permissions)."
         is Action.ShowNotification -> "Needs the notification permission."
@@ -313,6 +349,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetBrightness -> "Sets screen brightness."
         is Action.SetAutoBrightness -> "Toggles adaptive brightness."
         is Action.SetExtraDim -> "Dims the display below the usual minimum."
+        is Action.SetUltraDim -> "Dims the display below the hardware minimum."
         is Action.SetScreenTimeout -> "Sets the screen-off timeout."
         is Action.SetAutoRotate -> "Toggles auto-rotation."
         is Action.SetScreenRotation -> "Forces a screen orientation."
@@ -349,6 +386,15 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetBatterySaver -> "Turns battery saver on or off."
         is Action.SetAlwaysOnDisplay -> "Turns Always-on Display on or off."
         is Action.SetLocationMode -> "Changes the device location mode."
+        is Action.SetNightLight -> "Turns Night Light on or off."
+        is Action.SetColorInversion -> "Inverts every color on the display."
+        is Action.SetDaltonizer -> "Turns color correction on or off."
+        is Action.SetOneHandedMode -> "Turns one-handed mode on or off."
+        is Action.SetSensorPrivacy -> "Blocks or unblocks a privacy sensor."
+        is Action.SetFontScale -> "Sets the system font scale."
+        is Action.SetAlarm -> "Creates an alarm in the clock app."
+        is Action.SetTimer -> "Starts a countdown timer."
+        is Action.OpenClock -> "Opens the clock app."
         is Action.SetFlashlight -> "Toggles the camera flashlight."
         is Action.SetRinger -> "Changes how calls and notifications ring."
         is Action.SetVolume -> "Adjusts the selected volume stream."

@@ -32,6 +32,7 @@ object ActionTypeIds {
     const val SET_BRIGHTNESS = "set_brightness"
     const val SET_AUTO_BRIGHTNESS = "set_auto_brightness"
     const val SET_EXTRA_DIM = "set_extra_dim"
+    const val SET_ULTRA_DIM = "set_ultra_dim"
     const val SET_SCREEN_TIMEOUT = "set_screen_timeout"
     const val SET_WALLPAPER = "set_wallpaper"
     const val SET_GLYPH = "set_glyph"
@@ -68,6 +69,15 @@ object ActionTypeIds {
     const val SET_AOD = "set_aod"
     const val TAKE_SCREENSHOT = "take_screenshot"
     const val SET_STAY_AWAKE = "set_stay_awake"
+    const val SET_FONT_SCALE = "set_font_scale"
+    const val SET_NIGHT_LIGHT = "set_night_light"
+    const val SET_COLOR_INVERSION = "set_color_inversion"
+    const val SET_DALTONIZER = "set_daltonizer"
+    const val SET_SENSOR_PRIVACY = "set_sensor_privacy"
+    const val SET_ONE_HANDED_MODE = "set_one_handed_mode"
+    const val SET_ALARM = "set_alarm"
+    const val SET_TIMER = "set_timer"
+    const val OPEN_CLOCK = "open_clock"
     const val GROUP = "group"
 }
 
@@ -197,6 +207,19 @@ sealed interface Action {
     data class SetExtraDim(
         val on: Boolean,
         val restore: Boolean = false,
+    ) : Action
+
+    /**
+     * Ultra-dim overlay: draws a black layer over the whole screen to push
+     * brightness below the hardware minimum. percent = 0 turns it off,
+     * 1-100 sets dimming intensity. Requires "display over other apps".
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_ULTRA_DIM)
+    data class SetUltraDim(
+        val percent: Int,
+        /** Hide the overlay when a windowed mode ends (restores pre-run level). */
+        val restore: Boolean = true,
     ) : Action
 
     /** Screen timeout in milliseconds. restore = restore previous value. */
@@ -497,6 +520,91 @@ sealed interface Action {
         val force: Boolean = false,
     ) : Action
 
+    // ── Extended actions (settings & clock batch) ──
+
+    /** Set system font scale (0.85–1.30). Public path needs WRITE_SETTINGS. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_FONT_SCALE)
+    data class SetFontScale(
+        val scale: Float,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
+    /** Toggle Night Light; optional color temperature in Kelvin. Requires Shizuku. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_NIGHT_LIGHT)
+    data class SetNightLight(
+        val on: Boolean,
+        /** Optional warmth in Kelvin (~2000–4500); null leaves the user's setting. */
+        val temperature: Int? = null,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
+    /** Toggle accessibility colour inversion. Requires Shizuku. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_COLOR_INVERSION)
+    data class SetColorInversion(
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
+    /** Toggle accessibility colour correction (daltonizer). Requires Shizuku. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_DALTONIZER)
+    data class SetDaltonizer(
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
+    /** Block or unblock a privacy sensor (mic/camera). Requires Shizuku. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_SENSOR_PRIVACY)
+    data class SetSensorPrivacy(
+        val sensor: PrivacySensor,
+        val blocked: Boolean,
+    ) : Action
+
+    /** Toggle one-handed mode. Requires Shizuku. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_ONE_HANDED_MODE)
+    data class SetOneHandedMode(
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
+    /** Create an alarm in the default clock app. SET_ALARM permission (install-grant). */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_ALARM)
+    data class SetAlarm(
+        val hour: Int,
+        val minute: Int,
+        val label: String = "",
+        /** Skip the clock app's confirmation UI. */
+        val skipUi: Boolean = true,
+    ) : Action
+
+    /** Start a countdown timer in the default clock app. SET_ALARM permission (install-grant). */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_TIMER)
+    data class SetTimer(
+        val seconds: Int,
+        val label: String = "",
+        /** Skip the clock app's confirmation UI. */
+        val skipUi: Boolean = true,
+    ) : Action
+
+    /** Open the clock app on a given section. */
+    @Serializable
+    @SerialName(ActionTypeIds.OPEN_CLOCK)
+    data class OpenClock(
+        val section: ClockSection = ClockSection.ALARMS,
+    ) : Action
+
     /** A named group of actions that are run together and can be collapsed. */
     @Serializable
     @SerialName(ActionTypeIds.GROUP)
@@ -516,6 +624,14 @@ enum class MediaCommand { PLAY_PAUSE, NEXT, PREVIOUS, STOP }
 
 @Serializable
 enum class LocationMode { HIGH_ACCURACY, BATTERY_SAVING, DEVICE_ONLY, OFF }
+
+/** Sensors guarded by the system privacy toggles (SensorPrivacyManager ids). */
+@Serializable
+enum class PrivacySensor { MIC, CAMERA }
+
+/** Clock app sections reachable through AlarmClock show intents. */
+@Serializable
+enum class ClockSection { ALARMS, TIMERS }
 
 /** Actions that draw on Glyph hardware — used to auto-clear output on mode end. */
 val Action.isGlyphAction: Boolean
@@ -545,6 +661,7 @@ val Action.canRestore: Boolean
             is Action.SetBrightness,
             is Action.SetAutoBrightness,
             is Action.SetExtraDim,
+            is Action.SetUltraDim,
             is Action.SetScreenTimeout,
             is Action.SetDnd,
             is Action.SetVolume,
@@ -569,6 +686,11 @@ val Action.canRestore: Boolean
             is Action.SetGlyph,
             is Action.SetGlyphMatrix,
             is Action.SetGlyphInterface,
+            is Action.SetFontScale,
+            is Action.SetNightLight,
+            is Action.SetColorInversion,
+            is Action.SetDaltonizer,
+            is Action.SetOneHandedMode,
             -> true
             is Action.Group -> actions.any { it.canRestore }
             else -> false
@@ -580,6 +702,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetBrightness -> copy(restore = restore)
         is Action.SetAutoBrightness -> copy(restore = restore)
         is Action.SetExtraDim -> copy(restore = restore)
+        is Action.SetUltraDim -> copy(restore = restore)
         is Action.SetScreenTimeout -> copy(restore = restore)
         is Action.SetDnd -> copy(restore = restore)
         is Action.SetVolume -> copy(restore = restore)
@@ -604,6 +727,11 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetGlyph -> copy(restore = restore)
         is Action.SetGlyphMatrix -> copy(restore = restore)
         is Action.SetGlyphInterface -> copy(restore = restore)
+        is Action.SetFontScale -> copy(restore = restore)
+        is Action.SetNightLight -> copy(restore = restore)
+        is Action.SetColorInversion -> copy(restore = restore)
+        is Action.SetDaltonizer -> copy(restore = restore)
+        is Action.SetOneHandedMode -> copy(restore = restore)
         is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
@@ -615,6 +743,7 @@ val Action.supportsRestore: Boolean
             is Action.SetBrightness -> restore
             is Action.SetAutoBrightness -> restore
             is Action.SetExtraDim -> restore
+            is Action.SetUltraDim -> restore
             is Action.SetScreenTimeout -> restore
             is Action.SetDnd -> restore
             is Action.SetVolume -> restore
@@ -639,6 +768,11 @@ val Action.supportsRestore: Boolean
             is Action.SetRinger -> restore
             is Action.SetStayAwake -> restore
             is Action.SetGlyphInterface -> restore
+            is Action.SetFontScale -> restore
+            is Action.SetNightLight -> restore
+            is Action.SetColorInversion -> restore
+            is Action.SetDaltonizer -> restore
+            is Action.SetOneHandedMode -> restore
             is Action.Group -> actions.any { it.supportsRestore }
             else -> false
         }
@@ -650,6 +784,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetBrightness -> setOf("screen_brightness")
             is Action.SetAutoBrightness -> setOf("screen_brightness_mode")
             is Action.SetExtraDim -> setOf("reduce_bright_colors_activated")
+            is Action.SetUltraDim -> setOf("ultra_dim")
             is Action.SetScreenTimeout -> setOf("screen_off_timeout")
             is Action.SetWallpaper -> setOf("wallpaper_$which")
             is Action.SetDarkMode -> setOf("night_mode")
@@ -661,6 +796,11 @@ val Action.affectedSettings: Set<String>
             is Action.SetBatterySaver -> setOf("low_power")
             is Action.SetAirplaneMode -> setOf("airplane_mode_on")
             is Action.SetDataSaver -> setOf("data_saver")
+            is Action.SetFontScale -> setOf("font_scale")
+            is Action.SetNightLight -> setOf("night_display_activated", "night_display_color_temperature")
+            is Action.SetColorInversion -> setOf("accessibility_display_inversion_enabled")
+            is Action.SetDaltonizer -> setOf("accessibility_display_daltonizer_enabled")
+            is Action.SetOneHandedMode -> setOf("one_handed_mode_enabled")
             is Action.SetRefreshRate -> setOf("peak_refresh_rate", "min_refresh_rate")
             is Action.SetScreenRotation -> setOf("accelerometer_rotation", "user_rotation")
             is Action.SetWifi -> setOf("wifi_enabled")

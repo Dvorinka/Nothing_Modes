@@ -302,6 +302,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_brightness" -> Action.SetBrightness(level)
             "set_auto_brightness" -> Action.SetAutoBrightness(on)
             "set_extra_dim" -> Action.SetExtraDim(on)
+            "set_ultra_dim" -> Action.SetUltraDim(intent.getIntExtra("percent", level.coerceIn(0, 100)))
             "set_screen_timeout" -> Action.SetScreenTimeout(duration)
             "set_wallpaper" ->
                 Action.SetWallpaper(

@@ -38,22 +38,21 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSegmentedBar
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 private const val LOG_PAGE_SIZE = 15
 
 /** User-facing label for an audit kind — raw enum names read as jargon. */
-private fun auditKindLabel(kind: String): String =
+internal fun auditKindLabel(kind: String): String =
     when (kind) {
         "FIRED" -> "Fired"
+        "ACTION_FAILED" -> "Action failed"
         "MODE_ACTIVATED" -> "Mode started"
         "MODE_DEACTIVATED" -> "Mode ended"
         "SUPPRESSED_COOLDOWN" -> "Skipped — cooldown"
@@ -135,7 +134,7 @@ class ExecutionLogViewModel
             val deactivated = entries.count { it.kind == "MODE_DEACTIVATED" }
             val suppressed = entries.count { it.kind == "SUPPRESSED_COOLDOWN" }
             val notMet = entries.count { it.kind == "CONDITIONS_NOT_MET" }
-            val errors = entries.count { it.kind == "ERROR" }
+            val errors = entries.count { it.kind == "ERROR" || it.kind == "ACTION_FAILED" }
             val successful = fired + activated + deactivated
             val rate = if (total > 0) successful.toFloat() / total else 0f
             return ExecutionStats(total, fired, activated, deactivated, suppressed, notMet, errors, rate)
@@ -150,7 +149,7 @@ fun ExecutionLogScreen(
     val entries by viewModel.entries.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val names by viewModel.names.collectAsState()
-    val dateFormat = remember { SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()) }
+    val units = rememberUnits()
     var page by remember { mutableIntStateOf(0) }
     val pageCount = maxOf(1, (entries.size + LOG_PAGE_SIZE - 1) / LOG_PAGE_SIZE)
     val safePage = page.coerceIn(0, pageCount - 1)
@@ -262,7 +261,7 @@ fun ExecutionLogScreen(
                         NothingSectionHeader(text = "Timeline")
                         NothingCard {
                             pageEntries.forEachIndexed { index, entry ->
-                                val isError = entry.kind == "ERROR"
+                                val isError = entry.kind == "ERROR" || entry.kind == "ACTION_FAILED"
                                 val kindColor =
                                     when (entry.kind) {
                                         "FIRED" -> MaterialTheme.colorScheme.primary
@@ -270,7 +269,7 @@ fun ExecutionLogScreen(
                                         "MODE_DEACTIVATED" -> MaterialTheme.colorScheme.onSurfaceVariant
                                         "SUPPRESSED_COOLDOWN" -> MaterialTheme.colorScheme.onSurfaceVariant
                                         "CONDITIONS_NOT_MET" -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        "ERROR" -> NothingColors.accent
+                                        "ERROR", "ACTION_FAILED" -> NothingColors.accent
                                         else -> MaterialTheme.colorScheme.onSurface
                                     }
                                 if (index > 0) NothingDivider()
@@ -299,7 +298,7 @@ fun ExecutionLogScreen(
                                     },
                                     trailing = {
                                         Text(
-                                            text = dateFormat.format(Date(entry.timestamp)),
+                                            text = units.formatTimestamp(entry.timestamp),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = if (isError) NothingColors.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontFamily = NothingFonts.mono(),

@@ -119,12 +119,25 @@ class CapabilityResolver(
             -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_SET_LOCATION_MODE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_SET_STAY_AWAKE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_SET_NIGHT_LIGHT,
+            CapabilityIds.ACTION_SET_COLOR_INVERSION,
+            CapabilityIds.ACTION_SET_DALTONIZER,
+            CapabilityIds.ACTION_SET_SENSOR_PRIVACY,
+            CapabilityIds.ACTION_SET_ONE_HANDED_MODE,
+            -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_SET_FONT_SCALE -> capabilities.hasWriteSettings
+            // AlarmClock intents — SET_ALARM is an install-grant permission.
+            CapabilityIds.ACTION_SET_ALARM,
+            CapabilityIds.ACTION_SET_TIMER,
+            CapabilityIds.ACTION_OPEN_CLOCK,
+            -> true
             CapabilityIds.ACTION_MEDIA_CONTROL -> true
             CapabilityIds.ACTION_SEND_SMS -> capabilities.hasSendSms
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_LOCK_SCREEN -> capabilities.hasActiveDeviceAdmin
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
             CapabilityIds.ACTION_SET_WALLPAPER -> true
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> capabilities.hasOverlayPermission
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -147,6 +160,11 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
             CapabilityIds.ACTION_SET_STAY_AWAKE,
+            CapabilityIds.ACTION_SET_NIGHT_LIGHT,
+            CapabilityIds.ACTION_SET_COLOR_INVERSION,
+            CapabilityIds.ACTION_SET_DALTONIZER,
+            CapabilityIds.ACTION_SET_SENSOR_PRIVACY,
+            CapabilityIds.ACTION_SET_ONE_HANDED_MODE,
             -> "Needs Shizuku — a free companion app that grants extra permissions"
 
             CapabilityIds.ACTION_SET_DND -> "Notification policy access required"
@@ -157,6 +175,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             CapabilityIds.ACTION_SET_AOD,
+            CapabilityIds.ACTION_SET_FONT_SCALE,
             -> "'Modify system settings' permission required"
 
             CapabilityIds.ACTION_SET_GLYPH -> "No Glyph light stripe on this device"
@@ -184,6 +203,7 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification access required — the app can't see media sessions"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification access required"
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> "'Display over other apps' permission required"
             CapabilityIds.ACTION_SET_WALLPAPER -> "Wallpaper permission required"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Needs Shizuku — a free companion app that grants extra permissions"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Needs Shizuku — a free companion app that grants extra permissions"

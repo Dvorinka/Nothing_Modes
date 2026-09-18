@@ -19,6 +19,18 @@ import android.util.Log
  * What we cannot do: `setGlyphMatrixTimeout` over the binder is gated to a
  * first-party allowlist, so timeout/flip settings must go through the system UI.
  */
+/**
+ * Runtime ownership of the interactive toy slot, tracked by
+ * `NothingModesToyService`: the system sends STATUS_START when it binds our
+ * toy onto the matrix and STATUS_END when it hands the lights to something
+ * else. The provider table has no reliable "currently displayed" column,
+ * so we track it ourselves.
+ */
+object GlyphToyState {
+    @Volatile
+    var interactiveActive: Boolean = false
+}
+
 class GlyphToysBridge(
     private val context: Context,
 ) {
@@ -142,13 +154,21 @@ class GlyphToysBridge(
      * True when this app owns the visible Glyph layer — selected as the
      * active toy or configured as the Always-on toy. Nothing arbitrates the
      * matrix: only the owner's frames reach the lights.
+     *
+     * The provider's `is_active` column means "enabled in the carousel",
+     * NOT "currently on the lights" — several toys report is_active=1 at
+     * once. Interactive ownership is tracked by our own toy service via
+     * STATUS_START/STATUS_END; the AOD slot is authoritative via
+     * `is_aod_active`.
      */
-    fun ownsMatrix(): Boolean =
-        runCatching {
+    fun ownsMatrix(): Boolean {
+        if (GlyphToyState.interactiveActive) return true
+        return runCatching {
             listSystemToys().any {
-                it.packageName == context.packageName && (it.isActive || it.isAodActive)
+                it.packageName == context.packageName && it.isAodActive
             }
         }.getOrDefault(false)
+    }
 
     // ── Launchers into the system app ─────────────────────────────────────────
 

@@ -650,13 +650,20 @@ class NothingGlyphMatrixProvider(
         var tick = 0
         musicJob =
             countdownScope.launch {
+                var consecutiveFailures = 0
+                var idleFrameShown = false
                 while (isActive) {
                     if (!audioAnalyzer.isMusicActive) {
-                        // Draw nothing while music is paused.
-                        setFrame(IntArray(matrixSize() * matrixSize()))
-                        delay(200)
+                        // Draw the blank frame once — re-pushing an unchanged
+                        // black frame just floods the glyph service.
+                        if (!idleFrameShown) {
+                            setFrame(IntArray(matrixSize() * matrixSize()))
+                            idleFrameShown = true
+                        }
+                        delay(IDLE_INTERVAL_MS)
                         continue
                     }
+                    idleFrameShown = false
 
                     val size = matrixSize()
                     val wave = audioAnalyzer.getWaveform(size)
@@ -669,8 +676,15 @@ class NothingGlyphMatrixProvider(
                             size = size,
                             tick = tick++,
                         )
-                    if (setFrame(frame) !is GlyphResult.Success) break
-                    delay(30)
+                    if (setFrame(frame) is GlyphResult.Success) {
+                        consecutiveFailures = 0
+                    } else if (++consecutiveFailures >= MAX_FRAME_FAILURES) {
+                        // The glyph service wedges under sustained floods —
+                        // back off entirely instead of hammering a dead one.
+                        Log.w(TAG, "music visualizer stopped after $consecutiveFailures frame failures")
+                        break
+                    }
+                    delay(FRAME_INTERVAL_MS)
                 }
             }
         return GlyphResult.Success
@@ -753,5 +767,12 @@ class NothingGlyphMatrixProvider(
 
     companion object {
         private const val TAG = "NothingGlyphMatrix"
+
+        // ~12 fps. The glyph service is a single binder endpoint shared with
+        // the system — 30+ fps of 625-dot frames visibly janks the device and
+        // can wedge the daemon until the toy is restarted.
+        private const val FRAME_INTERVAL_MS = 80L
+        private const val IDLE_INTERVAL_MS = 400L
+        private const val MAX_FRAME_FAILURES = 3
     }
 }

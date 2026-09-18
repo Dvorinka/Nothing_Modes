@@ -53,6 +53,7 @@ object CapabilityIds {
     const val ACTION_SET_BRIGHTNESS = "action_set_brightness"
     const val ACTION_SET_AUTO_BRIGHTNESS = "action_set_auto_brightness"
     const val ACTION_SET_EXTRA_DIM = "action_set_extra_dim"
+    const val ACTION_SET_ULTRA_DIM = "action_set_ultra_dim"
     const val ACTION_SET_SCREEN_TIMEOUT = "action_set_screen_timeout"
     const val ACTION_SET_WALLPAPER = "action_set_wallpaper"
     const val ACTION_SET_GLYPH = "action_set_glyph"
@@ -88,6 +89,15 @@ object CapabilityIds {
     const val ACTION_TAKE_SCREENSHOT = "action_take_screenshot"
     const val ACTION_SET_STAY_AWAKE = "action_set_stay_awake"
     const val ACTION_SET_GLYPH_INTERFACE = "action_set_glyph_interface"
+    const val ACTION_SET_FONT_SCALE = "action_set_font_scale"
+    const val ACTION_SET_NIGHT_LIGHT = "action_set_night_light"
+    const val ACTION_SET_COLOR_INVERSION = "action_set_color_inversion"
+    const val ACTION_SET_DALTONIZER = "action_set_daltonizer"
+    const val ACTION_SET_SENSOR_PRIVACY = "action_set_sensor_privacy"
+    const val ACTION_SET_ONE_HANDED_MODE = "action_set_one_handed_mode"
+    const val ACTION_SET_ALARM = "action_set_alarm"
+    const val ACTION_SET_TIMER = "action_set_timer"
+    const val ACTION_OPEN_CLOCK = "action_open_clock"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -106,6 +116,13 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_REFRESH_RATE,
             CapabilityIds.ACTION_SET_SCREEN_ROTATION,
             -> "Write system settings permission"
+            CapabilityIds.ACTION_SET_FONT_SCALE -> "Write system settings permission"
+            CapabilityIds.ACTION_SET_SENSOR_PRIVACY -> "Sensor privacy controls"
+            CapabilityIds.ACTION_SET_ALARM,
+            CapabilityIds.ACTION_SET_TIMER,
+            -> "Default clock app"
+            CapabilityIds.ACTION_OPEN_CLOCK -> "Clock app"
+            CapabilityIds.ACTION_SET_ULTRA_DIM -> "Display over other apps permission"
             CapabilityIds.ACTION_SET_WALLPAPER -> "Set wallpaper permission"
             CapabilityIds.ACTION_SET_WIFI -> "Wi-Fi hardware"
             CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
@@ -215,6 +232,7 @@ object CapabilityRequirements {
             is Action.SetBrightness -> setOf(CapabilityIds.ACTION_SET_BRIGHTNESS)
             is Action.SetAutoBrightness -> setOf(CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS)
             is Action.SetExtraDim -> setOf(CapabilityIds.ACTION_SET_EXTRA_DIM, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetUltraDim -> setOf(CapabilityIds.ACTION_SET_ULTRA_DIM)
             is Action.SetScreenTimeout -> setOf(CapabilityIds.ACTION_SET_SCREEN_TIMEOUT)
             is Action.SetWallpaper -> setOf(CapabilityIds.ACTION_SET_WALLPAPER)
             is Action.SetGlyph -> setOf(CapabilityIds.ACTION_SET_GLYPH)
@@ -251,6 +269,15 @@ object CapabilityRequirements {
             is Action.SetAlwaysOnDisplay -> setOf(CapabilityIds.ACTION_SET_AOD, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.TakeScreenshot -> if (action.force) emptySet() else setOf(CapabilityIds.ACTION_TAKE_SCREENSHOT, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetStayAwake -> setOf(CapabilityIds.ACTION_SET_STAY_AWAKE, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetFontScale -> setOf(CapabilityIds.ACTION_SET_FONT_SCALE)
+            is Action.SetNightLight -> setOf(CapabilityIds.ACTION_SET_NIGHT_LIGHT, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetColorInversion -> setOf(CapabilityIds.ACTION_SET_COLOR_INVERSION, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetDaltonizer -> setOf(CapabilityIds.ACTION_SET_DALTONIZER, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetSensorPrivacy -> setOf(CapabilityIds.ACTION_SET_SENSOR_PRIVACY, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetOneHandedMode -> setOf(CapabilityIds.ACTION_SET_ONE_HANDED_MODE, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetAlarm -> setOf(CapabilityIds.ACTION_SET_ALARM)
+            is Action.SetTimer -> setOf(CapabilityIds.ACTION_SET_TIMER)
+            is Action.OpenClock -> setOf(CapabilityIds.ACTION_OPEN_CLOCK)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

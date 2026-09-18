@@ -17,6 +17,7 @@ import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.supportsRestore
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
+import com.tdvorak.nothingmodes.engine.runtime.failureLabel
 
 /**
  * Posts per-mode heads-up notifications.
@@ -47,11 +48,15 @@ class ModeNotificationHelper(
         val applied =
             automation.actions
                 .zip(results)
-                .filter { (_, result) -> result is ActionResult.Success || result is ActionResult.NeedsUserAction }
+                .filter { (_, result) ->
+                    result is ActionResult.Success ||
+                        result is ActionResult.NeedsUserAction ||
+                        result is ActionResult.DeferredUntilUnlock
+                }
                 .map { (action, _) -> actionDescription(action) }
         val failed = results.size - applied.size
-        if (failed > 0 && results.any { it is ActionResult.ShizukuRequired || it is ActionResult.PermissionRequired || it is ActionResult.Unsupported }) {
-            postCapabilityBlocked(automation, results)
+        if (failed > 0) {
+            postFailure(automation, results)
             return
         }
         val text =
@@ -91,22 +96,23 @@ class ModeNotificationHelper(
         post(automation, "Mode fires soon", text)
     }
 
-    /** High-priority heads-up when a requirement (Shizuku, permission, support) blocks the run. */
-    private fun postCapabilityBlocked(
+    /** High-priority heads-up naming the concrete reason(s) an action failed. */
+    private fun postFailure(
         automation: Automation,
         results: List<ActionResult>,
     ) {
-        val shizuku = results.count { it is ActionResult.ShizukuRequired }
-        val permission = results.count { it is ActionResult.PermissionRequired }
-        val unsupported = results.count { it is ActionResult.Unsupported }
+        val reasons =
+            automation.actions
+                .zip(results)
+                .mapNotNull { (a, r) -> r.failureLabel(a) }
+                .distinct()
 
         val detail =
-            when {
-                shizuku > 0 && permission > 0 -> "Missing Shizuku + permission"
-                shizuku > 0 -> if (shizuku == 1) "Needs Shizuku" else "$shizuku actions need Shizuku"
-                permission > 0 -> if (permission == 1) "Missing permission" else "$permission actions need permission"
-                unsupported > 0 -> "Unsupported on this device"
-                else -> "Missing requirement"
+            if (reasons.isEmpty()) {
+                "Action failed"
+            } else {
+                reasons.take(2).joinToString(" · ") +
+                    if (reasons.size > 2) " · +${reasons.size - 2} more" else ""
             }
 
         val text = "$detail — tap to open the mode"
