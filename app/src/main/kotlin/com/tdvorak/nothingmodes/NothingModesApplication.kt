@@ -4,9 +4,11 @@ import android.app.Application
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
+import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
+import com.tdvorak.nothingmodes.quicksettings.UltraDimNotifier
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +29,11 @@ class NothingModesApplication : Application() {
         FeatureFlags.enableInAppUpdates = BuildConfig.ENABLE_IN_APP_UPDATES
         FeatureFlags.enableLockScreen = BuildConfig.ENABLE_LOCK_SCREEN
         CrashReporting.init(this)
+        // Live ultra-dim control: persistent notification tracks every
+        // intensity change; also clears a stale notification left by a dead
+        // process whose overlay died with it.
+        UltraDimController.onChanged = { UltraDimNotifier.sync(this) }
+        UltraDimNotifier.sync(this)
         // Seed automations removed — user starts with a clean slate.
         // Start persistent monitor on fresh install (not just on boot)
         runCatching {

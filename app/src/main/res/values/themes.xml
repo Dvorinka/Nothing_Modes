@@ -4,4 +4,7 @@
     <style name="Theme.NothingModes.Splash" parent="Theme.NothingModes">
         <item name="android:windowBackground">@color/splash_background</item>
     </style>
+    <!-- Fully translucent floating panel — the ultra-dim overlay stays visible
+         behind it so the slider shows live feedback. -->
+    <style name="Theme.NothingModes.DimAdjust" parent="android:Theme.Translucent.NoTitleBar" />
 </resources>

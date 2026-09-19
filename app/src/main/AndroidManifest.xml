@@ -151,6 +151,19 @@
             </intent-filter>
         </service>
 
+        <!-- Floating intensity panel for the ultra-dim notification. -->
+        <activity
+            android:name=".quicksettings.DimAdjustActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.NothingModes.DimAdjust" />
+
+        <!-- Notification actions (-10/+10/off) for the ultra-dim overlay.
+             Non-exported: only our own PendingIntents may fire it. -->
+        <receiver
+            android:name=".quicksettings.UltraDimControlReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

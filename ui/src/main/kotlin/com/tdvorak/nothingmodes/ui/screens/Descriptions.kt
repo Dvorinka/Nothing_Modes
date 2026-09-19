@@ -318,7 +318,7 @@ fun actionRequirementHint(action: Action): String? =
             "Needs the Write Settings permission (Settings → Permissions)."
 
         is Action.SetUltraDim ->
-            "Dims the screen below the minimum with a dark overlay layer. Needs 'Display over other apps' (Settings → Permissions)."
+            "Dims the screen below the minimum with a dark overlay layer. Needs 'Display over other apps' or the dim accessibility service (Settings → Permissions)."
 
         is Action.SetDnd -> "Needs Do-Not-Disturb access (Settings → Permissions)."
         is Action.ShowNotification -> "Needs the notification permission."

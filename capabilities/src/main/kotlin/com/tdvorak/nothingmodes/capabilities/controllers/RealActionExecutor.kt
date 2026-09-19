@@ -509,8 +509,8 @@ class RealActionExecutor(
     }
 
     private fun setUltraDim(percent: Int): ActionResult {
-        if (!UltraDimController.canDrawOverlays(context)) {
-            return ActionResult.Failure("overlay: 'Display over other apps' permission not granted — enable it in system settings")
+        if (!UltraDimController.canDim(context)) {
+            return ActionResult.Failure("overlay: grant 'Display over other apps' or enable the dim accessibility service in system settings")
         }
         return runCatching {
             if (percent <= 0) UltraDimController.hide(context) else UltraDimController.show(context, percent)

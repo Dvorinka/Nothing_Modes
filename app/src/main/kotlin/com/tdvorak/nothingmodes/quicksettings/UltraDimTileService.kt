@@ -24,7 +24,7 @@ class UltraDimTileService : TileService() {
     @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
-        if (!UltraDimController.canDrawOverlays(this)) {
+        if (!UltraDimController.canDim(this)) {
             val intent = UltraDimController.permissionIntent(this)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startActivityAndCollapse(
@@ -58,7 +58,7 @@ class UltraDimTileService : TileService() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle =
                     when {
-                        !UltraDimController.canDrawOverlays(this) -> "Needs overlay permission"
+                        !UltraDimController.canDim(this) -> "Needs overlay permission"
                         UltraDimController.isActive -> "${UltraDimController.percent}%"
                         else -> "Off"
                     }

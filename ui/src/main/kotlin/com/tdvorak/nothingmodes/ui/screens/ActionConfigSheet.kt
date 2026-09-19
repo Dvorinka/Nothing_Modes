@@ -352,6 +352,21 @@ fun ActionConfigContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
                 )
+            } else if (!UltraDimController.accessibilityServiceEnabled(context)) {
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                Text(
+                    text = "Secure screens like sign-in sheets can ignore taps through the overlay. Enable the dim accessibility service to fix that.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                NothingPillButton(
+                    text = "Enable tap-friendly dimming",
+                    onClick = {
+                        runCatching { context.startActivity(UltraDimController.accessibilitySettingsIntent()) }
+                    },
+                )
             }
         }
 
