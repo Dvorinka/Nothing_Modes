@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="dim_overlay_service_label">Nothing Modes — dim overlay</string>
     <string name="dim_overlay_service_description">Lets the ultra-dim overlay dim the screen without blocking touches — sign-in and permission dialogs keep working while it is on.</string>
 </resources>

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -281,6 +282,7 @@ fun ActionConfigContent(
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
             var previewing by remember { mutableStateOf(false) }
+            var showDimDisclosure by remember { mutableStateOf(false) }
             val enabled = a.percent > 0
             val level = if (enabled) a.percent else 50
             BooleanRow(
@@ -363,10 +365,53 @@ fun ActionConfigContent(
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 NothingPillButton(
                     text = "Enable tap-friendly dimming",
-                    onClick = {
-                        runCatching { context.startActivity(UltraDimController.accessibilitySettingsIntent()) }
-                    },
+                    onClick = { showDimDisclosure = true },
                 )
+                if (showDimDisclosure) {
+                    AlertDialog(
+                        onDismissRequest = { showDimDisclosure = false },
+                        title = {
+                            Text(
+                                text = "Accessibility service",
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        },
+                        text = {
+                            Text(
+                                text =
+                                    "Nothing Modes uses the AccessibilityServices API to show the dim " +
+                                        "overlay as a trusted system overlay. Without it, Android marks " +
+                                        "touches that pass through the overlay as obscured, and secure " +
+                                        "screens — sign-in sheets, permission dialogs, account pickers — " +
+                                        "can ignore your taps.\n\n" +
+                                        "The service is used only to host the dim overlay window. It does " +
+                                        "not read screen content, does not collect or share personal data, " +
+                                        "and performs no actions on your behalf.\n\n" +
+                                        "Continue to system settings and enable " +
+                                        "\"Nothing Modes — dim overlay\".",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        },
+                        confirmButton = {
+                            NothingPillButton(
+                                text = "Continue",
+                                onClick = {
+                                    showDimDisclosure = false
+                                    runCatching {
+                                        context.startActivity(UltraDimController.accessibilitySettingsIntent())
+                                    }
+                                },
+                            )
+                        },
+                        dismissButton = {
+                            NothingPillButton(
+                                text = "Not now",
+                                onClick = { showDimDisclosure = false },
+                            )
+                        },
+                    )
+                }
             }
         }
 
