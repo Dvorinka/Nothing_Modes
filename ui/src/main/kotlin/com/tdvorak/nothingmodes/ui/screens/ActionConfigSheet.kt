@@ -1,5 +1,7 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
@@ -412,6 +415,28 @@ fun ActionConfigContent(
                         },
                     )
                 }
+            }
+            if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                Text(
+                    text = "Live dim controls — the ±10% notification, slider panel and turn-off action — need the notification permission.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = NothingFonts.mono(),
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                NothingPillButton(
+                    text = "Enable dim controls",
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                    },
+                )
             }
         }
 
