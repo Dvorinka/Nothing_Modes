@@ -1,0 +1,5 @@
+- Ultra dim no longer blocks taps: enable the dim accessibility service once and sign-in sheets, dialogs and buttons keep working while the screen is dimmed
+- Live ultra-dim control: a persistent notification with -10 / +10 / Turn off, plus a quick slider that snaps back to your mode's level — no need to edit the routine
+- Ultra-dim overlay now covers the whole screen, including the status bar, navigation bar and camera cutout, in any orientation
+- Fixed a crash on Android 15: monitoring services now restart correctly after reboot
+- Removed deprecated edge-to-edge parameters ahead of Android 15
