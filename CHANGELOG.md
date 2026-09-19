@@ -2,10 +2,21 @@
 
 ## [Unreleased]
 
+## [0.18.0]
+
 ### Added
 - Ultra-dim overlay is now hosted by an optional accessibility service as a trusted `TYPE_ACCESSIBILITY_OVERLAY` — touches pass through cleanly (sign-in sheets, permission dialogs, account pickers keep working) at any intensity; falls back to the regular overlay when the service is off
 - Live ultra-dim control: persistent notification with -10% / +10% / Turn off actions plus a floating slider panel with a "Reset" snap-back to the mode-configured level — adjust without editing the mode
 - Ultra-dim overlay now sizes to the real display bounds (covers nav bar, status bar, cutout) and re-sizes on rotation
+- "Enable tap-friendly dimming" affordance in the ultra-dim action config opens accessibility settings
+
+### Fixed
+- Android 15 boot crash: BOOT_COMPLETED can no longer start `specialUse` foreground services — service starts now hop through an expedited WorkManager job, which is exempt
+- Deprecated `decorFitsSystemWindows` dialog parameter removed (Compose 1.8 edge-to-edge readiness); widget config activity now calls `enableEdgeToEdge()`
+
+## [Unreleased history]
+
+### Added
 - Universal capability warning layer: catalog badges, pick-time warning with per-gap "Fix it" deep links, Shizuku-state-aware guidance, builder save summary, and fire-time heads-up notification for lost requirements
 - Priority conflict resolution in the engine: higher-priority modes claim settings and suppress lower-priority conflicts, with `SUPPRESS_CONFLICT` audit events
 - Exact-alarm runtime prompt in Time/TimeWindow trigger configuration
