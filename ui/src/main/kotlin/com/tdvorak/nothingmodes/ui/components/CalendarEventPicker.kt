@@ -239,7 +239,7 @@ fun CalendarEventPickerDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.background,

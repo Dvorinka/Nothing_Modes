@@ -455,7 +455,6 @@ private fun TriggerTypePickerDialog(
         properties =
             androidx.compose.ui.window.DialogProperties(
                 usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false,
             ),
     ) {
         Surface(
