@@ -65,6 +65,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -631,9 +633,256 @@ fun GlyphEditorScreen(
         )
     }
 
+    var fullscreen by remember { mutableStateOf(false) }
+    // Marquee selection in the fullscreen editor — anchor and current cells.
+    var selAnchor by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var selEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
+    fun selectionRect(): Pair<Pair<Int, Int>, Pair<Int, Int>>? {
+        val a = selAnchor ?: return null
+        val b = selEnd ?: a
+        val r1 = minOf(a.first, b.first)
+        val r2 = maxOf(a.first, b.first)
+        val c1 = minOf(a.second, b.second)
+        val c2 = maxOf(a.second, b.second)
+        return (r1 to c1) to (r2 to c2)
+    }
+
+    fun forEachSelected(action: (Int, Int) -> Unit) {
+        val rect = selectionRect() ?: return
+        for (r in rect.first.first..rect.second.first) {
+            for (c in rect.first.second..rect.second.second) {
+                if (isInside(r, c)) action(r, c)
+            }
+        }
+    }
+
+    fun applySelection(value: Int) {
+        val updated = currentFrame().copyOf()
+        var changed = false
+        forEachSelected { r, c ->
+            val idx = r * gridSize + c
+            if (updated[idx] != value) {
+                updated[idx] = value
+                changed = true
+            }
+        }
+        if (changed) replaceCurrent(updated)
+        selAnchor = null
+        selEnd = null
+    }
+
+    fun invertSelection() {
+        val updated = currentFrame().copyOf()
+        forEachSelected { r, c ->
+            val idx = r * gridSize + c
+            updated[idx] = if (updated[idx] > 0) 0 else brush
+        }
+        replaceCurrent(updated)
+        selAnchor = null
+        selEnd = null
+    }
+
+    if (fullscreen) {
+        Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .padding(NothingSpacing.md),
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "EDIT · FRAME ${frameIndex + 1}/${frames.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        GlyphPill(label = "DONE") { fullscreen = false }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    // Tool modes: paint draws, select marquees a region for ops.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        GlyphPill(
+                            label = "PAINT",
+                            modifier = Modifier.weight(1f),
+                        ) { paintMode = PaintMode.PAINT }
+                        GlyphPill(
+                            label = "SELECT",
+                            modifier = Modifier.weight(1f),
+                        ) { paintMode = PaintMode.SELECT }
+                        GlyphPill(label = "FILL", modifier = Modifier.weight(1f)) {
+                            replaceCurrent(GlyphFrameCodec.fill(currentFrame(), gridSize, brush))
+                        }
+                        GlyphPill(label = "CLEAR", modifier = Modifier.weight(1f)) {
+                            replaceCurrent(IntArray(gridSize * gridSize))
+                            selAnchor = null
+                            selEnd = null
+                        }
+                        GlyphPill(label = "INVERT", modifier = Modifier.weight(1f)) {
+                            replaceCurrent(GlyphFrameCodec.invert(currentFrame(), gridSize))
+                        }
+                    }
+                    if (selectionRect() != null) {
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                        ) {
+                            GlyphPill(label = "FILL SEL", modifier = Modifier.weight(1f)) { applySelection(brush) }
+                            GlyphPill(label = "CLEAR SEL", modifier = Modifier.weight(1f)) { applySelection(0) }
+                            GlyphPill(label = "INVERT SEL", modifier = Modifier.weight(1f)) { invertSelection() }
+                            GlyphPill(
+                                label = "DESELECT",
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                selAnchor = null
+                                selEnd = null
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    Box(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                .clip(NothingShapes.input)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
+                                .background(Color.Black)
+                                .pointerInput(gridSize, paintMode, brush) {
+                                    detectTapGestures { offset ->
+                                        cellFromOffset(offset, size.width.toFloat(), gridSize)?.let { (r, c) ->
+                                            when (paintMode) {
+                                                PaintMode.PAINT -> togglePixel(r, c)
+                                                PaintMode.SELECT -> {
+                                                    selAnchor = r to c
+                                                    selEnd = r to c
+                                                }
+                                            }
+                                        }
+                                    }
+                                }.pointerInput(gridSize, paintMode, brush) {
+                                    var painting: Boolean? = null
+                                    detectDragGestures(
+                                        onDragStart = { offset ->
+                                            cellFromOffset(offset, size.width.toFloat(), gridSize)?.let { (r, c) ->
+                                                when (paintMode) {
+                                                    PaintMode.PAINT -> {
+                                                        val current = currentFrame()[r * gridSize + c]
+                                                        painting = current <= 0
+                                                        setPixel(r, c, if (painting == true) brush else 0)
+                                                    }
+                                                    PaintMode.SELECT -> {
+                                                        painting = true
+                                                        selAnchor = r to c
+                                                        selEnd = r to c
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onDragEnd = { painting = null },
+                                        onDragCancel = { painting = null },
+                                        onDrag = { change, _ ->
+                                            change.consume()
+                                            cellFromOffset(change.position, size.width.toFloat(), gridSize)?.let { (r, c) ->
+                                                if (painting == true) {
+                                                    when (paintMode) {
+                                                        PaintMode.PAINT -> setPixel(r, c, brush)
+                                                        PaintMode.SELECT -> selEnd = r to c
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    )
+                                },
+                    ) {
+                        GlyphCanvas(gridSize, currentFrame())
+                        selectionRect()?.let { rect ->
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val cellW = size.width / gridSize.toFloat()
+                                drawRect(
+                                    color = Color.White.copy(alpha = 0.18f),
+                                    topLeft = Offset(rect.first.second * cellW, rect.first.first * cellW),
+                                    size =
+                                        androidx.compose.ui.geometry
+                                            .Size(
+                                                (rect.second.second - rect.first.second + 1) * cellW,
+                                                (rect.second.first - rect.first.first + 1) * cellW,
+                                            ),
+                                )
+                            }
+                        }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(NothingSpacing.md))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        Text(
+                            text = "OPACITY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        Slider(
+                            value = opacity / 255f,
+                            onValueChange = { opacity = (it * 255).toInt().coerceIn(0, 255) },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.weight(1f),
+                            colors =
+                                SliderDefaults.colors(
+                                    thumbColor = MaterialTheme.colorScheme.primary,
+                                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                        )
+                        Text(
+                            text = "$opacity",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                    ) {
+                        GlyphPill(label = "<", modifier = Modifier.weight(1f), enabled = frames.size > 1) {
+                            frameIndex = (frameIndex - 1).coerceAtLeast(0)
+                        }
+                        GlyphPill(label = "+ FRAME", modifier = Modifier.weight(1f)) { addBlankFrame() }
+                        GlyphPill(label = ">", modifier = Modifier.weight(1f), enabled = frames.size > 1) {
+                            frameIndex = (frameIndex + 1).coerceAtMost(frames.lastIndex)
+                        }
+                        GlyphPill(label = "PLAY", modifier = Modifier.weight(1f)) { showCurrent() }
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { NothingTopBar(title = "Glyph Matrix Editor", onBack = onBack) },
+        topBar = { NothingTopBar(title = "Glyph Studio", onBack = onBack) },
     ) { padding ->
         Column(
             modifier =
@@ -728,6 +977,7 @@ fun GlyphEditorScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
                 )
+                GlyphPill(label = if (classic) "Expand" else "EXPAND") { fullscreen = true }
             }
             Spacer(modifier = Modifier.height(NothingSpacing.md))
 
@@ -1256,7 +1506,7 @@ private fun CanvasCard(
             Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth(0.55f)
+                        .fillMaxWidth(0.75f)
                         .aspectRatio(1f)
                         .clip(NothingShapes.input)
                         .border(1.dp, MaterialTheme.colorScheme.outline, NothingShapes.input)
