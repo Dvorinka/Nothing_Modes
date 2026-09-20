@@ -876,8 +876,13 @@ fun CustomAutomationBuilderScreen(
             // Bluetooth device, torch, ...) restores by default. Per action:
             // revert to previous / keep new value / set a specific end value.
             // Also shown when imported endActions exist on a non-lifecycle
-            // trigger so they stay visible and editable.
-            if (state.trigger.hasStateLifecycle || state.endActions.isNotEmpty()) {
+            // trigger so they stay visible and editable. Hidden entirely when
+            // the mode has nothing to revert and no end actions.
+            val restorableActions =
+                state.actions.mapIndexedNotNull { i, a -> if (a.canRestore) i to a else null }
+            if ((state.trigger.hasStateLifecycle && (restorableActions.isNotEmpty() || state.endActions.isNotEmpty())) ||
+                state.endActions.isNotEmpty()
+            ) {
                 item {
                     val units = rememberUnits()
                     val endLocal = (state.trigger as? Trigger.TimeWindow)?.endLocal
@@ -901,9 +906,7 @@ fun CustomAutomationBuilderScreen(
                             fontFamily = NothingFonts.mono(),
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
                         )
-                        val restorable =
-                            state.actions
-                                .mapIndexedNotNull { i, a -> if (a.canRestore) i to a else null }
+                        val restorable = restorableActions
                         if (restorable.isEmpty() && state.endActions.isEmpty()) {
                             Text(
                                 text = "No revertible changes — the mode just stops.",

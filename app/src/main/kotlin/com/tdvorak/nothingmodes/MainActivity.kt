@@ -27,6 +27,7 @@ import com.tdvorak.nothingmodes.nav.Routes
 import com.tdvorak.nothingmodes.nothing.CustomGlyphStore
 import com.tdvorak.nothingmodes.nothing.GlyphMuseumApi
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
+import com.tdvorak.nothingmodes.update.PlatformInAppUpdate
 import com.tdvorak.nothingmodes.update.UpdateStatus
 import com.tdvorak.nothingmodes.update.UpdateViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,12 +38,16 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     private val updateViewModel: UpdateViewModel by viewModels()
 
+    // Flavor-specific: Play builds show Google's update sheet, GitHub builds no-op.
+    private val platformInAppUpdate = PlatformInAppUpdate(this)
+
     @Inject
     lateinit var automationStore: AutomationStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         importDesignIntent(intent)
+        platformInAppUpdate.check()
         enableEdgeToEdge()
         setContent {
             NothingModesThemeDynamic {
@@ -109,6 +114,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        platformInAppUpdate.onResume()
     }
 
     override fun onNewIntent(intent: Intent) {
