@@ -72,7 +72,7 @@ jobs:
             https://github.com/tamtom/play-console-cli/releases/download/v0.10.0/gplay-linux-amd64
           chmod +x /tmp/gplay
 
-      - name: Publish to Play internal track
+      - name: Publish to Play closed testing (alpha) track
         run: |
           echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > /tmp/play-account.json
           /tmp/gplay auth login --service-account /tmp/play-account.json
@@ -80,6 +80,6 @@ jobs:
           jq -Rn --arg t "$(cat "fastlane/metadata/android/en-US/changelogs/${VC}.txt")" \
             '[{language:"en-US",text:$t}]' > /tmp/play-notes.json
           /tmp/gplay release --package com.tdvorak.nothingmodes \
-            --track internal \
+            --track alpha \
             --bundle app/build/outputs/bundle/playRelease/app-play-release.aab \
             --release-notes @/tmp/play-notes.json
