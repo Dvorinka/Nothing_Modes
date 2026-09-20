@@ -117,6 +117,10 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     debugImplementation(libs.compose.ui.tooling)
 
+    // Play In-App Updates only ships in the Play Store flavor; the GitHub
+    // flavor keeps its own APK updater (UpdateViewModel/UpdateManager).
+    "playImplementation"(libs.play.app.update)
+
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
