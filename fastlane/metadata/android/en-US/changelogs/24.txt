@@ -1,0 +1,1 @@
+- Google Play in-app updates: the app now shows the official Play update prompt when a new version is available
