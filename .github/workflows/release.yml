@@ -73,8 +73,11 @@ jobs:
           chmod +x /tmp/gplay
 
       - name: Publish to Play closed testing (alpha) track
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
-          echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > /tmp/play-account.json
+          # Secrets must go through env:, not inline ${{ }} - quoted JSON breaks interpolation.
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-account.json
           /tmp/gplay auth login --service-account /tmp/play-account.json
           VC=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
           jq -Rn --arg t "$(cat "fastlane/metadata/android/en-US/changelogs/${VC}.txt")" \
