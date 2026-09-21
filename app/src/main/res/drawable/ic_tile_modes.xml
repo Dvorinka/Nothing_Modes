@@ -3,8 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Nothing dot-matrix cross, matching the app notification icon. -->
+    <!-- Stacked layers: modes/profiles. -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,6.5m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0M6,12m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0M12,12m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0M18,12m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0M12,17.5m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0" />
+        android:pathData="M12,3l9,5l-9,5l-9,-5zM4.8,12.4l-1.8,1l9,5l9,-5l-1.8,-1l-7.2,4zM4.8,16.4l-1.8,1l9,5l9,-5l-1.8,-1l-7.2,4z" />
 </vector>

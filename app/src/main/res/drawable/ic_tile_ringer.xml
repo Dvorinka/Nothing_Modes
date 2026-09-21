@@ -3,8 +3,11 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Bell: dome, skirt and clapper. -->
+    <!-- Ringing bell with clapper and side arcs. -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,3c-3.3,0 -6,2.7 -6,6v3.5l-1.8,3h15.6l-1.8,-3V9c0,-3.3 -2.7,-6 -6,-6zM12,20.5a2,2 0 0,0 2,-2h-4a2,2 0 0,0 2,2z" />
+        android:pathData="M12,3.4c-3.2,0 -5.4,2.5 -5.4,5.6v3.2l-2,3.2h14.8l-2,-3.2V9c0,-3.1 -2.2,-5.6 -5.4,-5.6zM12,20.6a2.1,2.1 0 0,0 2.1,-2.1h-4.2a2.1,2.1 0 0,0 2.1,2.1z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3.4,10.2a8.6,8.6 0 0,1 1.2,-4.3l1.5,1a6.7,6.7 0 0,0 -0.9,3.3zM20.6,10.2a6.7,6.7 0 0,0 -0.9,-3.3l1.5,-1a8.6,8.6 0 0,1 1.2,4.3z" />
 </vector>
