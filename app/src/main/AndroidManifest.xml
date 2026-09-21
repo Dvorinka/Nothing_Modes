@@ -244,12 +244,17 @@
             </intent-filter>
         </service>
 
-        <!-- Full-screen editor opened from an unconfigured custom tile tap or
-             from the Quick settings screen. -->
+        <!-- Full-screen editor opened from an unconfigured custom tile tap,
+             the Quick settings screen, or a long-press on any of our tiles
+             (the system fires QS_TILE_PREFERENCES with the component). -->
         <activity
             android:name=".quicksettings.TileConfigActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NothingModes" />
+            android:exported="true"
+            android:theme="@style/Theme.NothingModes">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity>
 
         <!-- Home-screen cycle widget: same tap-to-cycle engine as the tiles. -->
         <activity
