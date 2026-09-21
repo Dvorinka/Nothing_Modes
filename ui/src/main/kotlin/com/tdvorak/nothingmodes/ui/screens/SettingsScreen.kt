@@ -211,6 +211,7 @@ fun SettingsScreen(
     onOnboarding: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
     onNotificationLog: () -> Unit = {},
+    onQuickSettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel =
         hiltViewModel(
@@ -810,6 +811,18 @@ fun SettingsScreen(
                                 defaultRules = it
                                 notificationPrefs.setDefaultRules(it)
                             },
+                        )
+                    }
+
+                    // ── Quick settings tiles & widgets ────────────────────────
+                    NothingSectionHeader(text = "Quick settings")
+                    NothingCard {
+                        NothingListRow(
+                            title = "Tiles & cycle controls",
+                            subtitle =
+                                "Ultra dim, screen timeout, brightness and custom " +
+                                    "tap-to-cycle tiles for the shade — plus the cycle widget.",
+                            onClick = onQuickSettings,
                         )
                     }
 

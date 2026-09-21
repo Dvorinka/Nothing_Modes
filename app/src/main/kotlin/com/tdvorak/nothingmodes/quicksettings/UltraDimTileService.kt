@@ -3,9 +3,11 @@ package com.tdvorak.nothingmodes.quicksettings
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import com.tdvorak.nothingmodes.R
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 
 /**
@@ -55,6 +57,7 @@ class UltraDimTileService : TileService() {
     private fun updateTile() {
         qsTile?.let { tile ->
             tile.label = "Ultra dim"
+            tile.icon = Icon.createWithResource(this, R.drawable.ic_tile_ultra_dim)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle =
                     when {
@@ -62,6 +65,9 @@ class UltraDimTileService : TileService() {
                         UltraDimController.isActive -> "${UltraDimController.percent}%"
                         else -> "Off"
                     }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                tile.stateDescription = tile.subtitle
             }
             tile.state =
                 if (UltraDimController.isActive) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
