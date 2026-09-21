@@ -14,7 +14,7 @@ class CycleEngineTest {
 
     @Test
     fun `decode rejects specs without steps for static actions`() {
-        assertNull(CycleSpec.decode("dnd|"))
+        assertNull(CycleSpec.decode("scene|"))
         assertNull(CycleSpec.decode("screen_timeout"))
         assertNull(CycleSpec.decode(null))
         assertNull(CycleSpec.decode(""))
@@ -75,10 +75,10 @@ class CycleEngineTest {
     @Test
     fun `enum actions keep the ordered subset`() {
         assertEquals(
-            listOf("off", "priority", "total"),
-            CycleActions.dnd.allowedValues,
+            listOf("reset", "bedtime", "focus"),
+            CycleActions.scene.allowedValues,
         )
-        assertEquals("Priority", CycleActions.dnd.format("priority"))
-        assertEquals("On", CycleActions.torch.format("on"))
+        assertEquals("Bedtime", CycleActions.scene.format("bedtime"))
+        assertEquals("On", CycleActions.glyph.format("on"))
     }
 }

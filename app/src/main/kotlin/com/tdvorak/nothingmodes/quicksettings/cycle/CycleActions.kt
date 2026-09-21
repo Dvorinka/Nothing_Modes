@@ -2,8 +2,6 @@ package com.tdvorak.nothingmodes.quicksettings.cycle
 
 import android.content.Context
 import android.content.Intent
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraManager
 import android.media.AudioManager
 import android.provider.Settings
 import androidx.core.net.toUri
@@ -12,7 +10,6 @@ import com.tdvorak.nothingmodes.automation.quickactions.QuickActionTrigger
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidBrightnessController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidDarkModeController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidDndController
-import com.tdvorak.nothingmodes.capabilities.controllers.AndroidRingerController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidScreenTimeoutController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidVolumeController
 import com.tdvorak.nothingmodes.capabilities.controllers.ControllerResult
@@ -131,6 +128,16 @@ object CycleActions {
                 "package:${context.packageName}".toUri(),
             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+
+    private fun policyAccessFix(context: Context): Intent? {
+        val nm = context.getSystemService(android.app.NotificationManager::class.java)
+        return if (nm?.isNotificationPolicyAccessGranted == true) {
+            null
+        } else {
+            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    }
 
     val screenTimeout =
         object : CycleAction {
@@ -269,162 +276,6 @@ object CycleActions {
                     .takeIf { tokens -> tokens.all { it.toIntOrNull() in 0..100 } }
         }
 
-    val dnd =
-        object : CycleAction {
-            override val id = "dnd"
-            override val label = "Do Not Disturb"
-            override val iconRes = R.drawable.ic_tile_dnd
-            override val defaultSteps = listOf("off", "priority", "total")
-            override val allowedValues = listOf("off", "priority", "total")
-            override val stepsHint = ""
-
-            override fun permissionFix(context: Context): Intent? {
-                val nm = context.getSystemService(android.app.NotificationManager::class.java)
-                return if (nm?.isNotificationPolicyAccessGranted == true) {
-                    null
-                } else {
-                    Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            }
-
-            override suspend fun current(context: Context): String? =
-                when (AndroidDndController(context).getDndMode()) {
-                    DndMode.OFF -> "off"
-                    DndMode.PRIORITY -> "priority"
-                    DndMode.TOTAL -> "total"
-                    null -> null
-                }
-
-            override suspend fun apply(
-                context: Context,
-                value: String,
-            ) = AndroidDndController(context)
-                .setDnd(
-                    when (value) {
-                        "priority" -> DndMode.PRIORITY
-                        "total" -> DndMode.TOTAL
-                        else -> DndMode.OFF
-                    },
-                )
-
-            override fun format(value: String): String =
-                when (value) {
-                    "priority" -> "Priority"
-                    "total" -> "Silent"
-                    else -> "Off"
-                }
-
-            override fun isOn(value: String): Boolean = value != "off"
-        }
-
-    val ringer =
-        object : CycleAction {
-            override val id = "ringer"
-            override val label = "Ringer"
-            override val iconRes = R.drawable.ic_tile_ringer
-            override val defaultSteps = listOf("normal", "vibrate", "silent")
-            override val allowedValues = listOf("normal", "vibrate", "silent")
-            override val stepsHint = ""
-
-            override fun permissionFix(context: Context): Intent? = null
-
-            override suspend fun current(context: Context): String? =
-                when (
-                    context
-                        .getSystemService(AudioManager::class.java)
-                        ?.ringerMode
-                ) {
-                    AudioManager.RINGER_MODE_NORMAL -> "normal"
-                    AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
-                    AudioManager.RINGER_MODE_SILENT -> "silent"
-                    else -> null
-                }
-
-            override suspend fun apply(
-                context: Context,
-                value: String,
-            ) = AndroidRingerController(context).setRinger(value.uppercase())
-
-            override fun format(value: String): String = value.replaceFirstChar { it.uppercase() }
-
-            override fun isOn(value: String): Boolean = value != "normal"
-        }
-
-    val darkMode =
-        object : CycleAction {
-            override val id = "dark_mode"
-            override val label = "Dark mode"
-            override val iconRes = R.drawable.ic_tile_dark
-            override val defaultSteps = listOf("off", "on")
-            override val allowedValues = listOf("off", "on", "auto")
-            override val stepsHint = ""
-
-            override fun permissionFix(context: Context): Intent? = null
-
-            override suspend fun current(context: Context): String? =
-                when (AndroidDarkModeController(context).getDarkMode()) {
-                    NightMode.ON -> "on"
-                    NightMode.OFF -> "off"
-                    NightMode.AUTO -> "auto"
-                    null -> null
-                }
-
-            override suspend fun apply(
-                context: Context,
-                value: String,
-            ) = AndroidDarkModeController(context)
-                .setDarkMode(
-                    when (value) {
-                        "on" -> NightMode.ON
-                        "auto" -> NightMode.AUTO
-                        else -> NightMode.OFF
-                    },
-                )
-
-            override fun format(value: String): String = value.replaceFirstChar { it.uppercase() }
-
-            override fun isOn(value: String): Boolean = value != "off"
-        }
-
-    val autoRotate =
-        object : CycleAction {
-            override val id = "auto_rotate"
-            override val label = "Auto-rotate"
-            override val iconRes = R.drawable.ic_tile_rotate
-            override val defaultSteps = listOf("1", "0")
-            override val allowedValues = listOf("1", "0")
-            override val stepsHint = ""
-
-            override fun permissionFix(context: Context) = writeSettingsFix(context)
-
-            override suspend fun current(context: Context): String? =
-                runCatching {
-                    Settings.System
-                        .getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION)
-                        .toString()
-                }.getOrNull()
-
-            override suspend fun apply(
-                context: Context,
-                value: String,
-            ): ControllerResult {
-                if (!Settings.System.canWrite(context)) return ControllerResult.PermissionRequired
-                return runCatching {
-                    Settings.System.putInt(
-                        context.contentResolver,
-                        Settings.System.ACCELEROMETER_ROTATION,
-                        if (value == "1") 1 else 0,
-                    )
-                    ControllerResult.Success
-                }.getOrElse { ControllerResult.Failure(it.message ?: "auto-rotate failed") }
-            }
-
-            override fun format(value: String): String = if (value == "1") "On" else "Off"
-
-            override fun isOn(value: String): Boolean = value == "1"
-        }
-
     val mediaVolume =
         object : CycleAction {
             override val id = "media_volume"
@@ -468,46 +319,6 @@ object CycleActions {
                 context
                     .getSystemService(AudioManager::class.java)
                     ?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 0
-        }
-
-    val torch =
-        object : CycleAction {
-            override val id = "torch"
-            override val label = "Torch"
-            override val iconRes = R.drawable.ic_tile_torch
-            override val defaultSteps = listOf("on", "off")
-            override val allowedValues = listOf("on", "off")
-            override val stepsHint = ""
-
-            /** Last state we set — CameraManager exposes no cheap read. */
-            @Volatile
-            private var lastSet: String? = null
-
-            override fun permissionFix(context: Context): Intent? = null
-
-            override suspend fun current(context: Context): String? = lastSet
-
-            override suspend fun apply(
-                context: Context,
-                value: String,
-            ): ControllerResult {
-                val cm = context.getSystemService(CameraManager::class.java)
-                    ?: return ControllerResult.Unsupported
-                return runCatching {
-                    val cameraId =
-                        cm.cameraIdList.firstOrNull { id ->
-                            cm.getCameraCharacteristics(id)
-                                .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-                        } ?: return ControllerResult.Unsupported
-                    cm.setTorchMode(cameraId, value == "on")
-                    lastSet = value
-                    ControllerResult.Success
-                }.getOrElse { ControllerResult.Failure(it.message ?: "torch failed") }
-            }
-
-            override fun format(value: String): String = value.replaceFirstChar { it.uppercase() }
-
-            override fun isOn(value: String): Boolean = value == "on"
         }
 
     /** Glyph lights: toggle() all-on or turnOff() on the light stripe; on
@@ -581,7 +392,7 @@ object CycleActions {
             override val allowedValues = listOf("reset", "bedtime", "focus")
             override val stepsHint = ""
 
-            override fun permissionFix(context: Context): Intent? = dnd.permissionFix(context)
+            override fun permissionFix(context: Context): Intent? = policyAccessFix(context)
 
             override suspend fun current(context: Context): String? =
                 when (AndroidDndController(context).getDndMode()) {
@@ -720,12 +531,7 @@ object CycleActions {
             screenTimeout,
             brightness,
             ultraDim,
-            dnd,
-            ringer,
-            darkMode,
-            autoRotate,
             mediaVolume,
-            torch,
             glyph,
             scene,
             modeRunner,
