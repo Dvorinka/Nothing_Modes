@@ -1,0 +1,5 @@
+- Quick Settings tiles that cycle values on every tap: screen timeout, brightness, ultra dim, media volume, Glyph lights, scene presets, and a mode runner that fires your armed modes in turn
+- Six configurable custom tiles with editable step lists; built-in tiles are editable too, and a long-press on a tile opens its editor
+- Ultra dim stays in the shade while a mode owns it — tap to turn it back on or adjust intensity, even while it's off
+- Home-screen widgets: armed-modes list, single-mode button, configurable cycle button, and a dedicated ultra-dim button
+- Glyph lights tile uses a clean matrix ring on Phone 3
