@@ -87,7 +87,14 @@ fun CycleSpecEditorScreen(
 
                     NothingCard {
                         val allowed = action.allowedValues
-                        if (allowed != null) {
+                        if (action.usesDynamicSteps) {
+                            Text(
+                                text = "Cycles through your armed manual modes — the step list is live.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = NothingFonts.mono(),
+                            )
+                        } else if (allowed != null) {
                             NothingLabel(text = "STEPS (IN ORDER)")
                             Spacer(modifier = Modifier.height(NothingSpacing.xs))
                             allowed.forEachIndexed { index, value ->
@@ -130,20 +137,26 @@ fun CycleSpecEditorScreen(
                     }
 
                     val resolvedSteps =
-                        action.allowedValues?.filter { it in selected }
-                            ?: stepsText.takeIf { it.isNotBlank() }?.let { action.parseSteps(it) }
+                        if (action.usesDynamicSteps) {
+                            emptyList()
+                        } else {
+                            action.allowedValues?.filter { it in selected }
+                                ?: stepsText.takeIf { it.isNotBlank() }?.let { action.parseSteps(it) }
+                        }
 
                     Spacer(modifier = Modifier.height(NothingSpacing.sm))
                     Text(
                         text =
-                            if (resolvedSteps.isNullOrEmpty()) {
+                            if (action.usesDynamicSteps) {
+                                "Each tap runs the next armed manual mode"
+                            } else if (resolvedSteps.isNullOrEmpty()) {
                                 "Add at least one step"
                             } else {
                                 "Cycles: " + resolvedSteps.joinToString(" → ") { action.format(it) }
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color =
-                            if (resolvedSteps.isNullOrEmpty()) {
+                            if (resolvedSteps.isNullOrEmpty() && !action.usesDynamicSteps) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             } else {
                                 MaterialTheme.colorScheme.primary
@@ -169,11 +182,11 @@ fun CycleSpecEditorScreen(
                             text = "Save",
                             onClick = {
                                 val steps = resolvedSteps
-                                if (steps.isNullOrEmpty()) {
+                                if (steps.isNullOrEmpty() && !action.usesDynamicSteps) {
                                     error = "Could not parse the steps — check the format"
                                     return@NothingPrimaryButton
                                 }
-                                onSave(CycleSpec(actionId, steps))
+                                onSave(CycleSpec(actionId, steps ?: emptyList()))
                             },
                         )
                         if (initial != null) {

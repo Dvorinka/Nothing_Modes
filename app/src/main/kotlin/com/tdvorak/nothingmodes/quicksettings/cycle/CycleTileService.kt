@@ -18,8 +18,10 @@ import kotlinx.coroutines.withContext
 /**
  * Base for tap-to-cycle Quick Settings tiles. Each tap applies the next step
  * of a [CycleSpec] — e.g. screen timeout 30s → 1m → 5m → back to 30s.
- * Built-ins pin a spec; the Custom* services read theirs from [CycleTilePrefs]
- * so the user can rebind a slot to any registered [CycleAction].
+ *
+ * Built-ins ship a default spec the user can override from the Quick settings
+ * screen; the Custom* services hold no default at all and drop into the
+ * editor on first tap.
  */
 abstract class CycleTileService : TileService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -27,8 +29,14 @@ abstract class CycleTileService : TileService() {
     /** The spec this tile runs. Null = unconfigured custom slot. */
     protected abstract fun spec(): CycleSpec?
 
+    /** Prefs key whose cursor tracks stateless actions; null disables it. */
+    protected abstract val storageKey: String?
+
     /** Which custom slot (1..N) this service is, 0 for built-ins. */
     protected open val slot: Int = 0
+
+    @Volatile
+    private var lastError: String? = null
 
     override fun onStartListening() {
         super.onStartListening()
@@ -43,7 +51,8 @@ abstract class CycleTileService : TileService() {
                 // Unconfigured slot — drop the user straight into the editor.
                 launchAndCollapse(
                     Intent(this@CycleTileService, TileConfigActivity::class.java)
-                        .putExtra(TileConfigActivity.EXTRA_SLOT, slot),
+                        .putExtra(TileConfigActivity.EXTRA_KEY, storageKey)
+                        .putExtra(TileConfigActivity.EXTRA_TITLE, "Custom tile $slot"),
                 )
                 return@launch
             }
@@ -54,7 +63,7 @@ abstract class CycleTileService : TileService() {
             }
             val result =
                 withContext(Dispatchers.IO) {
-                    CycleEngine.advance(this@CycleTileService, spec)
+                    CycleEngine.advance(this@CycleTileService, spec, storageKey)
                 }
             lastError =
                 when (result) {
@@ -65,9 +74,6 @@ abstract class CycleTileService : TileService() {
             updateTile()
         }
     }
-
-    @Volatile
-    private var lastError: String? = null
 
     private suspend fun updateTile() {
         val tile = qsTile ?: return
@@ -84,19 +90,31 @@ abstract class CycleTileService : TileService() {
         tile.label = action.label
         tile.icon = Icon.createWithResource(this, action.iconRes)
         val missingPermission = action.permissionFix(this) != null
+        val steps =
+            if (missingPermission) {
+                emptyList()
+            } else {
+                withContext(Dispatchers.IO) { CycleEngine.steps(this@CycleTileService, spec) }
+            }
         val current =
             if (missingPermission) {
                 null
             } else {
-                withContext(Dispatchers.IO) { action.current(this@CycleTileService) }
+                withContext(Dispatchers.IO) {
+                    action.current(this@CycleTileService) ?: storageKey?.let { CycleTilePrefs.cursor(this@CycleTileService, it) }
+                }
             }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tile.subtitle =
                 when {
                     missingPermission -> "Needs permission"
                     lastError != null -> "Failed"
-                    current != null -> action.format(current)
-                    else -> spec.steps.joinToString(" › ") { action.format(it) }
+                    action.showsNext -> {
+                        val next = CycleEngine.nextValue(current, steps)
+                        if (next != null) "Next: ${action.describe(this, next)}" else "Nothing to run"
+                    }
+                    current != null -> action.describe(this, current)
+                    else -> steps.joinToString(" › ") { action.format(it) }
                 }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -129,32 +147,60 @@ abstract class CycleTileService : TileService() {
     }
 }
 
-/** Screen timeout cycler: 30s → 1m → 5m → wrap. Needs Write Settings. */
+/** Screen timeout cycler — 30s → 1m → 5m by default, steps are editable. */
 class ScreenTimeoutTileService : CycleTileService() {
+    override val storageKey = CycleTilePrefs.builtinKey(CycleActions.screenTimeout.id)
     override fun spec(): CycleSpec =
-        CycleSpec(CycleActions.screenTimeout.id, CycleActions.screenTimeout.defaultSteps)
+        CycleTilePrefs.load(this, storageKey)
+            ?: CycleSpec(CycleActions.screenTimeout.id, CycleActions.screenTimeout.defaultSteps)
 }
 
-/** Brightness cycler: auto → 25% → 50% → 100% → wrap. Needs Write Settings. */
+/** Brightness cycler — auto → 25% → 50% → 100% by default, steps editable. */
 class BrightnessTileService : CycleTileService() {
+    override val storageKey = CycleTilePrefs.builtinKey(CycleActions.brightness.id)
     override fun spec(): CycleSpec =
-        CycleSpec(CycleActions.brightness.id, CycleActions.brightness.defaultSteps)
+        CycleTilePrefs.load(this, storageKey)
+            ?: CycleSpec(CycleActions.brightness.id, CycleActions.brightness.defaultSteps)
 }
 
 /** User-configured cycle slot 1. */
 class CustomCycleTileService1 : CycleTileService() {
     override val slot = 1
-    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, CycleTilePrefs.tileKey(1))
+    override val storageKey = CycleTilePrefs.tileKey(1)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
 }
 
 /** User-configured cycle slot 2. */
 class CustomCycleTileService2 : CycleTileService() {
     override val slot = 2
-    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, CycleTilePrefs.tileKey(2))
+    override val storageKey = CycleTilePrefs.tileKey(2)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
 }
 
 /** User-configured cycle slot 3. */
 class CustomCycleTileService3 : CycleTileService() {
     override val slot = 3
-    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, CycleTilePrefs.tileKey(3))
+    override val storageKey = CycleTilePrefs.tileKey(3)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
+}
+
+/** User-configured cycle slot 4. */
+class CustomCycleTileService4 : CycleTileService() {
+    override val slot = 4
+    override val storageKey = CycleTilePrefs.tileKey(4)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
+}
+
+/** User-configured cycle slot 5. */
+class CustomCycleTileService5 : CycleTileService() {
+    override val slot = 5
+    override val storageKey = CycleTilePrefs.tileKey(5)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
+}
+
+/** User-configured cycle slot 6. */
+class CustomCycleTileService6 : CycleTileService() {
+    override val slot = 6
+    override val storageKey = CycleTilePrefs.tileKey(6)
+    override fun spec(): CycleSpec? = CycleTilePrefs.load(this, storageKey)
 }

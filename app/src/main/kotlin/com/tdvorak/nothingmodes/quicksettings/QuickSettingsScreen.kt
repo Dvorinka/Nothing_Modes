@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.widget.CycleWidgetConfigActivity
 import com.tdvorak.nothingmodes.widget.CycleWidgetReceiver
 import java.util.concurrent.Executor
 
@@ -42,6 +43,8 @@ private data class TileInfo(
     val description: String,
     val service: Class<*>,
     val iconRes: Int,
+    /** Prefs key when the tile's steps are user-editable. */
+    val editKey: String? = null,
 )
 
 /** Catalog of every surface the app offers in Quick Settings and the launcher. */
@@ -65,17 +68,27 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
             ),
             TileInfo(
                 "Screen timeout",
-                "Cycles 30s → 1m → 5m. Needs Write settings.",
+                "Cycles 30s → 1m → 5m. Tap to change the steps. Needs Write settings.",
                 ScreenTimeoutTileService::class.java,
                 R.drawable.ic_tile_timeout,
+                editKey = CycleTilePrefs.builtinKey(CycleActions.screenTimeout.id),
             ),
             TileInfo(
                 "Brightness",
-                "Cycles Auto → 25% → 50% → 100%. Needs Write settings.",
+                "Cycles Auto → 25% → 50% → 100%. Tap to change the steps. Needs Write settings.",
                 BrightnessTileService::class.java,
                 R.drawable.ic_tile_brightness,
+                editKey = CycleTilePrefs.builtinKey(CycleActions.brightness.id),
             ),
         )
+
+    val widgetIds =
+        runCatching {
+            context
+                .getSystemService(AppWidgetManager::class.java)
+                ?.getAppWidgetIds(ComponentName(context, CycleWidgetReceiver::class.java))
+                ?.toList()
+        }.getOrNull().orEmpty()
 
     NothingModesThemeDynamic {
         Scaffold(
@@ -114,6 +127,10 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
                         NothingListRow(
                             title = tile.label,
                             subtitle = tile.description,
+                            onClick =
+                                tile.editKey?.let { key ->
+                                    { openTileEditor(context, key, tile.label) }
+                                },
                             trailing = { AddTileButton(context, tile) },
                         )
                     }
@@ -128,17 +145,20 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
                         NothingListRow(
                             title = "Custom tile $slot",
                             subtitle =
-                                if (spec != null && action != null) {
-                                    action.label +
-                                        " · " +
-                                        spec.steps.joinToString(" → ") { action.format(it) }
-                                } else {
-                                    "Not set. Tap to pick an action and steps."
+                                when {
+                                    spec == null || action == null ->
+                                        "Not set. Tap to pick an action and steps."
+                                    action.usesDynamicSteps -> action.label
+                                    else ->
+                                        action.label +
+                                            " · " +
+                                            spec.steps.joinToString(" → ") { action.format(it) }
                                 },
                             onClick = {
-                                context.startActivity(
-                                    Intent(context, TileConfigActivity::class.java)
-                                        .putExtra(TileConfigActivity.EXTRA_SLOT, slot),
+                                openTileEditor(
+                                    context,
+                                    CycleTilePrefs.tileKey(slot),
+                                    "Custom tile $slot",
                                 )
                             },
                             trailing = {
@@ -166,11 +186,41 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
                         trailing = { PinWidgetButton(context) },
                         onClick = { pinCycleWidget(context) },
                     )
+                    widgetIds.forEachIndexed { index, id ->
+                        NothingDivider()
+                        NothingListRow(
+                            title = "Cycle widget ${index + 1}",
+                            subtitle =
+                                CycleTilePrefs
+                                    .load(context, CycleTilePrefs.widgetKey(id))
+                                    ?.let { spec ->
+                                        CycleActions.byId(spec.actionId)?.label ?: "Custom"
+                                    } ?: "Not set. Tap to configure.",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(context, CycleWidgetConfigActivity::class.java)
+                                        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id),
+                                )
+                            },
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(NothingSpacing.lg))
             }
         }
     }
+}
+
+private fun openTileEditor(
+    context: Context,
+    key: String,
+    title: String,
+) {
+    context.startActivity(
+        Intent(context, TileConfigActivity::class.java)
+            .putExtra(TileConfigActivity.EXTRA_KEY, key)
+            .putExtra(TileConfigActivity.EXTRA_TITLE, title),
+    )
 }
 
 @Composable

@@ -2,19 +2,31 @@ package com.tdvorak.nothingmodes.quicksettings.cycle
 
 import android.content.Context
 import android.content.Intent
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.media.AudioManager
-import android.net.Uri
 import android.provider.Settings
+import androidx.core.net.toUri
+import com.tdvorak.nothingmodes.R
+import com.tdvorak.nothingmodes.automation.quickactions.QuickActionTrigger
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidBrightnessController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidDarkModeController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidDndController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidRingerController
 import com.tdvorak.nothingmodes.capabilities.controllers.AndroidScreenTimeoutController
+import com.tdvorak.nothingmodes.capabilities.controllers.AndroidVolumeController
 import com.tdvorak.nothingmodes.capabilities.controllers.ControllerResult
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
+import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.NightMode
-import com.tdvorak.nothingmodes.R
+import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.widget.WidgetEntryPoint
+import dagger.hilt.EntryPoints
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Tap-to-cycle engine shared by Quick Settings tiles and the home-screen
@@ -22,7 +34,8 @@ import com.tdvorak.nothingmodes.R
  * each tap applies the value after the current one, wrapping at the end.
  *
  * Values are plain strings ("30000", "auto", "priority") so a spec survives
- * SharedPreferences and the editor needs no per-action model.
+ * SharedPreferences and the editor needs no per-action model. Actions with a
+ * live step set (the mode runner) override [CycleAction.dynamicSteps].
  */
 data class CycleSpec(
     val actionId: String,
@@ -40,7 +53,8 @@ data class CycleSpec(
                     .split(',')
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
-            return if (steps.isEmpty()) null else CycleSpec(action, steps)
+            if (steps.isEmpty() && CycleActions.byId(action)?.usesDynamicSteps != true) return null
+            return CycleSpec(action, steps)
         }
     }
 }
@@ -63,11 +77,22 @@ interface CycleAction {
     /** Hint above the freeform steps field in the editor. */
     val stepsHint: String
 
+    /** Live step set overriding spec steps — the mode runner returns automation ids. */
+    val usesDynamicSteps: Boolean
+        get() = false
+
+    /** The subtitle shows what the next tap does rather than the current state. */
+    val showsNext: Boolean
+        get() = false
+
     /** Intent fixing the missing permission, or null when ready to run. */
     fun permissionFix(context: Context): Intent?
 
-    /** Canonical current value, or null when unreadable / off-spec. */
+    /** Canonical current value, or null when unreadable / stateless. */
     suspend fun current(context: Context): String?
+
+    /** Steps resolved live; null means "use the spec's". */
+    suspend fun dynamicSteps(context: Context): List<String>? = null
 
     suspend fun apply(
         context: Context,
@@ -76,6 +101,12 @@ interface CycleAction {
 
     /** Short tile/widget subtitle for a value. */
     fun format(value: String): String
+
+    /** Display label for values needing a lookup (e.g. automation names). */
+    suspend fun describe(
+        context: Context,
+        value: String,
+    ): String = format(value)
 
     /** Tile STATE_ACTIVE when the applied state counts as "engaged". */
     fun isOn(value: String): Boolean = true
@@ -96,7 +127,7 @@ object CycleActions {
         } else {
             Intent(
                 Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                Uri.parse("package:${context.packageName}"),
+                "package:${context.packageName}".toUri(),
             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
@@ -124,12 +155,12 @@ object CycleActions {
 
             override fun format(value: String): String = value.toLongOrNull()?.let { formatDuration(it) } ?: value
 
-            override fun parseSteps(text: String): List<String>? =
-                text
-                    .split(',')
-                    .mapNotNull { parseDuration(it) }
-                    .takeIf { it.isNotEmpty() }
-                    ?.map { it.toString() }
+            override fun parseSteps(text: String): List<String>? {
+                val tokens = text.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+                val parsed = tokens.map { parseDuration(it) }
+                if (tokens.isEmpty() || parsed.any { it == null }) return null
+                return parsed.map { it!!.toString() }
+            }
 
             private fun parseDuration(token: String): Long? {
                 val t = token.trim().lowercase()
@@ -186,18 +217,19 @@ object CycleActions {
 
             override fun format(value: String): String = if (value == "auto") "Auto" else "$value%"
 
-            override fun parseSteps(text: String): List<String>? =
-                text
-                    .split(',')
-                    .map { it.trim().lowercase() }
-                    .filter { it.isNotEmpty() }
-                    .mapNotNull { token ->
+            override fun parseSteps(text: String): List<String>? {
+                val tokens = text.split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                val parsed =
+                    tokens.map { token ->
                         when {
                             token == "auto" -> "auto"
                             token.removeSuffix("%").toIntOrNull() in 0..100 -> token.removeSuffix("%")
                             else -> null
                         }
-                    }.takeIf { it.isNotEmpty() }
+                    }
+                if (tokens.isEmpty() || parsed.any { it == null }) return null
+                return parsed.filterNotNull()
+            }
         }
 
     val ultraDim =
@@ -354,7 +386,212 @@ object CycleActions {
             override fun isOn(value: String): Boolean = value != "off"
         }
 
-    val all: List<CycleAction> = listOf(screenTimeout, brightness, ultraDim, dnd, ringer, darkMode)
+    val autoRotate =
+        object : CycleAction {
+            override val id = "auto_rotate"
+            override val label = "Auto-rotate"
+            override val iconRes = R.drawable.ic_tile_rotate
+            override val defaultSteps = listOf("1", "0")
+            override val allowedValues = listOf("1", "0")
+            override val stepsHint = ""
+
+            override fun permissionFix(context: Context) = writeSettingsFix(context)
+
+            override suspend fun current(context: Context): String? =
+                runCatching {
+                    Settings.System
+                        .getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION)
+                        .toString()
+                }.getOrNull()
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                if (!Settings.System.canWrite(context)) return ControllerResult.PermissionRequired
+                return runCatching {
+                    Settings.System.putInt(
+                        context.contentResolver,
+                        Settings.System.ACCELEROMETER_ROTATION,
+                        if (value == "1") 1 else 0,
+                    )
+                    ControllerResult.Success
+                }.getOrElse { ControllerResult.Failure(it.message ?: "auto-rotate failed") }
+            }
+
+            override fun format(value: String): String = if (value == "1") "On" else "Off"
+
+            override fun isOn(value: String): Boolean = value == "1"
+        }
+
+    val mediaVolume =
+        object : CycleAction {
+            override val id = "media_volume"
+            override val label = "Media volume"
+            override val iconRes = R.drawable.ic_tile_volume
+            override val defaultSteps = listOf("0", "25", "50", "75", "100")
+            override val allowedValues: List<String>? = null
+            override val stepsHint = "Percents 0-100, e.g. 0, 33, 66, 100"
+
+            override fun permissionFix(context: Context): Intent? = null
+
+            override suspend fun current(context: Context): String? {
+                val c = AndroidVolumeController(context)
+                val level = c.getVolume(VolumeStream.MEDIA) ?: return null
+                val max = streamMax(context)
+                if (max <= 0) return null
+                return (level * 100 / max).toString()
+            }
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                val pct = value.toIntOrNull()?.coerceIn(0, 100) ?: return ControllerResult.Failure("Bad volume: $value")
+                val max = streamMax(context)
+                return AndroidVolumeController(context).setVolume(VolumeStream.MEDIA, pct * max / 100)
+            }
+
+            override fun format(value: String): String = "$value%"
+
+            override fun isOn(value: String): Boolean = value != "0"
+
+            override fun parseSteps(text: String): List<String>? =
+                text
+                    .split(',')
+                    .map { it.trim().lowercase().removeSuffix("%") }
+                    .filter { it.isNotEmpty() }
+                    .takeIf { tokens -> tokens.all { it.toIntOrNull() in 0..100 } }
+
+            private fun streamMax(context: Context): Int =
+                context
+                    .getSystemService(AudioManager::class.java)
+                    ?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 0
+        }
+
+    val torch =
+        object : CycleAction {
+            override val id = "torch"
+            override val label = "Torch"
+            override val iconRes = R.drawable.ic_tile_torch
+            override val defaultSteps = listOf("on", "off")
+            override val allowedValues = listOf("on", "off")
+            override val stepsHint = ""
+
+            /** Last state we set — CameraManager exposes no cheap read. */
+            @Volatile
+            private var lastSet: String? = null
+
+            override fun permissionFix(context: Context): Intent? = null
+
+            override suspend fun current(context: Context): String? = lastSet
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                val cm = context.getSystemService(CameraManager::class.java)
+                    ?: return ControllerResult.Unsupported
+                return runCatching {
+                    val cameraId =
+                        cm.cameraIdList.firstOrNull { id ->
+                            cm.getCameraCharacteristics(id)
+                                .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                        } ?: return ControllerResult.Unsupported
+                    cm.setTorchMode(cameraId, value == "on")
+                    lastSet = value
+                    ControllerResult.Success
+                }.getOrElse { ControllerResult.Failure(it.message ?: "torch failed") }
+            }
+
+            override fun format(value: String): String = value.replaceFirstChar { it.uppercase() }
+
+            override fun isOn(value: String): Boolean = value == "on"
+        }
+
+    /**
+     * Stateless runner: each tap fires the next armed manual mode, wrapping at
+     * the end of the list. Steps are live automation ids, so the spec's own
+     * step list is ignored and the engine's per-slot cursor drives rotation.
+     */
+    val modeRunner =
+        object : CycleAction {
+            override val id = "mode_runner"
+            override val label = "Run a mode"
+            override val iconRes = R.drawable.ic_tile_modes
+            override val defaultSteps = emptyList<String>()
+            override val allowedValues: List<String>? = null
+            override val stepsHint = ""
+            override val usesDynamicSteps = true
+            override val showsNext = true
+
+            override fun permissionFix(context: Context): Intent? = null
+
+            override suspend fun current(context: Context): String? = null
+
+            override suspend fun dynamicSteps(context: Context): List<String>? =
+                withContext(Dispatchers.IO) {
+                    val store =
+                        runCatching {
+                            EntryPoints
+                                .get(context.applicationContext, WidgetEntryPoint::class.java)
+                                .automationStore()
+                        }.getOrNull() ?: return@withContext null
+                    runCatching {
+                        store
+                            .all()
+                            .filter {
+                                it.enabled &&
+                                    it.quickAction &&
+                                    it.status == AutomationStatus.ARMED &&
+                                    it.trigger is Trigger.Manual
+                            }.sortedBy { it.priority }
+                            .map { it.id.value }
+                    }.getOrNull()
+                }
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                QuickActionTrigger.run(context, value)
+                return ControllerResult.Success
+            }
+
+            override fun format(value: String): String = "Mode"
+
+            override suspend fun describe(
+                context: Context,
+                value: String,
+            ): String =
+                withContext(Dispatchers.IO) {
+                    val store =
+                        runCatching {
+                            EntryPoints
+                                .get(context.applicationContext, WidgetEntryPoint::class.java)
+                                .automationStore()
+                        }.getOrNull() ?: return@withContext "Mode"
+                    runCatching {
+                        store.get(AutomationId(value))?.name?.ifBlank { "Untitled" }
+                    }.getOrNull() ?: "Mode"
+                }
+
+            override fun isOn(value: String): Boolean = false
+        }
+
+    val all: List<CycleAction> =
+        listOf(
+            screenTimeout,
+            brightness,
+            ultraDim,
+            dnd,
+            ringer,
+            darkMode,
+            autoRotate,
+            mediaVolume,
+            torch,
+            modeRunner,
+        )
 
     fun byId(id: String): CycleAction? = all.firstOrNull { it.id == id }
 }
@@ -370,13 +607,35 @@ object CycleEngine {
         return steps[(index + 1) % steps.size]
     }
 
-    /** Advance one step and apply it. Returns the applied value or a failure. */
+    /**
+     * Advance one step and apply it. [cursorKey] scopes the fallback position
+     * for stateless actions (mode runner) — pass the spec's storage key.
+     */
     suspend fun advance(
         context: Context,
         spec: CycleSpec,
+        cursorKey: String? = null,
     ): ControllerResult {
         val action = CycleActions.byId(spec.actionId) ?: return ControllerResult.Failure("Unknown action")
-        val next = nextValue(action.current(context), spec.steps) ?: return ControllerResult.Failure("No steps")
-        return action.apply(context, next)
+        val steps = action.dynamicSteps(context)?.takeIf { it.isNotEmpty() } ?: spec.steps
+        if (steps.isEmpty()) return ControllerResult.Failure("No steps")
+        val current = action.current(context) ?: cursorKey?.let { CycleTilePrefs.cursor(context, it) }
+        val next = nextValue(current, steps) ?: return ControllerResult.Failure("No steps")
+        val result = action.apply(context, next)
+        if (result is ControllerResult.Success && cursorKey != null) {
+            CycleTilePrefs.saveCursor(context, cursorKey, next)
+        }
+        return result
     }
+
+    /** Resolve the steps a spec would cycle right now (dynamic or static). */
+    suspend fun steps(
+        context: Context,
+        spec: CycleSpec,
+    ): List<String> =
+        CycleActions
+            .byId(spec.actionId)
+            ?.dynamicSteps(context)
+            ?.takeIf { it.isNotEmpty() }
+            ?: spec.steps
 }

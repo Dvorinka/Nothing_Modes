@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Flashlight with dot-matrix beam, Nothing style. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9,12.4h6l-0.8,-2.4h-4.4l-0.8,2.4zM9.4,13.4h5.2v7.4a1.6,1.6 0 0,1 -1.6,1.6h-2a1.6,1.6 0 0,1 -1.6,-1.6v-7.4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2.2m-1.1,0a1.1,1.1 0 1,0 2.2,0a1.1,1.1 0 1,0 -2.2,0M8.2,4.4m-1.1,0a1.1,1.1 0 1,0 2.2,0a1.1,1.1 0 1,0 -2.2,0M15.8,4.4m-1.1,0a1.1,1.1 0 1,0 2.2,0a1.1,1.1 0 1,0 -2.2,0M4.9,8.1m-1.1,0a1.1,1.1 0 1,0 2.2,0a1.1,1.1 0 1,0 -2.2,0M19.1,8.1m-1.1,0a1.1,1.1 0 1,0 2.2,0a1.1,1.1 0 1,0 -2.2,0" />
+</vector>
