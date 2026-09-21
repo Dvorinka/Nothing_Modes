@@ -3,10 +3,12 @@ package com.tdvorak.nothingmodes.quicksettings
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.tdvorak.nothingmodes.MainActivity
+import com.tdvorak.nothingmodes.R
 import com.tdvorak.nothingmodes.automation.quickactions.QuickActionTrigger
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.Trigger
@@ -82,9 +84,13 @@ class NothingModesTileService : TileService() {
                 }.getOrDefault(emptyList())
 
             qsTile?.let { tile ->
+                tile.icon = Icon.createWithResource(this@NothingModesTileService, R.drawable.ic_tile_modes)
                 tile.label = if (automations.isNotEmpty()) automations.first().name else "Nothing Modes"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = if (automations.isNotEmpty()) "${automations.size} quick action(s)" else "No quick actions"
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    tile.stateDescription = tile.subtitle
                 }
                 tile.state = if (automations.isNotEmpty()) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
                 tile.updateTile()

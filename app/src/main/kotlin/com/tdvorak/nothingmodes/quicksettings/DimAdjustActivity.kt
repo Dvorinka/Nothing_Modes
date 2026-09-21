@@ -28,31 +28,58 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingModesThemeDynamic
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import kotlinx.coroutines.launch
 
 /**
  * Floating panel for live ultra-dim intensity — opened from the persistent
  * notification. Translucent so the user watches the screen dim as they drag.
- * Adjustments are temporary: "Reset" snaps back to the level the mode (or
- * tile) set, "Turn off" removes the overlay. Tap outside to dismiss.
+ *
+ * Two states: while the overlay is on, the slider adjusts it live and
+ * "Reset" snaps back to the level the mode (or tile) set. While it is off
+ * but a still-active mode owns the dimmer, the same panel offers "Turn on"
+ * at the mode's configured level. Tap outside to dismiss.
  */
 class DimAdjustActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Stale notification after process death — nothing to adjust.
-        if (!UltraDimController.isActive) {
-            finish()
+        if (UltraDimController.isActive) {
+            showPanel(UltraDimController.percent)
             return
         }
-        setContent { NothingModesThemeDynamic { DimAdjustPanel() } }
+        // Off — only stay open when a live mode still owns the dimmer.
+        val suggested = intent.getIntExtra(EXTRA_SUGGESTED_PERCENT, 0)
+        lifecycleScope.launch {
+            val engaged = UltraDimNotifier.engagedPercent(this@DimAdjustActivity)
+            val startAt =
+                when {
+                    engaged != null -> engaged
+                    suggested > 0 -> suggested
+                    else -> {
+                        finish()
+                        return@launch
+                    }
+                }
+            if (UltraDimController.isActive) {
+                // Raced with a show() — let the live level win.
+                showPanel(UltraDimController.percent)
+            } else {
+                showPanel(startAt)
+            }
+        }
+    }
+
+    private fun showPanel(startPercent: Int) {
+        setContent { NothingModesThemeDynamic { DimAdjustPanel(startPercent) } }
     }
 
     @Composable
-    private fun DimAdjustPanel() {
-        var percent by remember { mutableIntStateOf(UltraDimController.percent.coerceIn(5, 95)) }
+    private fun DimAdjustPanel(startPercent: Int) {
+        var percent by remember { mutableIntStateOf(startPercent.coerceIn(5, 95)) }
         val scrimInteraction = remember { MutableInteractionSource() }
         val cardInteraction = remember { MutableInteractionSource() }
 
@@ -97,7 +124,9 @@ class DimAdjustActivity : ComponentActivity() {
                             value = percent.toFloat(),
                             onValueChange = { v ->
                                 percent = v.toInt().coerceIn(5, 95)
-                                UltraDimController.adjustTo(this@DimAdjustActivity, percent)
+                                if (UltraDimController.isActive) {
+                                    UltraDimController.adjustTo(this@DimAdjustActivity, percent)
+                                }
                             },
                             valueRange = 5f..95f,
                             modifier = Modifier.weight(1f),
@@ -109,26 +138,44 @@ class DimAdjustActivity : ComponentActivity() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         val baseline = UltraDimController.baselinePercent
-                        TextButton(
-                            onClick = {
-                                UltraDimController.resetToBaseline(this@DimAdjustActivity)
-                                percent = UltraDimController.baselinePercent.coerceIn(5, 95)
-                            },
-                            enabled = baseline > 0 && baseline != UltraDimController.percent,
-                        ) {
-                            Text("Reset to $baseline%")
-                        }
-                        TextButton(
-                            onClick = {
-                                UltraDimController.hide(this@DimAdjustActivity)
-                                finish()
-                            },
-                        ) {
-                            Text("Turn off")
+                        val active = UltraDimController.isActive
+                        if (active) {
+                            TextButton(
+                                onClick = {
+                                    UltraDimController.resetToBaseline(this@DimAdjustActivity)
+                                    percent = UltraDimController.baselinePercent.coerceIn(5, 95)
+                                },
+                                enabled = baseline > 0 && baseline != UltraDimController.percent,
+                            ) {
+                                Text("Reset to $baseline%")
+                            }
+                            TextButton(
+                                onClick = {
+                                    UltraDimController.hide(this@DimAdjustActivity)
+                                    finish()
+                                },
+                            ) {
+                                Text("Turn off")
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                            TextButton(
+                                onClick = {
+                                    UltraDimController.show(this@DimAdjustActivity, percent)
+                                    finish()
+                                },
+                            ) {
+                                Text("Turn on · $percent%")
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    companion object {
+        /** Starting slider position when the overlay is currently off. */
+        const val EXTRA_SUGGESTED_PERCENT = "suggested_percent"
     }
 }

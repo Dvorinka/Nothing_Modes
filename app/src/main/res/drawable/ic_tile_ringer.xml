@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Bell: dome, skirt and clapper. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,3c-3.3,0 -6,2.7 -6,6v3.5l-1.8,3h15.6l-1.8,-3V9c0,-3.3 -2.7,-6 -6,-6zM12,20.5a2,2 0 0,0 2,-2h-4a2,2 0 0,0 2,2z" />
+</vector>

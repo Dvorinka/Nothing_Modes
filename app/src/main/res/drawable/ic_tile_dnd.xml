@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ring with a minus bar: standard do-not-disturb glyph. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,3a9,9 0 1,0 0,18a9,9 0 1,0 0,-18zM12,5a7,7 0 1,1 0,14a7,7 0 1,1 0,-14z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,11h10v2h-10z" />
+</vector>

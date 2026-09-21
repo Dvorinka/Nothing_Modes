@@ -133,7 +133,7 @@
         <service
             android:name=".quicksettings.NothingModesTileService"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@drawable/ic_tile_modes"
             android:label="Nothing Modes"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
@@ -144,13 +144,96 @@
         <service
             android:name=".quicksettings.UltraDimTileService"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@drawable/ic_tile_ultra_dim"
             android:label="Ultra dim"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <!-- Tap-to-cycle tiles: each press applies the next step of a spec.
+             Screen timeout and brightness ship fixed steps; the three Custom
+             slots are bound by the user inside the app (Quick settings screen). -->
+        <service
+            android:name=".quicksettings.cycle.ScreenTimeoutTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_timeout"
+            android:label="Screen timeout"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".quicksettings.cycle.BrightnessTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_brightness"
+            android:label="Brightness"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".quicksettings.cycle.CustomCycleTileService1"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_cycle"
+            android:label="Custom tile 1"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".quicksettings.cycle.CustomCycleTileService2"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_cycle"
+            android:label="Custom tile 2"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".quicksettings.cycle.CustomCycleTileService3"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_cycle"
+            android:label="Custom tile 3"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Full-screen editor opened from an unconfigured custom tile tap or
+             from the Quick settings screen. -->
+        <activity
+            android:name=".quicksettings.TileConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NothingModes" />
+
+        <!-- Home-screen cycle widget: same tap-to-cycle engine as the tiles. -->
+        <activity
+            android:name=".widget.CycleWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.NothingModes" />
+
+        <receiver
+            android:name=".widget.CycleWidgetReceiver"
+            android:exported="true"
+            android:label="Cycle control">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cycle_widget_info" />
+        </receiver>
 
         <!-- Floating intensity panel for the ultra-dim notification. -->
         <activity

@@ -51,6 +51,7 @@ object Routes {
     const val GLYPH_MUSEUM = "glyph_museum"
     const val COMMUNITY_LIBRARY = "community_library"
     const val SETTINGS = "settings"
+    const val QUICK_SETTINGS = "quick_settings"
     const val TEMPLATES = "templates"
 
     fun automationDetail(id: String) = "automation/$id"
@@ -322,6 +323,13 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
                 onOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onGlyphPreview = { navController.navigate(Routes.GLYPH_PREVIEW) },
                 onNotificationLog = { navController.navigate(Routes.NOTIFICATION_LOG) },
+                onQuickSettings = { navController.navigate(Routes.QUICK_SETTINGS) },
+            )
+        }
+
+        composable(Routes.QUICK_SETTINGS) {
+            com.tdvorak.nothingmodes.quicksettings.QuickSettingsScreen(
+                onBack = { navController.popBackStackOr(Routes.SETTINGS) },
             )
         }
 
