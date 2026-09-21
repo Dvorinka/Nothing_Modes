@@ -55,12 +55,6 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
     val tiles =
         listOf(
             TileInfo(
-                "Nothing Modes",
-                "Runs your first armed manual mode. One tap fires it.",
-                NothingModesTileService::class.java,
-                R.drawable.ic_tile_modes,
-            ),
-            TileInfo(
                 "Ultra dim",
                 "Dims below the hardware minimum. Taps cycle 25% → 50% → 75% → off. A persistent notification follows while a mode owns it.",
                 UltraDimTileService::class.java,
@@ -75,7 +69,7 @@ fun QuickSettingsScreen(onBack: () -> Unit) {
             ),
             TileInfo(
                 "Brightness",
-                "Cycles Auto → 25% → 50% → 100%. Tap to change the steps. Needs Write settings.",
+                "Cycles 25% → 50% → 100%. Tap to change the steps. Needs Write settings.",
                 BrightnessTileService::class.java,
                 R.drawable.ic_tile_brightness,
                 editKey = CycleTilePrefs.builtinKey(CycleActions.brightness.id),

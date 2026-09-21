@@ -7,6 +7,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.widget.Toast
 import com.tdvorak.nothingmodes.capabilities.controllers.ControllerResult
 import com.tdvorak.nothingmodes.quicksettings.TileConfigActivity
 import kotlinx.coroutines.CoroutineScope
@@ -61,10 +62,11 @@ abstract class CycleTileService : TileService() {
                 launchAndCollapse(fix)
                 return@launch
             }
-            val result =
+            val advance =
                 withContext(Dispatchers.IO) {
                     CycleEngine.advance(this@CycleTileService, spec, storageKey)
                 }
+            val result = advance.result
             lastError =
                 when (result) {
                     is ControllerResult.Failure -> result.reason
@@ -72,6 +74,20 @@ abstract class CycleTileService : TileService() {
                     is ControllerResult.Unsupported -> "Not supported"
                     else -> null
                 }
+            // Nothing OS hides tile labels — the toast is the only visible
+            // confirmation of what the tap set.
+            Toast
+                .makeText(
+                    this@CycleTileService,
+                    when (result) {
+                        is ControllerResult.Success ->
+                            "${action.label}: ${action.describe(this@CycleTileService, advance.applied ?: "")}"
+                        is ControllerResult.PermissionRequired -> "${action.label}: needs permission"
+                        is ControllerResult.Unsupported -> "${action.label}: not supported here"
+                        is ControllerResult.Failure -> "${action.label}: ${result.reason}"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
             updateTile()
         }
     }

@@ -200,9 +200,9 @@ object CycleActions {
             override val id = "brightness"
             override val label = "Brightness"
             override val iconRes = R.drawable.ic_tile_brightness
-            override val defaultSteps = listOf("auto", "25", "50", "100")
+            override val defaultSteps = listOf("25", "50", "100")
             override val allowedValues: List<String>? = null
-            override val stepsHint = "auto plus percents, e.g. auto, 10, 50, 100"
+            override val stepsHint = "Percents 0-100, or auto, e.g. 25, 50, 100"
 
             override fun permissionFix(context: Context) = writeSettingsFix(context)
 
@@ -359,7 +359,8 @@ object CycleActions {
                         if (matrix?.ensureConnected() != true) {
                             return ControllerResult.Failure("glyph service unavailable")
                         }
-                        if (value == "on") matrix.displayPercentFill(100) else matrix.turnOff()
+                        // A clean ring beats a solid 625-dot slab.
+                        if (value == "on") matrix.displayProgressArc(100) else matrix.turnOff()
                     }
                 return when (result) {
                     GlyphResult.Success -> {
@@ -541,6 +542,12 @@ object CycleActions {
 }
 
 object CycleEngine {
+    /** Outcome of one tap — the controller result plus the applied step. */
+    data class AdvanceResult(
+        val result: ControllerResult,
+        val applied: String?,
+    )
+
     /** The value the next tap applies: the step after [current], or the first. */
     fun nextValue(
         current: String?,
@@ -559,17 +566,19 @@ object CycleEngine {
         context: Context,
         spec: CycleSpec,
         cursorKey: String? = null,
-    ): ControllerResult {
-        val action = CycleActions.byId(spec.actionId) ?: return ControllerResult.Failure("Unknown action")
+    ): AdvanceResult {
+        val action =
+            CycleActions.byId(spec.actionId)
+                ?: return AdvanceResult(ControllerResult.Failure("Unknown action"), null)
         val steps = action.dynamicSteps(context)?.takeIf { it.isNotEmpty() } ?: spec.steps
-        if (steps.isEmpty()) return ControllerResult.Failure("No steps")
+        if (steps.isEmpty()) return AdvanceResult(ControllerResult.Failure("No steps"), null)
         val current = action.current(context) ?: cursorKey?.let { CycleTilePrefs.cursor(context, it) }
-        val next = nextValue(current, steps) ?: return ControllerResult.Failure("No steps")
+        val next = nextValue(current, steps) ?: return AdvanceResult(ControllerResult.Failure("No steps"), null)
         val result = action.apply(context, next)
         if (result is ControllerResult.Success && cursorKey != null) {
             CycleTilePrefs.saveCursor(context, cursorKey, next)
         }
-        return result
+        return AdvanceResult(result, next)
     }
 
     /** Resolve the steps a spec would cycle right now (dynamic or static). */

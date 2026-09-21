@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.IntentCompat
-import com.tdvorak.nothingmodes.MainActivity
 import com.tdvorak.nothingmodes.quicksettings.cycle.CycleActions
 import com.tdvorak.nothingmodes.quicksettings.cycle.CycleSpec
 import com.tdvorak.nothingmodes.quicksettings.cycle.CycleSpecEditorScreen
@@ -48,7 +47,6 @@ class TileConfigActivity : ComponentActivity() {
         val target =
             when (tileComponent()?.className?.substringAfterLast('.')) {
                 "UltraDimTileService" -> Intent(this, DimAdjustActivity::class.java)
-                "NothingModesTileService" -> Intent(this, MainActivity::class.java)
                 else -> return false
             }
         startActivity(target)

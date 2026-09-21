@@ -178,7 +178,7 @@ class CycleWidgetAction : ActionCallback {
         val key = CycleTilePrefs.widgetKey(appWidgetId)
         val spec = CycleTilePrefs.load(context, key) ?: return
         withContext(Dispatchers.IO) {
-            runCatching { CycleEngine.advance(context, spec, key) }
+            runCatching { CycleEngine.advance(context, spec, key).result }
         }
         CycleWidget().update(context, glanceId)
     }
