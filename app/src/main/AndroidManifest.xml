@@ -22,6 +22,7 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="com.nothing.ketchum.permission.QUERY_GLYPH_STATE" />
     <uses-permission android:name="com.nothing.ketchum.permission.CONTROL_GLYPH" />
+    <uses-permission android:name="com.nothing.ketchum.permission.ENABLE" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
