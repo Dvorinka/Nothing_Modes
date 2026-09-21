@@ -69,6 +69,7 @@ abstract class CycleTileService : TileService() {
                 when (result) {
                     is ControllerResult.Failure -> result.reason
                     is ControllerResult.PermissionRequired -> "Needs permission"
+                    is ControllerResult.Unsupported -> "Not supported"
                     else -> null
                 }
             updateTile()

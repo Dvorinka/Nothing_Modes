@@ -23,6 +23,7 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.NightMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.nothing.GlyphResult
 import com.tdvorak.nothingmodes.widget.WidgetEntryPoint
 import dagger.hilt.EntryPoints
 import kotlinx.coroutines.Dispatchers
@@ -509,6 +510,141 @@ object CycleActions {
             override fun isOn(value: String): Boolean = value == "on"
         }
 
+    /** Glyph lights: toggle() all-on or turnOff() on the light stripe; on
+     *  matrix devices a full-percent frame stands in — same as SetGlyph. */
+    val glyph =
+        object : CycleAction {
+            override val id = "glyph"
+            override val label = "Glyph lights"
+            override val iconRes = R.drawable.ic_tile_glyph
+            override val defaultSteps = listOf("on", "off")
+            override val allowedValues = listOf("on", "off")
+            override val stepsHint = ""
+
+            /** Providers expose no readable state — track what we set. */
+            @Volatile
+            private var lastSet: String? = null
+
+            override fun permissionFix(context: Context): Intent? = null
+
+            override suspend fun current(context: Context): String? = lastSet
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                val ep =
+                    runCatching {
+                        EntryPoints.get(context.applicationContext, WidgetEntryPoint::class.java)
+                    }.getOrNull() ?: return ControllerResult.Failure("app graph unavailable")
+                val stripe = ep.glyphProvider().takeIf { it.isAvailable() }
+                val matrix = ep.glyphMatrixProvider().takeIf { it.isAvailable() }
+                if (stripe == null && matrix == null) return ControllerResult.Unsupported
+                val result =
+                    if (stripe != null) {
+                        if (!stripe.ensureConnected()) return ControllerResult.Failure("glyph service unavailable")
+                        if (value == "on") stripe.toggle() else stripe.turnOff()
+                    } else {
+                        if (matrix?.ensureConnected() != true) {
+                            return ControllerResult.Failure("glyph service unavailable")
+                        }
+                        if (value == "on") matrix.displayPercentFill(100) else matrix.turnOff()
+                    }
+                return when (result) {
+                    GlyphResult.Success -> {
+                        lastSet = value
+                        ControllerResult.Success
+                    }
+                    is GlyphResult.Failure -> ControllerResult.Failure(result.reason)
+                    GlyphResult.Unsupported -> ControllerResult.Unsupported
+                    GlyphResult.PermissionRequired -> ControllerResult.PermissionRequired
+                    GlyphResult.ServiceUnavailable -> ControllerResult.Failure("glyph service unavailable")
+                }
+            }
+
+            override fun format(value: String): String = value.replaceFirstChar { it.uppercase() }
+
+            override fun isOn(value: String): Boolean = value == "on"
+        }
+
+    /**
+     * Curated scene preset — a composite step applying DND + ultra dim +
+     * dark mode in one tap. Ultra dim is opportunistic: skipped silently
+     * when the device can't overlay, so scenes never hard-fail on it.
+     */
+    val scene =
+        object : CycleAction {
+            override val id = "scene"
+            override val label = "Scene"
+            override val iconRes = R.drawable.ic_tile_scene
+            override val defaultSteps = listOf("reset", "bedtime", "focus")
+            override val allowedValues = listOf("reset", "bedtime", "focus")
+            override val stepsHint = ""
+
+            override fun permissionFix(context: Context): Intent? = dnd.permissionFix(context)
+
+            override suspend fun current(context: Context): String? =
+                when (AndroidDndController(context).getDndMode()) {
+                    DndMode.PRIORITY -> "bedtime"
+                    DndMode.TOTAL -> "focus"
+                    DndMode.OFF -> "reset"
+                    null -> null
+                }
+
+            override suspend fun apply(
+                context: Context,
+                value: String,
+            ): ControllerResult {
+                val dnd = AndroidDndController(context)
+                val dark = AndroidDarkModeController(context)
+                val results =
+                    when (value) {
+                        "bedtime" ->
+                            listOf(
+                                dnd.setDnd(DndMode.PRIORITY),
+                                dimTo(context, 60),
+                                dark.setDarkMode(NightMode.ON),
+                            )
+                        "focus" ->
+                            listOf(
+                                dnd.setDnd(DndMode.TOTAL),
+                                dimTo(context, 0),
+                                dark.setDarkMode(NightMode.ON),
+                            )
+                        else ->
+                            listOf(
+                                dnd.setDnd(DndMode.OFF),
+                                dimTo(context, 0),
+                                dark.setDarkMode(NightMode.AUTO),
+                            )
+                    }
+                return results.firstOrNull { it !is ControllerResult.Success }
+                    ?: ControllerResult.Success
+            }
+
+            private fun dimTo(
+                context: Context,
+                percent: Int,
+            ): ControllerResult =
+                if (!UltraDimController.canDim(context)) {
+                    ControllerResult.Success
+                } else {
+                    runCatching {
+                        if (percent <= 0) UltraDimController.hide(context) else UltraDimController.show(context, percent)
+                        ControllerResult.Success
+                    }.getOrElse { ControllerResult.Failure(it.message ?: "dim failed") }
+                }
+
+            override fun format(value: String): String =
+                when (value) {
+                    "bedtime" -> "Bedtime"
+                    "focus" -> "Focus"
+                    else -> "Reset"
+                }
+
+            override fun isOn(value: String): Boolean = value != "reset"
+        }
+
     /**
      * Stateless runner: each tap fires the next armed manual mode, wrapping at
      * the end of the list. Steps are live automation ids, so the spec's own
@@ -590,6 +726,8 @@ object CycleActions {
             autoRotate,
             mediaVolume,
             torch,
+            glyph,
+            scene,
             modeRunner,
         )
 
