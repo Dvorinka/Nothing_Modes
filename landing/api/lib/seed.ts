@@ -20,8 +20,13 @@ export async function seedDemos(sql: NeonQueryFunction<false, false>, items: See
     // Hash the canonical form — same function share.ts uses — so seeded
     // items verify on the client like user submissions do.
     const contentHash = await sha256Hex(canonicalJson(analysis.sanitized));
+    // Hash dedup misses when the analyzer's sanitized output changes between
+    // releases, so seed canon also dedupes on its stable (type, title) key.
     const exists = await sql`
-      SELECT 1 FROM shared_items WHERE content_hash = ${contentHash} LIMIT 1
+      SELECT 1 FROM shared_items
+      WHERE content_hash = ${contentHash}
+         OR (handle = 'nothing-modes' AND type = ${item.type} AND title = ${item.title})
+      LIMIT 1
     `;
     if (exists.length > 0) continue;
     await sql`

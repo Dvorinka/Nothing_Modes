@@ -408,7 +408,7 @@ document.querySelectorAll('.tab').forEach(b =>
     load();
   }));
 
-async function load() {
+async function load(fresh) {
   document.getElementById('status').textContent = 'Loading…';
   const q = qEl.value.trim();
   const capList = [...selectedCaps];
@@ -419,7 +419,7 @@ async function load() {
   p.set('sort', sort);
   if (capList.length) p.set('caps', capList.join(','));
   try {
-    const res = await fetch('/api/library?' + p);
+    const res = await fetch('/api/library?' + p, fresh ? { cache: 'no-store' } : undefined);
     if (res.ok) {
       const data = await res.json();
       allItems = data.items || [];
@@ -504,7 +504,7 @@ function render() {
           ${it.summary ? `<span class="tag">${esc(it.summary)}</span>` : ''}
           ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
           <span class="tag">${it.downloads} downloads</span>
-          ${adminToken ? `<button class="tag" style="color:var(--red);border-color:rgba(215,25,33,.4)" data-id="${esc(it.id)}" onclick="event.stopPropagation()">DELETE</button>` : ''}
+          ${adminToken && it.id ? `<button class="tag" style="color:var(--red);border-color:rgba(215,25,33,.4)" data-id="${esc(it.id)}" onclick="event.stopPropagation()">DELETE</button>` : ''}
           <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}" data-type="${esc(it.type)}" onclick="event.stopPropagation()">${isAndroid() ? 'OPEN IN APP' : 'DOWNLOAD'}</button>
         </div>
       </div>`;
@@ -528,7 +528,7 @@ async function deleteItem(id) {
     body: JSON.stringify({ type: 'submission', id }),
   });
   if (!res.ok) { alert('Failed: ' + await res.text()); return; }
-  load();
+  load(true);
 }
 
 function fillCell(ctx, x, y, s, r) {
