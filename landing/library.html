@@ -408,7 +408,7 @@ document.querySelectorAll('.tab').forEach(b =>
     load();
   }));
 
-async function load(fresh) {
+async function load() {
   document.getElementById('status').textContent = 'Loading…';
   const q = qEl.value.trim();
   const capList = [...selectedCaps];
@@ -419,7 +419,7 @@ async function load(fresh) {
   p.set('sort', sort);
   if (capList.length) p.set('caps', capList.join(','));
   try {
-    const res = await fetch('/api/library?' + p, fresh ? { cache: 'no-store' } : undefined);
+    const res = await fetch('/api/library?' + p);
     if (res.ok) {
       const data = await res.json();
       allItems = data.items || [];
@@ -504,7 +504,6 @@ function render() {
           ${it.summary ? `<span class="tag">${esc(it.summary)}</span>` : ''}
           ${(it.capabilities || []).map(c => `<span class="tag">${esc(c)}</span>`).join('')}
           <span class="tag">${it.downloads} downloads</span>
-          ${adminToken && it.id ? `<button class="tag" style="color:var(--red);border-color:rgba(215,25,33,.4)" data-id="${esc(it.id)}" onclick="event.stopPropagation()">DELETE</button>` : ''}
           <button class="dl" data-id="${esc(it.id)}" data-name="${esc(it.title)}" data-type="${esc(it.type)}" onclick="event.stopPropagation()">${isAndroid() ? 'OPEN IN APP' : 'DOWNLOAD'}</button>
         </div>
       </div>`;
@@ -512,23 +511,7 @@ function render() {
   }
   list.querySelectorAll('.dl').forEach(b =>
     b.addEventListener('click', () => install(b.dataset.id, b.dataset.name, b.dataset.type)));
-  list.querySelectorAll('.meta .tag[data-id]').forEach(b =>
-    b.addEventListener('click', () => deleteItem(b.dataset.id)));
   list.querySelectorAll('canvas[data-preview]').forEach(c => drawGlyphThumb(c, JSON.parse(c.dataset.preview)));
-}
-
-async function deleteItem(id) {
-  if (!confirm('Delete this item? This cannot be undone.')) return;
-  const res = await fetch('/api/delete', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + adminToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ type: 'submission', id }),
-  });
-  if (!res.ok) { alert('Failed: ' + await res.text()); return; }
-  load(true);
 }
 
 function fillCell(ctx, x, y, s, r) {
