@@ -26,6 +26,7 @@ Built like a premium system app: OLED-black surfaces, monoline iconography, dot-
 - **Capability detection** — the app asks what the device can do instead of guessing.
 - **Priority + cooldown + conflict resolution** — deterministic ordering, overlap suppression, and fire cooldown.
 - **Import / export / share** — JSON bundles with schema versioning.
+- **Privacy-first diagnostics** — no analytics SDKs; crash reports are opt-in, and after a crash the app shows the error and asks before anything is sent.
 
 ## Glyph support
 
@@ -155,6 +156,7 @@ Get Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or the 
 - [TASKS.md](TASKS.md)
 - [DECISIONS.md](DECISIONS.md)
 - [CHANGELOG.md](CHANGELOG.md)
+- [Privacy Policy](PRIVACY_POLICY.md)
 
 ## License
 
