@@ -32,7 +32,7 @@
 <body>
 <main>
   <h1>Privacy Policy</h1>
-  <p class="sub">Nothing Modes — last updated 2026-09-07</p>
+  <p class="sub">Nothing Modes — last updated 2026-09-23</p>
 
   <p>Nothing Modes is an open-source automation manager for Android, with optional Nothing Phone Glyph integration.</p>
 
@@ -41,8 +41,9 @@
   <ul>
     <li>No analytics, telemetry, or tracking SDKs are included.</li>
     <li>Crash and error reporting is <strong>optional and off by default</strong>. If you enable it in Settings &rarr; Privacy, the app sends anonymous reports (device model, Android version, app version, exception details and stack trace) to the developer's own server — not to Google or any third party. No account, advertising ID, or device identifier is included.</li>
+    <li>If reporting is off and the app crashes, the next launch shows what happened and offers a one-time <strong>Send report</strong> / <strong>Don't send</strong> choice. Nothing is uploaded without that explicit tap — "Don't send" deletes the report.</li>
     <li>No account or sign-in is required.</li>
-    <li>No user data is sent to our servers, except the opt-in crash reports described above.</li>
+    <li>No user data is sent to our servers, except the opt-in or explicitly confirmed crash reports described above.</li>
   </ul>
   <p>The app does make a small number of network requests, all initiated by the user or for user-facing features:</p>
   <table>
@@ -51,7 +52,7 @@
     <tr><td><code>raw.githubusercontent.com/.../templates/</code></td><td>Load the community template index and template bundles</td><td>None (anonymous)</td></tr>
     <tr><td>GitHub Releases APK download</td><td>Download an update APK when the user approves an update</td><td>None (anonymous, via device DownloadManager)</td></tr>
     <tr><td><code>rybbit.tdvorak.dev/api/script.js</code></td><td>Anonymous page-view analytics on the website only</td><td>None (anonymous)</td></tr>
-    <tr><td><code>POST nothing-modes.vercel.app/api/crash</code></td><td>Optional crash/error reporting, only when enabled in Settings &rarr; Privacy</td><td>Anonymous crash report (see above)</td></tr>
+    <tr><td><code>POST nothing-modes.vercel.app/api/crash</code></td><td>Optional crash/error reporting — only when enabled in Settings &rarr; Privacy or confirmed via "Send report" on the post-crash prompt</td><td>Anonymous crash report (see above)</td></tr>
   </table>
 
   <h2>Data Storage</h2>
@@ -60,7 +61,7 @@
     <li><strong>Automation configurations</strong>: Room database (internal app storage)</li>
     <li><strong>Execution audit log</strong>: Room database (internal app storage, capped at 50 recent entries)</li>
     <li><strong>Theme preference</strong>: SharedPreferences (internal app storage)</li>
-    <li><strong>Crash report queue</strong>: internal app storage — written on crash and uploaded on the next launch, only if reporting is enabled</li>
+    <li><strong>Crash report queue</strong>: internal app storage — written on every crash; uploaded on the next launch if reporting is enabled, otherwise held until you choose Send report or Don't send on the prompt (capped at 10 reports)</li>
     <li><strong>Exported JSON / templates</strong>: User-selected location via Storage Access Framework</li>
   </ul>
   <p>Uninstalling the app removes all internal data.</p>

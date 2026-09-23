@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.tdvorak.nothingmodes.data.community.CommunityApi
+import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
 import com.tdvorak.nothingmodes.nav.NothingModesNavHost
@@ -39,7 +40,10 @@ class MainActivity : ComponentActivity() {
     private val updateViewModel: UpdateViewModel by viewModels()
 
     // Flavor-specific: Play builds show Google's update sheet, GitHub builds no-op.
-    private val platformInAppUpdate = PlatformInAppUpdate(this)
+    // Lazy: the Play impl calls getApplicationContext() on construction, which is
+    // null until the activity is attached. First access is check() in onCreate,
+    // still early enough for registerForActivityResult (pre-STARTED).
+    private val platformInAppUpdate by lazy { PlatformInAppUpdate(this) }
 
     @Inject
     lateinit var automationStore: AutomationStore
@@ -108,6 +112,47 @@ class MainActivity : ComponentActivity() {
                         dismissButton = {
                             TextButton(onClick = { updateDismissed = true }) {
                                 Text("Later")
+                            }
+                        },
+                    )
+                }
+
+                // Post-crash prompt for users without auto-reporting: the queued
+                // report only uploads on an explicit "Send report" tap.
+                var crashPrompt by remember {
+                    mutableStateOf(!CrashReporting.enabled.value && CrashReporting.pendingCount() > 0)
+                }
+                val crashSummary = remember(crashPrompt) { CrashReporting.pendingSummary() }
+                if (crashPrompt) {
+                    AlertDialog(
+                        onDismissRequest = { crashPrompt = false },
+                        title = { Text("Nothing Modes crashed") },
+                        text = {
+                            Text(
+                                "The app closed unexpectedly last time." +
+                                    (crashSummary?.let { "\n\n$it" } ?: "") +
+                                    "\n\nSend an anonymous crash report? " +
+                                    "Only the error and device model are included.",
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    crashPrompt = false
+                                    CrashReporting.submitPending()
+                                },
+                            ) {
+                                Text("Send report")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    crashPrompt = false
+                                    CrashReporting.discardPending()
+                                },
+                            ) {
+                                Text("Don't send")
                             }
                         },
                     )

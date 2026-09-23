@@ -1,35 +1,35 @@
 # Nothing Modes — Progress
 
 ## Current Phase
-Phase 2 → Phase 5 (multi-phase completion in progress)
+Play Store release track. App is feature-complete and shipping; work is
+polish, store compliance, and crash-driven fixes.
 
-## Current Task
-Phase 2 completion: active mode IDs in DeviceState, duplicate automation, JSON import/export
+## Current Version
+0.19.1 (versionCode 26) — pending release.
 
-## Completed Work (this session)
-- Verified repository state: 92 files, 10,144 lines, 9 modules
-- Verified engine: 11 triggers, 12 conditions, 28 actions, all wired
-- Verified data: 8 entities, 8 DAOs, Room stores
-- Verified Android: 4 services, 7 receivers, monitors
-- Verified UI: 5 screens, 6 nav routes
-- Created persistent tracking files
+## Recently Shipped
+- 0.19.0: tap-to-cycle Quick Settings tiles (screen timeout, brightness,
+  ultra dim, volume, Glyph lights, scene presets, mode runner), six custom
+  tiles, home-screen widgets
+- 0.18.1: Play in-app updates (play flavor), community library one-tap
+  imports
+- 0.18.0: ultra-dim overlay via accessibility service, live notification
+  control, capability warning layer, priority conflict resolution
 
 ## Active Problems
-None currently blocking.
+- Fixed in 0.19.1: Play startup crash (PlatformInAppUpdate constructed
+  before activity attach — NPE on cold start, 0.18.1+)
 
-## Tests
-- 9 test files exist
-- Build passes on proxmox (assembleDebug + test + lint)
-- Build passes locally (compileDebugKotlin)
+## Infrastructure
+- CI: `./gradlew test assembleDebug lint` on every PR
+- Release: tag `v*` → signed GitHub APK + Play AAB → alpha track upload
+  with `fastlane/.../changelogs/<versionCode>.txt` as release notes
+- Crash pipeline: opt-in reporting + post-crash prompt →
+  `POST nothing-modes.vercel.app/api/crash` → Neon `crash_reports` →
+  admin page + email notification
 
-## Next Actions
-1. Wire active mode IDs into DeviceState via ModeActivationDao
-2. Implement duplicate automation feature
-3. Implement JSON import/export
-4. Build custom automation builder (WHEN/IF/THEN)
-5. Add conflict management tests
-6. Add state restoration tests
-7. Nothing OS design language
-8. Onboarding flow
-9. Release configuration
-10. Documentation
+## Build Notes
+- JDK 17 required (JDK 27 breaks the Kotlin compiler — set
+  `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` locally)
+- Local release builds fall back to debug signing when
+  `NOTHING_MODES_KEYSTORE` env vars are unset; CI signs via secrets

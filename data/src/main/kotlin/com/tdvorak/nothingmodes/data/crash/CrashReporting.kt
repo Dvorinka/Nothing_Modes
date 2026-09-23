@@ -25,8 +25,9 @@ import java.net.URL
  *
  * Reports are written to [filesDir]/crash_reports on the crashing thread (network
  * I/O is not safe there), then flushed to [endpoint] on the next opportunity.
- * Nothing leaves the device unless the user enabled reporting in Settings and the
- * process starts again or another report is queued.
+ * Crash reports are always queued locally; nothing leaves the device unless the
+ * user enabled reporting in Settings or taps "Send report" on the post-crash
+ * prompt. Non-fatal errors via [logError] stay strictly opt-in.
  *
  * No third-party SDK — plain HttpURLConnection + kotlinx.serialization.
  */
@@ -36,6 +37,7 @@ object CrashReporting {
     private const val KEY_ENABLED = "enabled"
     private const val REPORT_DIR = "crash_reports"
     private const val MAX_STACK_BYTES = 48 * 1024
+    private const val MAX_QUEUED_REPORTS = 10
 
     /** Ingest endpoint. Same for all builds; override only for tests. */
     var endpoint: String = "https://nothing-modes.vercel.app/api/crash"
@@ -83,16 +85,36 @@ object CrashReporting {
         }
     }
 
-    // Handler is always installed; it only writes when the user opted in, so
-    // toggling takes effect without a restart.
+    /** Queued reports awaiting a decision. UI reads this to offer the prompt. */
+    fun pendingCount(): Int = reportDir()?.listFiles()?.size ?: 0
+
+    /** "ExceptionClass: message" of the newest queued report, for the prompt. */
+    fun pendingSummary(): String? {
+        val file = reportDir()?.listFiles()?.maxByOrNull { it.name } ?: return null
+        return runCatching {
+            val json = Json.parseToJsonElement(file.readText()) as JsonObject
+            val cls = json["exception_class"]?.toString()?.trim('"')?.substringAfterLast('.')
+            val msg = json["message"]?.toString()?.trim('"')?.lineSequence()?.firstOrNull()
+            listOfNotNull(cls, msg).joinToString(": ").ifBlank { null }
+        }.getOrNull()
+    }
+
+    /** Upload every queued report now — explicit per-report consent. */
+    fun submitPending() = flushQueue()
+
+    /** Drop every queued report without sending. */
+    fun discardPending() {
+        reportDir()?.listFiles()?.forEach { it.delete() }
+    }
+
+    // Handler is always installed and always queues the crash locally. Sending
+    // is the opt-in part — automatic when enabled, prompted otherwise.
     private fun installHandler() {
         if (previousHandler != null) return
         previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             runCatching {
-                if (_enabled.value) {
-                    saveReport(buildReport(thread, error, kind = "crash"))
-                }
+                saveReport(buildReport(thread, error, kind = "crash"))
             }
             previousHandler?.uncaughtException(thread, error)
         }
@@ -139,6 +161,11 @@ object CrashReporting {
         val file =
             dir.resolve("report-${System.currentTimeMillis()}-${(0..9999).random()}.json")
         file.writeText(Json.encodeToString(JsonObject.serializer(), report))
+        // A crash loop before first launch would pile reports up; keep newest.
+        dir.listFiles()
+            ?.sortedBy { it.name }
+            ?.dropLast(MAX_QUEUED_REPORTS)
+            ?.forEach { it.delete() }
     }
 
     private fun flushQueue() {

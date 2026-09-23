@@ -8,8 +8,9 @@ Nothing Modes is an open-source automation manager for Android, with optional No
 
 - No analytics, telemetry, or tracking SDKs are included.
 - Crash and error reporting is **optional and off by default**. If you enable it in Settings → Privacy, the app sends anonymous reports (device model, Android version, app version, exception details and stack trace) to the developer's own server — not to Google or any third party. No account, advertising ID, or device identifier is included.
+- If reporting is off and the app crashes, the next launch shows what happened and offers a one-time **Send report** / **Don't send** choice. Nothing is uploaded without that explicit tap — choosing "Don't send" deletes the report.
 - No account or sign-in is required.
-- No user data is sent to our servers, except the opt-in crash reports described above.
+- No user data is sent to our servers, except the opt-in or explicitly confirmed crash reports described above.
 
 The app does make a small number of network requests, all initiated by the user or for user-facing features:
 
@@ -18,7 +19,7 @@ The app does make a small number of network requests, all initiated by the user 
 | GitHub API `releases/latest` | Check for app updates when the user taps "Check for updates" | None (anonymous) |
 | `raw.githubusercontent.com/.../templates/` | Load the community template index and template bundles | None (anonymous) |
 | GitHub Releases APK download | Download an update APK when the user approves an update | None (anonymous, via device DownloadManager) |
-| `POST nothing-modes.vercel.app/api/crash` | Optional crash/error reporting, only when enabled in Settings → Privacy | Anonymous crash report (see above) |
+| `POST nothing-modes.vercel.app/api/crash` | Optional crash/error reporting — only when enabled in Settings → Privacy or confirmed via "Send report" on the post-crash prompt | Anonymous crash report (see above) |
 
 ## Data Storage
 
@@ -27,7 +28,7 @@ All user data is stored locally on the device:
 - **Automation configurations**: Room database (internal app storage)
 - **Execution audit log**: Room database (internal app storage, capped at 50 recent entries)
 - **Theme preference**: SharedPreferences (internal app storage)
-- **Crash report queue**: internal app storage — written on crash and uploaded on the next launch, only if reporting is enabled
+- **Crash report queue**: internal app storage — written on every crash; uploaded on the next launch if reporting is enabled, otherwise held until you choose Send report or Don't send on the prompt (capped at 10 reports)
 - **Exported JSON / templates**: User-selected location via Storage Access Framework
 
 Uninstalling the app removes all internal data.

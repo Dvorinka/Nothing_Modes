@@ -47,3 +47,16 @@
 **Status:** Accepted
 **Decision:** All Nothing Glyph SDK calls isolated in nothing-integrations module. Other modules interact via provider interfaces.
 **Rationale:** SDK is vendor-specific. Isolation allows mocking in tests and clean degradation on non-Nothing devices.
+
+## ADR-009: Always-queue crash reports, consent at send time
+**Date:** 2026-09-23
+**Status:** Accepted
+**Decision:** Uncaught exceptions are always written to a local queue (capped
+at 10). Reports upload automatically only when the user opted into
+reporting in Settings → Privacy; otherwise the next launch shows the
+error and offers an explicit Send report / Don't send choice.
+**Rationale:** Opt-in telemetry alone cannot capture the failures that
+matter most — users who never enabled it hit crashes silently. Local
+queueing keeps the report on-device until an explicit action, preserving
+the no-data-without-consent guarantee while still making every crash
+reportable.

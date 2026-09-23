@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.19.1]
+
+### Fixed
+- Startup crash on Play builds: `PlatformInAppUpdate` was constructed as an activity field, so `AppUpdateManagerFactory.create()` called `getApplicationContext()` before attach — NPE in `MainActivity.<init>` on every cold start. Now lazy; first use is `check()` in `onCreate`, still before STARTED for `registerForActivityResult`.
+
+### Added
+- Post-crash report prompt: crashes are always queued locally; on next launch users without crash reporting enabled see the error and can send or discard it explicitly. Queue capped at 10 reports.
+
 ## [0.18.0]
 
 ### Added
