@@ -1,0 +1,2 @@
+- Fix startup crash on launch (Play build): in-app update check ran before the activity was ready
+- Crash prompt: after an unexpected quit, the app shows what happened and offers a one-tap anonymous report — still off by default
