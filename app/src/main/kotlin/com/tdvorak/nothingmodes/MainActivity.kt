@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.tdvorak.nothingmodes.automation.scheduler.ExactAlarmSync
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
@@ -164,6 +165,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         platformInAppUpdate.onResume()
+        // Catches the grant given via the "Alarms & reminders" deep-link while
+        // this process stayed alive — onCreate never re-runs on return.
+        ExactAlarmSync.onAppAlive(this)
     }
 
     override fun onNewIntent(intent: Intent) {

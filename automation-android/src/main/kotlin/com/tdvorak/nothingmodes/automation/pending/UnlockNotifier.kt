@@ -77,6 +77,9 @@ object UnlockNotifier {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
+                // Wakes the screen over the lockscreen when USE_FULL_SCREEN_INTENT
+                // is granted; ignored silently otherwise (heads-up remains).
+                .setFullScreenIntent(pendingIntent, true)
                 .build()
 
         nm.notify(NOTIFICATION_ID, notification)

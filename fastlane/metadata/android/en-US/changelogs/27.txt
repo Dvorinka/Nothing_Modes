@@ -1,0 +1,2 @@
+- Scheduled routines now fire on the minute again: alarms silently stayed inexact after the exact-alarm permission was granted in Settings — the app detects the grant and re-arms everything
+- "Finish your mode" alert can now wake the screen over the lockscreen (uses the full-screen-intent permission when available)

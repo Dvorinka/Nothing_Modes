@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.2]
+
+### Fixed
+- Time and window triggers silently stayed inexact (up to a 1-hour slide under Doze) when `SCHEDULE_EXACT_ALARM` was granted after the alarms were already armed. The app now detects the grant on process start and on returning to the app, and re-arms all armed automations via `setAlarmClock`.
+- Pending-unlock alert could not wake the screen: `ACQUIRE_CAUSES_WAKEUP` wakelocks hit the `TURN_SCREEN_ON` appop, which Nothing OS locks for background apps. The notification now also carries a full-screen intent (the sanctioned wake-over-lockscreen path); when `USE_FULL_SCREEN_INTENT` isn't granted it degrades to the existing heads-up.
 
 ## [0.19.1]
 
