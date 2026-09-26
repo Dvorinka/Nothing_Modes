@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Time and window triggers silently stayed inexact (up to a 1-hour slide under Doze) when `SCHEDULE_EXACT_ALARM` was granted after the alarms were already armed. The app now detects the grant on process start and on returning to the app, and re-arms all armed automations via `setAlarmClock`.
+
 ## [0.19.1]
 
 ### Fixed

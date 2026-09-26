@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
+import com.tdvorak.nothingmodes.automation.scheduler.ExactAlarmSync
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
@@ -35,6 +36,10 @@ class NothingModesApplication : Application() {
         UltraDimController.onChanged = { UltraDimNotifier.sync(this) }
         UltraDimNotifier.sync(this)
         // Seed automations removed — user starts with a clean slate.
+        // Re-arm alarms as exact when the grant arrived after scheduling —
+        // a SCHEDULE_EXACT_ALARM grant leaves previously armed alarms inexact
+        // until something reschedules them.
+        ExactAlarmSync.onAppAlive(this)
         // Start persistent monitor on fresh install (not just on boot)
         runCatching {
             val intent = Intent(this, PersistentMonitorService::class.java)
