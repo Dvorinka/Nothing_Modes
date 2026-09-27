@@ -1,0 +1,1 @@
+- Fixed a phantom alarm: armed routines were published as the system "next alarm" even though they aren't Clock alarms. Scheduled modes still fire exactly on time — they just no longer show up in the alarm indicator.

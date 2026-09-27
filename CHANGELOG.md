@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.4]
+
+### Fixed
+- Armed routines surfaced as the system "next alarm" in the status bar, quick settings, and ambient display while remaining invisible in the Clock app — a phantom alarm that couldn't be traced. `setAlarmClock` marks alarms as user-facing; routines now use `setExactAndAllowWhileIdle` — equally exact and Doze-safe, without the publication. Alarms re-arm through the new path automatically on app update.
+
 ## [0.19.3]
 
 ### Fixed
