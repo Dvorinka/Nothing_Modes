@@ -56,6 +56,9 @@ class PersistentMonitorService : Service() {
         Log.i(TAG, "Persistent monitor started")
     }
 
+    // ForegroundServiceStartNotAllowedException exists only on API 31+; the
+    // catch is inert below it — lint just can't see that.
+    @SuppressLint("NewApi")
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
