@@ -1,0 +1,4 @@
+- "When it ends" section on the mode detail screen now shows the end result first — what will actually happen — instead of repeating the mode-time action
+- Fixed a crash when the monitor service restarted in the background
+- Fixed a crash in the app picker when an app has more than one launcher entry
+- Deleting a mode now asks for confirmation

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.3]
+
+### Fixed
+- Mode detail "When it ends" rows led with the mode-time action and buried the end behaviour in the subtitle. The title now shows the outcome (explicit end action, reverts to previous value, or keeps the mode's value) with "While active: …" as context.
+- Crash on background sticky restarts: `PersistentMonitorService` threw `ForegroundServiceStartNotAllowedException` when the OS restarted it while the app was backgrounded. It now stops gracefully and returns on the next eligible start.
+- Crash in the app pickers when a package exposes multiple launcher activities — duplicate LazyColumn keys. Apps are now deduplicated by package name.
+- Deleting a mode from the detail screen had no confirmation — a single mis-tap destroyed it permanently. Now gated behind a confirm dialog.
+
 ## [0.19.2]
 
 ### Fixed
