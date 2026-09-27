@@ -23,12 +23,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -308,6 +310,7 @@ fun AutomationDetailScreen(
     val shareResult by viewModel.shareResult.collectAsState()
     val recentEvents by viewModel.recentEvents.collectAsState()
     var detailAction by remember { mutableStateOf<com.tdvorak.nothingmodes.engine.model.Action?>(null) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val appLabel = rememberAppLabelResolver()
     val appIconResolver = rememberAppIconResolver()
     val units = rememberUnits()
@@ -325,7 +328,7 @@ fun AutomationDetailScreen(
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
                         TopBarAction("Graph", icon = Icons.Filled.AccountTree, onClick = onGraph),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
-                        TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { viewModel.delete(onBack) }),
+                        TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { confirmDelete = true }),
                     ),
             )
         },
@@ -700,6 +703,24 @@ fun AutomationDetailScreen(
             title = actionDescription(action),
             text = actionDetailText(action),
             onDismiss = { detailAction = null },
+        )
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        viewModel.delete(onBack)
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            title = { Text("Delete this mode?") },
+            text = { Text(automation?.name.orEmpty()) },
         )
     }
 
