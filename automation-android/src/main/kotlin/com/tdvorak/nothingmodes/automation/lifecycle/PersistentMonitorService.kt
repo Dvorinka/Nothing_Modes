@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.automation.lifecycle
 
 import android.annotation.SuppressLint
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -60,7 +61,17 @@ class PersistentMonitorService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            // Sticky restart while the app is in the background — the platform
+            // refuses the foreground start with no valid exemption. Stop
+            // gracefully instead of crashing; the next eligible start (alarm
+            // trigger, app launch) brings the monitor back.
+            Log.w(TAG, "Foreground start not allowed; stopping monitor", e)
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 

@@ -562,16 +562,23 @@ fun AutomationDetailScreen(
                                     data.endActions.firstOrNull {
                                         (it.affectedSettings intersect action.affectedSettings).isNotEmpty()
                                     }
-                                val label =
+                                val modeValue = actionDescription(action)
+                                val featureName = modeValue.substringBefore(':')
+                                val (title, subtitle) =
                                     when {
-                                        endAction != null -> "Then set to: ${actionDescription(endAction)}"
-                                        action.supportsRestore -> "Reverts to previous value"
-                                        else -> "Keeps the mode's value"
+                                        endAction != null ->
+                                            actionDescription(endAction) to "While active: $modeValue"
+                                        action.supportsRestore ->
+                                            "$featureName: reverts to previous value".uppercase() to
+                                                "While active: $modeValue"
+                                        else ->
+                                            "$featureName: keeps the mode's value".uppercase() to
+                                                "While active: $modeValue"
                                     }
                                 NothingDivider()
                                 NothingListRow(
-                                    title = actionDescription(action),
-                                    subtitle = label,
+                                    title = title,
+                                    subtitle = subtitle,
                                     onClick = onEdit,
                                     leading = {
                                         NothingIconCircle(size = 40f) {

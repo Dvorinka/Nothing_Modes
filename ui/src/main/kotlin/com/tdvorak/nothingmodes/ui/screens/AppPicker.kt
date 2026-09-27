@@ -131,7 +131,8 @@ fun AppPicker(
                             pkg = ri.activityInfo.packageName,
                             resolveInfo = ri,
                         )
-                    }.sortedBy { it.label.lowercase() }
+                    }.distinctBy { it.pkg }
+                    .sortedBy { it.label.lowercase() }
             }.getOrDefault(emptyList())
         }
 
@@ -322,7 +323,8 @@ fun MultiAppPicker(
                             pkg = ri.activityInfo.packageName,
                             resolveInfo = ri,
                         )
-                    }.sortedBy { it.label.lowercase() }
+                    }.distinctBy { it.pkg }
+                    .sortedBy { it.label.lowercase() }
             }.getOrDefault(emptyList())
         }
 
