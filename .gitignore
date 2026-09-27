@@ -81,3 +81,6 @@ GOOGLE_PLAY_CREDENTIALS.md
 /android-*.png
 /library-*.png
 /submit.png
+
+# Brag video build output (deliverables live in landing/)
+brag-output*/

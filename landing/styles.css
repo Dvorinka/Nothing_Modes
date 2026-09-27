@@ -219,6 +219,23 @@ a { color: inherit; text-decoration: none; }
 .strip-inner::-webkit-scrollbar { display: none; }
 .strip-inner span { color: var(--red); margin: 0 6px; }
 
+/* ===== Film ===== */
+.film { padding: 96px 0; border-bottom: 1px solid var(--border); }
+.film-inner { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+.film-frame {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--surface);
+  transition: border-color var(--ease);
+}
+.film-frame:hover { border-color: var(--border-hi); }
+.film-frame video {
+  display: block; width: 100%; height: auto;
+  border-radius: 4px; background: #000;
+}
+.film-frame figcaption { margin-top: 10px; padding: 0 4px; font-size: 10px; }
+
 /* ===== Section heads ===== */
 .section-head {
   max-width: 1280px; margin: 0 auto 48px;
