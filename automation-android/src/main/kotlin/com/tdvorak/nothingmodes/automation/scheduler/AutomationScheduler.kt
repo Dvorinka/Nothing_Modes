@@ -18,7 +18,9 @@ import java.time.ZonedDateTime
 
 /**
  * Schedules time-based automations via AlarmManager and geofence-based automations via GeofencingClient.
- * Uses setAlarmClock for exact alarms (Android 12+ SCHEDULE_EXACT_ALARM).
+ * Uses setExactAndAllowWhileIdle for exact alarms (Android 12+ SCHEDULE_EXACT_ALARM).
+ * Not setAlarmClock: that API publishes each routine as the system's "next
+ * alarm" in the status bar/QS — routines aren't user-visible clock alarms.
  * Uses setAndAllowWhileIdle for Doze compatibility on inexact triggers.
  * Geofence triggers are registered with Google Play Services Location API.
  */
@@ -137,8 +139,9 @@ class AutomationScheduler(
         val pendingIntent = timePendingIntent(id, isStart = isTime)
         try {
             if (canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(triggerAtMillis, null),
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
                     pendingIntent,
                 )
             } else {
@@ -198,12 +201,14 @@ class AutomationScheduler(
 
         try {
             if (canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(nextStart.toInstant().toEpochMilli(), null),
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextStart.toInstant().toEpochMilli(),
                     windowPendingIntent(id, isStart = true),
                 )
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(nextEnd.toInstant().toEpochMilli(), null),
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextEnd.toInstant().toEpochMilli(),
                     windowPendingIntent(id, isStart = false),
                 )
             } else {
@@ -324,8 +329,9 @@ class AutomationScheduler(
         val pendingIntent = beforePendingIntent(automation.id, minutes, automation.name)
         try {
             if (canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(atMillis, null),
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    atMillis,
                     pendingIntent,
                 )
             } else {
