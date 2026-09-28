@@ -815,6 +815,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetRinger -> setOf("ringer_mode")
             is Action.SetStayAwake -> setOf("stay_on_while_plugged_in")
             is Action.SetGlyphInterface -> setOf("led_effect_enable")
+            is Action.WriteSetting -> setOf(key)
             is Action.Group -> actions.flatMap { it.affectedSettings }.toSet()
             else -> emptySet()
         }

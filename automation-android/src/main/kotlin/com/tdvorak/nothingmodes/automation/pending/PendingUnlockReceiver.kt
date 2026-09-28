@@ -30,6 +30,8 @@ class PendingUnlockReceiver : BroadcastReceiver() {
         fun actionExecutor(): ActionExecutor
 
         fun pendingUnlockStore(): PendingUnlockStore
+
+        fun auditSink(): com.tdvorak.nothingmodes.engine.runtime.AuditSink
     }
 
     override fun onReceive(
@@ -51,7 +53,7 @@ class PendingUnlockReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
-                PendingUnlockDrain.run(pendingStore, executor)
+                PendingUnlockDrain.run(pendingStore, executor, entryPoint.auditSink())
             } finally {
                 UnlockNotifier.cancel(context)
                 pendingResult.finish()

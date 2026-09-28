@@ -58,7 +58,12 @@ class AutomationService : Service() {
 
     @Inject lateinit var pendingUnlockStore: PendingUnlockStore
 
+    @Inject @field:javax.inject.Named("locked_writes")
+    lateinit var lockedWriteStore: PendingUnlockStore
+
     @Inject lateinit var actionExecutor: com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
+
+    @Inject lateinit var auditSink: com.tdvorak.nothingmodes.engine.runtime.AuditSink
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeJobs = mutableSetOf<Job>()
@@ -277,8 +282,24 @@ class AutomationService : Service() {
     }
 
     private fun handleUnlocked() {
+        drainLockedWrites()
         dispatchEvent(TriggerEvent.DeviceUnlockedEvent(eventId = "unlock:${System.currentTimeMillis()}"))
         drainPendingAfterUnlock()
+    }
+
+    /**
+     * Settings written while the keyguard was locked are reverted by the
+     * platform the moment the user unlocks (observed: Extra Dim re-asserts
+     * at keyguard dismissal). Replay the queued writes now — the drain lands
+     * after the platform's reassert, so the mode's final state wins.
+     */
+    private fun drainLockedWrites() {
+        if (!lockedWriteStore.hasPending()) return
+        trackJob(
+            scope.launch {
+                PendingUnlockDrain.run(lockedWriteStore, actionExecutor, auditSink)
+            },
+        )
     }
 
     /**
@@ -293,7 +314,7 @@ class AutomationService : Service() {
             UnlockNotifier.cancel(this)
             trackJob(
                 scope.launch {
-                    PendingUnlockDrain.run(pendingUnlockStore, actionExecutor)
+                    PendingUnlockDrain.run(pendingUnlockStore, actionExecutor, auditSink)
                 },
             )
         } else {

@@ -5,6 +5,13 @@
 ### Fixed
 - Play in-app updates downloaded but never installed on their own: the flexible sheet dismissed after confirmation and no install-state listener was registered, so `completeUpdate()` only ran on the next cold start — the app kept running the old version until a manual relaunch. Install state is now observed; the update applies as soon as the download finishes (Play's install overlay + restart), the listener re-arms on resume mid-download, and a stalled Play consent pause (e.g. metered data) relaunches the sheet instead of silently waiting.
 
+## [0.19.5]
+
+### Fixed
+- Settings restored while the phone was locked were silently reverted by Nothing OS at the next unlock — most visibly Extra Dim, which a mode ending overnight switched off correctly only for the platform to switch it back on the moment the user unlocked. Successful setting writes executed under the keyguard are now queued and replayed on `USER_PRESENT`, after the platform's re-assert, so the mode's final state wins. Covers snapshot restores and explicit end actions for all settings (Extra Dim, DND, brightness, auto-brightness, and the rest).
+- Mode-end failures are no longer invisible: snapshot-restore, end-action, and unlock-replay failures are recorded in the activity log (`ACTION_FAILED` with the action and reason), and background cancellation propagates instead of being swallowed.
+>>>>>>> origin/main
+
 ## [0.19.4]
 
 ### Fixed

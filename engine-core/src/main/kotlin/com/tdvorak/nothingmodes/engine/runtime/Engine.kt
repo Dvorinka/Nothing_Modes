@@ -376,11 +376,12 @@ class Engine(
         batchNow: Long,
     ) {
         restoreSnapshots(automation.id, batchNow)
+        val failures = mutableListOf<String>()
         // Custom end values run AFTER snapshot restore so an explicit
         // "set volume to X" wins over "revert to previous" for that setting.
         automation.endActions.forEachIndexed { index, action ->
-            runCatching {
-                executor.execute(
+            val result =
+                runSideEffect(
                     action,
                     FireContext(
                         eventId = "end:${automation.id.value}",
@@ -390,13 +391,13 @@ class Engine(
                         priority = 100,
                     ),
                 )
-            }
+            result.failureLabel(action)?.let(failures::add)
         }
         // Glyph output isn't a settings key — clear it explicitly so
         // text/matrix/stripes never linger after the mode ends.
         if (automation.actions.any { it.isGlyphAction }) {
-            runCatching {
-                executor.execute(
+            val result =
+                runSideEffect(
                     Action.GlyphTurnOff,
                     FireContext(
                         eventId = "restore:${automation.id.value}",
@@ -406,7 +407,17 @@ class Engine(
                         priority = 100,
                     ),
                 )
-            }
+            result.failureLabel(Action.GlyphTurnOff)?.let(failures::add)
+        }
+        if (failures.isNotEmpty()) {
+            audit.record(
+                AuditEvent(
+                    automationId = automation.id,
+                    kind = AuditKind.ACTION_FAILED,
+                    atMillis = batchNow,
+                    detail = "end: " + failures.joinToString("; "),
+                ),
+            )
         }
     }
 
@@ -476,6 +487,7 @@ class Engine(
         val snapshots = snapshotStore.forAutomation(id)
         // Deduplicate by setting key, keeping the newest snapshot per key
         val latestByKey = snapshots.associateBy { it.settingKey }
+        val failures = mutableListOf<String>()
         for (snapshot in latestByKey.values) {
             val restoreAction = restoreActionFor(snapshot) ?: continue
             val context =
@@ -486,10 +498,35 @@ class Engine(
                     actionIndex = -1,
                     priority = 100,
                 )
-            runCatching { executor.execute(restoreAction, context) }
+            val result = runSideEffect(restoreAction, context)
+            result.failureLabel(restoreAction)?.let(failures::add)
         }
         snapshotStore.deleteForAutomation(id)
+        if (failures.isNotEmpty()) {
+            audit.record(
+                AuditEvent(
+                    automationId = id,
+                    kind = AuditKind.ACTION_FAILED,
+                    atMillis = batchNow,
+                    detail = "restore: " + failures.joinToString("; "),
+                ),
+            )
+        }
     }
+
+    /** Executes one end/restore action — converts executor exceptions into
+     *  results while letting cancellation propagate. */
+    private suspend fun runSideEffect(
+        action: Action,
+        context: FireContext,
+    ): ActionResult =
+        try {
+            executor.execute(action, context)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ActionResult.Failure(e::class.simpleName ?: "executor_exception")
+        }
 
     /**
      * Maps a snapshotted key back to a real action. Semantic keys (dnd_mode,
