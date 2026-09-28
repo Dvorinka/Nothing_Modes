@@ -19,8 +19,9 @@ import org.json.JSONObject
  */
 class PendingUnlockStore(
     context: Context,
+    prefsName: String = PREFS,
 ) {
-    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
     data class PendingAction(
         val automationId: AutomationId,

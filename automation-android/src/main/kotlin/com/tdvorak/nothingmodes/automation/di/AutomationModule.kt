@@ -94,6 +94,16 @@ object AutomationModule {
     ): com.tdvorak.nothingmodes.capabilities.PendingUnlockStore =
         com.tdvorak.nothingmodes.capabilities.PendingUnlockStore(context)
 
+    /** Queue for setting writes issued while the keyguard was locked —
+     *  Nothing OS reverts them at unlock; replayed by the unlock drain. */
+    @Provides
+    @Singleton
+    @javax.inject.Named("locked_writes")
+    fun provideLockedWriteStore(
+        @ApplicationContext context: Context,
+    ): com.tdvorak.nothingmodes.capabilities.PendingUnlockStore =
+        com.tdvorak.nothingmodes.capabilities.PendingUnlockStore(context, "locked_write_actions")
+
     @Provides
     @Singleton
     fun provideActionExecutor(
@@ -102,6 +112,7 @@ object AutomationModule {
         glyphProvider: NothingGlyphProvider,
         glyphMatrixProvider: NothingGlyphMatrixProvider,
         pendingUnlockStore: com.tdvorak.nothingmodes.capabilities.PendingUnlockStore,
+        @javax.inject.Named("locked_writes") lockedWriteStore: com.tdvorak.nothingmodes.capabilities.PendingUnlockStore,
     ): ActionExecutor =
         RealActionExecutor.create(
             context = context,
@@ -109,6 +120,7 @@ object AutomationModule {
             glyphProvider = glyphProvider,
             glyphMatrixProvider = glyphMatrixProvider,
             pendingUnlockStore = pendingUnlockStore,
+            lockedWriteStore = lockedWriteStore,
         )
 
     @Provides
