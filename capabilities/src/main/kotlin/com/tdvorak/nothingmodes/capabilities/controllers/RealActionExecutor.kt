@@ -31,6 +31,7 @@ import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
+import com.tdvorak.nothingmodes.engine.model.affectedSettings
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
@@ -68,6 +69,7 @@ class RealActionExecutor(
     private val glyphProvider: NothingGlyphProvider? = null,
     private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
     private val pendingUnlockStore: PendingUnlockStore? = null,
+    private val lockedWriteStore: PendingUnlockStore? = null,
 ) : ActionExecutor {
     override suspend fun execute(
         action: Action,
@@ -86,7 +88,9 @@ class RealActionExecutor(
                 return ActionResult.Failure("glyph service not connected")
             }
         }
-        return dispatch(action, context)
+        val result = dispatch(action, context)
+        fenceLockedWrite(action, context, result)
+        return result
     }
 
     private suspend fun dispatch(
@@ -1534,6 +1538,27 @@ class RealActionExecutor(
             s.await() || m.await()
         }
 
+    /**
+     * Nothing OS reverts settings written while the keyguard is locked —
+     * e.g. `reduce_bright_colors_activated` springs back to the pre-lock
+     * value the instant the user unlocks. Successful writes are queued and
+     * replayed by the unlock drain so the mode's final state wins.
+     * Replayed actions re-enqueue harmlessly if the device is still locked.
+     */
+    private fun fenceLockedWrite(
+        action: Action,
+        ctx: FireContext,
+        result: ActionResult,
+    ) {
+        if (result != ActionResult.Success) return
+        if (action.isGlyphAction || action is Action.GlyphTurnOff) return
+        if (action.affectedSettings.isEmpty()) return
+        val store = lockedWriteStore ?: return
+        val km = context.getSystemService(KeyguardManager::class.java) ?: return
+        if (!km.isDeviceLocked) return
+        store.enqueue(ctx.automationId, action)
+    }
+
     companion object {
         private const val NOTIFICATION_CHANNEL_ID = "automation_notifications"
         private const val NOTIFICATION_ID_BASE = 2000
@@ -1545,6 +1570,7 @@ class RealActionExecutor(
             glyphProvider: NothingGlyphProvider? = null,
             glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
             pendingUnlockStore: PendingUnlockStore? = null,
+            lockedWriteStore: PendingUnlockStore? = null,
         ): RealActionExecutor =
             RealActionExecutor(
                 context = context.applicationContext,
@@ -1560,6 +1586,7 @@ class RealActionExecutor(
                 glyphProvider = glyphProvider,
                 glyphMatrixProvider = glyphMatrixProvider,
                 pendingUnlockStore = pendingUnlockStore,
+                lockedWriteStore = lockedWriteStore,
             )
     }
 }

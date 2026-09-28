@@ -563,6 +563,115 @@ class ConflictAndRestoreTest {
             assertTrue(audit.events.any { it.kind == AuditKind.SUPPRESSED_CONFLICT && it.automationId.value == "mode-low" })
         }
 
+    @Test
+    fun `mode window end audits failed snapshot restore`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val mode =
+                makeMode(
+                    "mode-sleep",
+                    "Sleep",
+                    priority = 10,
+                    actions = listOf(Action.SetBrightness(26, restore = true)),
+                )
+            store.save(mode)
+
+            val snapshots =
+                mutableListOf(
+                    StateSnapshot(AutomationId("mode-sleep"), "screen_brightness", "128", 1000),
+                )
+            val snapshotStore =
+                object : StateSnapshotStore {
+                    override suspend fun save(snapshot: StateSnapshot) {
+                        snapshots.add(snapshot)
+                    }
+
+                    override suspend fun forAutomation(id: AutomationId): List<StateSnapshot> = snapshots.filter { it.automationId == id }
+
+                    override suspend fun deleteForAutomation(id: AutomationId) {
+                        snapshots.removeAll { it.automationId == id }
+                    }
+                }
+
+            val audit = RecordingAuditSink()
+            val engine =
+                Engine(
+                    store = store,
+                    executor = ActionExecutor { _, _ -> ActionResult.Failure("shizuku_gone") },
+                    audit = audit,
+                    snapshotStore = snapshotStore,
+                )
+            engine.onTrigger(envelope("evt1", TriggerEvent.ModeWindowEnd("evt1", AutomationId("mode-sleep"), 1000L)))
+
+            val failed = audit.events.filter { it.kind == AuditKind.ACTION_FAILED }
+            assertEquals(1, failed.size)
+            assertTrue(failed[0].detail.startsWith("restore:"), "restore failure should be audited: ${failed[0].detail}")
+            assertTrue(failed[0].detail.contains("shizuku_gone"))
+            assertTrue(
+                audit.events.any { it.kind == AuditKind.MODE_DEACTIVATED },
+                "mode must still deactivate even when a restore fails",
+            )
+        }
+
+    @Test
+    fun `mode window end audits failed endActions`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val mode =
+                makeMode(
+                    "mode-end",
+                    "End",
+                    priority = 10,
+                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                ).copy(
+                    endActions = listOf(Action.SetExtraDim(false)),
+                )
+            store.save(mode)
+
+            val audit = RecordingAuditSink()
+            val engine =
+                Engine(
+                    store = store,
+                    executor = ActionExecutor { _, _ -> ActionResult.Failure("no_shizuku") },
+                    audit = audit,
+                )
+            engine.onTrigger(envelope("evt1", TriggerEvent.ModeWindowEnd("evt1", AutomationId("mode-end"), 1000L)))
+
+            val failed = audit.events.filter { it.kind == AuditKind.ACTION_FAILED }
+            assertEquals(1, failed.size)
+            assertTrue(failed[0].detail.startsWith("end:"), "end action failure should be audited: ${failed[0].detail}")
+            assertTrue(failed[0].detail.contains("no_shizuku"))
+        }
+
+    @Test
+    fun `mode window end cancellation propagates`() =
+        runTest {
+            val store = InMemoryAutomationStore()
+            val mode =
+                makeMode(
+                    "mode-cancel",
+                    "Cancel",
+                    priority = 10,
+                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                ).copy(
+                    endActions = listOf(Action.SetExtraDim(false), Action.SetBrightness(64)),
+                )
+            store.save(mode)
+
+            val engine =
+                Engine(
+                    store = store,
+                    executor = ActionExecutor { _, _ -> throw kotlinx.coroutines.CancellationException() },
+                )
+            var cancelled = false
+            try {
+                engine.onTrigger(envelope("evt1", TriggerEvent.ModeWindowEnd("evt1", AutomationId("mode-cancel"), 1000L)))
+            } catch (_: kotlinx.coroutines.CancellationException) {
+                cancelled = true
+            }
+            assertTrue(cancelled, "CancellationException must propagate, not be swallowed by end-path error handling")
+        }
+
     private class RecordingAuditSink : AuditSink {
         val events = mutableListOf<AuditEvent>()
 
