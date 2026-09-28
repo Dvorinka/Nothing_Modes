@@ -1,0 +1,1 @@
+- Fixed Play in-app updates never installing: the update downloaded in the background but nothing applied it until the next cold start. The install overlay now appears as soon as the download finishes, and a stalled consent pause relaunches the sheet instead of waiting silently.

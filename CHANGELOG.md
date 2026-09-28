@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.6]
 
 ### Fixed
 - Play in-app updates downloaded but never installed on their own: the flexible sheet dismissed after confirmation and no install-state listener was registered, so `completeUpdate()` only ran on the next cold start — the app kept running the old version until a manual relaunch. Install state is now observed; the update applies as soon as the download finishes (Play's install overlay + restart), the listener re-arms on resume mid-download, and a stalled Play consent pause (e.g. metered data) relaunches the sheet instead of silently waiting.
