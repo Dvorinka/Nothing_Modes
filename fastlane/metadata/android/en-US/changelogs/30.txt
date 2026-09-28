@@ -1,0 +1,2 @@
+- Fixed mode-end restores being reverted by the system at unlock: when a mode ended while the phone was locked, settings it switched back (Extra Dim, DND, brightness, auto-brightness…) could snap back the moment you unlocked. Restores now replay right after unlock so they actually stick.
+- Mode-end failures now show in the activity log instead of disappearing silently.
