@@ -8,6 +8,32 @@ import kotlinx.serialization.Serializable
 
 enum class Transition { ENTER, EXIT, DWELL }
 
+/** The edge that ends a lifecycle started by this transition. */
+fun Transition.inverse(): Transition =
+    when (this) {
+        Transition.ENTER -> Transition.EXIT
+        Transition.EXIT -> Transition.ENTER
+        Transition.DWELL -> Transition.EXIT
+    }
+
+/** How a geofence mode may end. */
+@Serializable
+enum class GeofenceEndMode {
+    /** Stays active until manually stopped. */
+    MANUAL,
+
+    /** Ends on the inverse edge — an ENTER mode ends on EXIT. */
+    ON_EXIT,
+
+    /** Automatic ends are deferred until [Geofence.gate] is satisfied;
+     *  position is re-checked every [Geofence.snoozeMinutes]. */
+    GATED,
+}
+
+/** Which side of the circle must hold before a gated end is allowed. */
+@Serializable
+enum class GateDirection { INSIDE, OUTSIDE }
+
 enum class PhoneEvent { INCOMING_CALL, CALL_ENDED, SMS_RECEIVED }
 
 enum class ConnMedium { WIFI, BT, POWER, AIRPLANE }
@@ -139,6 +165,13 @@ sealed interface Trigger {
         val radiusM: Double,
         val transition: Transition,
         @EncodeDefault(EncodeDefault.Mode.NEVER) val loiteringDelayMs: Long = 0,
+        /** Deactivation policy for lifecycle modes. MANUAL keeps the legacy
+         *  one-shot behaviour; ON_EXIT/GATED register the inverse edge too. */
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val endMode: GeofenceEndMode = GeofenceEndMode.MANUAL,
+        /** Position requirement for [GeofenceEndMode.GATED] ends. */
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val gate: GateDirection = GateDirection.OUTSIDE,
+        /** Re-check interval while a gated end is pending. */
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val snoozeMinutes: Int = 15,
     ) : Trigger
 
     /** Manual trigger: fires when the user taps a "Run" button in the app. */
@@ -278,6 +311,9 @@ val Trigger.hasStateLifecycle: Boolean
             is Trigger.DeviceUnlocked,
             is Trigger.DeviceLocked,
             -> true
+            // A geofence with a deactivation policy is a lifecycle mode;
+            // MANUAL stays a plain edge trigger.
+            is Trigger.Geofence -> endMode != GeofenceEndMode.MANUAL
             // A wildcard ("any change") device-state trigger has no defined
             // end edge — it is a one-shot routine, not a lifecycle mode.
             is Trigger.DeviceState -> value != DeviceStateKeys.ANY_VALUE

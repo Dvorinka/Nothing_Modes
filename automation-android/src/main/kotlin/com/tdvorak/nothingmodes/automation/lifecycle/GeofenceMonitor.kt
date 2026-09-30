@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.Geofence
@@ -34,25 +35,41 @@ class GeofenceMonitor(
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Without "Allow all the time" the OS never delivers transitions to a
+     * backgrounded app — the fence registers fine but stays silent. This is
+     * the check that decides whether a geofence can work unattended.
+     */
+    fun hasBackgroundLocation(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+
     @SuppressLint("MissingPermission")
     fun addGeofence(
         id: String,
         lat: Double,
         lng: Double,
         radiusM: Float,
-        transition: Transition,
+        transitions: Set<Transition>,
         loiteringDelayMs: Long = 0,
     ) {
         if (!hasLocationPermission()) {
             Log.w(TAG, "No location permission, skipping geofence $id")
             return
         }
+        if (!hasBackgroundLocation()) {
+            Log.w(TAG, "No background location — geofence $id fires only while the app is foregrounded")
+        }
 
-        val geofenceTransition =
-            when (transition) {
-                Transition.ENTER -> Geofence.GEOFENCE_TRANSITION_ENTER
-                Transition.EXIT -> Geofence.GEOFENCE_TRANSITION_EXIT
-                Transition.DWELL -> Geofence.GEOFENCE_TRANSITION_DWELL
+        val geofenceTransitions =
+            transitions.fold(0) { acc, transition ->
+                acc or
+                    when (transition) {
+                        Transition.ENTER -> Geofence.GEOFENCE_TRANSITION_ENTER
+                        Transition.EXIT -> Geofence.GEOFENCE_TRANSITION_EXIT
+                        Transition.DWELL -> Geofence.GEOFENCE_TRANSITION_DWELL
+                    }
             }
 
         val geofence =
@@ -61,17 +78,30 @@ class GeofenceMonitor(
                 .setRequestId(id)
                 .setCircularRegion(lat, lng, radiusM)
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(geofenceTransition)
+                .setTransitionTypes(geofenceTransitions)
                 .apply {
                     // DWELL needs a dwell time; ENTER/EXIT ignore it.
                     if (loiteringDelayMs > 0) setLoiteringDelay(loiteringDelayMs.toInt())
                 }
                 .build()
 
+        // Mirror the requested transitions so a lifecycle fence (ENTER+EXIT)
+        // also reports the current side at registration — an EXIT-aware mode
+        // learns "already outside" without waiting for movement.
+        val initialTrigger =
+            transitions.fold(0) { acc, transition ->
+                acc or
+                    when (transition) {
+                        Transition.ENTER -> GeofencingRequest.INITIAL_TRIGGER_ENTER
+                        Transition.EXIT -> GeofencingRequest.INITIAL_TRIGGER_EXIT
+                        Transition.DWELL -> GeofencingRequest.INITIAL_TRIGGER_DWELL
+                    }
+            }
+
         val request =
             GeofencingRequest
                 .Builder()
-                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+                .setInitialTrigger(initialTrigger)
                 .addGeofence(geofence)
                 .build()
 

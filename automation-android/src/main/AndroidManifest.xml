@@ -54,6 +54,11 @@
             android:name=".lifecycle.GeofenceReceiver"
             android:exported="false" />
 
+        <!-- End-now / snooze actions on the location-gate notification. -->
+        <receiver
+            android:name=".lifecycle.GeofenceGateReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".lifecycle.FlipReceiver"
             android:exported="true"

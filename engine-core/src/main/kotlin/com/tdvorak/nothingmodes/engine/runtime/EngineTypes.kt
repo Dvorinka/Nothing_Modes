@@ -72,6 +72,8 @@ enum class AuditKind {
     RULE_NEEDS_REVIEW,
     /** One or more actions failed — `detail` carries the readable reasons. */
     ACTION_FAILED,
+    /** A gated geofence end was postponed — position gate not satisfied. */
+    END_DEFERRED,
 }
 
 fun interface AuditSink {
@@ -145,6 +147,25 @@ object NoopSettingReader : SettingReader {
     override suspend fun read(key: String): String? = null
 }
 
+/** Position check for gated geofence mode ends. Implemented by the Android
+ *  side with fused location; null means the position is unknown. */
+fun interface GeofenceGate {
+    /** True when the device is inside the circle, false outside, null unknown. */
+    suspend fun isInside(
+        lat: Double,
+        lng: Double,
+        radiusM: Double,
+    ): Boolean?
+}
+
+object NoopGeofenceGate : GeofenceGate {
+    override suspend fun isInside(
+        lat: Double,
+        lng: Double,
+        radiusM: Double,
+    ): Boolean? = null
+}
+
 /** Fire policy: cooldown and duplicate suppression. Thread-safe. */
 class FirePolicy {
     sealed interface Decision {
@@ -214,4 +235,7 @@ data class FireOutcome(
     val executionId: String,
     /** True when this outcome is a mode ending (inverse edge or window end). */
     val isDeactivation: Boolean = false,
+    /** True when a gated geofence end was postponed — the service should
+     *  schedule the snooze re-check and surface the override notification. */
+    val endDeferred: Boolean = false,
 )

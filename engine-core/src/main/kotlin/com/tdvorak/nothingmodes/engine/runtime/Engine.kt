@@ -6,6 +6,8 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.GateDirection
+import com.tdvorak.nothingmodes.engine.model.GeofenceEndMode
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.affectedSettings
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
@@ -31,6 +33,7 @@ class Engine(
     private val modeActivationSink: ModeActivationSink = NoopModeActivationSink,
     private val modeActivationProvider: ModeActivationProvider = NoopModeActivationProvider,
     private val executionIds: ExecutionIdFactory = StableExecutionIdFactory,
+    private val geofenceGate: GeofenceGate = NoopGeofenceGate,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun onTrigger(envelope: TriggerEnvelope): List<FireOutcome> {
@@ -47,6 +50,8 @@ class Engine(
                     event.geofenceId
                         ?.let { listOfNotNull(store.get(AutomationId(it))) }
                         ?: store.armed()
+                // A snooze re-check targets the automation that deferred its end.
+                is TriggerEvent.GeofenceRecheck -> listOfNotNull(store.get(event.automationId))
                 else -> store.armed()
             }.filter { it.status == AutomationStatus.ARMED && it.enabled }
                 .sortedWith(compareByDescending<Automation> { it.priority }.thenBy { it.id.value })
@@ -74,12 +79,27 @@ class Engine(
                 val isWindowed = automation.trigger is Trigger.TimeWindow
                 val modeLike = automation.type == AutomationType.MODE || isWindowed
 
+                // A snooze alarm re-evaluates a deferred gated geofence end.
+                // Only GATED triggers qualify — a mode re-armed as MANUAL must
+                // not be ended by a stale recheck alarm still in flight.
+                if (event is TriggerEvent.GeofenceRecheck) {
+                    val trigger = automation.trigger
+                    if (modeLike &&
+                        trigger is Trigger.Geofence &&
+                        trigger.endMode == GeofenceEndMode.GATED &&
+                        isLifecycleActive(automation)
+                    ) {
+                        outcomes += gatedEndOrDefer(automation, envelope.id, executionId, batchNow)
+                    }
+                    continue
+                }
+
                 if (!forcedRun && !matcher.matches(automation.trigger, event)) {
                     // Inverse edge of a state-lifecycle trigger: the state the
                     // mode is bound to ended — restore and deactivate without
                     // re-running actions, cooldown, or condition gates.
                     if (modeLike && matcher.isInverseEdge(automation.trigger, event) && isLifecycleActive(automation)) {
-                        outcomes += endLifecycleMode(automation, envelope.id, executionId, batchNow)
+                        outcomes += gatedEndOrDefer(automation, envelope.id, executionId, batchNow)
                     }
                     continue
                 }
@@ -418,6 +438,54 @@ class Engine(
                     detail = "end: " + failures.joinToString("; "),
                 ),
             )
+        }
+    }
+
+    /**
+     * Automatic mode end with the geofence position gate applied. GATED ends
+     * verify live position: unsatisfied gates defer the end — the caller
+     * schedules the snooze re-check and posts the override notification.
+     * Manual stops bypass this entirely via [endAutomation].
+     */
+    private suspend fun gatedEndOrDefer(
+        automation: Automation,
+        envelopeId: String,
+        executionId: String,
+        batchNow: Long,
+    ): FireOutcome {
+        val trigger = automation.trigger
+        if (trigger is Trigger.Geofence &&
+            trigger.endMode == GeofenceEndMode.GATED &&
+            !gateSatisfied(trigger)
+        ) {
+            audit.record(
+                AuditEvent(
+                    automationId = automation.id,
+                    kind = AuditKind.END_DEFERRED,
+                    atMillis = batchNow,
+                    detail = "gate_${trigger.gate.name.lowercase()}",
+                    eventId = envelopeId,
+                    executionId = executionId,
+                ),
+            )
+            return FireOutcome(
+                automation,
+                emptyList(),
+                emptyList(),
+                envelopeId,
+                executionId,
+                endDeferred = true,
+            )
+        }
+        return endLifecycleMode(automation, envelopeId, executionId, batchNow)
+    }
+
+    /** Position unknown (null) never satisfies the gate — defer, don't end. */
+    private suspend fun gateSatisfied(trigger: Trigger.Geofence): Boolean {
+        val inside = geofenceGate.isInside(trigger.lat, trigger.lng, trigger.radiusM)
+        return when (trigger.gate) {
+            GateDirection.INSIDE -> inside == true
+            GateDirection.OUTSIDE -> inside == false
         }
     }
 

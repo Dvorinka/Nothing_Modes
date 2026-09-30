@@ -158,6 +158,13 @@ object AutomationModule {
 
     @Provides
     @Singleton
+    fun provideGeofenceGate(
+        @ApplicationContext context: Context,
+    ): com.tdvorak.nothingmodes.engine.runtime.GeofenceGate =
+        com.tdvorak.nothingmodes.automation.lifecycle.FusedGeofenceGate(context)
+
+    @Provides
+    @Singleton
     fun provideEngine(
         store: AutomationStore,
         executor: ActionExecutor,
@@ -168,6 +175,7 @@ object AutomationModule {
         settingReader: SettingReader,
         modeActivationSink: com.tdvorak.nothingmodes.engine.runtime.ModeActivationSink,
         modeActivationProvider: com.tdvorak.nothingmodes.engine.runtime.ModeActivationProvider,
+        geofenceGate: com.tdvorak.nothingmodes.engine.runtime.GeofenceGate,
     ): Engine =
         Engine(
             store = store,
@@ -180,6 +188,7 @@ object AutomationModule {
             modeActivationSink = modeActivationSink,
             modeActivationProvider = modeActivationProvider,
             executionIds = StableExecutionIdFactory,
+            geofenceGate = geofenceGate,
         )
 
     @Provides

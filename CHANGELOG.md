@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Geofence deactivation policies: a location mode can now end manually (default), on the opposite edge ("End when I leave" / "End when I arrive"), or gated on live position. A gated end checks where the phone actually is — "inside" or "outside" the circle, your choice — before deactivating.
+- Pending-end notification with actions: when a gated end can't run yet you get a heads-up with "End now" (always wins) and an inline snooze — type any number of minutes, or let the configured interval (default 15) re-check automatically. Re-checks are alarm-scheduled and bounded so a dead GPS can't loop forever.
+
+### Fixed
+- Geofence modes silently never fired in the background: registration only verified foreground location, and GMS happily accepts a fence it will never deliver without "Allow all the time". The geofence config screen now shows a background-location requirement card that deep-links to system settings (Android 11+), and the monitor logs when a fence is registered without it.
+- Lifecycle geofences now register the inverse edge too — an ENTER mode ending on EXIT actually receives the EXIT event (previously a geofence mode could never auto-end at all), and the initial-trigger mirrors the registered edges so a fence registered while already inside/outside reports that immediately.
+
 ## [0.19.6]
 
 ### Fixed
@@ -10,7 +20,6 @@
 ### Fixed
 - Settings restored while the phone was locked were silently reverted by Nothing OS at the next unlock — most visibly Extra Dim, which a mode ending overnight switched off correctly only for the platform to switch it back on the moment the user unlocked. Successful setting writes executed under the keyguard are now queued and replayed on `USER_PRESENT`, after the platform's re-assert, so the mode's final state wins. Covers snapshot restores and explicit end actions for all settings (Extra Dim, DND, brightness, auto-brightness, and the rest).
 - Mode-end failures are no longer invisible: snapshot-restore, end-action, and unlock-replay failures are recorded in the activity log (`ACTION_FAILED` with the action and reason), and background cancellation propagates instead of being swallowed.
->>>>>>> origin/main
 
 ## [0.19.4]
 

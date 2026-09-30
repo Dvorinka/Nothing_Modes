@@ -85,6 +85,12 @@ sealed interface TriggerEvent {
         val geofenceId: String? = null,
     ) : TriggerEvent
 
+    /** Snooze-alarm re-check for a deferred gated geofence end. */
+    data class GeofenceRecheck(
+        override val eventId: String,
+        val automationId: com.tdvorak.nothingmodes.engine.model.AutomationId,
+    ) : TriggerEvent
+
     data class ManualFired(
         override val eventId: String,
         val automationId: com.tdvorak.nothingmodes.engine.model.AutomationId,
