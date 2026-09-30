@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -40,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.automation.lifecycle.DeviceStateMonitor
 import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
@@ -72,6 +75,8 @@ import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
+import com.tdvorak.nothingmodes.engine.model.GateDirection
+import com.tdvorak.nothingmodes.engine.model.GeofenceEndMode
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.PickedCalendarEvent
 import com.tdvorak.nothingmodes.engine.model.ScreenState
@@ -85,9 +90,11 @@ import com.tdvorak.nothingmodes.ui.components.CustomTimePicker
 import com.tdvorak.nothingmodes.ui.components.NothingDaySelector
 import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.theme.Doto
+import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingConfigCard
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -1329,6 +1336,10 @@ private fun GeofenceContent(
             )
         }
 
+        // Foreground permission alone leaves the fence dead in the
+        // background — surface the "Allow all the time" requirement here.
+        BackgroundLocationGate()
+
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
 
         // Show coordinates as read-only text (set by the button above or manually if needed).
@@ -1382,7 +1393,168 @@ private fun GeofenceContent(
                     "past the area does not trigger the mode.",
         )
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
+
+        val leaveLabel = if (trigger.transition == Transition.EXIT) "End when I arrive" else "End when I leave"
+        NothingEnumSelector(
+            label = "Deactivation",
+            value = geofenceEndModeLabel(trigger.endMode, leaveLabel),
+            options = GeofenceEndMode.entries.map { geofenceEndModeLabel(it, leaveLabel) },
+            onSelect = { selected ->
+                onUpdate(
+                    trigger.copy(
+                        endMode =
+                            GeofenceEndMode.entries.first {
+                                geofenceEndModeLabel(it, leaveLabel) == selected
+                            },
+                    ),
+                )
+            },
+            infoText =
+                "How the mode ends. Manual = stays on until you stop it. " +
+                    "$leaveLabel = ends on the opposite edge automatically. " +
+                    "Gated = the end waits until the position requirement holds — " +
+                    "otherwise it retries on the snooze below and asks you.",
+        )
+        if (trigger.endMode == GeofenceEndMode.GATED) {
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingEnumSelector(
+                label = "End allowed when",
+                value = trigger.gate.name.enumLabel() + " the area",
+                options = GateDirection.entries.map { it.name.enumLabel() + " the area" },
+                onSelect = { selected ->
+                    onUpdate(
+                        trigger.copy(
+                            gate =
+                                GateDirection.entries.first {
+                                    it.name.enumLabel() + " the area" == selected
+                                },
+                        ),
+                    )
+                },
+                infoText =
+                    "Outside = the end waits until you leave; still inside at a " +
+                        "retry just re-snoozes. Inside = the reverse — e.g. a mode " +
+                        "started on Exit that ends once you're back inside.",
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = trigger.snoozeMinutes.toString(),
+                onValueChange = {
+                    onUpdate(trigger.copy(snoozeMinutes = it.toIntOrNull() ?: trigger.snoozeMinutes))
+                },
+                label = "Snooze (minutes)",
+                infoText =
+                    "How long between position re-checks while the end is pending. " +
+                        "The heads-up notification also accepts a custom interval " +
+                        "or an immediate \"End now\".",
+            )
+        }
+
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
         HelpText(text = "Fires when you enter or leave the circular area. Tap the map to move the pin. Location access is required.")
+    }
+}
+
+private fun geofenceEndModeLabel(
+    mode: GeofenceEndMode,
+    leaveLabel: String,
+): String =
+    when (mode) {
+        GeofenceEndMode.MANUAL -> "Manual stop"
+        GeofenceEndMode.ON_EXIT -> leaveLabel
+        GeofenceEndMode.GATED -> "Only when position allows"
+    }
+
+/**
+ * Foreground "while in use" location is not enough for geofences — Android
+ * only delivers transitions to a backgrounded app when location is set to
+ * "Allow all the time". On API 30+ that grant lives in system Settings, so
+ * this card deep-links there; on API 29 it requests the permission directly.
+ */
+@Composable
+private fun BackgroundLocationGate(modifier: Modifier = Modifier) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+    val context = LocalContext.current
+    fun granted(): Boolean =
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+
+    var allowed by remember { mutableStateOf(granted()) }
+    var showDisclosure by remember { mutableStateOf(false) }
+    val launcher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { allowed = granted() }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) allowed = granted()
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (allowed) return
+    NothingCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(NothingSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+        ) {
+            Text(
+                text = "BACKGROUND LOCATION REQUIRED",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontFamily = NothingFonts.mono(),
+            )
+            Text(
+                text =
+                    "Without \"Allow all the time\" this geofence fires only " +
+                        "while the app is open — it stays silent in the background.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+            NothingPillButton(
+                text = "Enable background location",
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        showDisclosure = true
+                    } else {
+                        launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    if (showDisclosure) {
+        PermissionDisclosureDialog(
+            title = "Background location",
+            body =
+                "Nothing Modes needs location set to \"Allow all the time\" so " +
+                    "geofence modes run when the app is closed. On the next " +
+                    "screen: Permissions → Location → Allow all the time. " +
+                    "Location is processed on-device and never shared.",
+            onConfirm = {
+                showDisclosure = false
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", context.packageName, null),
+                    ),
+                )
+            },
+            onDismiss = { showDisclosure = false },
+        )
     }
 }
 

@@ -10,8 +10,11 @@ import android.util.Log
 import com.tdvorak.nothingmodes.automation.lifecycle.GeofenceMonitor
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.GeofenceEndMode
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.inverse
 import com.tdvorak.nothingmodes.engine.runtime.CronSchedule
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -40,7 +43,7 @@ class AutomationScheduler(
         when (val trigger = automation.trigger) {
             is Trigger.Time -> scheduleTime(automation, trigger)
             is Trigger.TimeWindow -> scheduleWindow(automation, trigger)
-            is Trigger.Geofence -> scheduleGeofence(automation.id, trigger)
+            is Trigger.Geofence -> scheduleGeofence(automation, trigger)
             else -> Unit
         }
     }
@@ -55,16 +58,54 @@ class AutomationScheduler(
             alarmManager.cancel(beforePendingIntent(automationId, minutes))
         }
         scheduledBefore.remove(automationId.value)
+        cancelGeofenceRecheck(automationId)
         // Always attempt removal — the registeredGeofences set is lost on
         // process death but the OS-side geofence registration persists.
         geofenceMonitor.removeGeofence(automationId.value)
         registeredGeofences.remove(automationId.value)
     }
 
-    private fun scheduleGeofence(
+    /** Re-check alarm for a deferred gated geofence end. Inexact is fine —
+     *  the gate already waited; seconds don't matter. */
+    fun scheduleGeofenceRecheck(
         id: AutomationId,
+        delayMs: Long,
+    ) {
+        try {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + delayMs,
+                recheckPendingIntent(id),
+            )
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Cannot schedule geofence recheck for ${id.value}: ${e.message}")
+        }
+    }
+
+    fun cancelGeofenceRecheck(id: AutomationId) {
+        alarmManager.cancel(recheckPendingIntent(id))
+    }
+
+    private fun recheckPendingIntent(id: AutomationId): PendingIntent {
+        val intent =
+            Intent(context, AutomationAlarmReceiver::class.java).apply {
+                action = AutomationAlarmReceiver.ACTION_GEOFENCE_RECHECK
+                data = Uri.parse("nothingmodes://alarm/${id.value}/geo_recheck")
+                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
+            }
+        return PendingIntent.getBroadcast(
+            context,
+            requestCode(id.value, isStart = true) xor 0x5AFE,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
+    private fun scheduleGeofence(
+        automation: Automation,
         trigger: Trigger.Geofence,
     ) {
+        val id = automation.id
         // Geofence.Builder throws on out-of-range values — reject them here so
         // one bad config can't take down the whole reschedule loop.
         val valid =
@@ -76,12 +117,23 @@ class AutomationScheduler(
             Log.w(TAG, "Skipping invalid geofence for ${id.value}: lat=${trigger.lat} lng=${trigger.lng} r=${trigger.radiusM}")
             return
         }
+        // Lifecycle modes need the inverse edge delivered too — an ENTER mode
+        // ending on exit must see EXIT.
+        val transitions =
+            buildSet {
+                add(trigger.transition)
+                if (automation.type == AutomationType.MODE &&
+                    trigger.endMode != GeofenceEndMode.MANUAL
+                ) {
+                    add(trigger.transition.inverse())
+                }
+            }
         geofenceMonitor.addGeofence(
             id.value,
             trigger.lat,
             trigger.lng,
             trigger.radiusM.toFloat(),
-            trigger.transition,
+            transitions,
             trigger.loiteringDelayMs,
         )
         registeredGeofences.add(id.value)

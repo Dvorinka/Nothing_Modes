@@ -78,6 +78,10 @@ class AutomationService : Service() {
     // crossings when a broadcast is missed (doze, process restart).
     @Volatile private var lastBatteryLevel: Int? = null
 
+    // Consecutive deferrals per gated geofence end — bounds the retry loop.
+    // ponytail: in-memory only; process death resets the counter, not the alarm.
+    private val gateRetries = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
     @Volatile private var lastStartId = 0
 
     override fun onCreate() {
@@ -101,6 +105,9 @@ class AutomationService : Service() {
             AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
             AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
             AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE -> handleNotifyBefore(intent)
+            AutomationAlarmReceiver.ACTION_GEOFENCE_RECHECK -> handleGeofenceRecheck(intent)
+            ACTION_GATE_FORCE_END -> handleGateForceEnd(intent)
+            ACTION_GATE_SNOOZE -> handleGateSnooze(intent)
             ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
             ACTION_CHARGER -> handleCharger(intent)
             ACTION_UNLOCKED -> handleUnlocked()
@@ -470,6 +477,69 @@ class AutomationService : Service() {
         )
     }
 
+    /** Snooze alarm for a deferred gated geofence end — re-evaluates the gate. */
+    private fun handleGeofenceRecheck(intent: Intent) {
+        val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        dispatchEvent(
+            TriggerEvent.GeofenceRecheck(
+                eventId = "geo_recheck:${System.currentTimeMillis()}",
+                automationId = AutomationId(automationId),
+            ),
+        )
+    }
+
+    /** "End now" on the gate notification — manual always wins over the gate. */
+    private fun handleGateForceEnd(intent: Intent) {
+        val automationId =
+            intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID)?.let(::AutomationId)
+                ?: return
+        clearGateState(automationId)
+        trackJob(
+            scope.launch {
+                store.get(automationId)?.let { automation ->
+                    engineMutex.withLock { engine.endAutomation(automation) }
+                }
+            },
+        )
+    }
+
+    /** User-typed snooze from the gate notification (RemoteInput minutes). */
+    private fun handleGateSnooze(intent: Intent) {
+        val automationId =
+            intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID)?.let(::AutomationId)
+                ?: return
+        val minutes =
+            intent.getStringExtra(EXTRA_SNOOZE_MINUTES)
+                ?.toIntOrNull()
+                ?.coerceIn(1, 24 * 60)
+                ?: DEFAULT_GATE_SNOOZE_MINUTES
+        ModeNotificationHelper(this).cancelGate(automationId)
+        scheduler.scheduleGeofenceRecheck(automationId, minutes * 60_000L)
+    }
+
+    /** Defers a gated geofence end: snooze alarm + override notification. */
+    private fun deferGateEnd(automation: Automation) {
+        val trigger = automation.trigger as? Trigger.Geofence ?: return
+        val attempts = (gateRetries[automation.id.value] ?: 0) + 1
+        gateRetries[automation.id.value] = attempts
+        if (attempts > MAX_GATE_RETRIES) {
+            // Bounded: endless snoozing turns a dead GPS into a permanent
+            // retry loop — stop rescheduling; the notification stays as the
+            // user's manual way out.
+            android.util.Log.w("AutomationService", "Gate retries exhausted for ${automation.id.value}")
+            return
+        }
+        val snooze = trigger.snoozeMinutes.coerceAtLeast(1).toLong()
+        scheduler.scheduleGeofenceRecheck(automation.id, snooze * 60_000L)
+        ModeNotificationHelper(this).postGateDeferred(automation, trigger)
+    }
+
+    private fun clearGateState(automationId: AutomationId) {
+        gateRetries.remove(automationId.value)
+        scheduler.cancelGeofenceRecheck(automationId)
+        ModeNotificationHelper(this).cancelGate(automationId)
+    }
+
     private fun handleBtDevice(intent: Intent) {
         val stateStr = intent.getStringExtra(ConnectivityReceiver.EXTRA_BT_DEVICE_STATE) ?: return
         val state =
@@ -519,6 +589,7 @@ class AutomationService : Service() {
             runCatching {
                 EngineJson.json.decodeFromString(Automation.serializer(), json)
             }.getOrNull() ?: return
+        clearGateState(automation.id)
         trackJob(scope.launch { engineMutex.withLock { engine.endAutomation(automation) } })
     }
 
@@ -605,10 +676,15 @@ class AutomationService : Service() {
                     val isEnd = event is TriggerEvent.ModeWindowEnd
                     val helper = ModeNotificationHelper(this@AutomationService)
                     outcomes.forEach { outcome ->
-                        if (isEnd || outcome.isDeactivation) {
-                            helper.postOnEnd(outcome.automation)
-                        } else {
-                            helper.postOnTrigger(outcome.automation, outcome.results)
+                        when {
+                            // A gated geofence end postponed itself — arm the
+                            // snooze re-check and surface the override.
+                            outcome.endDeferred -> deferGateEnd(outcome.automation)
+                            isEnd || outcome.isDeactivation -> {
+                                clearGateState(outcome.automation.id)
+                                helper.postOnEnd(outcome.automation)
+                            }
+                            else -> helper.postOnTrigger(outcome.automation, outcome.results)
                         }
                     }
                     val deferred =
@@ -727,6 +803,9 @@ class AutomationService : Service() {
         const val ACTION_MEDIA_PLAYBACK = "com.tdvorak.nothingmodes.MEDIA_PLAYBACK"
         const val ACTION_DEVICE_STATE = "com.tdvorak.nothingmodes.DEVICE_STATE"
         const val ACTION_AUTOMATION_REMOVED = "com.tdvorak.nothingmodes.AUTOMATION_REMOVED"
+        const val ACTION_GATE_FORCE_END = "com.tdvorak.nothingmodes.GATE_FORCE_END"
+        const val ACTION_GATE_SNOOZE = "com.tdvorak.nothingmodes.GATE_SNOOZE_SERVICE"
+        const val EXTRA_SNOOZE_MINUTES = "snooze_minutes"
         const val EXTRA_AUTOMATION_JSON = "automation_json"
         const val EXTRA_MEDIA_PLAYING = "media_playing"
         const val EXTRA_MEDIA_PACKAGE = "media_pkg"
@@ -738,5 +817,7 @@ class AutomationService : Service() {
         const val EXTRA_SCREEN_STATE = "screen_state"
         private const val CHANNEL_ID = "automation_engine"
         private const val NOTIFICATION_ID = 1001
+        private const val DEFAULT_GATE_SNOOZE_MINUTES = 15
+        private const val MAX_GATE_RETRIES = 48
     }
 }

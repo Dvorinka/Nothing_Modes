@@ -107,6 +107,7 @@ Tap the history icon to view the execution timeline:
 ### Location triggers not working
 
 - Grant ACCESS_FINE_LOCATION
+- Grant ACCESS_BACKGROUND_LOCATION ("Allow all the time") — without it the fence only fires while the app is open. The geofence config screen shows a card linking to the right settings page when it's missing.
 - Location must be enabled in Android Settings
 - Geofence monitoring requires Google Play Services
 

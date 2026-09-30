@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DayOfWeek
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
 import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.inverse
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -210,6 +211,13 @@ class TriggerMatcher {
                     event.key == trigger.key &&
                     event.value != trigger.value &&
                     trigger.value != DeviceStateKeys.ANY_VALUE
+
+            is Trigger.Geofence ->
+                // MANUAL geofence modes have no inverse edge — EXIT does
+                // nothing until the user picks a deactivation policy.
+                trigger.endMode != com.tdvorak.nothingmodes.engine.model.GeofenceEndMode.MANUAL &&
+                    event is TriggerEvent.GeofenceTriggered &&
+                    event.transition == trigger.transition.inverse()
 
             else -> false
         }

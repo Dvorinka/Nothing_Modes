@@ -84,3 +84,6 @@ GOOGLE_PLAY_CREDENTIALS.md
 
 # Brag video build output (deliverables live in landing/)
 brag-output*/
+
+# Kotlin compiler session state
+.kotlin/
