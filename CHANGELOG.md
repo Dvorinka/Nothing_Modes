@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.7]
 
 ### Added
 - Geofence deactivation policies: a location mode can now end manually (default), on the opposite edge ("End when I leave" / "End when I arrive"), or gated on live position. A gated end checks where the phone actually is — "inside" or "outside" the circle, your choice — before deactivating.

@@ -1,0 +1,2 @@
+- Fixed location modes never firing in the background: the app accepted geofences without "Allow all the time" location, so transitions never arrived while closed. The geofence setup now shows a background-location card that links straight to the right setting.
+- Geofence modes can finally end themselves: pick Manual stop, end on the opposite edge ("End when I leave" / "End when I arrive"), or a position-gated end that waits until you're inside or outside the area — with a heads-up notification offering "End now" or a custom snooze while it retries.
