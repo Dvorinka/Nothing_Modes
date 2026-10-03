@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Hotspot toggle never actually switched the AP: the action wrote `settings put global wifi_ap_state`, a legacy state mirror nothing reads — the shell reported success while the hotspot stayed off. The action now toggles the real tethered hotspot inside the Shizuku user service (shell uid) via `WifiManager.startTetheredHotspot`/`stopSoftAp`, keeping the device's saved SSID and passphrase. Without Shizuku it still opens the tether settings panel.
+
 ## [0.19.7]
 
 ### Added

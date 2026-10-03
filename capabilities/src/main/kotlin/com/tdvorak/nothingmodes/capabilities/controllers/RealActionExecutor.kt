@@ -200,13 +200,7 @@ class RealActionExecutor(
                     action,
                     context,
                 )
-            is Action.SetHotspot ->
-                shellOrPanel(
-                    hotspotCommand(action.on),
-                    "android.settings.TETHER_SETTINGS",
-                    action,
-                    context,
-                )
+            is Action.SetHotspot -> setHotspot(action.on, action, context)
             is Action.SetNfc -> {
                 // `svc nfc` is killed outright on Nothing OS 4.1 — when the
                 // shell attempt fails for any reason, fall through to the panel.
@@ -397,6 +391,35 @@ class RealActionExecutor(
         }
 
     private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
+
+    /**
+     * Hotspot via the Shizuku user service (uid 2000), which invokes
+     * WifiManager.startTetheredHotspot(null)/stopSoftAp on the device's persisted
+     * AP config. `settings put global wifi_ap_state` is a legacy state mirror —
+     * writing it returns exit 0 but never touches the AP. Without Shizuku the
+     * tether settings panel is opened for manual toggling.
+     */
+    private suspend fun setHotspot(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        val sh = shellFactory?.resolve()
+            ?: return openPanel("android.settings.TETHER_SETTINGS", source, ctx)
+        val result =
+            try {
+                sh.setWifiTethered(on)
+            } catch (e: Exception) {
+                return ActionResult.Failure(e.message ?: "hotspot toggle failed")
+            }
+        return if (result.successful) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure(
+                result.stderrText.ifBlank { result.errorCode ?: "hotspot toggle failed" }.take(200),
+            )
+        }
+    }
 
     private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
 
@@ -1150,15 +1173,6 @@ class RealActionExecutor(
             "global",
             "stay_on_while_plugged_in",
             if (on) "2" else "0",
-        )
-
-    private fun hotspotCommand(on: Boolean) =
-        listOf(
-            "settings",
-            "put",
-            "global",
-            "wifi_ap_state",
-            if (on) "1" else "0",
         )
 
     private fun nfcCommand(on: Boolean) =
