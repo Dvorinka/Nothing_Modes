@@ -1,0 +1,100 @@
+name: Bug report
+description: Report a bug in Nothing Modes
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Fill in as much as you can — the environment
+        fields below decide whether a bug is reproducible on our devices.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: What happened, and what did you expect instead?
+      placeholder: Mode X fired on trigger Y but action Z did not run...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the mode composition (trigger + conditions + actions).
+      placeholder: |
+        1. Created a mode with trigger "Bluetooth device connected" -> action "Enable hotspot"
+        2. Connected phone to car head-unit
+        3. Mode fired (visible in log), but hotspot stayed off
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Phone (1)
+        - Phone (2)
+        - Phone (2a)
+        - Phone (2a) Plus
+        - Phone (3a)
+        - Phone (3a) Pro
+        - Phone (3a) Lite
+        - Phone (3)
+        - CMF Phone 1
+        - CMF Phone 2 Pro
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Nothing OS / Android version
+      placeholder: e.g. Nothing OS 3.2 (Android 15)
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Nothing Modes version
+      placeholder: e.g. 0.19.7 (Settings -> About)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: shizuku
+    attributes:
+      label: Shizuku
+      description: Many actions require Shizuku. Report its state even if you think it is unrelated.
+      options:
+        - Authorized and running
+        - Installed, not authorized
+        - Installed, not running
+        - Not installed
+        - I use root instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        In-app execution log (Mode detail -> History) or `adb logcat` output around
+        the failure. For action failures, the exact error text matters.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: automation-export
+    attributes:
+      label: Automation config
+      description: If the bug involves a specific mode, export it (Settings -> Export) and paste the JSON.
+      render: json
+    validations:
+      required: false

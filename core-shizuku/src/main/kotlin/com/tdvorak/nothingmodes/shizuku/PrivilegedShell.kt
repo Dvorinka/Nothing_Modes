@@ -45,6 +45,21 @@ interface PrivilegedShell {
         executionId: String? = null,
     ): ShellResult
 
+    /**
+     * Toggles the tethered Wi-Fi hotspot inside the shell-uid user service, using the
+     * device's persisted AP configuration. Default reports unsupported so that
+     * command-only test fakes keep compiling.
+     */
+    suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    /**
+     * Toggles master auto-sync via ContentResolver inside the user service —
+     * WRITE_SYNC_SETTINGS is signature-level, unreachable for the app process.
+     */
+    suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 30_000L
         const val DEFAULT_TEXT_OUTPUT_BYTES = 256 * 1024
@@ -81,6 +96,12 @@ internal data class ShellRequest(
 
 internal fun interface ShellTransport {
     suspend fun execute(request: ShellRequest): ShellResult
+
+    suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
 }
 
 /**
@@ -140,6 +161,13 @@ internal class PrioritizedPrivilegedShell(
             ShellRequest(command.toList(), timeoutMillis, maxOutputBytes, destination, executionId),
             priority,
         )
+
+    // Instant Binder call — not routed through the priority queue.
+    override suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        transport.setWifiTethered(enabled)
+
+    override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        transport.setMasterSyncAutomatically(enabled)
 
     private suspend fun enqueue(
         request: ShellRequest,

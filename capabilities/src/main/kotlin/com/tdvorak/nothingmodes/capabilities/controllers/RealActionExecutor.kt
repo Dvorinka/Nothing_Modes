@@ -36,6 +36,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
+import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
 import com.tdvorak.nothingmodes.nothing.GlyphPreflight
@@ -200,13 +201,7 @@ class RealActionExecutor(
                     action,
                     context,
                 )
-            is Action.SetHotspot ->
-                shellOrPanel(
-                    hotspotCommand(action.on),
-                    "android.settings.TETHER_SETTINGS",
-                    action,
-                    context,
-                )
+            is Action.SetHotspot -> setHotspot(action.on, action, context)
             is Action.SetNfc -> {
                 // `svc nfc` is killed outright on Nothing OS 4.1 — when the
                 // shell attempt fails for any reason, fall through to the panel.
@@ -221,13 +216,7 @@ class RealActionExecutor(
             is Action.SendSms -> sendSms(action.number, action.text)
             is Action.LockScreen -> if (action.force) lockScreen() else ActionResult.Failure("Detected: may not work on this device")
             is Action.SetLocationMode -> setLocationMode(action.mode, action, context)
-            is Action.SetAutoSync ->
-                shellOrPanel(
-                    autoSyncCommand(action.on),
-                    Settings.ACTION_SYNC_SETTINGS,
-                    action,
-                    context,
-                )
+            is Action.SetAutoSync -> setAutoSync(action.on, action, context)
             is Action.ClearNotifications -> clearNotifications()
             is Action.SetAlwaysOnDisplay ->
                 shellAllOrPanel(
@@ -398,11 +387,65 @@ class RealActionExecutor(
 
     private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
 
+    /**
+     * Hotspot via the Shizuku user service (uid 2000), which invokes
+     * WifiManager.startTetheredHotspot(null)/stopSoftAp on the device's persisted
+     * AP config. `settings put global wifi_ap_state` is a legacy state mirror —
+     * writing it returns exit 0 but never touches the AP. Without Shizuku the
+     * tether settings panel is opened for manual toggling.
+     */
+    private suspend fun setHotspot(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        val sh = shellFactory?.resolve()
+            ?: return openPanel("android.settings.TETHER_SETTINGS", source, ctx)
+        val result =
+            try {
+                sh.setWifiTethered(on)
+            } catch (e: Exception) {
+                return ActionResult.Failure(e.message ?: "hotspot toggle failed")
+            }
+        return if (result.successful) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure(
+                result.stderrText.ifBlank { result.errorCode ?: "hotspot toggle failed" }.take(200),
+            )
+        }
+    }
+
     private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
 
     private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
 
-    private fun autoSyncCommand(on: Boolean) = listOf("settings", "put", "global", "auto_sync", if (on) "1" else "0")
+    /**
+     * Master auto-sync via ContentResolver inside the Shizuku user service —
+     * `settings put global auto_sync` writes a dead key; the real flag lives in
+     * SyncStorageEngine behind WRITE_SYNC_SETTINGS (signature-level, shell holds it).
+     */
+    private suspend fun setAutoSync(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        val sh = shellFactory?.resolve()
+            ?: return openPanel(Settings.ACTION_SYNC_SETTINGS, source, ctx)
+        val result =
+            try {
+                sh.setMasterSyncAutomatically(on)
+            } catch (e: Exception) {
+                return ActionResult.Failure(e.message ?: "auto-sync toggle failed")
+            }
+        return if (result.successful) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure(
+                result.stderrText.ifBlank { result.errorCode ?: "auto-sync toggle failed" }.take(200),
+            )
+        }
+    }
 
     private fun aodCommands(action: Action.SetAlwaysOnDisplay): List<List<String>> {
         val base = listOf("settings", "put", "secure")
@@ -1119,13 +1162,15 @@ class RealActionExecutor(
             if (on) "1" else "0",
         )
 
+    // `settings put global data_saver` writes a dead key — Data Saver is the
+    // NetworkPolicyManagerService restrict-background flag, reachable via shell.
     private fun dataSaverCommand(on: Boolean) =
         listOf(
-            "settings",
-            "put",
-            "global",
-            "data_saver",
-            if (on) "1" else "0",
+            "cmd",
+            "netpolicy",
+            "set",
+            "restrict-background",
+            if (on) "true" else "false",
         )
 
     /**
@@ -1143,22 +1188,16 @@ class RealActionExecutor(
             ),
         )
 
+    // stay_on_while_plugged_in is a bitmask (AC=1, USB=2, WIRELESS=4); the
+    // platform "Stay awake" dev option writes 7. "2" alone would leave AC
+    // wall charging out.
     private fun stayAwakeCommand(on: Boolean) =
         listOf(
             "settings",
             "put",
             "global",
             "stay_on_while_plugged_in",
-            if (on) "2" else "0",
-        )
-
-    private fun hotspotCommand(on: Boolean) =
-        listOf(
-            "settings",
-            "put",
-            "global",
-            "wifi_ap_state",
-            if (on) "1" else "0",
+            if (on) "7" else "0",
         )
 
     private fun nfcCommand(on: Boolean) =
@@ -1495,14 +1534,18 @@ class RealActionExecutor(
         }
     }
 
-    private fun clearNotifications(): ActionResult =
-        try {
-            val nm = context.getSystemService(NotificationManager::class.java)
-            nm.cancelAll()
+    // NotificationManager.cancelAll only cancels our own posts — clearing the
+    // shade requires the bound NotificationListenerService. Absent hook means
+    // the user never granted (or the system hasn't bound) notification access.
+    private fun clearNotifications(): ActionResult {
+        val clearAll = ActiveNotifications.clearAll ?: return ActionResult.PermissionRequired
+        return try {
+            clearAll()
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "clearNotifications failed")
         }
+    }
 
     /**
      * Connect the relevant Glyph provider before a glyph action runs. The DI

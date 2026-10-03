@@ -5,6 +5,7 @@ import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -431,20 +432,41 @@ class AndroidStateProvider(
         }
     }
 
+    /**
+     * Bonded means paired, not connected, and `adapter.name` is the local name —
+     * neither tells a `bluetooth_connected` condition anything. The real
+     * connected set comes from the profile managers.
+     */
     @SuppressLint("MissingPermission")
     private fun readBluetoothState(): Pair<Boolean, String?> =
         try {
             val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
             val adapter = bluetoothManager?.adapter
-            if (adapter != null && adapter.isEnabled) {
-                val connected = adapter.bondedDevices.isNotEmpty()
-                val name = adapter.name
-                Pair(connected, name)
-            } else {
+            if (adapter == null || !adapter.isEnabled) {
                 Pair(false, null)
+            } else {
+                val connected =
+                    btProfiles()
+                        .flatMap { profile ->
+                            runCatching { bluetoothManager.getConnectedDevices(profile) }
+                                .getOrDefault(emptyList())
+                        }
+                        .toSet()
+                Pair(connected.isNotEmpty(), connected.firstOrNull()?.name)
             }
         } catch (e: SecurityException) {
             Pair(false, null)
+        }
+
+    /** Profiles whose connected devices count for the bluetooth_connected condition. */
+    private fun btProfiles(): List<Int> =
+        buildList {
+            add(BluetoothProfile.HEADSET)
+            add(BluetoothProfile.A2DP)
+            add(BluetoothProfile.GATT)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(BluetoothProfile.LE_AUDIO)
+            }
         }
 
     /** Comma-separated names of bonded Bluetooth devices, null when BT off/denied. */

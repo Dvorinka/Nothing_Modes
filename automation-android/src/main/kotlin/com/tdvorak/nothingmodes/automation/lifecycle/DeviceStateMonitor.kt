@@ -11,6 +11,7 @@ import android.content.res.Configuration
 import android.database.ContentObserver
 import android.location.LocationManager
 import android.media.AudioManager
+import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
@@ -182,6 +183,19 @@ class DeviceStateMonitor(
         return bool(adapter != null && runCatching { adapter.isEnabled }.getOrDefault(false))
     }
 
+    /**
+     * Data Saver is NetworkPolicyManager's restrict-background flag — the
+     * `global.data_saver` key is a dead mirror, nothing reads it.
+     */
+    private fun readDataSaver(): String {
+        val cm = context.getSystemService(ConnectivityManager::class.java) ?: return "false"
+        return bool(
+            runCatching {
+                cm.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+            }.getOrDefault(false),
+        )
+    }
+
     private fun readLocation(): String {
         val lm = context.getSystemService(LocationManager::class.java) ?: return "false"
         return bool(
@@ -296,7 +310,7 @@ class DeviceStateMonitor(
     private fun onSettingsChanged(uri: android.net.Uri?) {
         if (uri == null) return
         update(DeviceStateKeys.POWER_SAVING) { globalBool("low_power") }
-        update(DeviceStateKeys.DATA_SAVER) { globalBool("data_saver") }
+        update(DeviceStateKeys.DATA_SAVER) { readDataSaver() }
         update(DeviceStateKeys.AIRPLANE) { globalBool("airplane_mode_on") }
         update(DeviceStateKeys.GLYPH_INTERFACE) { globalBool("led_effect_enable") }
         update(DeviceStateKeys.GLYPH_CHARGE_LED) { globalBool("led_effect_charging_enable") }
@@ -348,6 +362,8 @@ class DeviceStateMonitor(
                             update(DeviceStateKeys.NFC) { readNfc() }
                         WIFI_AP_STATE_CHANGED ->
                             update(DeviceStateKeys.HOTSPOT) { readHotspot() }
+                        ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED ->
+                            update(DeviceStateKeys.DATA_SAVER) { readDataSaver() }
                     }
                 }
             }
@@ -368,6 +384,7 @@ class DeviceStateMonitor(
                 addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
                 addAction(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
                 addAction(WIFI_AP_STATE_CHANGED)
+                addAction(ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED)
             }
         stateReceiver = receiver
         runCatching { context.registerReceiver(receiver, filter) }
@@ -439,6 +456,7 @@ class DeviceStateMonitor(
                     update(DeviceStateKeys.DND_ACTIVE) { readDnd() }
                     update(DeviceStateKeys.DARK_MODE) { readDarkMode() }
                     update(DeviceStateKeys.HEADPHONES) { readHeadphones() }
+                    update(DeviceStateKeys.DATA_SAVER) { readDataSaver() }
                     handler.postDelayed(this, POLL_INTERVAL_MS)
                 }
             }
@@ -461,7 +479,6 @@ class DeviceStateMonitor(
         private val SETTINGS_KEYS: List<Pair<String, DeviceStateMonitor.() -> String>> =
             listOf(
                 DeviceStateKeys.POWER_SAVING to { globalBool("low_power") },
-                DeviceStateKeys.DATA_SAVER to { globalBool("data_saver") },
                 DeviceStateKeys.AIRPLANE to { globalBool("airplane_mode_on") },
                 DeviceStateKeys.GLYPH_INTERFACE to { globalBool("led_effect_enable") },
                 DeviceStateKeys.GLYPH_CHARGE_LED to { globalBool("led_effect_charging_enable") },
@@ -485,6 +502,7 @@ class DeviceStateMonitor(
                 DeviceStateKeys.VOLUME_RING to { readVolume(AudioManager.STREAM_RING) },
                 DeviceStateKeys.VOLUME_ALARM to { readVolume(AudioManager.STREAM_ALARM) },
                 DeviceStateKeys.HEADPHONES to { readHeadphones() },
+                DeviceStateKeys.DATA_SAVER to { readDataSaver() },
                 DeviceStateKeys.NFC to { readNfc() },
                 DeviceStateKeys.LOCATION to { readLocation() },
                 DeviceStateKeys.HOTSPOT to { readHotspot() },

@@ -149,4 +149,48 @@ class PrioritizedPrivilegedShellTest {
             assertTrue(queued.isCancelled)
             assertFailsWith<IllegalStateException> { shell.run(listOf("late")) }
         }
+
+    @Test
+    fun `wifi tether toggle delegates to transport`() =
+        runTest {
+            var captured: Boolean? = null
+            val transport =
+                object : ShellTransport {
+                    override suspend fun execute(request: ShellRequest) = ShellResult(0)
+
+                    override suspend fun setWifiTethered(enabled: Boolean): ShellResult {
+                        captured = enabled
+                        return ShellResult(0)
+                    }
+                }
+            val shell = PrioritizedPrivilegedShell(transport, this)
+
+            val result = shell.setWifiTethered(true)
+
+            assertEquals(true, captured)
+            assertTrue(result.successful)
+            shell.close()
+        }
+
+    @Test
+    fun `master sync toggle delegates to transport`() =
+        runTest {
+            var captured: Boolean? = null
+            val transport =
+                object : ShellTransport {
+                    override suspend fun execute(request: ShellRequest) = ShellResult(0)
+
+                    override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult {
+                        captured = enabled
+                        return ShellResult(0)
+                    }
+                }
+            val shell = PrioritizedPrivilegedShell(transport, this)
+
+            val result = shell.setMasterSyncAutomatically(false)
+
+            assertEquals(false, captured)
+            assertTrue(result.successful)
+            shell.close()
+        }
 }

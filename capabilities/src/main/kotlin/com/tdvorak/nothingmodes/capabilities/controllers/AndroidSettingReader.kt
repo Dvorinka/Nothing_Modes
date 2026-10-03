@@ -8,7 +8,9 @@ import android.content.res.Configuration
 import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.nfc.NfcManager
+import android.os.Build
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import com.tdvorak.nothingmodes.engine.runtime.SettingReader
 
 /**
@@ -37,7 +39,8 @@ class AndroidSettingReader(
             "auto_sync" -> readAutoSync()
             "ringer_mode" -> readRingerMode()
             "flashlight_on" -> readFlashlightState()
-            in setOf("airplane_mode_on", "low_power", "data_saver") ->
+            "data_saver" -> readDataSaverEnabled()
+            in setOf("airplane_mode_on", "low_power") ->
                 readGlobalSettingAsString(key)
             "reduce_bright_colors_activated" ->
                 readSecureSettingAsString(key)
@@ -119,10 +122,19 @@ class AndroidSettingReader(
             bm.adapter?.isEnabled.toString()
         }.getOrNull()
 
+    /**
+     * `global.mobile_data` is stale on per-subscription builds (API 26+ stores
+     * `mobile_data<subId>`); TelephonyManager.isDataEnabled is the real source.
+     */
+    @Suppress("MissingPermission")
     private fun readMobileDataEnabled(): String? =
         runCatching {
-            val value = Settings.Global.getInt(context.contentResolver, "mobile_data", 1)
-            (value == 1).toString()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.getSystemService(TelephonyManager::class.java)
+                    ?.isDataEnabled?.toString()
+            } else {
+                (Settings.Global.getInt(context.contentResolver, "mobile_data", 1) == 1).toString()
+            }
         }.getOrNull()
 
     private fun readAodEnabled(): String? =
@@ -163,6 +175,18 @@ class AndroidSettingReader(
         }.getOrNull()
 
     private fun readAutoSync(): String? = runCatching { ContentResolver.getMasterSyncAutomatically().toString() }.getOrNull()
+
+    /**
+     * Real source is NetworkPolicyManager's restrict-background flag;
+     * `global.data_saver` is a dead key nothing reads. Needs ACCESS_NETWORK_STATE.
+     */
+    private fun readDataSaverEnabled(): String? =
+        runCatching {
+            val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+                ?: return null
+            (cm.restrictBackgroundStatus ==
+                android.net.ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED).toString()
+        }.getOrNull()
 
     private fun readRingerMode(): String? =
         runCatching {

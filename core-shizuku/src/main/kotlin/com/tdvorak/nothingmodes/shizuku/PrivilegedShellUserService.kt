@@ -10,21 +10,30 @@
 
 package com.tdvorak.nothingmodes.shizuku
 
+import android.content.ContentResolver
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.os.Process
 import androidx.annotation.Keep
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 @Keep
 class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
+    @Volatile private var serviceContext: Context? = null
+    private val hiddenApiBypassed = AtomicBoolean(false)
+
     @Keep
-    constructor(@Suppress("UNUSED_PARAMETER") context: Context) : this()
+    constructor(context: Context) : this() {
+        serviceContext = context
+    }
 
     override fun execute(
         command: Array<out String>?,
@@ -149,9 +158,72 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         }
     }
 
-    private fun errorBundle(code: String) = Bundle().apply {
+    /**
+     * Toggles the tethered hotspot via WifiManager hidden APIs. This process runs
+     * as uid 2000, which holds NETWORK_STACK; calling through a "com.android.shell"
+     * package context makes AppOps.checkPackage resolve the shell package instead
+     * of ours (which doesn't belong to uid 2000 and would throw SecurityException).
+     * A null SoftApConfiguration keeps the user's saved SSID/passphrase.
+     */
+    override fun setWifiTethered(enabled: Boolean): Bundle {
+        val ctx = serviceContext ?: return errorBundle("context_missing")
+        if (Build.VERSION.SDK_INT < 30) return errorBundle("unsupported_api")
+        return try {
+            ensureHiddenApiExemptions()
+            val shellContext = ctx.createPackageContext(SHELL_PACKAGE_NAME, 0)
+            val wifi = shellContext.getSystemService(Context.WIFI_SERVICE)
+                ?: return errorBundle("wifi_service_missing")
+            val accepted = if (enabled) {
+                wifi.javaClass
+                    .getMethod(
+                        "startTetheredHotspot",
+                        Class.forName("android.net.wifi.SoftApConfiguration"),
+                    ).invoke(wifi, *arrayOfNulls<Any?>(1))
+            } else {
+                wifi.javaClass.getMethod("stopSoftAp").invoke(wifi)
+            }
+            if (accepted as? Boolean == true) {
+                Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+            } else {
+                errorBundle("rejected", "tethered hotspot toggle rejected by WifiService")
+            }
+        } catch (e: InvocationTargetException) {
+            val cause = e.cause
+            errorBundle(
+                "rejected",
+                "${cause?.javaClass?.simpleName}: ${cause?.message ?: "wifi service call failed"}",
+            )
+        } catch (e: Exception) {
+            errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    /**
+     * Master auto-sync toggle. Public static API — but it is gated by
+     * WRITE_SYNC_SETTINGS (signature-level), so only the shell-uid process can
+     * reach it. No package-context trick needed: the check is uid-only.
+     */
+    override fun setMasterSyncAutomatically(enabled: Boolean): Bundle =
+        try {
+            ContentResolver.setMasterSyncAutomatically(enabled)
+            Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+        } catch (e: Exception) {
+            errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
+
+    /** "L" exposes every hidden API member in this process; needed on API 30+. */
+    private fun ensureHiddenApiExemptions() {
+        if (hiddenApiBypassed.compareAndSet(false, true)) {
+            runCatching { HiddenApiBypass.addHiddenApiExemptions("L") }
+        }
+    }
+
+    private fun errorBundle(code: String, detail: String? = null) = Bundle().apply {
         putInt(KEY_EXIT_CODE, EXIT_INTERNAL_ERROR)
         putString(KEY_ERROR_CODE, code)
+        if (detail != null) {
+            putByteArray(KEY_STDERR, detail.take(MAX_STDERR_BYTES).toByteArray())
+        }
     }
 
     override fun uid(): Int = Process.myUid()
@@ -173,5 +245,6 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         private const val EXIT_TIMEOUT = -1
         private const val EXIT_INTERNAL_ERROR = -127
         private const val JOIN_MILLIS = 2_000L
+        private const val SHELL_PACKAGE_NAME = "com.android.shell"
     }
 }

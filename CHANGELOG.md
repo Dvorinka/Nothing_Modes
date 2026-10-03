@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Hotspot toggle never actually switched the AP: the action wrote `settings put global wifi_ap_state`, a legacy state mirror nothing reads — the shell reported success while the hotspot stayed off. The action now toggles the real tethered hotspot inside the Shizuku user service (shell uid) via `WifiManager.startTetheredHotspot`/`stopSoftAp`, keeping the device's saved SSID and passphrase. Without Shizuku it still opens the tether settings panel.
+- Data Saver and master auto-sync toggles had the same false-success defect — `settings put global data_saver`/`auto_sync` write dead keys nothing reads. Data Saver now runs `cmd netpolicy set restrict-background` via Shizuku, auto-sync calls `ContentResolver.setMasterSyncAutomatically` inside the user service (shell uid holds WRITE_SYNC_SETTINGS). Both now report a real failure instead of a phantom success when Shizuku is missing.
+- Data Saver conditions never fired: the state monitor read the same dead `data_saver` key. It now reads `ConnectivityManager.restrictBackgroundStatus` (with `ACTION_RESTRICT_BACKGROUND_CHANGED` + poll for transitions), snapshot restore routes through the Data Saver action instead of a generic dead write, and the app manifest gains ACCESS_NETWORK_STATE so the real read doesn't throw.
+- Mobile-data snapshots read the stale `global.mobile_data` key, which per-subscription builds (API 26+) store under `mobile_data<subId>` — the reader now uses `TelephonyManager.isDataEnabled`, matching the device-state monitor.
+- "Bluetooth connected" conditions could never match: the state reader counted *paired* devices as connected and compared the trigger's device name against the phone's own adapter name. It now asks BluetoothManager for the real connected set (headset/A2DP/GATT/LE-audio profiles) and reports the connected remote device's name.
+- "Stay awake while charging" did nothing on wall chargers: the action wrote plug bitmask 2 (USB only); it now writes 7 (AC + USB + wireless), matching the platform dev option.
+- Airplane-mode snapshot restores wrote the `airplane_mode_on` key, which doesn't drive the radio toggle — restores now go through the same `cmd connectivity airplane-mode` path as the action.
+- "Clear notifications" reported success while only cancelling the app's own posts (`NotificationManager.cancelAll` can't touch other apps). The action now goes through the bound NotificationListenerService and reports permission required when notification access isn't granted.
+
 ## [0.19.7]
 
 ### Added

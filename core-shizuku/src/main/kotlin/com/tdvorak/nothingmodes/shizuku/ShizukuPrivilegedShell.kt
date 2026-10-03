@@ -54,6 +54,12 @@ class ShizukuPrivilegedShell(
             executionId,
         )
 
+    override suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        queue.setWifiTethered(enabled)
+
+    override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        queue.setMasterSyncAutomatically(enabled)
+
     override fun close() {
         queue.close()
         transport.close()
@@ -110,6 +116,50 @@ internal class ShizukuUserServiceTransport(
                                 )
                             }
                     }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    invalidate(remote)
+                    throw IllegalStateException("UserService Shizuku disconnesso")
+                }
+            ShellResult(
+                exitCode = bundle.getInt(PrivilegedShellUserService.KEY_EXIT_CODE, -127),
+                stdout = bundle.getByteArray(PrivilegedShellUserService.KEY_STDOUT) ?: byteArrayOf(),
+                stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
+                timedOut = bundle.getBoolean(PrivilegedShellUserService.KEY_TIMED_OUT, false),
+                truncated = bundle.getBoolean(PrivilegedShellUserService.KEY_TRUNCATED, false),
+                errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
+            )
+        }
+
+    override suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        withContext(Dispatchers.IO) {
+            val remote = connectedService()
+            val bundle =
+                try {
+                    remote.setWifiTethered(enabled)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    invalidate(remote)
+                    throw IllegalStateException("UserService Shizuku disconnesso")
+                }
+            ShellResult(
+                exitCode = bundle.getInt(PrivilegedShellUserService.KEY_EXIT_CODE, -127),
+                stdout = bundle.getByteArray(PrivilegedShellUserService.KEY_STDOUT) ?: byteArrayOf(),
+                stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
+                timedOut = bundle.getBoolean(PrivilegedShellUserService.KEY_TIMED_OUT, false),
+                truncated = bundle.getBoolean(PrivilegedShellUserService.KEY_TRUNCATED, false),
+                errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
+            )
+        }
+
+    override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        withContext(Dispatchers.IO) {
+            val remote = connectedService()
+            val bundle =
+                try {
+                    remote.setMasterSyncAutomatically(enabled)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (_: Exception) {
@@ -288,7 +338,7 @@ internal class ShizukuUserServiceTransport(
     }
 
     private companion object {
-        const val USER_SERVICE_VERSION = 1
+        const val USER_SERVICE_VERSION = 3
         const val USER_SERVICE_BIND_TIMEOUT_MILLIS = 15_000L
     }
 }
