@@ -36,6 +36,7 @@ import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.runtime.ActionExecutor
 import com.tdvorak.nothingmodes.engine.runtime.ActionResult
+import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.runtime.FireContext
 import com.tdvorak.nothingmodes.nothing.GlyphPreflight
@@ -1533,14 +1534,18 @@ class RealActionExecutor(
         }
     }
 
-    private fun clearNotifications(): ActionResult =
-        try {
-            val nm = context.getSystemService(NotificationManager::class.java)
-            nm.cancelAll()
+    // NotificationManager.cancelAll only cancels our own posts — clearing the
+    // shade requires the bound NotificationListenerService. Absent hook means
+    // the user never granted (or the system hasn't bound) notification access.
+    private fun clearNotifications(): ActionResult {
+        val clearAll = ActiveNotifications.clearAll ?: return ActionResult.PermissionRequired
+        return try {
+            clearAll()
             ActionResult.Success
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "clearNotifications failed")
         }
+    }
 
     /**
      * Connect the relevant Glyph provider before a glyph action runs. The DI

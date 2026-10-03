@@ -96,7 +96,15 @@ class AutomationNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        // The only route that can cancel other apps' notifications; installed
+        // so Action.ClearNotifications can reach it from another module.
+        ActiveNotifications.clearAll = ::cancelAllNotifications
         refreshActiveNotifications()
+    }
+
+    override fun onListenerDisconnected() {
+        ActiveNotifications.clearAll = null
+        super.onListenerDisconnected()
     }
 
     private fun refreshActiveNotifications() {

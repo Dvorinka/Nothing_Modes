@@ -10,6 +10,7 @@
 - "Bluetooth connected" conditions could never match: the state reader counted *paired* devices as connected and compared the trigger's device name against the phone's own adapter name. It now asks BluetoothManager for the real connected set (headset/A2DP/GATT/LE-audio profiles) and reports the connected remote device's name.
 - "Stay awake while charging" did nothing on wall chargers: the action wrote plug bitmask 2 (USB only); it now writes 7 (AC + USB + wireless), matching the platform dev option.
 - Airplane-mode snapshot restores wrote the `airplane_mode_on` key, which doesn't drive the radio toggle — restores now go through the same `cmd connectivity airplane-mode` path as the action.
+- "Clear notifications" reported success while only cancelling the app's own posts (`NotificationManager.cancelAll` can't touch other apps). The action now goes through the bound NotificationListenerService and reports permission required when notification access isn't granted.
 
 ## [0.19.7]
 

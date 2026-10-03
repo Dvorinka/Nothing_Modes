@@ -12,6 +12,14 @@ object ActiveNotifications {
     private val _snapshots = MutableStateFlow<List<NotificationSnapshot>>(emptyList())
     val snapshots: StateFlow<List<NotificationSnapshot>> = _snapshots.asStateFlow()
 
+    /**
+     * Cancels every notification in the shade. Installed by the bound
+     * NotificationListenerService while connected — null means notification
+     * access is off (or the system hasn't bound the listener yet).
+     */
+    @Volatile
+    var clearAll: (() -> Unit)? = null
+
     fun update(snapshots: List<NotificationSnapshot>) {
         _snapshots.value = snapshots
     }
