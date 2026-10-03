@@ -338,7 +338,7 @@ internal class ShizukuUserServiceTransport(
     }
 
     private companion object {
-        const val USER_SERVICE_VERSION = 3
+        const val USER_SERVICE_VERSION = 4
         const val USER_SERVICE_BIND_TIMEOUT_MILLIS = 15_000L
     }
 }
