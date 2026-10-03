@@ -654,6 +654,10 @@ class Engine(
                 value.toBooleanStrictOrNull()?.let { Action.SetAutoSync(on = it, restore = false) }
             snapshot.settingKey == "data_saver" ->
                 value.toBooleanStrictOrNull()?.let { Action.SetDataSaver(on = it, restore = false) }
+            // Writing airplane_mode_on alone leaves the radios unchanged —
+            // restore must go through the real toggle (cmd connectivity).
+            snapshot.settingKey == "airplane_mode_on" ->
+                value.toBooleanStrictOrNull()?.let { Action.SetAirplaneMode(on = it, restore = false) }
             snapshot.settingKey == "ringer_mode" ->
                 Action.SetRinger(mode = value, restore = false)
             snapshot.settingKey == "ultra_dim" ->

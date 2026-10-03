@@ -1187,13 +1187,16 @@ class RealActionExecutor(
             ),
         )
 
+    // stay_on_while_plugged_in is a bitmask (AC=1, USB=2, WIRELESS=4); the
+    // platform "Stay awake" dev option writes 7. "2" alone would leave AC
+    // wall charging out.
     private fun stayAwakeCommand(on: Boolean) =
         listOf(
             "settings",
             "put",
             "global",
             "stay_on_while_plugged_in",
-            if (on) "2" else "0",
+            if (on) "7" else "0",
         )
 
     private fun nfcCommand(on: Boolean) =
