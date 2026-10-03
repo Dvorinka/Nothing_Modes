@@ -12,7 +12,6 @@ package com.tdvorak.nothingmodes.shizuku
 
 import android.content.ContentResolver
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.os.Process
@@ -159,43 +158,124 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
     }
 
     /**
-     * Toggles the tethered hotspot via WifiManager hidden APIs. This process runs
-     * as uid 2000, which holds NETWORK_STACK; calling through a "com.android.shell"
-     * package context makes AppOps.checkPackage resolve the shell package instead
-     * of ours (which doesn't belong to uid 2000 and would throw SecurityException).
-     * A null SoftApConfiguration keeps the user's saved SSID/passphrase.
+     * Toggles the tethered hotspot as uid 2000. Primary route: call the
+     * "tethering" binder directly (ITetheringConnector). TetheringManager can't
+     * be used — it sends getOpPackageName() as callerPkg, and AttributionSource
+     * keeps this process's package (which uid 2000 doesn't own →
+     * checkPackageNameMatchesUid rejects with TETHER_ERROR_NO_CHANGE_TETHERING_
+     * PERMISSION). With callerPkg="com.android.shell" the check passes and the
+     * TETHER_PRIVILEGED grant does the rest. WifiManager.startTetheredHotspot
+     * remains as fallback for builds where MAINLINE_NETWORK_STACK isn't
+     * required. Saved SSID/passphrase apply in both cases.
      */
     override fun setWifiTethered(enabled: Boolean): Bundle {
         val ctx = serviceContext ?: return errorBundle("context_missing")
-        if (Build.VERSION.SDK_INT < 30) return errorBundle("unsupported_api")
         return try {
             ensureHiddenApiExemptions()
-            val shellContext = ctx.createPackageContext(SHELL_PACKAGE_NAME, 0)
-            val wifi = shellContext.getSystemService(Context.WIFI_SERVICE)
-                ?: return errorBundle("wifi_service_missing")
-            val accepted = if (enabled) {
-                wifi.javaClass
-                    .getMethod(
-                        "startTetheredHotspot",
-                        Class.forName("android.net.wifi.SoftApConfiguration"),
-                    ).invoke(wifi, *arrayOfNulls<Any?>(1))
-            } else {
-                wifi.javaClass.getMethod("stopSoftAp").invoke(wifi)
-            }
-            if (accepted as? Boolean == true) {
-                Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
-            } else {
-                errorBundle("rejected", "tethered hotspot toggle rejected by WifiService")
-            }
-        } catch (e: InvocationTargetException) {
-            val cause = e.cause
-            errorBundle(
-                "rejected",
-                "${cause?.javaClass?.simpleName}: ${cause?.message ?: "wifi service call failed"}",
+            val errors = mutableListOf<String>()
+            val routes = listOf<(Boolean) -> Unit>(
+                ::tetherViaConnector,
+                { tetherViaWifiManager(ctx, it) },
             )
+            for (route in routes) {
+                try {
+                    route(enabled)
+                    return Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+                } catch (e: InvocationTargetException) {
+                    errors += (e.cause ?: e).let { "${it.javaClass.simpleName}: ${it.message}" }
+                } catch (e: Exception) {
+                    errors += "${e.javaClass.simpleName}: ${e.message}"
+                }
+            }
+            errorBundle("rejected", errors.joinToString(" | ").take(600))
         } catch (e: Exception) {
             errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
         }
+    }
+
+    private fun tetherViaConnector(enabled: Boolean) {
+        val binder = Class.forName("android.os.ServiceManager")
+            .getMethod("getService", String::class.java)
+            .invoke(null, "tethering") as? android.os.IBinder
+            ?: throw IllegalStateException("tethering binder missing")
+        val connector = Class.forName("android.net.ITetheringConnector\$Stub")
+            .getMethod("asInterface", android.os.IBinder::class.java)
+            .invoke(null, binder)
+            ?: throw IllegalStateException("tethering connector unavailable")
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val error = java.util.concurrent.atomic.AtomicReference(-1)
+        val listener = intResultListener(latch, error)
+        if (enabled) {
+            connector.javaClass.methods.first { it.name == "startTethering" }
+                .invoke(connector, buildTetheringRequestParcel(), SHELL_PACKAGE_NAME, null, listener)
+        } else {
+            connector.javaClass.methods.first {
+                it.name == "stopTethering" && it.parameterTypes.firstOrNull() == Int::class.javaPrimitiveType
+            }.invoke(connector, TETHERING_WIFI, SHELL_PACKAGE_NAME, null, listener)
+        }
+        if (!latch.await(15, TimeUnit.SECONDS)) {
+            throw IllegalStateException("tether toggle timed out")
+        }
+        error.get().takeIf { it != TETHER_ERROR_NO_ERROR }?.let {
+            throw IllegalStateException("tether error $it")
+        }
+    }
+
+    /** TetheringRequest.Builder(TETHERING_WIFI).build().getParcel(). */
+    private fun buildTetheringRequestParcel(): Any {
+        val builderCls = Class.forName("android.net.TetheringManager\$TetheringRequest\$Builder")
+        val request = builderCls.getMethod("build")
+            .invoke(builderCls.getConstructor(Int::class.java).newInstance(TETHERING_WIFI))
+        return Class.forName("android.net.TetheringManager\$TetheringRequest")
+            .getMethod("getParcel").invoke(request)!!
+    }
+
+    /**
+     * IIntResultListener can't be proxied onto the binder directly — a raw
+     * Binder handles the oneway onResult(int) transaction, and an IInterface
+     * proxy returns it from asBinder() so the connector proxy can marshal it.
+     */
+    private fun intResultListener(
+        latch: java.util.concurrent.CountDownLatch,
+        error: java.util.concurrent.atomic.AtomicReference<Int>,
+    ): Any {
+        val resultBinder = object : android.os.Binder() {
+            override fun onTransact(
+                code: Int,
+                data: android.os.Parcel,
+                reply: android.os.Parcel?,
+                flags: Int,
+            ): Boolean {
+                if (code == android.os.IBinder.FIRST_CALL_TRANSACTION) {
+                    data.enforceInterface(IINT_RESULT_DESCRIPTOR)
+                    error.set(data.readInt())
+                    latch.countDown()
+                    return true
+                }
+                return super.onTransact(code, data, reply, flags)
+            }
+        }
+        val listenerCls = Class.forName("android.net.IIntResultListener")
+        return java.lang.reflect.Proxy.newProxyInstance(
+            listenerCls.classLoader,
+            arrayOf(listenerCls, Class.forName("android.os.IInterface")),
+        ) { _, method, _ -> if (method.name == "asBinder") resultBinder else null }
+    }
+
+    private fun tetherViaWifiManager(ctx: Context, enabled: Boolean) {
+        val shellContext = ctx.createPackageContext(SHELL_PACKAGE_NAME, 0)
+        val wifi = shellContext.getSystemService(Context.WIFI_SERVICE)
+            ?: throw IllegalStateException("WifiManager unavailable")
+        val accepted = if (enabled) {
+            wifi.javaClass
+                .getMethod(
+                    "startTetheredHotspot",
+                    Class.forName("android.net.wifi.SoftApConfiguration"),
+                ).invoke(wifi, *arrayOfNulls<Any?>(1))
+        } else {
+            wifi.javaClass.getMethod("stopSoftAp").invoke(wifi)
+        }
+        if (accepted as? Boolean != true) throw IllegalStateException("WifiManager rejected toggle")
     }
 
     /**
@@ -246,5 +326,10 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         private const val EXIT_INTERNAL_ERROR = -127
         private const val JOIN_MILLIS = 2_000L
         private const val SHELL_PACKAGE_NAME = "com.android.shell"
+        // TetheringManager.TETHERING_WIFI / TETHER_ERROR_NO_ERROR — literals
+        // keep this file free of @SystemApi stubs.
+        private const val TETHERING_WIFI = 0
+        private const val TETHER_ERROR_NO_ERROR = 0
+        private const val IINT_RESULT_DESCRIPTOR = "android.net.IIntResultListener"
     }
 }
