@@ -4,6 +4,9 @@
 
 ### Fixed
 - Hotspot toggle never actually switched the AP: the action wrote `settings put global wifi_ap_state`, a legacy state mirror nothing reads — the shell reported success while the hotspot stayed off. The action now toggles the real tethered hotspot inside the Shizuku user service (shell uid) via `WifiManager.startTetheredHotspot`/`stopSoftAp`, keeping the device's saved SSID and passphrase. Without Shizuku it still opens the tether settings panel.
+- Data Saver and master auto-sync toggles had the same false-success defect — `settings put global data_saver`/`auto_sync` write dead keys nothing reads. Data Saver now runs `cmd netpolicy set restrict-background` via Shizuku, auto-sync calls `ContentResolver.setMasterSyncAutomatically` inside the user service (shell uid holds WRITE_SYNC_SETTINGS). Both now report a real failure instead of a phantom success when Shizuku is missing.
+- Data Saver conditions never fired: the state monitor read the same dead `data_saver` key. It now reads `ConnectivityManager.restrictBackgroundStatus` (with `ACTION_RESTRICT_BACKGROUND_CHANGED` + poll for transitions), snapshot restore routes through the Data Saver action instead of a generic dead write, and the app manifest gains ACCESS_NETWORK_STATE so the real read doesn't throw.
+- Mobile-data snapshots read the stale `global.mobile_data` key, which per-subscription builds (API 26+) store under `mobile_data<subId>` — the reader now uses `TelephonyManager.isDataEnabled`, matching the device-state monitor.
 
 ## [0.19.7]
 

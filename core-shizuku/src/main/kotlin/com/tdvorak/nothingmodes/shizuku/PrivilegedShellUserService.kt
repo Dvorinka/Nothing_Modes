@@ -10,6 +10,7 @@
 
 package com.tdvorak.nothingmodes.shizuku
 
+import android.content.ContentResolver
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -196,6 +197,19 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
             errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
         }
     }
+
+    /**
+     * Master auto-sync toggle. Public static API — but it is gated by
+     * WRITE_SYNC_SETTINGS (signature-level), so only the shell-uid process can
+     * reach it. No package-context trick needed: the check is uid-only.
+     */
+    override fun setMasterSyncAutomatically(enabled: Boolean): Bundle =
+        try {
+            ContentResolver.setMasterSyncAutomatically(enabled)
+            Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+        } catch (e: Exception) {
+            errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
 
     /** "L" exposes every hidden API member in this process; needed on API 30+. */
     private fun ensureHiddenApiExemptions() {

@@ -53,6 +53,13 @@ interface PrivilegedShell {
     suspend fun setWifiTethered(enabled: Boolean): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 
+    /**
+     * Toggles master auto-sync via ContentResolver inside the user service —
+     * WRITE_SYNC_SETTINGS is signature-level, unreachable for the app process.
+     */
+    suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 30_000L
         const val DEFAULT_TEXT_OUTPUT_BYTES = 256 * 1024
@@ -91,6 +98,9 @@ internal fun interface ShellTransport {
     suspend fun execute(request: ShellRequest): ShellResult
 
     suspend fun setWifiTethered(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 }
 
@@ -155,6 +165,9 @@ internal class PrioritizedPrivilegedShell(
     // Instant Binder call — not routed through the priority queue.
     override suspend fun setWifiTethered(enabled: Boolean): ShellResult =
         transport.setWifiTethered(enabled)
+
+    override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        transport.setMasterSyncAutomatically(enabled)
 
     private suspend fun enqueue(
         request: ShellRequest,

@@ -215,13 +215,7 @@ class RealActionExecutor(
             is Action.SendSms -> sendSms(action.number, action.text)
             is Action.LockScreen -> if (action.force) lockScreen() else ActionResult.Failure("Detected: may not work on this device")
             is Action.SetLocationMode -> setLocationMode(action.mode, action, context)
-            is Action.SetAutoSync ->
-                shellOrPanel(
-                    autoSyncCommand(action.on),
-                    Settings.ACTION_SYNC_SETTINGS,
-                    action,
-                    context,
-                )
+            is Action.SetAutoSync -> setAutoSync(action.on, action, context)
             is Action.ClearNotifications -> clearNotifications()
             is Action.SetAlwaysOnDisplay ->
                 shellAllOrPanel(
@@ -425,7 +419,32 @@ class RealActionExecutor(
 
     private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
 
-    private fun autoSyncCommand(on: Boolean) = listOf("settings", "put", "global", "auto_sync", if (on) "1" else "0")
+    /**
+     * Master auto-sync via ContentResolver inside the Shizuku user service —
+     * `settings put global auto_sync` writes a dead key; the real flag lives in
+     * SyncStorageEngine behind WRITE_SYNC_SETTINGS (signature-level, shell holds it).
+     */
+    private suspend fun setAutoSync(
+        on: Boolean,
+        source: Action,
+        ctx: FireContext,
+    ): ActionResult {
+        val sh = shellFactory?.resolve()
+            ?: return openPanel(Settings.ACTION_SYNC_SETTINGS, source, ctx)
+        val result =
+            try {
+                sh.setMasterSyncAutomatically(on)
+            } catch (e: Exception) {
+                return ActionResult.Failure(e.message ?: "auto-sync toggle failed")
+            }
+        return if (result.successful) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure(
+                result.stderrText.ifBlank { result.errorCode ?: "auto-sync toggle failed" }.take(200),
+            )
+        }
+    }
 
     private fun aodCommands(action: Action.SetAlwaysOnDisplay): List<List<String>> {
         val base = listOf("settings", "put", "secure")
@@ -1142,13 +1161,15 @@ class RealActionExecutor(
             if (on) "1" else "0",
         )
 
+    // `settings put global data_saver` writes a dead key — Data Saver is the
+    // NetworkPolicyManagerService restrict-background flag, reachable via shell.
     private fun dataSaverCommand(on: Boolean) =
         listOf(
-            "settings",
-            "put",
-            "global",
-            "data_saver",
-            if (on) "1" else "0",
+            "cmd",
+            "netpolicy",
+            "set",
+            "restrict-background",
+            if (on) "true" else "false",
         )
 
     /**

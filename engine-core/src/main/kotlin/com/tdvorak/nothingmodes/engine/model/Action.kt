@@ -400,7 +400,7 @@ sealed interface Action {
         val restore: Boolean = true,
     ) : Action
 
-    /** Toggle data saver. Uses Settings.Global.DATA_SAVER (requires Shizuku). */
+    /** Toggle data saver (NetworkPolicyManager restrict-background via shell; requires Shizuku). */
     @Serializable
     @SerialName(ActionTypeIds.SET_DATA_SAVER)
     data class SetDataSaver(
