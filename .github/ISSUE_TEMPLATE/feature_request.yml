@@ -1,0 +1,60 @@
+name: Feature request
+description: Suggest a new trigger, action, condition, or feature
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that Nothing Modes cannot do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you would like to see implemented.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request type
+      options:
+        - New trigger
+        - New action
+        - New condition
+        - UI / UX improvement
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: spec
+    attributes:
+      label: Trigger / action / condition details
+      description: "For new types, name the signal and parameters if you know them (e.g. `set_volume level: Int`). Leave blank otherwise."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: shizuku
+    attributes:
+      label: Likely needs Shizuku?
+      options:
+        - Yes
+        - No
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Device models this should support, links, screenshots, workarounds you use today.
+    validations:
+      required: false

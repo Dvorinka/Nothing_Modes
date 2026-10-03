@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Dvorinka/Nothing_Modes/security/policy
+    about: Please do not report security issues in public. See SECURITY.md for responsible disclosure.
+  - name: Contributing guide
+    url: https://github.com/Dvorinka/Nothing_Modes/blob/main/CONTRIBUTING.md
+    about: Read this before opening a pull request or proposing large features.
