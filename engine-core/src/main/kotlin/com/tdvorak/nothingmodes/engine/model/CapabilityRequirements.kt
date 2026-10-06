@@ -39,6 +39,7 @@ object CapabilityIds {
     // Actions
     const val ACTION_SET_WIFI = "action_set_wifi"
     const val ACTION_SET_BLUETOOTH = "action_set_bluetooth"
+    const val ACTION_CONNECT_BLUETOOTH_DEVICE = "action_connect_bluetooth_device"
     const val ACTION_SET_MOBILE_DATA = "action_set_mobile_data"
     const val ACTION_SET_DND = "action_set_dnd"
     const val ACTION_SET_RINGER = "action_set_ringer"
@@ -218,6 +219,8 @@ object CapabilityRequirements {
         when (action) {
             is Action.SetWifi -> setOf(CapabilityIds.ACTION_SET_WIFI, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH, CapabilityIds.SHIZUKU_REQUIRED)
+            // BLE connect works without Shizuku; classic profiles degrade inside the executor.
+            is Action.ConnectBluetoothDevice -> setOf(CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE)
             is Action.SetMobileData -> setOf(CapabilityIds.ACTION_SET_MOBILE_DATA, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetDnd -> setOf(CapabilityIds.ACTION_SET_DND)
             is Action.SetRinger -> setOf(CapabilityIds.ACTION_SET_RINGER)

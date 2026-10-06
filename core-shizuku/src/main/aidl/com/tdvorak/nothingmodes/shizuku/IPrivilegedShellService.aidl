@@ -12,6 +12,9 @@ interface IPrivilegedShellService {
     // Master auto-sync toggle. The `auto_sync` settings key is dead — the real flag
     // lives in SyncStorageEngine behind WRITE_SYNC_SETTINGS, which shell holds.
     Bundle setMasterSyncAutomatically(boolean enabled);
+    // Pages a bonded device's classic profiles. Hidden BluetoothDevice.connect()
+    // needs BLUETOOTH_PRIVILEGED, which shell holds and the app does not.
+    Bundle connectBluetoothDevice(String address);
     int uid();
     void destroy();
 }

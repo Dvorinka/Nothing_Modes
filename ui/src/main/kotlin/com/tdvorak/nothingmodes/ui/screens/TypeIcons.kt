@@ -3,9 +3,10 @@ package com.tdvorak.nothingmodes.ui.screens
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MobileScreenShare
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.BluetoothConnected
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Alarm
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.BatteryFull
@@ -157,6 +158,7 @@ fun iconForAction(action: Action): ImageVector =
     when (action) {
         is Action.SetWifi -> Icons.Outlined.Wifi
         is Action.SetBluetooth -> Icons.Outlined.Bluetooth
+        is Action.ConnectBluetoothDevice -> Icons.Outlined.BluetoothConnected
         is Action.SetMobileData -> Icons.Outlined.SignalCellular4Bar
         is Action.SetHotspot -> Icons.Outlined.WifiTethering
         is Action.SetAirplaneMode -> Icons.Outlined.Flight

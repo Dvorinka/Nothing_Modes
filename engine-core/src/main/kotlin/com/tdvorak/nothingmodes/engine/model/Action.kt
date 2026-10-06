@@ -19,6 +19,7 @@ enum class SettingsScreen { WIFI, BLUETOOTH, DISPLAY, SOUND, LOCATION, BATTERY, 
 object ActionTypeIds {
     const val SET_WIFI = "set_wifi"
     const val SET_BLUETOOTH = "set_bluetooth"
+    const val CONNECT_BLUETOOTH_DEVICE = "connect_bluetooth_device"
     const val SET_DND = "set_dnd"
     const val SET_RINGER = "set_ringer"
     const val LAUNCH_APP = "launch_app"
@@ -98,6 +99,33 @@ sealed interface Action {
         /** Revert to the pre-run state when a windowed mode ends. */
         val restore: Boolean = true,
     ) : Action
+
+    /**
+     * Turn Bluetooth on, then page a paired device until it connects.
+     *
+     * Two transports, tried in order. BLE via the public connectGatt call needs
+     * only BLUETOOTH_CONNECT. Classic profiles (headset, media) need the hidden
+     * BluetoothDevice.connect(), reachable only through the Shizuku shell or a
+     * Companion Device association. A device that has forgotten the bond cannot
+     * be fixed by retrying — the budget exists so a dead device can't loop.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.CONNECT_BLUETOOTH_DEVICE)
+    data class ConnectBluetoothDevice(
+        /** MAC address of a bonded device. Required — connecting to "any" is meaningless. */
+        val address: String,
+        /** Display name, shown in summaries. Not used for matching. */
+        val deviceName: String? = null,
+        /** How long to keep paging before reporting failure. Capped at 10 minutes. */
+        val retryBudgetMs: Long = DEFAULT_RETRY_BUDGET_MS,
+        /** Turn the radio on first if it is off. */
+        val enableRadio: Boolean = true,
+    ) : Action {
+        companion object {
+            const val DEFAULT_RETRY_BUDGET_MS = 120_000L
+            const val MAX_RETRY_BUDGET_MS = 600_000L
+        }
+    }
 
     @Serializable
     @SerialName(ActionTypeIds.SET_MOBILE_DATA)

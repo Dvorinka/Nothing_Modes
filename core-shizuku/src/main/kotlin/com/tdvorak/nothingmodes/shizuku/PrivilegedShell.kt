@@ -60,6 +60,13 @@ interface PrivilegedShell {
     suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 
+    /**
+     * Connects a bonded device's classic profiles inside the shell-uid user
+     * service. BLE connections do not need this — the app process can open those.
+     */
+    suspend fun connectBluetoothDevice(address: String): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 30_000L
         const val DEFAULT_TEXT_OUTPUT_BYTES = 256 * 1024
@@ -101,6 +108,9 @@ internal fun interface ShellTransport {
         ShellResult(exitCode = -1, errorCode = "unsupported")
 
     suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    suspend fun connectBluetoothDevice(address: String): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 }
 
@@ -168,6 +178,9 @@ internal class PrioritizedPrivilegedShell(
 
     override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
         transport.setMasterSyncAutomatically(enabled)
+
+    override suspend fun connectBluetoothDevice(address: String): ShellResult =
+        transport.connectBluetoothDevice(address)
 
     private suspend fun enqueue(
         request: ShellRequest,

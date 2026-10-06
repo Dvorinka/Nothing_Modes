@@ -69,6 +69,8 @@ class CapabilityResolver(
             // Actions
             CapabilityIds.ACTION_SET_WIFI -> capabilities.hasWifi
             CapabilityIds.ACTION_SET_BLUETOOTH -> capabilities.hasBluetooth
+            CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE ->
+                capabilities.hasBluetooth && capabilities.hasBluetoothConnect
             CapabilityIds.ACTION_SET_DND -> capabilities.hasNotificationPolicyAccess
             CapabilityIds.ACTION_SET_RINGER -> true
             CapabilityIds.ACTION_LAUNCH_APP -> true
@@ -209,6 +211,12 @@ class CapabilityResolver(
             CapabilityIds.ACTION_LOCK_SCREEN -> "Needs Shizuku — a free companion app that grants extra permissions"
             CapabilityIds.ACTION_SET_WIFI -> "This device has no Wi-Fi hardware"
             CapabilityIds.ACTION_SET_BLUETOOTH -> "This device has no Bluetooth hardware"
+            CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE ->
+                if (!capabilities.hasBluetooth) {
+                    "This device has no Bluetooth hardware"
+                } else {
+                    "Bluetooth permission required — the app can't page paired devices"
+                }
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "This device has no flashlight"
             CapabilityIds.ACTION_VIBRATE -> "This device has no vibrator"
             else -> "Capability not available: $capability"

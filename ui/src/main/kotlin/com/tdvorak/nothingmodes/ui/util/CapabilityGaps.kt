@@ -107,7 +107,9 @@ private fun iconFor(id: String): ImageVector =
         CapabilityIds.ACTION_LOCK_SCREEN -> Icons.Outlined.Lock
         CapabilityIds.ACTION_SET_ULTRA_DIM -> Icons.Outlined.PhonelinkSetup
         CapabilityIds.ACTION_SET_WIFI -> Icons.Outlined.Wifi
-        CapabilityIds.ACTION_SET_BLUETOOTH -> Icons.Outlined.Bluetooth
+        CapabilityIds.ACTION_SET_BLUETOOTH,
+        CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE,
+        -> Icons.Outlined.Bluetooth
         CapabilityIds.ACTION_SET_FLASHLIGHT -> Icons.Outlined.FlashlightOn
         CapabilityIds.ACTION_VIBRATE -> Icons.Outlined.Vibration
 

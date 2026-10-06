@@ -159,6 +159,10 @@ object PrivacyScrubber {
                 if (action.uri.isNotBlank()) missing += "wallpaper image"
                 action.copy(uri = "")
             }
+            is Action.ConnectBluetoothDevice -> {
+                if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
+                action.copy(address = "", deviceName = null)
+            }
             is Action.Group -> action.copy(actions = action.actions.map { scrubAction(it, missing) })
             else -> action
         }

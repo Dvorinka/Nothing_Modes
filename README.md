@@ -23,6 +23,7 @@ Built like a premium system app: OLED-black surfaces, monoline iconography, dot-
 - **WHEN / ONLY IF / THEN builder** — explicit, no confusion about what runs when.
 - **Nothing Glyph / Glyph Matrix** — light stripe and matrix on supported devices.
 - **Shizuku** — optional, graceful degradation everywhere else.
+- **Bluetooth reconnect** — an action that turns the radio on and keeps paging a paired device until it connects, plus a "Reconnect watch" template that runs it whenever the device drops.
 - **Capability detection** — the app asks what the device can do instead of guessing.
 - **Priority + cooldown + conflict resolution** — deterministic ordering, overlap suppression, and fire cooldown.
 - **Import / export / share** — JSON bundles with schema versioning.

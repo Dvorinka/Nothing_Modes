@@ -56,6 +56,8 @@ fun actionDescription(action: Action): String =
         when (action) {
             is Action.SetWifi -> "Wi-Fi: ${if (action.on) "On" else "Off"}"
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
+            is Action.ConnectBluetoothDevice ->
+                "Connect Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
             is Action.SetDnd -> "Do Not Disturb: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"

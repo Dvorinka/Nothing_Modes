@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.actionDescription
 import com.tdvorak.nothingmodes.engine.model.displayName
+import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
@@ -109,6 +110,9 @@ fun ActionConfigScreen(
                             onChange = { action = a.copy(on = it) },
                         )
                     }
+
+                    is Action.ConnectBluetoothDevice ->
+                        ConnectBluetoothDeviceConfig(a) { action = it }
 
                     is Action.SetMobileData -> {
                         BooleanRow(

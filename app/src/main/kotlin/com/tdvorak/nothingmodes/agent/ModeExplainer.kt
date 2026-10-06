@@ -175,6 +175,8 @@ object ModeExplainer {
         when (action) {
             is Action.SetWifi -> "turn WiFi ${if (action.on) "on" else "off"}"
             is Action.SetBluetooth -> "turn Bluetooth ${if (action.on) "on" else "off"}"
+            is Action.ConnectBluetoothDevice ->
+                "connect ${action.deviceName?.takeIf { it.isNotBlank() } ?: "a Bluetooth device"} and retry until it connects"
             is Action.SetMobileData -> "turn mobile data ${if (action.on) "on" else "off"}"
             is Action.SetDnd -> "set DND to ${action.mode.name.lowercase()}"
             is Action.SetRinger -> "set ringer to ${action.mode}"
