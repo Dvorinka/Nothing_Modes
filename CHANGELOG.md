@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.8]
 
 ### Added
 - "Connect Bluetooth device" action. Turns the radio on, then pages a paired device until it connects or the chosen time limit (1, 2, 5, or 10 minutes) runs out. BLE devices connect directly through the public API; classic profiles such as headphones and some watches go through the Shizuku shell, which holds the privileged permission the app cannot. Without Shizuku those devices fail honestly instead of silently doing nothing. The "Reconnect watch" template wires it to a Bluetooth-disconnect trigger, so a dropped watch is retried on its own. Pick the device in the action before enabling the routine.

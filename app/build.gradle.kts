@@ -15,8 +15,8 @@ android {
         applicationId = "com.tdvorak.nothingmodes"
         minSdk = 28
         targetSdk = 36
-        versionCode = 32
-        versionName = "0.19.7"
+        versionCode = 33
+        versionName = "0.19.8"
         testInstrumentationRunner = "com.tdvorak.nothingmodes.HiltTestRunner"
     }
 
