@@ -37,6 +37,7 @@ fun isHardwareBlocked(
     if (!caps.hasVibrator && CapabilityIds.ACTION_VIBRATE in missing) return true
     if (!caps.hasWifi && CapabilityIds.ACTION_SET_WIFI in missing) return true
     if (!caps.hasBluetooth && CapabilityIds.ACTION_SET_BLUETOOTH in missing) return true
+    if (!caps.hasBluetooth && CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE in missing) return true
     return false
 }
 

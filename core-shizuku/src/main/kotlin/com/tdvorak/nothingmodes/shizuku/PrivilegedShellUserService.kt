@@ -279,10 +279,34 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
     }
 
     /**
-     * Master auto-sync toggle. Public static API — but it is gated by
-     * WRITE_SYNC_SETTINGS (signature-level), so only the shell-uid process can
-     * reach it. No package-context trick needed: the check is uid-only.
+     * Pages a bonded device's classic profiles. BluetoothDevice.connect() is
+     * hidden and demands BLUETOOTH_PRIVILEGED, which this shell-uid process
+     * holds. The call only starts the attempt; the app watches connection
+     * state and decides when to retry.
      */
+    override fun connectBluetoothDevice(address: String?): Bundle {
+        val ctx = serviceContext ?: return errorBundle("context_missing")
+        if (address.isNullOrBlank()) return errorBundle("address_missing")
+        return try {
+            ensureHiddenApiExemptions()
+            val manager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                ?: return errorBundle("no_bluetooth")
+            val device = manager.adapter?.getRemoteDevice(address)
+                ?: return errorBundle("no_adapter")
+            val accepted = device.javaClass.getMethod("connect").invoke(device) as? Boolean
+            if (accepted == true) {
+                Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+            } else {
+                errorBundle("rejected", "connect() returned $accepted")
+            }
+        } catch (e: InvocationTargetException) {
+            val cause = e.cause ?: e
+            errorBundle("failed", "${cause.javaClass.simpleName}: ${cause.message}")
+        } catch (e: Exception) {
+            errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
     override fun setMasterSyncAutomatically(enabled: Boolean): Bundle =
         try {
             ContentResolver.setMasterSyncAutomatically(enabled)

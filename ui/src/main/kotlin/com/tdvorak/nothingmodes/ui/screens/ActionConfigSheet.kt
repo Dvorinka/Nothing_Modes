@@ -55,6 +55,7 @@ import com.tdvorak.nothingmodes.engine.model.isGlyphAction
 import com.tdvorak.nothingmodes.engine.model.refreshRatePresets
 import com.tdvorak.nothingmodes.engine.model.screenTimeoutPresets
 import com.tdvorak.nothingmodes.engine.model.vibratePresets
+import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
@@ -206,6 +207,8 @@ fun ActionConfigContent(
                 onChange = { onActionChange(a.copy(on = it)) },
             )
         }
+
+        is Action.ConnectBluetoothDevice -> ConnectBluetoothDeviceConfig(a, onActionChange)
 
         is Action.SetMobileData -> {
             BooleanRow(
@@ -1586,6 +1589,7 @@ private fun actionTitle(action: Action): String =
     when (action) {
         is Action.SetWifi -> "Wi-Fi"
         is Action.SetBluetooth -> "Bluetooth"
+        is Action.ConnectBluetoothDevice -> "Connect Bluetooth device"
         is Action.SetMobileData -> "Mobile data"
         is Action.SetAirplaneMode -> "Airplane mode"
         is Action.SetDarkMode -> "Dark mode"
@@ -1648,6 +1652,85 @@ private fun actionTitle(action: Action): String =
         is Action.Group -> action.name
         else -> "Action"
     }
+
+/** Retry budgets offered in the picker, in minutes. The executor caps at 10. */
+private val retryBudgetMinutes = listOf(1, 2, 5, 10)
+
+@Composable
+internal fun ConnectBluetoothDeviceConfig(
+    action: Action.ConnectBluetoothDevice,
+    onChange: (Action.ConnectBluetoothDevice) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val minutes = (action.retryBudgetMs / 60_000L).toInt().coerceIn(1, 10)
+    Column {
+        PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                ),
+            rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+        ) {
+            NothingPillButton(
+                text = "Pick paired device",
+                onClick = { showPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        val chosen = action.deviceName?.takeIf { it.isNotBlank() }
+        Text(
+            text = chosen ?: "No device selected",
+            style = MaterialTheme.typography.bodyMedium,
+            color =
+                if (chosen == null) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            fontFamily = NothingFonts.mono(),
+        )
+        if (action.address.isNotBlank()) {
+            Text(
+                text = action.address,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        NothingEnumSelector(
+            label = "Keep trying for",
+            value = "$minutes min",
+            options = retryBudgetMinutes.map { "$it min" },
+            onSelect = { label ->
+                val picked = label.substringBefore(' ').toIntOrNull() ?: 2
+                onChange(action.copy(retryBudgetMs = picked * 60_000L))
+            },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        BooleanRow(
+            label = "Turn Bluetooth on first",
+            checked = action.enableRadio,
+            onChange = { onChange(action.copy(enableRadio = it)) },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(
+            text = "Pages the device until it connects or the time runs out. " +
+                "Headphones and some watches need Shizuku; without it only BLE devices can be reached.",
+        )
+    }
+    if (showPicker) {
+        BondedDevicePickerDialog(
+            onSelect = { name, address ->
+                if (address != null) onChange(action.copy(deviceName = name, address = address))
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
 
 @Composable
 private fun BooleanRow(

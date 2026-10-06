@@ -5,7 +5,11 @@ import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -44,10 +48,12 @@ import com.tdvorak.nothingmodes.nothing.GlyphPresets
 import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /**
@@ -152,6 +158,7 @@ class RealActionExecutor(
             // Shizuku-required actions (with public-API fallbacks where possible)
             is Action.SetWifi -> setWifi(action.on, action, context)
             is Action.SetBluetooth -> setBluetooth(action.on, action, context)
+            is Action.ConnectBluetoothDevice -> connectBluetoothDevice(action)
             is Action.SetMobileData ->
                 shellOrPanel(
                     mobileDataCommand(action.on),
@@ -417,6 +424,141 @@ class RealActionExecutor(
     }
 
     private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
+
+    /**
+     * Enable the radio if asked, then page [action]'s device until a profile
+     * reports it connected or the budget runs out.
+     *
+     * BLE first: connectGatt(autoConnect = true) keeps paging in the background
+     * and needs only BLUETOOTH_CONNECT. Classic profiles are the fallback, via
+     * the hidden BluetoothDevice.connect() inside the Shizuku shell. Without it
+     * a non-BLE device fails honestly at the budget instead of pretending a
+     * settings panel fixed the problem.
+     */
+    @SuppressLint("MissingPermission")
+    private suspend fun connectBluetoothDevice(action: Action.ConnectBluetoothDevice): ActionResult {
+        if (!MAC_ADDRESS.matches(action.address)) {
+            return ActionResult.Failure("no device selected")
+        }
+        val granted =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return ActionResult.PermissionRequired
+
+        val manager = context.getSystemService(BluetoothManager::class.java)
+            ?: return ActionResult.Unsupported
+        val adapter = manager.adapter ?: return ActionResult.Unsupported
+
+        if (action.enableRadio && !adapter.isEnabled) {
+            val enabled = setBluetooth(true, Action.SetBluetooth(on = true, restore = false), fireContext())
+            if (enabled !is ActionResult.Success) return enabled
+            val up = awaitRadio(adapter)
+            if (!up) return ActionResult.Failure("bluetooth radio did not come up")
+        }
+        if (!adapter.isEnabled) return ActionResult.Failure("bluetooth is off")
+
+        val device =
+            runCatching { adapter.getRemoteDevice(action.address) }.getOrNull()
+                ?: return ActionResult.Failure("unknown device ${action.address}")
+
+        val deadline = System.currentTimeMillis() +
+            action.retryBudgetMs.coerceIn(0, Action.ConnectBluetoothDevice.MAX_RETRY_BUDGET_MS)
+        if (deviceConnected(manager, device)) return ActionResult.Success
+
+        // Public path. autoConnect keeps the stack paging the device; the loop
+        // below only decides when to give up.
+        val gatt = openGatt(device)
+        try {
+            var attempt = 0
+            while (System.currentTimeMillis() < deadline) {
+                if (deviceConnected(manager, device)) return ActionResult.Success
+                pageClassic(device)
+                delay(backoff(attempt))
+                attempt++
+            }
+        } finally {
+            runCatching { gatt?.close() }
+        }
+        return if (deviceConnected(manager, device)) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure("couldn't reach ${action.deviceName ?: action.address}")
+        }
+    }
+
+    /** Context for the nested radio-enable call. Its fields are not read by setBluetooth. */
+    private fun fireContext() =
+        FireContext(
+            eventId = "",
+            executionId = "",
+            automationId = com.tdvorak.nothingmodes.engine.model.AutomationId(""),
+            actionIndex = 0,
+            priority = 0,
+        )
+
+    @SuppressLint("MissingPermission")
+    private suspend fun awaitRadio(adapter: android.bluetooth.BluetoothAdapter): Boolean {
+        repeat(RADIO_WAIT_STEPS) {
+            if (adapter.isEnabled) return true
+            delay(RADIO_WAIT_STEP_MS)
+        }
+        return adapter.isEnabled
+    }
+
+    /** True when any profile we can see already holds the device. */
+    @SuppressLint("MissingPermission")
+    private fun deviceConnected(
+        manager: BluetoothManager,
+        device: BluetoothDevice,
+    ): Boolean =
+        connectionProfiles().any { profile ->
+            runCatching { manager.getConnectedDevices(profile) }.getOrDefault(emptyList())
+                .any { it.address.equals(device.address, ignoreCase = true) }
+        }
+
+    private fun connectionProfiles(): List<Int> =
+        buildList {
+            add(BluetoothProfile.HEADSET)
+            add(BluetoothProfile.A2DP)
+            add(BluetoothProfile.GATT)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(BluetoothProfile.LE_AUDIO)
+        }
+
+    /** GATT connection with autoConnect so the stack retries while the device is away. */
+    @SuppressLint("MissingPermission")
+    private suspend fun openGatt(device: BluetoothDevice): BluetoothGatt? {
+        val opened = CompletableDeferred<BluetoothGatt?>()
+        val callback =
+            object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(
+                    gatt: BluetoothGatt,
+                    status: Int,
+                    newState: Int,
+                ) {
+                    if (!opened.isCompleted) opened.complete(gatt)
+                }
+            }
+        val gatt =
+            runCatching { device.connectGatt(context, true, callback, BluetoothDevice.TRANSPORT_LE) }
+                .getOrNull() ?: return null
+        // The callback may never fire if the device is out of range — don't block the budget on it.
+        withTimeoutOrNull(GATT_OPEN_WAIT_MS) { opened.await() }
+        return gatt
+    }
+
+    /**
+     * Classic-profile connect through the Shizuku shell. No-op without it:
+     * the BLE path is still running, and a non-BLE device fails honestly at
+     * the budget rather than pretending a settings panel fixed it.
+     */
+    private suspend fun pageClassic(device: BluetoothDevice) {
+        val shell = shellFactory?.resolve() ?: return
+        runCatching { shell.connectBluetoothDevice(device.address) }
+    }
+
+    /** 2s, 4s, 8s, then 15s. Short enough to notice, long enough not to hammer the radio. */
+    private fun backoff(attempt: Int): Long = minOf(2_000L shl attempt.coerceAtMost(3), 15_000L)
 
     private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
 
@@ -1603,6 +1745,10 @@ class RealActionExecutor(
     }
 
     companion object {
+        private val MAC_ADDRESS = Regex("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
+        private const val RADIO_WAIT_STEPS = 10
+        private const val RADIO_WAIT_STEP_MS = 500L
+        private const val GATT_OPEN_WAIT_MS = 1_500L
         private const val NOTIFICATION_CHANNEL_ID = "automation_notifications"
         private const val NOTIFICATION_ID_BASE = 2000
 

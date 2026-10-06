@@ -193,4 +193,26 @@ class PrioritizedPrivilegedShellTest {
             assertTrue(result.successful)
             shell.close()
         }
+
+    @Test
+    fun `bluetooth connect delegates the address to the transport`() =
+        runTest {
+            var captured: String? = null
+            val transport =
+                object : ShellTransport {
+                    override suspend fun execute(request: ShellRequest) = ShellResult(0)
+
+                    override suspend fun connectBluetoothDevice(address: String): ShellResult {
+                        captured = address
+                        return ShellResult(0)
+                    }
+                }
+            val shell = PrioritizedPrivilegedShell(transport, this)
+
+            val result = shell.connectBluetoothDevice("AA:BB:CC:DD:EE:FF")
+
+            assertEquals("AA:BB:CC:DD:EE:FF", captured)
+            assertTrue(result.successful)
+            shell.close()
+        }
 }

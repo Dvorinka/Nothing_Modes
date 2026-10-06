@@ -60,6 +60,9 @@ class ShizukuPrivilegedShell(
     override suspend fun setMasterSyncAutomatically(enabled: Boolean): ShellResult =
         queue.setMasterSyncAutomatically(enabled)
 
+    override suspend fun connectBluetoothDevice(address: String): ShellResult =
+        queue.connectBluetoothDevice(address)
+
     override fun close() {
         queue.close()
         transport.close()
@@ -150,6 +153,25 @@ internal class ShizukuUserServiceTransport(
                 stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
                 timedOut = bundle.getBoolean(PrivilegedShellUserService.KEY_TIMED_OUT, false),
                 truncated = bundle.getBoolean(PrivilegedShellUserService.KEY_TRUNCATED, false),
+                errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
+            )
+        }
+
+    override suspend fun connectBluetoothDevice(address: String): ShellResult =
+        withContext(Dispatchers.IO) {
+            val remote = connectedService()
+            val bundle =
+                try {
+                    remote.connectBluetoothDevice(address)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    invalidate(remote)
+                    throw IllegalStateException("UserService Shizuku disconnesso")
+                }
+            ShellResult(
+                exitCode = bundle.getInt(PrivilegedShellUserService.KEY_EXIT_CODE, -127),
+                stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
                 errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
             )
         }

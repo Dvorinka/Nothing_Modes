@@ -257,6 +257,9 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetBluetooth ->
             "Turns Bluetooth on or off. Silent toggling needs Shizuku; without it the system Bluetooth panel opens for one tap."
 
+        is Action.ConnectBluetoothDevice ->
+            "Turns Bluetooth on, then keeps paging the chosen paired device until it connects or the time limit runs out. BLE devices connect directly; classic profiles (headphones, some watches) need Shizuku."
+
         is Action.SetMobileData ->
             "Turns mobile data on or off. Silent toggling needs Shizuku; without it the system data panel opens for one tap."
 
@@ -377,6 +380,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetGlyphInterface -> "Switches the whole Glyph interface on or off."
         is Action.SetWifi -> "Turns Wi-Fi on or off."
         is Action.SetBluetooth -> "Turns Bluetooth on or off."
+        is Action.ConnectBluetoothDevice -> "Connects a paired Bluetooth device, retrying until it sticks."
         is Action.SetMobileData -> "Turns mobile data on or off."
         is Action.SetAirplaneMode -> "Turns airplane mode on or off."
         is Action.SetHotspot -> "Turns the mobile hotspot on or off."

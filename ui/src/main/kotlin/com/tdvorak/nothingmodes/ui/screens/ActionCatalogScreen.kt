@@ -113,6 +113,13 @@ fun ActionCatalogScreen(navController: NavController) {
             listOf(
                 ActionItem("Wi-Fi", "Connections", Icons.Outlined.Wifi, Action.SetWifi(true)),
                 ActionItem("Bluetooth", "Connections", Icons.Outlined.Bluetooth, Action.SetBluetooth(true)),
+                ActionItem(
+                    "Connect Bluetooth device",
+                    "Connections",
+                    Icons.Outlined.BluetoothSearching,
+                    Action.ConnectBluetoothDevice(""),
+                    desc = "Turns Bluetooth on, then keeps paging a paired device until it connects.",
+                ),
                 ActionItem("Mobile data", "Connections", Icons.Outlined.SignalCellular4Bar, Action.SetMobileData(true)),
                 ActionItem("Mobile hotspot", "Connections", Icons.Outlined.Wifi, Action.SetHotspot(true)),
                 ActionItem("Airplane mode", "Connections", Icons.Outlined.Flight, Action.SetAirplaneMode(true)),

@@ -55,6 +55,17 @@
       "tags": ["sms", "lost", "location", "safety"],
       "minSchemaVersion": 1,
       "file": "locate-my-phone.json"
+    },
+    {
+      "id": "reconnect-watch",
+      "name": "Reconnect watch",
+      "description": "When a paired Bluetooth device drops, turn Bluetooth back on and keep paging it until it reconnects. Pick the device in the action before enabling.",
+      "creator": "TDvorak",
+      "emoji": "",
+      "icon": "watch",
+      "tags": ["bluetooth", "watch", "reconnect"],
+      "minSchemaVersion": 1,
+      "file": "reconnect-watch.json"
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": 0,
+  "appVersion": "templates",
+  "requiredCapabilities": ["trigger_bt_device", "action_connect_bluetooth_device"],
+  "automations": [
+    {
+      "id": "tmpl-reconnect-watch",
+      "name": "Reconnect watch",
+      "type": "ROUTINE",
+      "createdBy": "IMPORT",
+      "status": "ARMED",
+      "trigger": { "type": "bt_device", "state": "DISCONNECTED" },
+      "actions": [
+        { "type": "connect_bluetooth_device", "address": "" }
+      ],
+      "enabled": false,
+      "quickAction": false,
+      "priority": 0,
+      "cooldownMs": 60000,
+      "schemaVersion": 1,
+      "icon": "watch",
+      "iconBackground": "#141414"
+    }
+  ]
+}
