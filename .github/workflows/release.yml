@@ -86,26 +86,20 @@ jobs:
           printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-account.json
           /tmp/gplay auth login --service-account /tmp/play-account.json
           VC=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
-          jq -Rn --arg t "$(cat "fastlane/metadata/android/en-US/changelogs/${VC}.txt")" \
-            '[{language:"en-US",text:$t}]' > /tmp/play-notes.json
-          /tmp/gplay release --package com.tdvorak.nothingmodes \
-            --track alpha \
-            --bundle app/build/outputs/bundle/playRelease/app-play-release.aab \
-            --release-notes @/tmp/play-notes.json
-
-      - name: Upload R8 mapping to Play (deobfuscation)
-        env:
-          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          # Deobfuscation upload is edit-scoped; `gplay release` already committed
-          # its own edit, so open a fresh one just for the mapping file.
-          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-account.json
-          /tmp/gplay auth login --service-account /tmp/play-account.json
-          VC=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
-          EDIT_ID=$(/tmp/gplay edits create --package com.tdvorak.nothingmodes | jq -r '.id')
-          /tmp/gplay deobfuscation upload \
-            --package com.tdvorak.nothingmodes \
+          # Deobfuscation files must upload in the SAME edit as the bundle, before
+          # commit - `gplay release` commits its own edit internally and Play then
+          # rejects late mapping uploads, so drive the edit sequence manually.
+          EDIT_ID=$(/tmp/gplay edits create --package com.tdvorak.nothingmodes | jq -r '.id // .editId')
+          /tmp/gplay bundles upload --package com.tdvorak.nothingmodes \
+            --edit "$EDIT_ID" \
+            --file app/build/outputs/bundle/playRelease/app-play-release.aab
+          /tmp/gplay deobfuscation upload --package com.tdvorak.nothingmodes \
             --edit "$EDIT_ID" \
             --apk-version "$VC" \
             --file app/build/outputs/mapping/playRelease/mapping.txt
+          jq -Rn --arg vc "$VC" --arg t "$(cat "fastlane/metadata/android/en-US/changelogs/${VC}.txt")" \
+            '[{status:"completed",versionCodes:[$vc],releaseNotes:[{language:"en-US",text:$t}]}]' \
+            > /tmp/play-release.json
+          /tmp/gplay tracks update --package com.tdvorak.nothingmodes \
+            --edit "$EDIT_ID" --track alpha --releases @/tmp/play-release.json
           /tmp/gplay edits commit --package com.tdvorak.nothingmodes --edit "$EDIT_ID"
