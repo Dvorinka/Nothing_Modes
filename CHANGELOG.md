@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Crash on non-Nothing hardware when opening the config sheet for a glyph action: `glyphDesignTypes` filters out every design the hardware can't render, leaving an empty list that `first()` then threw `NoSuchElementException` on. The design-type selector is now hidden when the filtered list is empty.
+- Device-state trigger defaults no longer crash if a spec ever ships an empty `values` list (`first()` → `firstOrNull()`).
+- Release workflow now uploads R8 `mapping.txt` to Play (deobfuscation file) and attaches both variant mappings to the GitHub release, so crash reports from obfuscated builds are readable.
+
 ## [0.19.8]
 
 ### Added

@@ -230,7 +230,7 @@ private fun deviceStateSpecs(): List<DeviceStateSpec> =
 
 /** Default value for a new device-state trigger of the given key. */
 private fun defaultDeviceStateValue(spec: DeviceStateSpec): String =
-    spec.values?.first()?.first
+    spec.values?.firstOrNull()?.first
         ?: when (spec.key) {
             DeviceStateKeys.RINGER_MODE -> "silent"
             DeviceStateKeys.CHARGING_LIMIT -> "50"

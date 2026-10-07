@@ -48,14 +48,18 @@ jobs:
           NOTHING_MODES_KEY_ALIAS: ${{ secrets.NOTHING_MODES_KEY_ALIAS }}
           NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
 
-      - name: Rename APK + AAB
+      - name: Rename APK + AAB + mappings
         id: apk
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           cp app/build/outputs/apk/github/release/app-github-release.apk "nothing-modes-v${VERSION}.apk"
           cp app/build/outputs/bundle/playRelease/app-play-release.aab "nothing-modes-play-v${VERSION}.aab"
+          cp app/build/outputs/mapping/playRelease/mapping.txt "nothing-modes-play-mapping-v${VERSION}.txt"
+          cp app/build/outputs/mapping/githubRelease/mapping.txt "nothing-modes-github-mapping-v${VERSION}.txt"
           echo "path=nothing-modes-v${VERSION}.apk" >> $GITHUB_OUTPUT
           echo "aab_path=nothing-modes-play-v${VERSION}.aab" >> $GITHUB_OUTPUT
+          echo "play_mapping=nothing-modes-play-mapping-v${VERSION}.txt" >> $GITHUB_OUTPUT
+          echo "github_mapping=nothing-modes-github-mapping-v${VERSION}.txt" >> $GITHUB_OUTPUT
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v3
@@ -63,6 +67,8 @@ jobs:
           files: |
             ${{ steps.apk.outputs.path }}
             ${{ steps.apk.outputs.aab_path }}
+            ${{ steps.apk.outputs.play_mapping }}
+            ${{ steps.apk.outputs.github_mapping }}
           draft: false
           generate_release_notes: true
 
@@ -86,3 +92,20 @@ jobs:
             --track alpha \
             --bundle app/build/outputs/bundle/playRelease/app-play-release.aab \
             --release-notes @/tmp/play-notes.json
+
+      - name: Upload R8 mapping to Play (deobfuscation)
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          # Deobfuscation upload is edit-scoped; `gplay release` already committed
+          # its own edit, so open a fresh one just for the mapping file.
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-account.json
+          /tmp/gplay auth login --service-account /tmp/play-account.json
+          VC=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
+          EDIT_ID=$(/tmp/gplay edits create --package com.tdvorak.nothingmodes | jq -r '.id')
+          /tmp/gplay deobfuscation upload \
+            --package com.tdvorak.nothingmodes \
+            --edit "$EDIT_ID" \
+            --apk-version "$VC" \
+            --file app/build/outputs/mapping/playRelease/mapping.txt
+          /tmp/gplay edits commit --package com.tdvorak.nothingmodes --edit "$EDIT_ID"

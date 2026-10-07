@@ -143,18 +143,22 @@ fun ActionConfigSheet(
             // per-type editor below and the live preview follow automatically.
             if (current.isGlyphAction) {
                 val designTypes = remember(caps) { glyphDesignTypes(caps) }
-                NothingEnumSelector(
-                    label = "Design type",
-                    value = designTypes.firstOrNull { it.second::class == current::class }?.first
-                        ?: designTypes.first().first,
-                    options = designTypes.map { it.first },
-                    onSelect = { label ->
-                        designTypes.firstOrNull { it.first == label }?.let {
-                            current = it.second
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                // Hardware without glyph support filters the list to empty —
+                // hide the selector entirely rather than crash on .first().
+                if (designTypes.isNotEmpty()) {
+                    NothingEnumSelector(
+                        label = "Design type",
+                        value = designTypes.firstOrNull { it.second::class == current::class }?.first
+                            ?: designTypes.first().first,
+                        options = designTypes.map { it.first },
+                        onSelect = { label ->
+                            designTypes.firstOrNull { it.first == label }?.let {
+                                current = it.second
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 GlyphSheetExtras(
                     onOpenGlyphStudio = onOpenGlyphStudio,
                     onOpenGlyphMuseum = onOpenGlyphMuseum,
