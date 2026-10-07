@@ -1,0 +1,1 @@
+- Fixed a crash on phones without Nothing Glyph hardware when opening the settings sheet for a glyph action (e.g. a routine imported from another device).

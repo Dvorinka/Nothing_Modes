@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.9]
 
 ### Fixed
 - Crash on non-Nothing hardware when opening the config sheet for a glyph action: `glyphDesignTypes` filters out every design the hardware can't render, leaving an empty list that `first()` then threw `NoSuchElementException` on. The design-type selector is now hidden when the filtered list is empty.
