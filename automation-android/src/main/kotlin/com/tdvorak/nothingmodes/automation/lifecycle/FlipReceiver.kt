@@ -34,7 +34,11 @@ class FlipReceiver : BroadcastReceiver() {
                 action = AutomationService.ACTION_SCREEN_STATE
                 putExtra(AutomationService.EXTRA_SCREEN_STATE, if (isFlipped) "OFF" else "ON")
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        // FLIP_TO_GLYPH wakes a cold process in the background — the FGS start
+        // throws ForegroundServiceStartNotAllowedException when nothing else
+        // keeps the app eligible. Retry happens on the next flip edge.
+        runCatching { ContextCompat.startForegroundService(context, serviceIntent) }
+            .onFailure { Log.w(TAG, "FGS start rejected (background)", it) }
     }
 
     companion object {

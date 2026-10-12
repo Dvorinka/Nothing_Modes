@@ -19,7 +19,11 @@ class AutomationAlarmReceiver : BroadcastReceiver() {
         val serviceIntent =
             Intent(context, AutomationService::class.java).apply {
                 this.action = action
-                putExtra(EXTRA_AUTOMATION_ID, automationId)
+                // Forward ALL extras — NOTIFY_BEFORE also carries lead
+                // minutes and the automation name; dropping them left
+                // handleNotifyBefore with minutes=0 and the rule check
+                // never matched, so before-notifications silently died.
+                intent.extras?.let { putExtras(it) }
             }
         context.startForegroundService(serviceIntent)
     }
