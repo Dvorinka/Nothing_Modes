@@ -1,0 +1,4 @@
+- Fixed a crash when tapping an unconfigured custom Quick Settings tile on Android 13 and below.
+- Fixed "notify before" automation alarms never posting their notification.
+- Update downloads now show a "tap to install" notification when the app is in the background instead of silently dropping the installer prompt.
+- Hardened background service starts and coroutine scopes against crash-on-throw edge cases.
