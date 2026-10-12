@@ -1,11 +1,16 @@
 package com.tdvorak.nothingmodes.update
 
+import android.app.ActivityManager
 import android.app.DownloadManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +49,11 @@ class UpdateManager
         private val json = Json { ignoreUnknownKeys = true }
 
         private val authority = "${context.packageName}.fileprovider"
+
+        private companion object {
+            const val UPDATE_CHANNEL_ID = "app_updates"
+            const val UPDATE_NOTIFICATION_ID = 5041
+        }
 
         /** GitHub repository used for release checks. */
         private val repoOwner = "Dvorinka"
@@ -127,9 +137,52 @@ class UpdateManager
                     flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                 }
 
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            if (intent.resolveActivity(context.packageManager) == null) return
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (isAppForeground()) {
+                context.startActivity(intent)
+            } else {
+                // A background startActivity is silently dropped since
+                // Android 10 — the install prompt would never appear.
+                // A notification tap is exempt from the launch restrictions.
+                postInstallNotification(intent)
             }
+        }
+
+        private fun isAppForeground(): Boolean {
+            val am = context.getSystemService(ActivityManager::class.java) ?: return false
+            return am.runningAppProcesses?.any {
+                it.processName == context.packageName &&
+                    it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+            } == true
+        }
+
+        private fun postInstallNotification(installIntent: Intent) {
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    "App updates",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
+            )
+            val content =
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    installIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            val notification =
+                NotificationCompat
+                    .Builder(context, UPDATE_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setContentTitle("Update downloaded")
+                    .setContentText("Tap to install")
+                    .setAutoCancel(true)
+                    .setContentIntent(content)
+                    .build()
+            nm.notify(UPDATE_NOTIFICATION_ID, notification)
         }
 
         /** Open system settings so the user can grant the install-unknown-apps permission. */

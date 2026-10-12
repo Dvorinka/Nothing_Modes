@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.engine.runtime.Engine
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEnvelope
 import com.tdvorak.nothingmodes.engine.runtime.TriggerEvent
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,7 +66,12 @@ class AutomationService : Service() {
 
     @Inject lateinit var auditSink: com.tdvorak.nothingmodes.engine.runtime.AuditSink
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Every trigger flows through coroutines on this scope — without a
+    // handler, one controller throw reaches the default handler and kills
+    // the process mid-automation.
+    private val handler =
+        CoroutineExceptionHandler { _, e -> android.util.Log.w("AutomationService", "trigger work failed", e) }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + handler)
     private val activeJobs = mutableSetOf<Job>()
     private val progressHandler = Handler(Looper.getMainLooper())
     private val pendingProgress = mutableSetOf<Runnable>()

@@ -7,6 +7,10 @@
 - A tile tap could kill the whole app process: tile work runs in coroutines with no `CoroutineExceptionHandler`, so any unhandled throw (the NEW_TASK crash included) reached the default handler. The cycle-tile scope now carries a logging handler, the ultra-dim launch is wrapped, and the tile coroutine scope is cancelled in `onDestroy`.
 - Flip-to-glyph could crash the app when the monitor service wasn't running: `FLIP_TO_GLYPH` wakes a cold process in the background, where `startForegroundService` throws `ForegroundServiceStartNotAllowedException` on Android 12+. The dispatch is now wrapped — the next flip edge retries.
 - `SchedulingAutomationStore.dispatchRegistered` launched a foreground service unguarded while its sibling `dispatchRemoved` was already wrapped — same background-start crash risk if a store mutation ever runs behind the keyguard.
+- "Notify before" alarms never posted: `AutomationAlarmReceiver` rebuilt the forward intent with only the automation id, dropping `EXTRA_LEAD_MINUTES` and `EXTRA_AUTOMATION_NAME` — the service read minutes=0, the re-check rule never matched, and the notification was silently skipped. All alarm extras are forwarded now.
+- `AutomationService`'s coroutine scope had no `CoroutineExceptionHandler` — every trigger dispatch runs in it, so one throw from the engine or a notification helper would kill the process mid-automation. A logging handler now covers it.
+- Update installs could never prompt: `UpdateDownloadReceiver` fired `installUpdate` from a background broadcast, and background `startActivity` calls are silently dropped on Android 10+. The installer launches directly while the app is foreground; in the background a high-priority "Tap to install" notification carries the installer PendingIntent instead.
+- `WidgetUpdateReceiver` coroutine could crash the process on a Glance `updateAll` throw — both widget refreshes are wrapped now.
 
 ## [0.19.9]
 
