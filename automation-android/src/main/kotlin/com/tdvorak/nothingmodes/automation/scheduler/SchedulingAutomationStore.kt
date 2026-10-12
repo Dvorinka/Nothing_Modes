@@ -74,12 +74,14 @@ class SchedulingAutomationStore(
     }
 
     private fun dispatchRegistered(id: AutomationId) {
-        val intent =
-            Intent(context, AutomationService::class.java).apply {
-                action = AutomationService.ACTION_REGISTERED
-                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
-            }
-        ContextCompat.startForegroundService(context, intent)
+        runCatching {
+            val intent =
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_REGISTERED
+                    putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
+                }
+            ContextCompat.startForegroundService(context, intent)
+        }.onFailure { Log.w(TAG, "Failed to dispatch registration for ${id.value}", it) }
     }
 
     private companion object {

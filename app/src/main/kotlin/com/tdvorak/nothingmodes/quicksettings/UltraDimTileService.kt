@@ -42,7 +42,7 @@ class UltraDimTileService : TileService() {
                 )
             } else {
                 @Suppress("DEPRECATION")
-                startActivityAndCollapse(intent)
+                runCatching { startActivityAndCollapse(intent) }
             }
             return
         }

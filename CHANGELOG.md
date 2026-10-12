@@ -4,6 +4,9 @@
 
 ### Fixed
 - Quick Settings tile taps crashed on Android 13 and below (`AndroidRuntimeException: Calling startActivity() from outside of an Activity context requires the FLAG_ACTIVITY_NEW_TASK flag`): tapping an unconfigured custom cycle tile launched the tile editor intent without `FLAG_ACTIVITY_NEW_TASK`, which the deprecated `startActivityAndCollapse(Intent)` path requires when called from a service context. The flag is now set at both tile launch sites instead of relying on each intent producer to add it.
+- A tile tap could kill the whole app process: tile work runs in coroutines with no `CoroutineExceptionHandler`, so any unhandled throw (the NEW_TASK crash included) reached the default handler. The cycle-tile scope now carries a logging handler, the ultra-dim launch is wrapped, and the tile coroutine scope is cancelled in `onDestroy`.
+- Flip-to-glyph could crash the app when the monitor service wasn't running: `FLIP_TO_GLYPH` wakes a cold process in the background, where `startForegroundService` throws `ForegroundServiceStartNotAllowedException` on Android 12+. The dispatch is now wrapped — the next flip edge retries.
+- `SchedulingAutomationStore.dispatchRegistered` launched a foreground service unguarded while its sibling `dispatchRemoved` was already wrapped — same background-start crash risk if a store mutation ever runs behind the keyguard.
 
 ## [0.19.9]
 

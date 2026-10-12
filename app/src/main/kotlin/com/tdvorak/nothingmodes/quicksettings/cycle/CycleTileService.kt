@@ -7,12 +7,15 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.util.Log
 import android.widget.Toast
 import com.tdvorak.nothingmodes.capabilities.controllers.ControllerResult
 import com.tdvorak.nothingmodes.quicksettings.TileConfigActivity
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,7 +28,11 @@ import kotlinx.coroutines.withContext
  * editor on first tap.
  */
 abstract class CycleTileService : TileService() {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    // Without a handler, any throw inside a tile coroutine (e.g. the
+    // startActivity NEW_TASK crash on API < 34) propagates to the default
+    // handler and kills the whole app process — a tile tap must never do that.
+    private val handler = CoroutineExceptionHandler { _, e -> Log.w(TAG, "tile work failed", e) }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + handler)
 
     /** The spec this tile runs. Null = unconfigured custom slot. */
     protected abstract fun spec(): CycleSpec?
@@ -42,6 +49,11 @@ abstract class CycleTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         scope.launch { updateTile() }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     override fun onClick() {
@@ -166,6 +178,8 @@ abstract class CycleTileService : TileService() {
         }
     }
 }
+
+private const val TAG = "CycleTile"
 
 /** Screen timeout cycler — 30s → 1m → 5m by default, steps are editable. */
 class ScreenTimeoutTileService : CycleTileService() {
