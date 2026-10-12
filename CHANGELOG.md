@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.10]
+
+### Fixed
+- Quick Settings tile taps crashed on Android 13 and below (`AndroidRuntimeException: Calling startActivity() from outside of an Activity context requires the FLAG_ACTIVITY_NEW_TASK flag`): tapping an unconfigured custom cycle tile launched the tile editor intent without `FLAG_ACTIVITY_NEW_TASK`, which the deprecated `startActivityAndCollapse(Intent)` path requires when called from a service context. The flag is now set at both tile launch sites instead of relying on each intent producer to add it.
+
 ## [0.19.9]
 
 ### Fixed

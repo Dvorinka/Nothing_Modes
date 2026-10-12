@@ -148,6 +148,9 @@ abstract class CycleTileService : TileService() {
 
     @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun launchAndCollapse(intent: Intent) {
+        // A TileService is not an Activity context — the pre-34 Intent
+        // overload throws AndroidRuntimeException without NEW_TASK.
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startActivityAndCollapse(
                 PendingIntent.getActivity(

@@ -27,7 +27,10 @@ class UltraDimTileService : TileService() {
     override fun onClick() {
         super.onClick()
         if (!UltraDimController.canDim(this)) {
-            val intent = UltraDimController.permissionIntent(this)
+            // NEW_TASK required — TileService is not an Activity context.
+            val intent =
+                UltraDimController.permissionIntent(this)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startActivityAndCollapse(
                     PendingIntent.getActivity(
