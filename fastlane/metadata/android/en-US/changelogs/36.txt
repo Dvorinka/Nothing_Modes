@@ -1,4 +1,4 @@
-- Fixed a crash on Android 12+ where a background-delivered event (battery, screen, connectivity) could kill the app with ForegroundServiceStartNotAllowedException.
-- The persistent monitor now registers its receivers only after the service is fully foreground, closing a denial window that could crash during startup or restart.
-- Widget refreshes and agent control broadcasts can no longer be cut short by process reclamation mid-write.
-- Automation engine service lifecycle hardened: foreground-start denials are handled gracefully, and in-flight triggers are tracked so the service never stops mid-event.
+- Fixed an Android 12+ crash where a background event (battery, screen, connectivity) could kill the app with ForegroundServiceStartNotAllowedException.
+- The persistent monitor now registers receivers only after the service is fully foreground.
+- Widget and control broadcasts can no longer be cut short mid-write.
+- Automation service lifecycle hardened so it never stops mid-event.
