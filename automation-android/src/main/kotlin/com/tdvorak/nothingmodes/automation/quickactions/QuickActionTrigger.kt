@@ -2,8 +2,8 @@ package com.tdvorak.nothingmodes.automation.quickactions
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 
 /**
  * Triggers a single automation manually from widget / Quick Settings tile surfaces.
@@ -18,6 +18,6 @@ object QuickActionTrigger {
                 action = AutomationService.ACTION_MANUAL
                 putExtra(AutomationService.EXTRA_MANUAL_ID, automationId)
             }
-        ContextCompat.startForegroundService(context, intent)
+        context.startForegroundServiceSafely(intent)
     }
 }

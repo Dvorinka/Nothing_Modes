@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.tdvorak.nothingmodes.BuildConfig
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.capabilities.CapabilityDetector
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.engine.model.Automation
@@ -62,26 +63,33 @@ class ModeControlReceiver : BroadcastReceiver() {
         val payload = intent.getStringExtra(EXTRA_JSON) ?: ""
         val id = intent.getStringExtra(EXTRA_ID) ?: ""
 
+        // Without goAsync the broadcast finishes on return and the process
+        // can be reaped before the response file is written.
+        val pending = goAsync()
         scope.launch {
-            val response =
-                try {
-                    when (command) {
-                        "list" -> listModes()
-                        "get" -> getMode(id)
-                        "save" -> saveMode(payload, context)
-                        "run" -> runMode(context, id)
-                        "delete" -> deleteMode(id)
-                        "validate" -> validateMode(payload, context)
-                        "explain" -> explainMode(payload, id)
-                        "guide" -> guide()
-                        else -> McpResponse.error("unknown command: $command. Use 'guide'.")
+            try {
+                val response =
+                    try {
+                        when (command) {
+                            "list" -> listModes()
+                            "get" -> getMode(id)
+                            "save" -> saveMode(payload, context)
+                            "run" -> runMode(context, id)
+                            "delete" -> deleteMode(id)
+                            "validate" -> validateMode(payload, context)
+                            "explain" -> explainMode(payload, id)
+                            "guide" -> guide()
+                            else -> McpResponse.error("unknown command: $command. Use 'guide'.")
+                        }
+                    } catch (e: Exception) {
+                        McpResponse.error(e.message ?: e.toString())
                     }
-                } catch (e: Exception) {
-                    McpResponse.error(e.message ?: e.toString())
-                }
 
-            writeResponse(context, response)
-            Log.i(TAG, EngineJson.json.encodeToString(response))
+                writeResponse(context, response)
+                Log.i(TAG, EngineJson.json.encodeToString(response))
+            } finally {
+                pending.finish()
+            }
         }
     }
 
@@ -139,7 +147,9 @@ class ModeControlReceiver : BroadcastReceiver() {
                 action = AutomationService.ACTION_MANUAL
                 putExtra(AutomationService.EXTRA_MANUAL_ID, id)
             }
-        context.startForegroundService(service)
+        if (!context.startForegroundServiceSafely(service)) {
+            return McpResponse.error("foreground start rejected — app is backgrounded")
+        }
         return McpResponse(ok = true, detail = "started manual run for $id")
     }
 

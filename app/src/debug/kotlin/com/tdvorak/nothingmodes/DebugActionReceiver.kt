@@ -6,9 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
 import com.tdvorak.nothingmodes.automation.lifecycle.PhoneStateReceiver
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -180,7 +180,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                     putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, event)
                     putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, normalized)
                 }
-            ContextCompat.startForegroundService(context, svc)
+            context.startForegroundServiceSafely(svc)
             Log.i(TAG, "dispatched phone_state event=$event number=$normalized")
             return
         }
@@ -195,7 +195,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                     putExtra(PhoneStateReceiver.EXTRA_SMS_SENDER, normalizedSender)
                     putExtra(PhoneStateReceiver.EXTRA_SMS_BODY, body)
                 }
-            ContextCompat.startForegroundService(context, svc)
+            context.startForegroundServiceSafely(svc)
             Log.i(TAG, "dispatched sms_received sender=$normalizedSender body=$body")
             return
         }
@@ -206,7 +206,7 @@ class DebugActionReceiver : BroadcastReceiver() {
                     action = AutomationService.ACTION_MANUAL
                     putExtra(AutomationService.EXTRA_MANUAL_ID, id)
                 }
-            ContextCompat.startForegroundService(context, svc)
+            context.startForegroundServiceSafely(svc)
             Log.i(TAG, "dispatched manual id=$id")
             return
         }

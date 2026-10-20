@@ -12,6 +12,18 @@
 - Update installs could never prompt: `UpdateDownloadReceiver` fired `installUpdate` from a background broadcast, and background `startActivity` calls are silently dropped on Android 10+. The installer launches directly while the app is foreground; in the background a high-priority "Tap to install" notification carries the installer PendingIntent instead.
 - `WidgetUpdateReceiver` coroutine could crash the process on a Glance `updateAll` throw — both widget refreshes are wrapped now.
 
+## [0.19.11]
+
+### Fixed
+- `BATTERY_CHANGED` (and every other background-delivered event) could crash the app with `ForegroundServiceStartNotAllowedException`: a broadcast reaches the monitor's receivers in windows where no service is foreground — between `onCreate` and `startForeground`, after a sticky-restart rejection, or in a cached process — so the `startForegroundService` dispatch threw. All dispatches now route through `Context.startForegroundServiceSafely`, which logs and drops the event; the next broadcast edge or app launch re-syncs state.
+- `PersistentMonitorService` registered every receiver and started every monitor in `onCreate`, before `startForeground` ran — the same denial window as above, plus all that setup work counted against the FGS-start deadline on Android 15. Receivers and monitors now start only after the service is foreground (`ensureMonitorsStarted`), so no live receiver can ever dispatch while ineligible.
+- `AutomationService.onStartCommand` called `startForeground` unguarded — a denial between the accepted dispatch and service bring-up crashed the app. It's now caught; the service stops before the FGS deadline instead of taking a `ForegroundServiceDidNotStartInTime` death.
+- `AutomationService.maybeStop` read `activeJobs` outside its lock while job completions mutated it from `Dispatchers.IO` — a finishing job could stop a service that had just received new work. The emptiness check now runs under the same lock, and a mid-dispatch `onStartCommand` counts as live work (`inFlightCommands`) so a completion landing between the `when` dispatch and `trackJob` can no longer `stopSelf` early. The 10-second device-locked poll (`pollDeviceLocked`) is also tracked now — previously it ran untracked and a service stop could cancel it mid-poll, losing `DeviceLockedEvent`.
+- `WidgetUpdateReceiver` launched Glance `updateAll` refreshes without `goAsync` — the broadcast returned instantly and a culled process skipped the widget update. The pending result is held until both refreshes finish.
+- `BootWorker` kept its own `runCatching` copy of the FGS-start guard; both service starts now route through `startForegroundServiceSafely` like every other dispatch.
+- `ModeControlReceiver` ran store reads/writes in a coroutine without `goAsync`, so the broadcast returned instantly and the process could be reaped before `mcp-response.json` was written. It now holds the pending result until the response lands.
+- `MediaProjectionCaptureService` let a rejected `startForeground` propagate and crash the app mid-grant; a failed foreground start now drops the grant cleanly and the next capture request re-consents.
+
 ## [0.19.9]
 
 ### Fixed

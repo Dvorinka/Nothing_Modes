@@ -1,5 +1,7 @@
 package com.tdvorak.nothingmodes.automation.lifecycle
 
+import android.annotation.SuppressLint
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -73,6 +75,11 @@ class AutomationService : Service() {
         CoroutineExceptionHandler { _, e -> android.util.Log.w("AutomationService", "trigger work failed", e) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + handler)
     private val activeJobs = mutableSetOf<Job>()
+
+    // onStartCommand bodies currently dispatching, guarded by the activeJobs
+    // lock — maybeStop must treat a mid-dispatch command as live work or an
+    // IO-thread completion can stopSelf before its job registers.
+    private var inFlightCommands = 0
     private val progressHandler = Handler(Looper.getMainLooper())
     private val pendingProgress = mutableSetOf<Runnable>()
 
@@ -95,52 +102,78 @@ class AutomationService : Service() {
         createNotificationChannel()
     }
 
+    // ForegroundServiceStartNotAllowedException exists only on API 31+; the
+    // catch is inert below it — lint just can't see that.
+    @SuppressLint("NewApi")
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
         startId: Int,
     ): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
-        lastStartId = startId
-
-        when (intent?.action) {
-            ACTION_RESCHEDULE -> handleReschedule()
-            ACTION_BOOT -> handleBoot()
-            ACTION_REGISTERED -> handleRegistered(intent)
-            AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
-            AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
-            AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
-            AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE -> handleNotifyBefore(intent)
-            AutomationAlarmReceiver.ACTION_GEOFENCE_RECHECK -> handleGeofenceRecheck(intent)
-            ACTION_GATE_FORCE_END -> handleGateForceEnd(intent)
-            ACTION_GATE_SNOOZE -> handleGateSnooze(intent)
-            ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
-            ACTION_CHARGER -> handleCharger(intent)
-            ACTION_UNLOCKED -> handleUnlocked()
-            ACTION_SCREEN_STATE -> handleScreenState(intent)
-            ACTION_NOTIFICATION -> handleNotification(intent)
-            ACTION_PHONE_STATE -> handlePhoneState(intent)
-            ACTION_SMS -> handleSms(intent)
-            ACTION_CONNECTIVITY -> handleConnectivity(intent)
-            ACTION_APP_FOREGROUND -> handleAppForeground(intent)
-            ACTION_GEOFENCE -> handleGeofence(intent)
-            ACTION_BT_DEVICE -> handleBtDevice(intent)
-            ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
-            ACTION_TORCH_STATE -> handleTorchState(intent)
-            ACTION_MEDIA_PLAYBACK -> handleMediaPlayback(intent)
-            ACTION_MANUAL -> handleManual(intent)
-            ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
-            ACTION_DEVICE_STATE -> handleDeviceState(intent)
-            ACTION_AUTOMATION_REMOVED -> handleAutomationRemoved(intent)
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            // The dispatch was accepted while eligible, but eligibility was
+            // revoked before the service came up. Stopping before the
+            // FGS-start deadline also avoids the did-not-start-in-time
+            // exception; the event is dropped.
+            android.util.Log.w("AutomationService", "Foreground start not allowed; dropping dispatch", e)
+            stopSelf(startId)
+            return START_NOT_STICKY
         }
-
-        // Stop only when all in-flight jobs are done
-        maybeStop()
+        lastStartId = startId
+        synchronized(activeJobs) { inFlightCommands++ }
+        try {
+            when (intent?.action) {
+                ACTION_RESCHEDULE -> handleReschedule()
+                ACTION_BOOT -> handleBoot()
+                ACTION_REGISTERED -> handleRegistered(intent)
+                AutomationAlarmReceiver.ACTION_TIME_FIRED -> handleTimeFired(intent)
+                AutomationAlarmReceiver.ACTION_WINDOW_START -> handleWindowStart(intent)
+                AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
+                AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE -> handleNotifyBefore(intent)
+                AutomationAlarmReceiver.ACTION_GEOFENCE_RECHECK -> handleGeofenceRecheck(intent)
+                ACTION_GATE_FORCE_END -> handleGateForceEnd(intent)
+                ACTION_GATE_SNOOZE -> handleGateSnooze(intent)
+                ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
+                ACTION_CHARGER -> handleCharger(intent)
+                ACTION_UNLOCKED -> handleUnlocked()
+                ACTION_SCREEN_STATE -> handleScreenState(intent)
+                ACTION_NOTIFICATION -> handleNotification(intent)
+                ACTION_PHONE_STATE -> handlePhoneState(intent)
+                ACTION_SMS -> handleSms(intent)
+                ACTION_CONNECTIVITY -> handleConnectivity(intent)
+                ACTION_APP_FOREGROUND -> handleAppForeground(intent)
+                ACTION_GEOFENCE -> handleGeofence(intent)
+                ACTION_BT_DEVICE -> handleBtDevice(intent)
+                ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
+                ACTION_TORCH_STATE -> handleTorchState(intent)
+                ACTION_MEDIA_PLAYBACK -> handleMediaPlayback(intent)
+                ACTION_MANUAL -> handleManual(intent)
+                ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
+                ACTION_DEVICE_STATE -> handleDeviceState(intent)
+                ACTION_AUTOMATION_REMOVED -> handleAutomationRemoved(intent)
+            }
+        } finally {
+            // A job completing on Dispatchers.IO during this dispatch would
+            // otherwise see an empty activeJobs and stopSelf a service whose
+            // newest intent hadn't registered its job yet.
+            synchronized(activeJobs) { inFlightCommands-- }
+            // Stop only when all in-flight jobs are done
+            maybeStop()
+        }
         return START_NOT_STICKY
     }
 
     private fun maybeStop() {
-        if (activeJobs.isEmpty()) {
+        // Job completions run on Dispatchers.IO — read under the same lock
+        // that guards add/remove or a finishing job can stop a service that
+        // just picked up new work.
+        val idle =
+            synchronized(activeJobs) {
+                inFlightCommands == 0 && activeJobs.isEmpty()
+            }
+        if (idle) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf(lastStartId)
         }
@@ -353,21 +386,24 @@ class AutomationService : Service() {
      */
     private fun pollDeviceLocked() {
         val km = getSystemService(KeyguardManager::class.java) ?: return
-        scope.launch {
-            // ~10 s window — some devices engage the keyguard a few seconds
-            // after the screen goes dark (power-off animations, double-tap).
-            repeat(20) {
-                if (km.isDeviceLocked) {
-                    dispatchEvent(
-                        TriggerEvent.DeviceLockedEvent(
-                            eventId = "lock:${System.currentTimeMillis()}",
-                        ),
-                    )
-                    return@launch
+        trackJob(
+            scope.launch {
+                // ~10 s window — some devices engage the keyguard a few
+                // seconds after the screen goes dark (power-off animations,
+                // double-tap).
+                repeat(20) {
+                    if (km.isDeviceLocked) {
+                        dispatchEvent(
+                            TriggerEvent.DeviceLockedEvent(
+                                eventId = "lock:${System.currentTimeMillis()}",
+                            ),
+                        )
+                        return@launch
+                    }
+                    kotlinx.coroutines.delay(500)
                 }
-                kotlinx.coroutines.delay(500)
-            }
-        }
+            },
+        )
     }
 
     private fun handleNotification(intent: Intent) {

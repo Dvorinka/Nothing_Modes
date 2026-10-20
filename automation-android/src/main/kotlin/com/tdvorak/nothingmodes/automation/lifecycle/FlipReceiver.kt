@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.core.content.ContextCompat
 
 /**
  * Receives flip-to-glyph events from Nothing OS.
@@ -37,8 +36,7 @@ class FlipReceiver : BroadcastReceiver() {
         // FLIP_TO_GLYPH wakes a cold process in the background — the FGS start
         // throws ForegroundServiceStartNotAllowedException when nothing else
         // keeps the app eligible. Retry happens on the next flip edge.
-        runCatching { ContextCompat.startForegroundService(context, serviceIntent) }
-            .onFailure { Log.w(TAG, "FGS start rejected (background)", it) }
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     companion object {

@@ -54,7 +54,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -62,6 +61,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.automation.widget.WidgetRefreshHelper
 import com.tdvorak.nothingmodes.data.dao.ScheduledTimeAlarmDao
 import com.tdvorak.nothingmodes.engine.model.Automation
@@ -179,7 +179,7 @@ class AutomationListViewModel
                     action = AutomationService.ACTION_MANUAL
                     putExtra(AutomationService.EXTRA_MANUAL_ID, automation.id.value)
                 }
-            ContextCompat.startForegroundService(context, intent)
+            context.startForegroundServiceSafely(intent)
         }
 
         fun runNow(id: AutomationId) {

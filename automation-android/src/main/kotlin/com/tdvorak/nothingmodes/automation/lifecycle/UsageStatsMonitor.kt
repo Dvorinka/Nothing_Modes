@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,7 +85,7 @@ class UsageStatsMonitor(
                     action = AutomationService.ACTION_APP_FOREGROUND
                     putExtra(EXTRA_PACKAGE, pkg)
                 }
-            ContextCompat.startForegroundService(context, intent)
+            context.startForegroundServiceSafely(intent)
         }
     }
 

@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.RemoteInput
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.scheduler.AutomationAlarmReceiver
 
 /**
@@ -34,7 +33,7 @@ class GeofenceGateReceiver : BroadcastReceiver() {
                     ?.getCharSequence(KEY_SNOOZE_MINUTES)
                     ?.let { putExtra(AutomationService.EXTRA_SNOOZE_MINUTES, it.toString()) }
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     companion object {

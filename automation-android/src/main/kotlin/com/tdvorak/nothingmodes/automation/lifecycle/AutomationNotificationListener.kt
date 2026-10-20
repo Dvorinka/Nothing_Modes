@@ -6,7 +6,6 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
 import com.tdvorak.nothingmodes.data.entities.NotificationLogEntity
 import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
@@ -86,7 +85,7 @@ class AutomationNotificationListener : NotificationListenerService() {
                 // gives the listener (no public conversation-id extra exists).
                 sbn.groupKey?.let { putExtra(EXTRA_CONVERSATION_ID, it) }
             }
-        ContextCompat.startForegroundService(this, intent)
+        startForegroundServiceSafely(intent)
         refreshActiveNotifications()
     }
 

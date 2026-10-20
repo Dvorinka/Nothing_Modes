@@ -111,7 +111,7 @@ class DeviceStateMonitor(
                 putExtra(EXTRA_STATE_VALUE, value)
                 putExtra(EXTRA_STATE_PREVIOUS, previous)
             }
-        ContextCompat.startForegroundService(context, intent)
+        context.startForegroundServiceSafely(intent)
     }
 
     /** Re-reads a watched key and emits on change. Null = unreadable, skip. */

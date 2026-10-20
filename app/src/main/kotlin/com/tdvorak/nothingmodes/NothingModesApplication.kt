@@ -2,8 +2,8 @@ package com.tdvorak.nothingmodes
 
 import android.app.Application
 import android.content.Intent
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.automation.scheduler.ExactAlarmSync
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.data.crash.CrashReporting
@@ -41,9 +41,6 @@ class NothingModesApplication : Application() {
         // until something reschedules them.
         ExactAlarmSync.onAppAlive(this)
         // Start persistent monitor on fresh install (not just on boot)
-        runCatching {
-            val intent = Intent(this, PersistentMonitorService::class.java)
-            ContextCompat.startForegroundService(this, intent)
-        }
+        startForegroundServiceSafely(Intent(this, PersistentMonitorService::class.java))
     }
 }

@@ -42,12 +42,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.data.community.CommunityApi
@@ -105,7 +105,7 @@ class AutomationDetailViewModel
                     action = AutomationService.ACTION_MANUAL
                     putExtra(AutomationService.EXTRA_MANUAL_ID, current.id.value)
                 }
-            ContextCompat.startForegroundService(context, intent)
+            context.startForegroundServiceSafely(intent)
         }
 
         fun load(id: String) {
