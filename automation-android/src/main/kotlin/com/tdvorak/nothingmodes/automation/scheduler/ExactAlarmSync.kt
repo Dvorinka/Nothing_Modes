@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 
 /**
  * Re-arms alarms when SCHEDULE_EXACT_ALARM is granted after scheduling.
@@ -38,15 +38,13 @@ object ExactAlarmSync {
         }
 
         // Persist only after the service actually accepted the work — on a
-        // background-forbidden process start the launch throws, and retrying
-        // on the next alive-event is cheap.
-        runCatching {
-            val intent =
-                Intent(context, AutomationService::class.java).apply {
-                    action = AutomationService.ACTION_RESCHEDULE
-                }
-            ContextCompat.startForegroundService(context, intent)
-        }.onSuccess {
+        // background-forbidden process start the launch is rejected, and
+        // retrying on the next alive-event is cheap.
+        val intent =
+            Intent(context, AutomationService::class.java).apply {
+                action = AutomationService.ACTION_RESCHEDULE
+            }
+        if (context.startForegroundServiceSafely(intent)) {
             prefs.edit().putBoolean(KEY_GRANTED, true).apply()
             Log.i(TAG, "Exact alarm grant detected — rescheduling armed automations")
         }

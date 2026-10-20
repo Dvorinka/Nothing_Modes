@@ -46,14 +46,14 @@ class PersistentMonitorService : Service() {
     // ACTION_BATTERY_CHANGED stream without double-firing.
     private var lastPlugged: Int = -1
 
+    // Receivers and monitors start only after the service is foreground —
+    // while they exist, dispatches to AutomationService are always eligible,
+    // and their setup work stays out of the FGS-start deadline.
+    private var monitorsStarted = false
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        registerReceivers()
-        registerTorchCallback()
-        startCalendarObserver()
-        deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
-        Log.i(TAG, "Persistent monitor started")
     }
 
     // ForegroundServiceStartNotAllowedException exists only on API 31+; the
@@ -75,7 +75,18 @@ class PersistentMonitorService : Service() {
             stopSelf(startId)
             return START_NOT_STICKY
         }
+        ensureMonitorsStarted()
         return START_STICKY
+    }
+
+    private fun ensureMonitorsStarted() {
+        if (monitorsStarted) return
+        monitorsStarted = true
+        registerReceivers()
+        registerTorchCallback()
+        startCalendarObserver()
+        deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
+        Log.i(TAG, "Persistent monitor started")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -133,13 +144,14 @@ class PersistentMonitorService : Service() {
                                         putExtra(EXTRA_BATTERY_SOURCE, source)
                                         putExtra(EXTRA_BATTERY_TEMP, temperature)
                                     }
-                                ContextCompat.startForegroundService(context, serviceIntent)
+                                context.startForegroundServiceSafely(serviceIntent)
                             }
                         }
                     }
                 }
             }
-        registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        runCatching { registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) }
+            .onFailure { Log.e(TAG, "Failed to register battery receiver", it) }
 
         // Screen state receiver (ACTION_SCREEN_ON/OFF must be dynamic)
         screenReceiver =
@@ -153,7 +165,7 @@ class PersistentMonitorService : Service() {
                             Intent(context, AutomationService::class.java).apply {
                                 action = AutomationService.ACTION_UNLOCKED
                             }
-                        ContextCompat.startForegroundService(context, unlockIntent)
+                        context.startForegroundServiceSafely(unlockIntent)
                         return
                     }
                     val state =
@@ -181,7 +193,7 @@ class PersistentMonitorService : Service() {
                             action = AutomationService.ACTION_SCREEN_STATE
                             putExtra(AutomationService.EXTRA_SCREEN_STATE, state.name)
                         }
-                    ContextCompat.startForegroundService(context, serviceIntent)
+                    context.startForegroundServiceSafely(serviceIntent)
                 }
             }
         val screenFilter =
@@ -190,7 +202,8 @@ class PersistentMonitorService : Service() {
                 addAction(Intent.ACTION_SCREEN_OFF)
                 addAction(Intent.ACTION_USER_PRESENT)
             }
-        registerReceiver(screenReceiver, screenFilter)
+        runCatching { registerReceiver(screenReceiver, screenFilter) }
+            .onFailure { Log.e(TAG, "Failed to register screen receiver", it) }
 
         // Connectivity (WiFi state/network, Bluetooth adapter + ACL devices).
         // These are implicit broadcasts blocked for manifest-declared receivers
@@ -246,7 +259,7 @@ class PersistentMonitorService : Service() {
                 putExtra(EXTRA_CHARGER_CONNECTED, isConnected)
                 putExtra(EXTRA_CHARGER_SOURCE, source)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
         // Same edge as a device-state change so DeviceState triggers can
         // bind "charging" without a dedicated charger trigger.
         deviceStateMonitor?.emitExternal(
@@ -351,7 +364,7 @@ class PersistentMonitorService : Service() {
                 putExtra(PhoneStateReceiver.EXTRA_PHONE_STATE, state)
                 putExtra(PhoneStateReceiver.EXTRA_PHONE_NUMBER, normalized ?: "")
             }
-        ContextCompat.startForegroundService(this, serviceIntent)
+        startForegroundServiceSafely(serviceIntent)
     }
 
     private fun detectRegion(tm: TelephonyManager): String =
@@ -378,7 +391,7 @@ class PersistentMonitorService : Service() {
                             action = AutomationService.ACTION_TORCH_STATE
                             putExtra(EXTRA_TORCH_STATE, enabled)
                         }
-                    ContextCompat.startForegroundService(this@PersistentMonitorService, intent)
+                    this@PersistentMonitorService.startForegroundServiceSafely(intent)
                 }
             }
         torchCallback = cb
@@ -405,7 +418,7 @@ class PersistentMonitorService : Service() {
                         putExtra(EXTRA_CAL_ID, event.calendarId)
                         putExtra(EXTRA_CAL_EVENT_ID, event.calendarEventId ?: -1L)
                     }
-                ContextCompat.startForegroundService(this, intent)
+                startForegroundServiceSafely(intent)
             }.also { it.start() }
     }
 

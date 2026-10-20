@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 
 /**
  * Receives AlarmManager broadcasts and forwards them to AutomationService.
@@ -25,7 +26,7 @@ class AutomationAlarmReceiver : BroadcastReceiver() {
                 // never matched, so before-notifications silently died.
                 intent.extras?.let { putExtras(it) }
             }
-        context.startForegroundService(serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     companion object {

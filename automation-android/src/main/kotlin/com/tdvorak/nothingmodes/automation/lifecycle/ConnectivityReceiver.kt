@@ -13,7 +13,6 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Parcelable
 import android.util.Log
-import androidx.core.content.ContextCompat
 
 /**
  * Receives connectivity state changes (WiFi, Bluetooth) and dispatches
@@ -60,7 +59,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 putExtra(EXTRA_CONNECTIVITY_TYPE, "airplane")
                 putExtra(EXTRA_CONNECTIVITY_STATE, event)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     private fun handleWifiConnected(context: Context) {
@@ -85,7 +84,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 action = AutomationService.ACTION_WIFI_CONNECTED
                 if (ssid != null) putExtra(EXTRA_WIFI_SSID, ssid)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     private fun handleBtDevice(
@@ -110,7 +109,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 if (name != null) putExtra(EXTRA_BT_DEVICE_NAME, name)
                 if (address != null) putExtra(EXTRA_BT_DEVICE_ADDRESS, address)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     private fun handleWifiState(
@@ -136,7 +135,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 putExtra(EXTRA_CONNECTIVITY_STATE, wifiEvent)
                 if (ssid != null) putExtra(EXTRA_CONNECTIVITY_MATCH, ssid)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
 
         // Turning Wi-Fi off is also a disconnect — NETWORK_STATE_CHANGED is not
         // guaranteed to fire, so emit the drop explicitly for "while on Wi-Fi" modes.
@@ -145,7 +144,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 Intent(context, AutomationService::class.java).apply {
                     action = AutomationService.ACTION_WIFI_CONNECTED
                 }
-            ContextCompat.startForegroundService(context, dropIntent)
+            context.startForegroundServiceSafely(dropIntent)
         }
     }
 
@@ -168,7 +167,7 @@ class ConnectivityReceiver : BroadcastReceiver() {
                 putExtra(EXTRA_CONNECTIVITY_TYPE, "bluetooth")
                 putExtra(EXTRA_CONNECTIVITY_STATE, btEvent)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     private fun getSsid(

@@ -10,7 +10,6 @@ import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.engine.runtime.ActiveMedia
 
 /**
@@ -107,7 +106,7 @@ class MediaSessionMonitor(
                 putExtra(AutomationService.EXTRA_MEDIA_ARTIST, artist)
                 putExtra(AutomationService.EXTRA_MEDIA_TITLE, title)
             }
-        ContextCompat.startForegroundService(context, intent)
+        context.startForegroundServiceSafely(intent)
         Log.d(TAG, "Media playback: playing=$playing pkg=$packageName artist=$artist title=$title")
     }
 

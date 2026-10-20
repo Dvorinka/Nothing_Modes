@@ -15,8 +15,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.R
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.nothing.MediaProjectionHolder
 
 /**
@@ -53,7 +53,12 @@ class MediaProjectionCaptureService : Service() {
     }
 
     private fun handleGrant(intent: Intent) {
-        startForegroundWithNotification()
+        // No capture without the FGS on Android 14+ — a rejected foreground
+        // start drops the grant result; the user re-consents on the next try.
+        if (!startForegroundWithNotification()) {
+            stopSelf()
+            return
+        }
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
         val data = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
@@ -98,7 +103,7 @@ class MediaProjectionCaptureService : Service() {
         super.onDestroy()
     }
 
-    private fun startForegroundWithNotification() {
+    private fun startForegroundWithNotification(): Boolean {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(
@@ -126,16 +131,19 @@ class MediaProjectionCaptureService : Service() {
                 .addAction(0, "Stop", stopIntent)
                 .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ServiceCompat.startForeground(
-                this,
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        }.onFailure { Log.e(TAG, "startForeground failed", it) }
+            .isSuccess
     }
 
     companion object {
@@ -164,7 +172,7 @@ class MediaProjectionCaptureService : Service() {
             resultCode: Int,
             data: Intent,
         ) {
-            ContextCompat.startForegroundService(context, grantIntent(context, resultCode, data))
+            context.startForegroundServiceSafely(grantIntent(context, resultCode, data))
         }
     }
 }

@@ -2,7 +2,6 @@ package com.tdvorak.nothingmodes.automation.lifecycle
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 
@@ -19,23 +18,17 @@ class BootWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        runCatching {
-            applicationContext.startForegroundService(
-                Intent(applicationContext, AutomationService::class.java)
-                    .setAction(AutomationService.ACTION_BOOT),
-            )
-        }.onFailure { Log.w(TAG, "AutomationService boot start failed", it) }
-
-        runCatching {
-            applicationContext.startForegroundService(
-                Intent(applicationContext, PersistentMonitorService::class.java),
-            )
-        }.onFailure { Log.w(TAG, "PersistentMonitorService boot start failed", it) }
+        applicationContext.startForegroundServiceSafely(
+            Intent(applicationContext, AutomationService::class.java)
+                .setAction(AutomationService.ACTION_BOOT),
+        )
+        applicationContext.startForegroundServiceSafely(
+            Intent(applicationContext, PersistentMonitorService::class.java),
+        )
         return Result.success()
     }
 
     companion object {
         const val WORK_NAME = "boot_reschedule"
-        private const val TAG = "BootWorker"
     }
 }

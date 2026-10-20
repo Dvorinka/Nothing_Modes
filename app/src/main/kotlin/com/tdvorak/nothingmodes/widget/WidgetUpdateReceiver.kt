@@ -17,9 +17,16 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
         intent: Intent?,
     ) {
         if (intent?.action != "com.tdvorak.nothingmodes.UPDATE_WIDGET") return
+        // Without goAsync the process is fair game the moment onReceive
+        // returns — a culled process silently skips the widget refresh.
+        val pending = goAsync()
         scope.launch {
-            runCatching { NothingModesWidget().updateAll(context) }
-            runCatching { SingleAutomationWidget().updateAll(context) }
+            try {
+                runCatching { NothingModesWidget().updateAll(context) }
+                runCatching { SingleAutomationWidget().updateAll(context) }
+            } finally {
+                pending.finish()
+            }
         }
     }
 }

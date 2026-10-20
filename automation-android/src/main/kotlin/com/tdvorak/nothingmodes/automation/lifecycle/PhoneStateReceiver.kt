@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
 import java.util.Locale
 
@@ -50,7 +49,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
                 putExtra(EXTRA_SMS_SENDER, sender)
                 putExtra(EXTRA_SMS_BODY, body)
             }
-        ContextCompat.startForegroundService(context, serviceIntent)
+        context.startForegroundServiceSafely(serviceIntent)
     }
 
     companion object {

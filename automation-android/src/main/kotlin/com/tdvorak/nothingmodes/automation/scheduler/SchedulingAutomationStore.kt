@@ -3,8 +3,8 @@ package com.tdvorak.nothingmodes.automation.scheduler
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
@@ -69,7 +69,7 @@ class SchedulingAutomationStore(
                     action = AutomationService.ACTION_AUTOMATION_REMOVED
                     putExtra(AutomationService.EXTRA_AUTOMATION_JSON, json)
                 }
-            ContextCompat.startForegroundService(context, intent)
+            context.startForegroundServiceSafely(intent)
         }.onFailure { Log.w(TAG, "Failed to dispatch removal for ${automation.id.value}", it) }
     }
 
@@ -80,7 +80,7 @@ class SchedulingAutomationStore(
                     action = AutomationService.ACTION_REGISTERED
                     putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
                 }
-            ContextCompat.startForegroundService(context, intent)
+            context.startForegroundServiceSafely(intent)
         }.onFailure { Log.w(TAG, "Failed to dispatch registration for ${id.value}", it) }
     }
 
