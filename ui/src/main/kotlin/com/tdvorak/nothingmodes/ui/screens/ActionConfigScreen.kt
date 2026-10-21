@@ -34,6 +34,7 @@ import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
+import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.actionDescription
@@ -502,6 +503,24 @@ fun ActionConfigScreen(
                             checked = a.on,
                             onChange = { action = a.copy(on = it) },
                         )
+
+                    is Action.SetNothingFeature -> {
+                        NothingEnumSelector(
+                            label = "Nothing OS feature",
+                            value = NothingFeatures.byKey(a.feature)?.label ?: a.feature,
+                            options = NothingFeatures.ALL.map { it.label },
+                            onSelect = { label ->
+                                NothingFeatures.ALL.firstOrNull { it.label == label }?.let {
+                                    action = a.copy(feature = it.key)
+                                }
+                            },
+                        )
+                        BooleanRow(
+                            label = "Enabled",
+                            checked = a.on,
+                            onChange = { action = a.copy(on = it) },
+                        )
+                    }
 
                     is Action.SetDataSaver ->
                         BooleanRow(

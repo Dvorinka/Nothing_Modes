@@ -5,6 +5,7 @@ import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.ConnMedium
 import com.tdvorak.nothingmodes.engine.model.ConnState
 import com.tdvorak.nothingmodes.engine.model.DeviceStateKeys
+import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.PhoneEvent
 import com.tdvorak.nothingmodes.engine.model.TimePrecision
 import com.tdvorak.nothingmodes.engine.model.Trigger
@@ -220,6 +221,10 @@ object ModeExplainer {
             is Action.SetDataSaver -> "set data saver ${if (action.on) "on" else "off"}"
             is Action.SetHotspot -> "set hotspot ${if (action.on) "on" else "off"}"
             is Action.SetNfc -> "set NFC ${if (action.on) "on" else "off"}"
+            is Action.SetNothingFeature -> {
+                val label = NothingFeatures.byKey(action.feature)?.label ?: action.feature
+                "set $label ${if (action.on) "on" else "off"}"
+            }
             is Action.SetRefreshRate -> "set refresh rate to ${action.hz}Hz"
             is Action.SetScreenRotation -> "set screen rotation to ${action.orientation.name.lowercase()}"
             is Action.MediaControl -> "control media: ${action.command.name.lowercase()}"

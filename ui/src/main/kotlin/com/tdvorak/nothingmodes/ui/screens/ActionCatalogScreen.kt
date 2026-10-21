@@ -48,6 +48,7 @@ import com.tdvorak.nothingmodes.engine.model.DndMode
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.NightMode
+import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
@@ -146,6 +147,12 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Battery saver", "System", Icons.Outlined.PowerSettingsNew, Action.SetBatterySaver(true)),
                 ActionItem("Data saver", "System", Icons.Outlined.SignalCellular4Bar, Action.SetDataSaver(true)),
                 ActionItem("NFC", "System", Icons.Outlined.Nfc, Action.SetNfc(true)),
+                ActionItem(
+                    "Nothing feature",
+                    "System",
+                    Icons.Outlined.Tune,
+                    Action.SetNothingFeature(NothingFeatures.ALL.first().key, true),
+                ),
                 ActionItem("Location mode", "System", Icons.Outlined.LocationOn, Action.SetLocationMode(LocationMode.HIGH_ACCURACY)),
                 ActionItem("Refresh rate", "System", Icons.Outlined.Settings, Action.SetRefreshRate(60)),
                 ActionItem("Auto-sync", "System", Icons.Outlined.Snooze, Action.SetAutoSync(true)),

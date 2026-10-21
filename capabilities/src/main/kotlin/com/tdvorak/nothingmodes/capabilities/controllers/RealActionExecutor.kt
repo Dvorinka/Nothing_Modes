@@ -32,6 +32,7 @@ import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.ClockSection
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
+import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.PrivacySensor
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingNamespace
@@ -165,6 +166,8 @@ class RealActionExecutor(
                     connectivityPanel(),
                     action,
                     context,
+                    verify = { verifyMobileData(action.on) },
+                    legacyCommand = legacyMobileDataCommand(action.on),
                 )
             is Action.WriteSetting -> writeSetting(action)
 
@@ -198,6 +201,9 @@ class RealActionExecutor(
                     Settings.ACTION_BATTERY_SAVER_SETTINGS,
                     action,
                     context,
+                    verify = {
+                        verifySettingIs("global", "low_power", if (action.on) "1" else "0")
+                    },
                 )
             is Action.SetAirplaneMode -> setAirplaneMode(action.on, action, context)
             is Action.SetDataSaver ->
@@ -207,15 +213,24 @@ class RealActionExecutor(
                     "android.settings.DATA_SAVER_SETTINGS",
                     action,
                     context,
+                    verify = {
+                        verifyShell(listOf("cmd", "netpolicy", "get", "restrict-background")) {
+                            it.contains("enabled") == action.on
+                        }
+                    },
                 )
             is Action.SetHotspot -> setHotspot(action.on, action, context)
             is Action.SetNfc -> {
-                // `svc nfc` is killed outright on Nothing OS 4.1 — when the
-                // shell attempt fails for any reason, fall through to the panel.
+                // `svc nfc` is killed outright on Nothing OS — and it exits 0
+                // anyway, so Success alone proves nothing. Verify the adapter
+                // state; anything that didn't land falls through to the panel.
                 val r = executeShell(nfcCommand(action.on))
-                if (r is ActionResult.Success) r else openPanel(Settings.ACTION_NFC_SETTINGS, action, context)
+                val applied =
+                    r is ActionResult.Success &&
+                        AndroidSettingReader(this.context).read("nfc_enabled") == action.on.toString()
+                if (applied) r else openPanel(Settings.ACTION_NFC_SETTINGS, action, context)
             }
-            is Action.SetRefreshRate -> setRefreshRate(action.hz)
+            is Action.SetRefreshRate -> setRefreshRate(action.hz, action, context)
             is Action.SetScreenRotation -> setScreenRotation(action.orientation)
             is Action.MediaControl -> mediaControl(action.command)
 
@@ -266,6 +281,7 @@ class RealActionExecutor(
                     action,
                     context,
                 )
+            is Action.SetNothingFeature -> setNothingFeature(action, context)
             is Action.SetAlarm -> setAlarm(action, context)
             is Action.SetTimer -> setTimerAction(action, context)
             is Action.OpenClock -> openClock(action, context)
@@ -299,20 +315,105 @@ class RealActionExecutor(
         }
     }
 
+    /** Trimmed stdout of a shell read; null when the shell or command fails. */
+    private suspend fun executeShellRead(command: List<String>): String? {
+        val sh = shellFactory?.resolve() ?: return null
+        return try {
+            val result = sh.run(command, priority = 0, timeoutMillis = 10_000)
+            if (result.successful) result.stdoutText.trim() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Post-write read-back: polls the shell until the read matches or the
+     * attempts run out. Returns true = confirmed applied, false = confirmed
+     * NOT applied, null = never got a readable answer (trust the write).
+     *
+     * Nothing OS 5.0 drops shell commands in a way that still exits 0 while
+     * changing nothing (`svc data` does exactly this) — exit codes alone lie.
+     */
+    private suspend fun verifyShell(
+        readCommand: List<String>,
+        matches: (String) -> Boolean,
+    ): Boolean? {
+        var readable = false
+        repeat(VERIFY_ATTEMPTS) {
+            delay(VERIFY_SETTLE_MS)
+            val out = executeShellRead(readCommand)
+            if (out != null) {
+                readable = true
+                if (matches(out)) return true
+            }
+        }
+        return if (readable) false else null
+    }
+
+    private suspend fun verifySettingIs(
+        namespace: String,
+        key: String,
+        expected: String,
+    ): Boolean? =
+        verifyShell(listOf("settings", "get", namespace, key)) { it == expected }
+
+    /**
+     * Nothing OS 5.0 decoupled `global.mobile_data` from the real switch —
+     * it stayed 1 while `cmd phone data disable` dropped the radio. The
+     * authoritative read is TelephonyRegistry's per-sub `mIsDataEnabled`:
+     * enable is confirmed when any sub reports true, disable when none do.
+     * No parseable lines → null → trust the write.
+     */
+    private suspend fun verifyMobileData(on: Boolean): Boolean? {
+        val state = Regex("mIsDataEnabled=(\\w+)")
+        var sawAny = false
+        repeat(VERIFY_ATTEMPTS) {
+            delay(VERIFY_SETTLE_MS)
+            val out = executeShellRead(listOf("dumpsys", "telephony.registry"))
+            if (out != null) {
+                val states =
+                    state.findAll(out).map { it.groupValues[1] == "true" }.toList()
+                if (states.isNotEmpty()) {
+                    sawAny = true
+                    if (if (on) states.any { it } else states.none { it }) return true
+                }
+            }
+        }
+        return if (sawAny) false else null
+    }
+
     /**
      * Try the privileged shell first; when Shizuku isn't available, open the
      * relevant system panel/settings page so the user can finish the toggle.
      * Beats a dead "Shizuku required" on unprivileged phones.
+     *
+     * [verify] is a post-write read-back: when it confirms the state did NOT
+     * change (vendor silently dropped the command), degrade to the panel
+     * instead of reporting a fake Success.
      */
     private suspend fun shellOrPanel(
         command: List<String>,
         panelAction: String,
         source: Action,
         ctx: FireContext,
+        verify: (suspend () -> Boolean?)? = null,
+        legacyCommand: List<String>? = null,
     ): ActionResult {
-        val shellResult = executeShell(command)
-        if (shellResult !is ActionResult.ShizukuRequired) return shellResult
-        return openPanel(panelAction, source, ctx)
+        var shellResult = executeShell(command)
+        if (shellResult is ActionResult.ShizukuRequired) {
+            return openPanel(panelAction, source, ctx)
+        }
+        // Pre-5.0 fallback: on Nothing OS 4.1 the `svc` family was the working
+        // path, so if the `cmd` replacement errors out, try the legacy command
+        // before giving up. Verification still applies — a legacy command that
+        // exits 0 without applying (e.g. `svc data` on 5.0) lands on the panel.
+        if (shellResult is ActionResult.Failure && legacyCommand != null) {
+            shellResult = executeShell(legacyCommand)
+        }
+        if (shellResult is ActionResult.Success && verify?.invoke() == false) {
+            return openPanel(panelAction, source, ctx)
+        }
+        return shellResult
     }
 
     private suspend fun shellAllOrPanel(
@@ -392,7 +493,10 @@ class RealActionExecutor(
             Settings.ACTION_WIFI_SETTINGS
         }
 
-    private fun wifiCommand(on: Boolean) = listOf("svc", "wifi", if (on) "enable" else "disable")
+    // `svc wifi` still answers on Nothing OS 5.0 but is undocumented and gone
+    // from `svc help`; `cmd wifi` is the supported shell path.
+    private fun wifiCommand(on: Boolean) =
+        listOf("cmd", "wifi", "set-wifi-enabled", if (on) "enabled" else "disabled")
 
     /**
      * Hotspot via the Shizuku user service (uid 2000), which invokes
@@ -423,7 +527,10 @@ class RealActionExecutor(
         }
     }
 
-    private fun bluetoothCommand(on: Boolean) = listOf("svc", "bluetooth", if (on) "enable" else "disable")
+    // `svc bluetooth` still works on 5.0 but is hidden; `cmd bluetooth_manager`
+    // is the documented shell path (enable|disable|enableBle|disableBle).
+    private fun bluetoothCommand(on: Boolean) =
+        listOf("cmd", "bluetooth_manager", if (on) "enable" else "disable")
 
     /**
      * Enable the radio if asked, then page [action]'s device until a profile
@@ -560,7 +667,14 @@ class RealActionExecutor(
     /** 2s, 4s, 8s, then 15s. Short enough to notice, long enough not to hammer the radio. */
     private fun backoff(attempt: Int): Long = minOf(2_000L shl attempt.coerceAtMost(3), 15_000L)
 
-    private fun mobileDataCommand(on: Boolean) = listOf("svc", "data", if (on) "enable" else "disable")
+    // Nothing OS 5.0 removed `svc data` entirely — it exits 0 and changes
+    // nothing. `cmd phone data` is the replacement (TelephonyManager path).
+    private fun mobileDataCommand(on: Boolean) =
+        listOf("cmd", "phone", "data", if (on) "enable" else "disable")
+
+    // Nothing OS <=4.1 path — kept for devices where `cmd phone data` errors.
+    private fun legacyMobileDataCommand(on: Boolean) =
+        listOf("svc", "data", if (on) "enable" else "disable")
 
     /**
      * Master auto-sync via ContentResolver inside the Shizuku user service —
@@ -1205,13 +1319,32 @@ class RealActionExecutor(
             if (enabled) {
                 ActionResult.Success
             } else {
-                shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
+                shellOrPanel(
+                    bluetoothCommand(on),
+                    Settings.ACTION_BLUETOOTH_SETTINGS,
+                    source,
+                    ctx,
+                    verify = { verifySettingIs("global", "bluetooth_on", if (on) "1" else "0") },
+                    legacyCommand = listOf("svc", "bluetooth", if (on) "enable" else "disable"),
+                )
             }
         } catch (_: SecurityException) {
-            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
+            shellOrPanel(
+                bluetoothCommand(on),
+                Settings.ACTION_BLUETOOTH_SETTINGS,
+                source,
+                ctx,
+                verify = { verifySettingIs("global", "bluetooth_on", if (on) "1" else "0") },
+            )
         } catch (e: Exception) {
             // Public API failed — Shizuku, else the Bluetooth settings page
-            shellOrPanel(bluetoothCommand(on), Settings.ACTION_BLUETOOTH_SETTINGS, source, ctx)
+            shellOrPanel(
+                bluetoothCommand(on),
+                Settings.ACTION_BLUETOOTH_SETTINGS,
+                source,
+                ctx,
+                verify = { verifySettingIs("global", "bluetooth_on", if (on) "1" else "0") },
+            )
         }
     }
 
@@ -1231,15 +1364,40 @@ class RealActionExecutor(
             if (enabled) {
                 ActionResult.Success
             } else {
-                shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
+                shellOrPanel(
+                    wifiCommand(on),
+                    connectivityPanel(),
+                    source,
+                    ctx,
+                    verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+                    legacyCommand = listOf("svc", "wifi", if (on) "enable" else "disable"),
+                )
             }
         } catch (_: SecurityException) {
-            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
+            shellOrPanel(
+                wifiCommand(on),
+                connectivityPanel(),
+                source,
+                ctx,
+                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+            )
         } catch (_: NoSuchMethodError) {
             // Method removed on newer API levels — Shizuku or the panel
-            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
+            shellOrPanel(
+                wifiCommand(on),
+                connectivityPanel(),
+                source,
+                ctx,
+                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+            )
         } catch (e: Exception) {
-            shellOrPanel(wifiCommand(on), connectivityPanel(), source, ctx)
+            shellOrPanel(
+                wifiCommand(on),
+                connectivityPanel(),
+                source,
+                ctx,
+                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+            )
         }
     }
 
@@ -1292,7 +1450,40 @@ class RealActionExecutor(
             Settings.ACTION_AIRPLANE_MODE_SETTINGS,
             source,
             ctx,
+            verify = {
+                verifySettingIs("global", "airplane_mode_on", if (on) "1" else "0")
+            },
         )
+    }
+
+    /**
+     * Nothing OS feature flags (`nt_*`/`led_*`). Writes every namespace the
+     * spec declares — some keys live in two tables and consumers read either —
+     * then verifies the canonical one. Unknown keys fail; they can't be
+     * trusted to exist.
+     */
+    private suspend fun setNothingFeature(
+        action: Action.SetNothingFeature,
+        ctx: FireContext,
+    ): ActionResult {
+        val spec =
+            NothingFeatures.byKey(action.feature)
+                ?: return ActionResult.Failure("unknown Nothing feature: ${action.feature}")
+        val value = if (action.on) "1" else "0"
+        val result =
+            shellOrPanel(
+                listOf("settings", "put", spec.namespaces.first(), spec.key, value),
+                Settings.ACTION_SETTINGS,
+                action,
+                ctx,
+                verify = { verifySettingIs(spec.namespaces.first(), spec.key, value) },
+            )
+        if (result is ActionResult.Success) {
+            spec.namespaces.drop(1).forEach { ns ->
+                executeShell(listOf("settings", "put", ns, spec.key, value))
+            }
+        }
+        return result
     }
 
     private fun batterySaverCommand(on: Boolean) =
@@ -1349,16 +1540,29 @@ class RealActionExecutor(
             if (on) "enable" else "disable",
         )
 
-    private suspend fun setRefreshRate(hz: Int): ActionResult {
-        // peak/min_refresh_rate moved to the secure table on newer builds —
-        // privileged shell first, public system-table write as fallback.
+    private suspend fun setRefreshRate(hz: Int, action: Action, ctx: FireContext): ActionResult {
+        // Nothing OS 5.0: the effective ceiling lives in system.peak_refresh_rate as a
+        // float ("120.1"); the secure-table keys only carry a static mode id there, so
+        // writes to them exit 0 while changing nothing. Write system first and verify,
+        // keep the secure write for older builds, public write last.
+        val hzValue = "$hz.1"
         val peak =
-            executeShell(listOf("settings", "put", "secure", "peak_refresh_rate", hz.toString()))
+            executeShell(listOf("settings", "put", "system", "peak_refresh_rate", hzValue))
         if (peak is ActionResult.Success) {
+            executeShell(listOf("settings", "put", "system", "min_refresh_rate", hzValue))
+            if (verifySettingIs("system", "peak_refresh_rate", hzValue) != false) {
+                return ActionResult.Success
+            }
+        }
+        if (peak is ActionResult.ShizukuRequired) {
+            return openPanel(Settings.ACTION_DISPLAY_SETTINGS, action, ctx)
+        }
+        val legacy =
+            executeShell(listOf("settings", "put", "secure", "peak_refresh_rate", hz.toString()))
+        if (legacy is ActionResult.Success) {
             executeShell(listOf("settings", "put", "secure", "min_refresh_rate", hz.toString()))
             return ActionResult.Success
         }
-        if (peak is ActionResult.Failure && shellFactory?.resolve() != null) return peak
         return try {
             if (!Settings.System.canWrite(context)) return ActionResult.PermissionRequired
             Settings.System.putInt(context.contentResolver, "peak_refresh_rate", hz)
@@ -1751,6 +1955,8 @@ class RealActionExecutor(
         private const val GATT_OPEN_WAIT_MS = 1_500L
         private const val NOTIFICATION_CHANNEL_ID = "automation_notifications"
         private const val NOTIFICATION_ID_BASE = 2000
+        private const val VERIFY_ATTEMPTS = 4
+        private const val VERIFY_SETTLE_MS = 700L
 
         /** Factory: creates a RealActionExecutor with all Android controllers. */
         fun create(

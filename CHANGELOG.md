@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- New `Nothing feature` action (`set_nothing_feature`) exposing the live Nothing OS 5.0 flag catalog: AI notification summaries, Circle to Search, Essential Key controls (block, hold/double-tap voice), mistouch prevention, game-mode options, face unlock with mask, Private Space auto-exit, power-off verification, generative ringtone, cellular-on-boot, data collection, and ten Glyph light-stripe effect/brightness toggles. Each writes the real `nt_*`/`led_*` settings key — multi-namespace keys write every table — and verifies the read-back; unknown keys fail honestly. Requires Shizuku for silent toggles; opens Settings otherwise.
+
+### Fixed
+- Nothing OS 5.0 silent-command regressions: several privileged shell commands still exit 0 while changing nothing on the new build, so the executor now reads the real device state back after every shell write (polled read-back). A command that "succeeded" without applying now degrades to the matching settings panel instead of reporting a fake success.
+- Mobile data used `svc data enable|disable`, removed in Nothing OS 5.0 (silent no-op). Now uses `cmd phone data enable|disable`, verified against `dumpsys telephony.registry`'s `mIsDataEnabled` — the `global.mobile_data` mirror no longer tracks the toggle on 5.0, and the app-side reader falls back to the per-sub `mobile_data<subId>` key when `READ_PHONE_STATE` isn't granted.
+- Wi-Fi/Bluetooth shell fallbacks switched from undocumented `svc wifi`/`svc bluetooth` to `cmd wifi set-wifi-enabled`/`cmd bluetooth_manager`, verified against `global.wifi_on`/`bluetooth_on`.
+- Nothing OS <=4.1 compatibility is retained: where the old `svc` commands were the working path (`svc data`/`svc wifi`/`svc bluetooth`), they're kept as error fallbacks tried only when the new `cmd` path fails — verification still applies, so a dead `svc` command on 5.0 can't fake a success.
+- Refresh rate wrote Hz into `secure.peak_refresh_rate`, which on Nothing OS 5.0 is a static mode id — the write landed but the display never changed. The executor now writes the float ceiling (`120.1`) to `system.peak_refresh_rate`/`min_refresh_rate` with read-back, and the state reader checks the system table first.
+- Airplane mode, battery saver (`global.low_power`), and data saver (`cmd netpolicy get restrict-background`) toggles get the same post-write verification; NFC verifies adapter state before reporting success and falls through to the NFC panel when `svc nfc` is killed (still the case on 5.0).
+
+### Verified
+- Nothing Phone 3 (A024), Nothing OS 5.0 `C5.0-260924-2115`, Android 16, Shizuku 13.6: location OFF/DEVICE_ONLY/BATTERY_SAVING/HIGH_ACCURACY, Wi-Fi on/off, mobile-data enable, battery saver on/off, AOD modes, auto-sync, auto-rotate, extra dim, font scale, refresh rate 60/120 — all verified against live device state. NFC correctly degrades to its settings panel.
+- Nothing OS 5.0 adds a confirmation modal when toggling mobile data from the Quick Settings/internet panel — it's Nothing's UI, not an intent change; the `cmd phone data` shell path bypasses it.
+
 ## [0.19.10]
 
 ### Fixed

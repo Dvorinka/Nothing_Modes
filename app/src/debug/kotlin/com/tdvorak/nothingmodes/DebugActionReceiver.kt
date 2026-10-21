@@ -358,6 +358,11 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_data_saver" -> Action.SetDataSaver(on)
             "set_hotspot" -> Action.SetHotspot(on)
             "set_nfc" -> Action.SetNfc(on)
+            "set_nothing_feature" ->
+                Action.SetNothingFeature(
+                    intent.getStringExtra("feature").orEmpty(),
+                    on,
+                )
             "set_refresh_rate" -> Action.SetRefreshRate(level)
             "set_screen_rotation" ->
                 Action.SetScreenRotation(ScreenOrientation.valueOf(mode.ifBlank { "AUTO" }.uppercase()))

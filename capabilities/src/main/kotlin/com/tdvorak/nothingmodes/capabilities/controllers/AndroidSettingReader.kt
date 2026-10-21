@@ -10,6 +10,7 @@ import android.net.wifi.WifiManager
 import android.nfc.NfcManager
 import android.os.Build
 import android.provider.Settings
+import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import com.tdvorak.nothingmodes.engine.runtime.SettingReader
 
@@ -45,9 +46,10 @@ class AndroidSettingReader(
             "reduce_bright_colors_activated" ->
                 readSecureSettingAsString(key)
             "ultra_dim" -> UltraDimController.percent.toString()
-            // Refresh-rate keys moved to the secure table — match the write order.
+            // Nothing OS 5.0 keeps the live Hz ceiling in the system table ("120.1");
+            // the secure-table copy is a static mode id. Read system first.
             "peak_refresh_rate", "min_refresh_rate" ->
-                readSecureSettingAsString(key) ?: readSystemSettingAsString(key)
+                readSystemSettingAsString(key) ?: readSecureSettingAsString(key)
             "screen_off_timeout", "screen_brightness", "screen_brightness_mode",
             "accelerometer_rotation", "user_rotation",
             -> readSystemSettingAsString(key)
@@ -124,7 +126,10 @@ class AndroidSettingReader(
 
     /**
      * `global.mobile_data` is stale on per-subscription builds (API 26+ stores
-     * `mobile_data<subId>`); TelephonyManager.isDataEnabled is the real source.
+     * `mobile_data<subId>`) — on Nothing OS 5.0 it no longer tracks the toggle
+     * at all. Order: TelephonyManager.isDataEnabled (needs READ_PHONE_STATE),
+     * then the live per-sub key `mobile_data<defaultDataSubId>`, then the
+     * legacy bare key.
      */
     @Suppress("MissingPermission")
     private fun readMobileDataEnabled(): String? =
@@ -133,8 +138,23 @@ class AndroidSettingReader(
                 context.getSystemService(TelephonyManager::class.java)
                     ?.isDataEnabled?.toString()
             } else {
-                (Settings.Global.getInt(context.contentResolver, "mobile_data", 1) == 1).toString()
+                legacyMobileDataRead()
             }
+        }.getOrNull() ?: legacyMobileDataRead()
+
+    private fun legacyMobileDataRead(): String? =
+        runCatching {
+            val subId = SubscriptionManager.getDefaultDataSubscriptionId()
+            val perSub =
+                runCatching {
+                    Settings.Global.getInt(context.contentResolver, "mobile_data$subId")
+                }.getOrNull()
+            val value =
+                perSub
+                    ?: runCatching {
+                        Settings.Global.getInt(context.contentResolver, "mobile_data", -1)
+                    }.getOrNull()
+            value?.let { (it == 1).toString() }
         }.getOrNull()
 
     private fun readAodEnabled(): String? =

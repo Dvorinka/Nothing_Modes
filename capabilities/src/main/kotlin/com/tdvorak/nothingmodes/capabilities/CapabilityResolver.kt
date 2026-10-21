@@ -118,6 +118,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_HOTSPOT,
             CapabilityIds.ACTION_SET_NFC,
             CapabilityIds.ACTION_SET_AUTO_SYNC,
+            CapabilityIds.ACTION_SET_NOTHING_FEATURE,
             -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_SET_LOCATION_MODE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
             CapabilityIds.ACTION_SET_STAY_AWAKE -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -167,6 +168,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_DALTONIZER,
             CapabilityIds.ACTION_SET_SENSOR_PRIVACY,
             CapabilityIds.ACTION_SET_ONE_HANDED_MODE,
+            CapabilityIds.ACTION_SET_NOTHING_FEATURE,
             -> "Needs Shizuku — a free companion app that grants extra permissions"
 
             CapabilityIds.ACTION_SET_DND -> "Notification policy access required"

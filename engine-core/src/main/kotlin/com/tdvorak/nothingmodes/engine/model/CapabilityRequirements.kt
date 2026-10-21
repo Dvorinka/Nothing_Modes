@@ -96,6 +96,7 @@ object CapabilityIds {
     const val ACTION_SET_DALTONIZER = "action_set_daltonizer"
     const val ACTION_SET_SENSOR_PRIVACY = "action_set_sensor_privacy"
     const val ACTION_SET_ONE_HANDED_MODE = "action_set_one_handed_mode"
+    const val ACTION_SET_NOTHING_FEATURE = "action_set_nothing_feature"
     const val ACTION_SET_ALARM = "action_set_alarm"
     const val ACTION_SET_TIMER = "action_set_timer"
     const val ACTION_OPEN_CLOCK = "action_open_clock"
@@ -148,6 +149,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_GLYPH_MUSIC,
             -> "Nothing Glyph Matrix"
             CapabilityIds.ACTION_SET_GLYPH_INTERFACE -> "Nothing Glyph interface switch"
+            CapabilityIds.ACTION_SET_NOTHING_FEATURE -> "Nothing OS feature flag"
             CapabilityIds.ACTION_SET_STAY_AWAKE -> "Stay awake while charging"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
@@ -278,6 +280,7 @@ object CapabilityRequirements {
             is Action.SetDaltonizer -> setOf(CapabilityIds.ACTION_SET_DALTONIZER, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetSensorPrivacy -> setOf(CapabilityIds.ACTION_SET_SENSOR_PRIVACY, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetOneHandedMode -> setOf(CapabilityIds.ACTION_SET_ONE_HANDED_MODE, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SetNothingFeature -> setOf(CapabilityIds.ACTION_SET_NOTHING_FEATURE, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetAlarm -> setOf(CapabilityIds.ACTION_SET_ALARM)
             is Action.SetTimer -> setOf(CapabilityIds.ACTION_SET_TIMER)
             is Action.OpenClock -> setOf(CapabilityIds.ACTION_OPEN_CLOCK)
