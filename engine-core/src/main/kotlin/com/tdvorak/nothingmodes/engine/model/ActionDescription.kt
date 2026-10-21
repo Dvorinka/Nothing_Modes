@@ -121,6 +121,10 @@ fun actionDescription(action: Action): String =
             is Action.SetDataSaver -> "Data Saver: ${if (action.on) "On" else "Off"}"
             is Action.SetHotspot -> "Hotspot: ${if (action.on) "On" else "Off"}"
             is Action.SetNfc -> "NFC: ${if (action.on) "On" else "Off"}"
+            is Action.SetNothingFeature -> {
+                val label = NothingFeatures.byKey(action.feature)?.label ?: action.feature
+                "$label: ${if (action.on) "On" else "Off"}"
+            }
             is Action.SetStayAwake -> "Stay Awake: ${if (action.on) "On" else "Off"}"
             is Action.SetRefreshRate -> {
                 val label = refreshRatePresets.firstOrNull { it.second == action.hz }?.first ?: "${action.hz}Hz"

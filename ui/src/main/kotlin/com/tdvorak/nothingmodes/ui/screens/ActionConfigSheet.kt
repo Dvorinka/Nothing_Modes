@@ -42,6 +42,7 @@ import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
 import com.tdvorak.nothingmodes.engine.model.NightMode
+import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.ScreenOrientation
 import com.tdvorak.nothingmodes.engine.model.SettingsScreen
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
@@ -882,6 +883,24 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.SetNothingFeature -> {
+            NothingEnumSelector(
+                label = "Nothing OS feature",
+                value = NothingFeatures.byKey(a.feature)?.label ?: a.feature,
+                options = NothingFeatures.ALL.map { it.label },
+                onSelect = { label ->
+                    NothingFeatures.ALL.firstOrNull { it.label == label }?.let {
+                        onActionChange(a.copy(feature = it.key))
+                    }
+                },
+            )
+            BooleanRow(
+                label = "Enabled",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+        }
+
         is Action.SetDataSaver -> {
             BooleanRow(
                 label = "Data saver enabled",
@@ -1627,6 +1646,7 @@ private fun actionTitle(action: Action): String =
         is Action.Wait -> "Wait"
         is Action.SetRinger -> "Ringer mode"
         is Action.SetNfc -> "NFC"
+        is Action.SetNothingFeature -> "Nothing feature"
         is Action.SetDataSaver -> "Data saver"
         is Action.SetStayAwake -> "Stay awake"
         is Action.SetHotspot -> "Hotspot"

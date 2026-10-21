@@ -76,6 +76,7 @@ object ActionTypeIds {
     const val SET_DALTONIZER = "set_daltonizer"
     const val SET_SENSOR_PRIVACY = "set_sensor_privacy"
     const val SET_ONE_HANDED_MODE = "set_one_handed_mode"
+    const val SET_NOTHING_FEATURE = "set_nothing_feature"
     const val SET_ALARM = "set_alarm"
     const val SET_TIMER = "set_timer"
     const val OPEN_CLOCK = "open_clock"
@@ -596,6 +597,19 @@ sealed interface Action {
         val blocked: Boolean,
     ) : Action
 
+    /**
+     * Toggle a Nothing OS feature flag (`nt_*`, `led_*` settings keys).
+     * [feature] is a key from [NothingFeatures]; unknown keys fail honestly.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_NOTHING_FEATURE)
+    data class SetNothingFeature(
+        val feature: String,
+        val on: Boolean,
+        /** Revert to the pre-run state when a windowed mode ends. */
+        val restore: Boolean = true,
+    ) : Action
+
     /** Toggle one-handed mode. Requires Shizuku. */
     @Serializable
     @SerialName(ActionTypeIds.SET_ONE_HANDED_MODE)
@@ -719,6 +733,7 @@ val Action.canRestore: Boolean
             is Action.SetColorInversion,
             is Action.SetDaltonizer,
             is Action.SetOneHandedMode,
+            is Action.SetNothingFeature,
             -> true
             is Action.Group -> actions.any { it.canRestore }
             else -> false
@@ -760,6 +775,7 @@ fun Action.withRestore(restore: Boolean): Action =
         is Action.SetColorInversion -> copy(restore = restore)
         is Action.SetDaltonizer -> copy(restore = restore)
         is Action.SetOneHandedMode -> copy(restore = restore)
+        is Action.SetNothingFeature -> copy(restore = restore)
         is Action.Group -> copy(actions = actions.map { it.withRestore(restore) })
         else -> this
     }
@@ -801,6 +817,7 @@ val Action.supportsRestore: Boolean
             is Action.SetColorInversion -> restore
             is Action.SetDaltonizer -> restore
             is Action.SetOneHandedMode -> restore
+            is Action.SetNothingFeature -> restore
             is Action.Group -> actions.any { it.supportsRestore }
             else -> false
         }
@@ -843,6 +860,7 @@ val Action.affectedSettings: Set<String>
             is Action.SetRinger -> setOf("ringer_mode")
             is Action.SetStayAwake -> setOf("stay_on_while_plugged_in")
             is Action.SetGlyphInterface -> setOf("led_effect_enable")
+            is Action.SetNothingFeature -> setOf(feature)
             is Action.WriteSetting -> setOf(key)
             is Action.Group -> actions.flatMap { it.affectedSettings }.toSet()
             else -> emptySet()

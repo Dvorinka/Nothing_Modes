@@ -272,6 +272,9 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SetNfc ->
             "Turns NFC on or off. Silent toggling needs Shizuku; without it the system NFC panel opens for one tap."
 
+        is Action.SetNothingFeature ->
+            "Toggles a Nothing OS feature flag (Essential Key, AI summaries, Glyph effects, and more). Needs Shizuku; without it the settings app opens."
+
         is Action.SetDataSaver ->
             "Turns data saver on or off. Silent toggling needs Shizuku; without it the system panel opens for one tap."
 
@@ -385,6 +388,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SetAirplaneMode -> "Turns airplane mode on or off."
         is Action.SetHotspot -> "Turns the mobile hotspot on or off."
         is Action.SetNfc -> "Turns NFC on or off."
+        is Action.SetNothingFeature -> "Toggles a Nothing OS feature flag."
         is Action.SetDataSaver -> "Turns data saver on or off."
         is Action.SetAutoSync -> "Turns auto-sync on or off."
         is Action.SetBatterySaver -> "Turns battery saver on or off."

@@ -2055,6 +2055,7 @@ private val PANEL_FALLBACK_ACTIONS =
         Action.SetDataSaver::class,
         Action.SetHotspot::class,
         Action.SetNfc::class,
+        Action.SetNothingFeature::class,
         Action.SetAutoSync::class,
         Action.SetAlwaysOnDisplay::class,
         Action.SetLocationMode::class,

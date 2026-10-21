@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MobileScreenShare
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.BluetoothConnected
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.AccessTime
@@ -181,6 +182,7 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetBatterySaver -> Icons.Outlined.PowerSettingsNew
         is Action.SetDataSaver -> Icons.Outlined.SignalCellular4Bar
         is Action.SetNfc -> Icons.Outlined.Nfc
+        is Action.SetNothingFeature -> Icons.Outlined.Tune
         is Action.SetLocationMode -> Icons.Outlined.LocationOn
         is Action.SetRefreshRate -> Icons.Outlined.Settings
         is Action.SetAutoSync -> Icons.Outlined.Snooze

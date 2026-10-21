@@ -126,19 +126,28 @@ Share any mode from the detail screen as a JSON bundle. Bundles carry `schemaVer
 
 Optional. Without it, every action still resolves — silent where the platform allows, a jump to the right settings panel where it doesn't. Shizuku turns the panel fallback into a silent toggle.
 
-Verified on Nothing Phone 3, Nothing OS 4.1, Android 16:
+Verified on Nothing Phone 3, Nothing OS 5.0 (`C5.0-260924-2115`), Android 16:
 
 | Action | Without Shizuku | With Shizuku |
 | --- | --- | --- |
-| Wi-Fi, mobile data, hotspot | connectivity panel | silent toggle |
+| Wi-Fi, mobile data, hotspot | connectivity panel | silent toggle (`cmd wifi`, `cmd phone`) |
 | Airplane mode | airplane settings | silent toggle (`cmd connectivity`) |
 | Battery saver, data saver, auto-sync | settings panel | silent toggle |
 | Always-On Display, extra dim | display settings | silent toggle |
-| Location mode, refresh rate | settings panel | silent toggle (secure table) |
+| Location mode | settings panel | silent toggle (secure table) |
+| Refresh rate | display settings | silent toggle (`system.peak_refresh_rate`, float e.g. `120.1`) |
+| Nothing OS feature flags (`nt_*`/`led_*`) | settings app | silent toggle |
 | Arbitrary `WriteSetting` | permission-required | silent toggle |
-| NFC | NFC panel | NFC panel — `svc nfc` is killed on Nothing OS 4.1 even for shell; platform limitation |
+| NFC | NFC panel | NFC panel — `svc nfc` is killed on Nothing OS even for shell; platform limitation |
 | Screenshot | per-capture consent (MediaProjection) | same |
 | Everything else — Glyph, volume, ringer, DND, brightness, dark mode, rotation, flashlight, notifications, media, clipboard, app/URL launch, lock screen, SMS | runtime permissions only | unchanged |
+
+Nothing OS 5.0 notes:
+
+- `svc data` is gone — it exits 0 without changing anything, so exit codes alone can't be trusted. Every shell-backed toggle now reads the real state back after writing; a command that "succeeded" but changed nothing degrades to the settings panel instead of reporting a fake success. For mobile data the real state is `mIsDataEnabled` in `dumpsys telephony.registry` — `global.mobile_data` is a vestigial key that stays 1 either way; the per-sub mirror `mobile_data<subId>` still tracks.
+- `svc wifi`/`svc bluetooth` still answer but are undocumented; the executor uses the documented `cmd wifi`/`cmd bluetooth_manager` interfaces.
+- `secure.peak_refresh_rate` no longer carries Hz — it's a static mode id. The live ceiling is `system.peak_refresh_rate`/`min_refresh_rate` as a float (`120.1`).
+- Disabling mobile data from the Quick Settings/internet panel shows a new confirmation modal — Nothing's own UI. The shell path (`cmd phone data`) bypasses it entirely.
 
 Get Shizuku from [GitHub](https://github.com/RikkaApps/Shizuku/releases) or the Play Store, then grant it inside the app's settings sheet.
 
