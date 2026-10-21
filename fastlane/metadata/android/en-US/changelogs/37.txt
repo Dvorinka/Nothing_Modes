@@ -1,0 +1,3 @@
+- Fixed Nothing OS 5.0 silent toggles: cellular, Wi-Fi, Bluetooth and refresh rate now verify real device state instead of trusting dead commands.
+- Cellular toggle works again — no more confirmation modal, verified on-device.
+- New "Nothing feature" action: Essential Key, AI notifications, Circle to Search, game mode, glyph effects and more Nothing OS 5.0 flags.

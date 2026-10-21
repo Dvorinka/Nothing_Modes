@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.12]
 
 ### Added
 - New `Nothing feature` action (`set_nothing_feature`) exposing the live Nothing OS 5.0 flag catalog: AI notification summaries, Circle to Search, Essential Key controls (block, hold/double-tap voice), mistouch prevention, game-mode options, face unlock with mask, Private Space auto-exit, power-off verification, generative ringtone, cellular-on-boot, data collection, and ten Glyph light-stripe effect/brightness toggles. Each writes the real `nt_*`/`led_*` settings key — multi-namespace keys write every table — and verifies the read-back; unknown keys fail honestly. Requires Shizuku for silent toggles; opens Settings otherwise.
