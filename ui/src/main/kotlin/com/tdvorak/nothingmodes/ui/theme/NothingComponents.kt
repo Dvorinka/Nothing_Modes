@@ -829,8 +829,11 @@ fun NothingTopBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(if (classic) 72.dp else 88.dp)
+                // Insets before height: the bar is 72/88 dp of *content* —
+                // applying statusBars inside the height eats the row and
+                // clips the title under the status bar.
                 .windowInsetsPadding(WindowInsets.statusBars)
+                .height(if (classic) 72.dp else 88.dp)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = if (classic) NothingSpacing.xs else NothingSpacing.lg)
                 .zIndex(1f),
@@ -884,7 +887,7 @@ fun NothingTopBar(
                 text = if (classic) title else title.uppercase(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontFamily = NothingFonts.mono(),
+                fontFamily = if (classic) null else NothingFonts.mono(),
                 letterSpacing = if (classic) 0.sp else 1.5.sp,
                 maxLines = 1,
                 softWrap = false,

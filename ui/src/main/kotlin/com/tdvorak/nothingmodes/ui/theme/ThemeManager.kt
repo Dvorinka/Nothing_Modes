@@ -1,7 +1,6 @@
 package com.tdvorak.nothingmodes.ui.theme
 
 import android.content.Context
-import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,7 +39,7 @@ class ThemeManager private constructor(
     fun resolvedUiStyle(): UiStyle =
         when (_uiStyle.value) {
             UiStyle.AUTO ->
-                if (Build.MANUFACTURER.equals("nothing", ignoreCase = true)) {
+                if (com.tdvorak.nothingmodes.nothing.DeviceIdentity.isNothingFamily()) {
                     UiStyle.NOTHING
                 } else {
                     UiStyle.CLASSIC

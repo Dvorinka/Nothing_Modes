@@ -48,7 +48,7 @@ class NothingDeviceDetector(
     fun hasGlyphTouch(): Boolean = detectModel() == NothingDeviceIds.PHONE_3
 
     /** Whether this is a Nothing device at all. */
-    fun isNothingDevice(): Boolean = Build.MANUFACTURER?.equals("nothing", ignoreCase = true) == true
+    fun isNothingDevice(): Boolean = DeviceIdentity.isNothingFamily()
 
     companion object {
         @JvmStatic
