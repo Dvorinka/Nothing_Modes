@@ -1,0 +1,4 @@
+- Fixed a rare foreground-service start crash on Android 14+
+- Fewer false crash reports — dead-runtime noise is filtered out
+- Shizuku stopped or lost its grant? You now get a heads-up instead of silent action failures
+- New Settings → Feedback: bug reports and ideas straight to the developer

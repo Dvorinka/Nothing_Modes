@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.13]
+
+### Added
+- Settings → Feedback: a "Send feedback" dialog posts a typed message (plus app version, device model, Android version, and an optional contact email) to the developer's own endpoint — no account needed.
+- Shizuku loss is now user-visible: a throttled heads-up notification fires when privileged access is lost — the binder dies (e.g. after an OTA) or the grant is revoked — from the persistent monitor watching the gateway status, from the shell factory when a privileged action can't resolve, and from the action executor on transport failures. It only alerts users who previously authorized Shizuku, taps through to the Shizuku app, and auto-clears once access returns.
+
+### Fixed
+- `ForegroundServiceDidNotStartInTimeException` (seen on Android 16/Xiaomi): `AutomationService` and `PersistentMonitorService` now call `startForeground()` in `onCreate()`, not just `onStartCommand` — the platform deadline runs from `startForegroundService()`, so a slow cold start could consume the window before the first intent arrived.
+- Crash-report noise: `CrashReporting` no longer queues crashes whose cause chain contains `DeadSystem*` — those mean system_server was already dying, not an app bug, and the reports were noise.
+
 ## [0.19.12]
 
 ### Added
