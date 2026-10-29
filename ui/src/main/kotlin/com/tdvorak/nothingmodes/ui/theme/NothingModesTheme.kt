@@ -1,6 +1,5 @@
 package com.tdvorak.nothingmodes.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -75,28 +74,29 @@ private val NothingLight =
     )
 
 // ── Classic Theme (curated, non-dynamic) ─────────────────────────────────────
-// Soft teal accent over clean neutral surfaces — calm and deliberate without
-// the dot-matrix chrome. Identical on every device — no wallpaper tinting.
+// Monochrome black-slate: white/gray hierarchy only, no color accent — the
+// Samsung Modes & Routines look. Identical on every device — no wallpaper
+// tinting.
 private val ClassicDark =
     darkColorScheme(
-        primary = Color(0xFF8ED1C8), // soft teal for dark canvas
-        onPrimary = Color(0xFF0B2624),
-        primaryContainer = Color(0xFF26413E), // deep teal container, FAB surface
-        onPrimaryContainer = Color(0xFFA8E6DC),
+        primary = Color(0xFFECECEC), // near-white — hierarchy, not accent
+        onPrimary = Color(0xFF0A0A0A),
+        primaryContainer = Color(0xFF262626), // dark neutral, FAB surface
+        onPrimaryContainer = Color(0xFFECECEC),
         secondary = Color(0xFFA8A8A8),
         onSecondary = Color(0xFF1A1A1A),
-        secondaryContainer = Color(0xFF363636),
+        secondaryContainer = Color(0xFF262626),
         onSecondaryContainer = Color(0xFFE0E0E0),
         tertiary = Color(0xFF8A8A8A),
         onTertiary = Color(0xFF1A1A1A),
-        background = Color(0xFF101010), // near-black neutral canvas
+        background = Color(0xFF000000), // pure black canvas
         onBackground = Color(0xFFECECEC),
-        surface = Color(0xFF191919), // raised cards
+        surface = Color(0xFF151515), // neutral dark cards
         onSurface = Color(0xFFECECEC),
-        surfaceVariant = Color(0xFF232323), // elevated surfaces
-        onSurfaceVariant = Color(0xFFA0A0A0), // secondary text
-        outline = Color(0xFF333333), // visible borders
-        outlineVariant = Color(0xFF262626), // hairline separators
+        surfaceVariant = Color(0xFF1D1D1D), // elevated surfaces
+        onSurfaceVariant = Color(0xFF9E9E9E), // secondary text
+        outline = Color(0xFF2E2E2E), // visible borders
+        outlineVariant = Color(0xFF232323), // hairline separators
         error = Color(0xFFF2B8B5),
         onError = Color(0xFF601410),
         errorContainer = Color(0xFF8C1D18),
@@ -105,13 +105,13 @@ private val ClassicDark =
 
 private val ClassicLight =
     lightColorScheme(
-        primary = Color(0xFF00695F), // deep teal for white contrast
+        primary = Color(0xFF1A1A1A), // near-black ink for light contrast
         onPrimary = Color(0xFFFFFFFF),
-        primaryContainer = Color(0xFFBCEBE2),
-        onPrimaryContainer = Color(0xFF00201C),
+        primaryContainer = Color(0xFFE9E9E9),
+        onPrimaryContainer = Color(0xFF1A1A1A),
         secondary = Color(0xFF5A5A5A),
         onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = Color(0xFFE6E6E6),
+        secondaryContainer = Color(0xFFE9E9E9),
         onSecondaryContainer = Color(0xFF1A1A1A),
         tertiary = Color(0xFF7A7A7A),
         onTertiary = Color(0xFFFFFFFF),
@@ -237,7 +237,7 @@ fun NothingModesThemeDynamic(content: @Composable () -> Unit) {
     val resolvedStyle =
         when (uiStyle) {
             ThemeManager.UiStyle.AUTO ->
-                if (Build.MANUFACTURER.equals("nothing", ignoreCase = true)) {
+                if (com.tdvorak.nothingmodes.nothing.DeviceIdentity.isNothingFamily()) {
                     ThemeManager.UiStyle.NOTHING
                 } else {
                     ThemeManager.UiStyle.CLASSIC

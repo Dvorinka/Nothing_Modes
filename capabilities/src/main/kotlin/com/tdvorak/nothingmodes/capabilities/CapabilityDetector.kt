@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import com.tdvorak.nothingmodes.nothing.DeviceIdentity
 import com.tdvorak.nothingmodes.nothing.GlyphHardware
 import com.tdvorak.nothingmodes.nothing.NothingDeviceDetector
 import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
@@ -28,7 +29,7 @@ class CapabilityDetector(
         }
 
         val pm = context.packageManager
-        val isNothing = Build.MANUFACTURER.equals("nothing", ignoreCase = true)
+        val isNothing = DeviceIdentity.isNothingFamily()
         val model = Build.MODEL ?: ""
         val deviceName = resolveDeviceName(model)
 
