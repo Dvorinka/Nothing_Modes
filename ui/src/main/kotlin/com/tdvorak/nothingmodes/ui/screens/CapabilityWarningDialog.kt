@@ -50,7 +50,7 @@ fun CapabilityWarningDialog(
                     text = "This may not run",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.doto(),
+                    fontFamily = NothingFonts.sans(),
                 )
                 Text(
                     text =

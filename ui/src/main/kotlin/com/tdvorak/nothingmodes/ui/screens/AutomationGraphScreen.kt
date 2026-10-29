@@ -1,5 +1,8 @@
 package com.tdvorak.nothingmodes.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,11 +36,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,6 +74,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.util.DisplayUnits
 import com.tdvorak.nothingmodes.ui.util.rememberUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -356,6 +363,10 @@ fun AutomationGraphScreen(
 
     var userScale by remember { mutableFloatStateOf(0f) } // 0 = fit-to-width
     var pan by remember { mutableStateOf(Offset(24f, 12f)) }
+    val scope = rememberCoroutineScope()
+    val decay = rememberSplineBasedDecay<Offset>()
+    var flingJob by remember { mutableStateOf<Job?>(null) }
+    val panDeltas = remember { ArrayDeque<Offset>() }
     var editingAction by remember { mutableStateOf<Pair<NodeKind.ActionNode, Action>?>(null) }
     var editingCondition by remember { mutableStateOf<Pair<List<Int>, Condition>?>(null) }
     var pendingDelete by remember { mutableStateOf<GNode?>(null) }
@@ -457,15 +468,41 @@ fun AutomationGraphScreen(
 
             // Gesture layer is an ancestor so it sees drags that start on nodes;
             // clicks still pass to the nodes' combinedClickable.
+            //
+            // Zoom anchors at the pinch centroid (fingers stay over the same
+            // graph point). On release the pan keeps moving with decay fling.
             Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
-                            detectTransformGestures { _, panDelta, zoom, _ ->
-                                val base = if (userScale > 0f) userScale else fitScale
-                                userScale = (base * zoom).coerceIn(0.25f, 2.5f)
-                                pan += panDelta
+                            while (true) {
+                                panDeltas.clear()
+                                detectTransformGestures { centroid, panDelta, zoom, _ ->
+                                    flingJob?.cancel()
+                                    val base = if (userScale > 0f) userScale else fitScale
+                                    val newScale = (base * zoom).coerceIn(0.25f, 2.5f)
+                                    val factor = newScale / base
+                                    pan = centroid - (centroid - pan) * factor + panDelta
+                                    userScale = newScale
+                                    panDeltas.addLast(panDelta)
+                                    if (panDeltas.size > 6) panDeltas.removeFirst()
+                                }
+                                // Released — fling: average the trailing per-frame
+                                // deltas into a px/s velocity and decay to rest.
+                                if (panDeltas.isNotEmpty()) {
+                                    var vx = 0f
+                                    var vy = 0f
+                                    panDeltas.forEach { vx += it.x; vy += it.y }
+                                    val velocity = Offset(vx, vy) * 60f
+                                    if (velocity.getDistance() > 120f) {
+                                        flingJob =
+                                            scope.launch {
+                                                Animatable(pan, Offset.VectorConverter)
+                                                    .animateDecay(velocity, decay) { pan = value }
+                                            }
+                                    }
+                                }
                             }
                         },
             ) {
@@ -500,18 +537,43 @@ fun AutomationGraphScreen(
                         val start = Offset((a.x + NODE_W.value).dp.toPx(), (a.y + NODE_H.value / 2).dp.toPx())
                         val end = Offset(b.x.dp.toPx(), (b.y + NODE_H.value / 2).dp.toPx())
                         val color = if (edge.dashed) accentColor else lineColor
-                        drawLine(
-                            color = color,
-                            start = start,
-                            end = end,
-                            strokeWidth = 2.dp.toPx(),
-                            pathEffect =
-                                if (edge.dashed) {
-                                    PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
-                                } else {
-                                    null
-                                },
-                        )
+                        val crossLane = kotlin.math.abs(b.x - a.x) > NODE_W.value
+                        if (crossLane) {
+                            // Bezier for lane-to-lane links — reads as a flow
+                            // rather than a hard diagonal.
+                            val dx = kotlin.math.abs(end.x - start.x) / 2f
+                            drawPath(
+                                path =
+                                    Path().apply {
+                                        moveTo(start.x, start.y)
+                                        cubicTo(start.x + dx, start.y, end.x - dx, end.y, end.x, end.y)
+                                    },
+                                color = color,
+                                style =
+                                    Stroke(
+                                        width = 2.dp.toPx(),
+                                        pathEffect =
+                                            if (edge.dashed) {
+                                                PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                                            } else {
+                                                null
+                                            },
+                                    ),
+                            )
+                        } else {
+                            drawLine(
+                                color = color,
+                                start = start,
+                                end = end,
+                                strokeWidth = 2.dp.toPx(),
+                                pathEffect =
+                                    if (edge.dashed) {
+                                        PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                                    } else {
+                                        null
+                                    },
+                            )
+                        }
                         drawCircle(color = color, radius = 3.dp.toPx(), center = end)
                     }
                 }

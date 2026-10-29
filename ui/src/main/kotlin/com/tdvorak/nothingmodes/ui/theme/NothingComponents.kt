@@ -38,11 +38,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBackIos
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -200,12 +203,6 @@ fun NothingScreenHero(
 ) {
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = if (classic) title else title.uppercase(),
-            style = if (classic) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontFamily = if (classic) null else Doto,
-        )
         if (caption != null) {
             Spacer(modifier = Modifier.height(NothingSpacing.xxs))
             Text(
@@ -822,6 +819,7 @@ fun NothingTopBar(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: List<TopBarAction> = emptyList(),
+    overflowActions: List<TopBarAction> = emptyList(),
     showLeadingDot: Boolean = false,
 ) {
     val classic = LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC
@@ -829,11 +827,17 @@ fun NothingTopBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                // Insets before height: the bar is 72/88 dp of *content* —
-                // applying statusBars inside the height eats the row and
-                // clips the title under the status bar.
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .height(if (classic) 72.dp else 88.dp)
+                // CLASSIC: inset before height — the bar is 72 dp of content
+                // (inside-height insets ate the row and clipped the title).
+                // NOTHING: original order — the 88 dp row deliberately loses
+                // status-bar space for its tighter look.
+                .then(
+                    if (classic) {
+                        Modifier.windowInsetsPadding(WindowInsets.statusBars).height(72.dp)
+                    } else {
+                        Modifier.height(88.dp).windowInsetsPadding(WindowInsets.statusBars)
+                    },
+                )
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = if (classic) NothingSpacing.xs else NothingSpacing.lg)
                 .zIndex(1f),
@@ -882,13 +886,13 @@ fun NothingTopBar(
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
             }
 
-            // Title — Space Mono ALL CAPS in Nothing, titleLarge sans in classic.
+            // Title — Space Grotesk in Nothing, plain sans in classic.
             Text(
                 text = if (classic) title else title.uppercase(),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontFamily = if (classic) null else NothingFonts.mono(),
-                letterSpacing = if (classic) 0.sp else 1.5.sp,
+                fontFamily = NothingFonts.sans(),
+                letterSpacing = 0.sp,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
@@ -941,6 +945,71 @@ fun NothingTopBar(
                             softWrap = false,
                             modifier = Modifier.padding(horizontal = NothingSpacing.md),
                         )
+                    }
+                }
+            }
+
+            // Secondary actions collapse into a "..." menu — keeps the bar
+            // from crowding the title or clipping icons off-screen.
+            if (overflowActions.isNotEmpty()) {
+                var overflowOpen by remember { mutableStateOf(false) }
+                Box {
+                    Box(
+                        modifier =
+                            Modifier
+                                .padding(start = NothingSpacing.xs)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    if (classic) {
+                                        Modifier
+                                    } else {
+                                        Modifier
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface)
+                                    },
+                                )
+                                .clickable { overflowOpen = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = overflowOpen,
+                        onDismissRequest = { overflowOpen = false },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ) {
+                        overflowActions.forEach { action ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = if (classic) action.label else action.label.uppercase(),
+                                        fontFamily = NothingFonts.sans(),
+                                    )
+                                },
+                                leadingIcon = {
+                                    if (action.icon != null) {
+                                        Icon(
+                                            imageVector = action.icon,
+                                            contentDescription = null,
+                                            tint =
+                                                if (action.accent) NothingColors.accent
+                                                else MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    overflowOpen = false
+                                    action.onClick()
+                                },
+                            )
+                        }
                     }
                 }
             }

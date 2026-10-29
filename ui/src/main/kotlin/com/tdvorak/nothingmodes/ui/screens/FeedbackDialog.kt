@@ -62,7 +62,7 @@ fun FeedbackDialog(onDismiss: () -> Unit) {
                     text = "Send feedback",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.doto(),
+                    fontFamily = NothingFonts.sans(),
                 )
                 Text(
                     text =
