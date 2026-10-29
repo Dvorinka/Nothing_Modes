@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.16]
+
+### Changed
+- Nothing-style titles and labels now use IBM Plex Sans (OFL) — the typeface Nothing's early identity derived from. The dot-matrix font is now reserved for big numerals, stats, and the onboarding hero, matching how sparingly Nothing OS uses it.
+- Removed duplicate screen titles: the top bar carries the title; the shared hero, Settings, and the builder no longer repeat it.
+
+### Fixed
+- Mode detail top bar: six action chips crowded the title and clipped the delete icon off-screen. Share/Copy/Delete now live in an overflow menu.
+- Automation graph: pinch zoom now anchors at the gesture centroid, pan release keeps fling velocity with decay, and cross-lane edges render as bezier flows.
+
 ## [0.19.15]
 
 ### Fixed

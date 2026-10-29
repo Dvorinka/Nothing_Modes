@@ -1,0 +1,4 @@
+- Nothing-style titles now use IBM Plex Sans; dot font reserved for big numbers
+- Removed duplicate titles under the top bar on every screen
+- Mode screen: Share/Copy/Delete moved into a clean overflow menu
+- Automation graph: smoother pinch zoom and pan fling
