@@ -28,7 +28,6 @@ android {
 dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
-    implementation(libs.hiddenapi.bypass)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.core.ktx)
 

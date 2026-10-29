@@ -22,12 +22,11 @@ import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
-import org.lsposed.hiddenapibypass.HiddenApiBypass
+
 
 @Keep
 class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
     @Volatile private var serviceContext: Context? = null
-    private val hiddenApiBypassed = AtomicBoolean(false)
 
     @Keep
     constructor(context: Context) : this() {
@@ -171,7 +170,6 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
     override fun setWifiTethered(enabled: Boolean): Bundle {
         val ctx = serviceContext ?: return errorBundle("context_missing")
         return try {
-            ensureHiddenApiExemptions()
             val errors = mutableListOf<String>()
             val routes = listOf<(Boolean) -> Unit>(
                 ::tetherViaConnector,
@@ -288,7 +286,6 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         val ctx = serviceContext ?: return errorBundle("context_missing")
         if (address.isNullOrBlank()) return errorBundle("address_missing")
         return try {
-            ensureHiddenApiExemptions()
             val manager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
                 ?: return errorBundle("no_bluetooth")
             val device = manager.adapter?.getRemoteDevice(address)
@@ -314,13 +311,6 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         } catch (e: Exception) {
             errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
         }
-
-    /** "L" exposes every hidden API member in this process; needed on API 30+. */
-    private fun ensureHiddenApiExemptions() {
-        if (hiddenApiBypassed.compareAndSet(false, true)) {
-            runCatching { HiddenApiBypass.addHiddenApiExemptions("L") }
-        }
-    }
 
     private fun errorBundle(code: String, detail: String? = null) = Bundle().apply {
         putInt(KEY_EXIT_CODE, EXIT_INTERNAL_ERROR)
