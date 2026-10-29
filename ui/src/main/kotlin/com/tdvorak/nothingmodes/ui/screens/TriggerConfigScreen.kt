@@ -358,7 +358,7 @@ fun TriggerConfigScreen(
                                     text = (currentType?.label ?: triggerTypeLabel(trigger, units)).uppercase(),
                                     style = MaterialTheme.typography.headlineMedium,
                                     color = MaterialTheme.colorScheme.primary,
-                                    fontFamily = Doto,
+                                    fontFamily = NothingFonts.sans(),
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis,

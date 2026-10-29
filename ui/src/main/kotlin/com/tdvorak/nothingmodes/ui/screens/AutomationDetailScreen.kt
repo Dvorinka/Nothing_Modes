@@ -324,11 +324,14 @@ fun AutomationDetailScreen(
                 actions =
                     listOf(
                         TopBarAction("Run", icon = Icons.Filled.PlayArrow, accent = true, onClick = { viewModel.runNow() }),
-                        TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Edit", icon = Icons.Filled.Edit, onClick = onEdit),
                         TopBarAction("Graph", icon = Icons.Filled.AccountTree, onClick = onGraph),
+                    ),
+                overflowActions =
+                    listOf(
+                        TopBarAction("Share", icon = Icons.Filled.Share, onClick = { viewModel.share() }),
                         TopBarAction("Copy", icon = Icons.Filled.ContentCopy, onClick = { viewModel.duplicate(onBack) }),
-                        TopBarAction("Delete", icon = Icons.Filled.Delete, onClick = { confirmDelete = true }),
+                        TopBarAction("Delete", icon = Icons.Filled.Delete, accent = true, onClick = { confirmDelete = true }),
                     ),
             )
         },
@@ -404,7 +407,7 @@ fun AutomationDetailScreen(
                                 text = data.name,
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontFamily = NothingFonts.doto(),
+                                fontFamily = NothingFonts.sans(),
                             )
                             Spacer(modifier = Modifier.height(NothingSpacing.xs))
                             Row(verticalAlignment = Alignment.CenterVertically) {

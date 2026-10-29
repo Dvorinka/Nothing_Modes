@@ -162,7 +162,7 @@ fun GlyphIconPickerDialog(
                     text = if (classic) "Choose icon" else "CHOOSE ICON",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.doto(),
+                    fontFamily = NothingFonts.sans(),
                 )
 
                 Spacer(modifier = Modifier.height(NothingSpacing.md))

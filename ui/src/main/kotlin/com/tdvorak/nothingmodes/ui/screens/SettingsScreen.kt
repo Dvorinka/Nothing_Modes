@@ -302,14 +302,7 @@ fun SettingsScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = NothingSpacing.md),
             ) {
-                // Hero — title in Doto
-                Text(
-                    text = "SETTINGS",
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = NothingFonts.doto(),
-                )
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                Spacer(modifier = Modifier.height(NothingSpacing.md))
 
                 val prefs = remember { context.getSharedPreferences("nothing_modes", android.content.Context.MODE_PRIVATE) }
                 val isPlay = remember { context.distributionFlavor() == "play" }

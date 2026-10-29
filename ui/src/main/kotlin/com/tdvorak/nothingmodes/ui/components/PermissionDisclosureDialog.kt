@@ -62,7 +62,7 @@ fun PermissionDisclosureDialog(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = NothingFonts.doto(),
+                    fontFamily = NothingFonts.sans(),
                     textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth(),
                 )

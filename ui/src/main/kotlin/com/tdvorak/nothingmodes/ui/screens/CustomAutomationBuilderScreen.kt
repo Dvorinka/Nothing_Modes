@@ -689,14 +689,7 @@ fun CustomAutomationBuilderScreen(
                     bottom = NothingSpacing.xxl,
                 ),
         ) {
-            // Hero — screen title in Doto
             item {
-                Text(
-                    text = if (automationId != null) "EDIT MODE" else "NEW MODE",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = NothingFonts.doto(),
-                )
                 Text(
                     text = "IF · ONLY IF · THEN",
                     style = MaterialTheme.typography.labelMedium,
@@ -734,7 +727,7 @@ fun CustomAutomationBuilderScreen(
                         text = stringResource(R.string.builder_if).uppercase(),
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.doto(),
+                        fontFamily = NothingFonts.sans(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
                     )
                     Text(
@@ -755,7 +748,7 @@ fun CustomAutomationBuilderScreen(
                         text = stringResource(R.string.builder_only_if).uppercase(),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.doto(),
+                        fontFamily = NothingFonts.sans(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
                     )
                     Text(
@@ -810,7 +803,7 @@ fun CustomAutomationBuilderScreen(
                         text = stringResource(R.string.builder_then).uppercase(),
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.doto(),
+                        fontFamily = NothingFonts.sans(),
                         modifier = Modifier.padding(bottom = NothingSpacing.md),
                     )
                     NothingDivider()
@@ -896,7 +889,7 @@ fun CustomAutomationBuilderScreen(
                                 },
                             style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            fontFamily = NothingFonts.doto(),
+                            fontFamily = NothingFonts.sans(),
                             modifier = Modifier.padding(bottom = NothingSpacing.sm),
                         )
                         Text(
@@ -1079,7 +1072,7 @@ fun CustomAutomationBuilderScreen(
                         text = stringResource(R.string.builder_notify).uppercase(),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.doto(),
+                        fontFamily = NothingFonts.sans(),
                         modifier = Modifier.padding(bottom = NothingSpacing.sm),
                     )
                     Text(

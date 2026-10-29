@@ -51,8 +51,21 @@ val Doto =
         Font(R.font.doto, FontWeight.Bold),
     )
 
-// Legacy aliases for any external callers; new code should use GeistSans/GeistMono.
-val SpaceGrotesk = GeistSans
+/** IBM Plex Sans (OFL) — the face Nothing's early branding derived from; titles + labels. */
+val IBMPlex =
+    FontFamily(
+        Font(R.font.ibm_plex_sans_regular, FontWeight.Normal),
+        Font(R.font.ibm_plex_sans_medium, FontWeight.Medium),
+        Font(R.font.ibm_plex_sans_medium, FontWeight.SemiBold),
+        Font(R.font.ibm_plex_sans_bold, FontWeight.Bold),
+    )
+
+/** Space Grotesk (OFL) — kept for any legacy reference. */
+val SpaceGrotesk =
+    FontFamily(
+        Font(R.font.space_grotesk, FontWeight.Normal),
+    )
+
 val SpaceMono = GeistMono
 
 object NothingTypography {
@@ -197,6 +210,9 @@ object NothingFonts {
 
     @Composable
     fun mono(): FontFamily? = if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else SpaceMono
+
+    @Composable
+    fun sans(): FontFamily? = if (LocalUiStyle.current == ThemeManager.UiStyle.CLASSIC) null else IBMPlex
 }
 
 /**
