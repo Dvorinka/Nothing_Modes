@@ -311,6 +311,10 @@ class RealActionExecutor(
                 ActionResult.Failure("exit=${result.exitCode} stderr=${result.stderrText.take(200)}")
             }
         } catch (e: Exception) {
+            // Transport-level failure (UserService died, bind timed out,
+            // grant lost) — Shizuku is authorized-but-broken, which
+            // resolve() can't see. Surface it; throttled internally.
+            com.tdvorak.nothingmodes.shizuku.ShizukuStatusNotifier.notifyUnavailable(this.context)
             ActionResult.Failure(e.message ?: "shell command failed")
         }
     }
