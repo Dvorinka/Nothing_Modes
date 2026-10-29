@@ -1,12 +1,12 @@
 const FROM = 'Nothing Modes <nothing-modes@tdvorak.dev>';
 
-function esc(s: string): string {
+export function esc(s: string): string {
   return String(s ?? '').replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c),
   );
 }
 
-function nothingShell(title: string, body: string): string {
+export function nothingShell(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

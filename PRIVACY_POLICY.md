@@ -10,7 +10,8 @@ Nothing Modes is an open-source automation manager for Android, with optional No
 - Crash and error reporting is **optional and off by default**. If you enable it in Settings → Privacy, the app sends anonymous reports (device model, Android version, app version, exception details and stack trace) to the developer's own server — not to Google or any third party. No account, advertising ID, or device identifier is included.
 - If reporting is off and the app crashes, the next launch shows what happened and offers a one-time **Send report** / **Don't send** choice. Nothing is uploaded without that explicit tap — choosing "Don't send" deletes the report.
 - No account or sign-in is required.
-- No user data is sent to our servers, except the opt-in or explicitly confirmed crash reports described above.
+- **Send feedback** (Settings → Feedback) is user-initiated. It sends the message you type, your app version, device model and Android version to the developer's own server. An email address is only included if you choose to type one into the optional contact field.
+- No user data is sent to our servers, except the opt-in or explicitly confirmed crash reports and user-typed feedback described above.
 
 The app does make a small number of network requests, all initiated by the user or for user-facing features:
 
@@ -20,6 +21,7 @@ The app does make a small number of network requests, all initiated by the user 
 | `raw.githubusercontent.com/.../templates/` | Load the community template index and template bundles | None (anonymous) |
 | GitHub Releases APK download | Download an update APK when the user approves an update | None (anonymous, via device DownloadManager) |
 | `POST nothing-modes.vercel.app/api/crash` | Optional crash/error reporting — only when enabled in Settings → Privacy or confirmed via "Send report" on the post-crash prompt | Anonymous crash report (see above) |
+| `POST nothing-modes.vercel.app/api/feedback` | Send feedback — only when the user fills the form in Settings → Feedback and taps Send | Typed message, app version, device model, Android version, optional contact email |
 
 ## Data Storage
 

@@ -46,6 +46,36 @@ export async function ensureSharedTable(sql: NeonQueryFunction<false, false>) {
   ensured = true;
 }
 
+let feedbackEnsured = false;
+
+/** Same lazy-create pattern as ensureSharedTable; runs once per cold edge. */
+export async function ensureFeedbackTable(sql: NeonQueryFunction<false, false>) {
+  if (feedbackEnsured) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      category text NOT NULL DEFAULT 'other'
+        CHECK (category IN ('bug','idea','other')),
+      message text NOT NULL,
+      contact text NOT NULL DEFAULT '',
+      app_version text NOT NULL DEFAULT '',
+      version_code integer NOT NULL DEFAULT 0,
+      flavor text NOT NULL DEFAULT '',
+      device text NOT NULL DEFAULT '',
+      android_release text NOT NULL DEFAULT '',
+      sdk_int integer NOT NULL DEFAULT 0,
+      client_time bigint NOT NULL DEFAULT 0,
+      raw jsonb NOT NULL DEFAULT '{}'::jsonb
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS feedback_list_idx
+      ON feedback (created_at DESC)
+  `;
+  feedbackEnsured = true;
+}
+
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) {
