@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <rect width="108" height="108" fill="#000000"/>
+
+  <!-- Faint glyph-matrix ring -->
+  <g fill="#FFFFFF" fill-opacity="0.5">
+    <circle cx="54.00" cy="12.00" r="1.00"/>
+    <circle cx="75.00" cy="17.63" r="1.00"/>
+    <circle cx="90.37" cy="33.00" r="1.00"/>
+    <circle cx="96.00" cy="54.00" r="1.00"/>
+    <circle cx="90.37" cy="75.00" r="1.00"/>
+    <circle cx="75.00" cy="90.37" r="1.00"/>
+    <circle cx="54.00" cy="96.00" r="1.00"/>
+    <circle cx="33.00" cy="90.37" r="1.00"/>
+    <circle cx="17.63" cy="75.00" r="1.00"/>
+    <circle cx="12.00" cy="54.00" r="1.00"/>
+    <circle cx="17.63" cy="33.00" r="1.00"/>
+    <circle cx="33.00" cy="17.63" r="1.00"/>
+  </g>
+
+  <!-- Dot-matrix star signature -->
+  <g fill="#FF0000">
+    <circle cx="54.00" cy="40.00" r="2.60"/>
+    <circle cx="47.00" cy="47.00" r="2.60"/>
+    <circle cx="54.00" cy="47.00" r="2.60"/>
+    <circle cx="61.00" cy="47.00" r="2.60"/>
+    <circle cx="40.00" cy="54.00" r="2.60"/>
+    <circle cx="47.00" cy="54.00" r="2.60"/>
+    <circle cx="54.00" cy="54.00" r="2.60"/>
+    <circle cx="61.00" cy="54.00" r="2.60"/>
+    <circle cx="68.00" cy="54.00" r="2.60"/>
+    <circle cx="47.00" cy="61.00" r="2.60"/>
+    <circle cx="54.00" cy="61.00" r="2.60"/>
+    <circle cx="61.00" cy="61.00" r="2.60"/>
+    <circle cx="54.00" cy="68.00" r="2.60"/>
+  </g>
+</svg>
