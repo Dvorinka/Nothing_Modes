@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.15]
+
+### Fixed
+- Play review compliance: removed the `org.lsposed.hiddenapibypass` SDK — an API-bypass library broken by the new Android Runtime on Android 16. The reflective Shizuku calls it enabled (Bluetooth device connect, Wi-Fi tether) keep their try/catch and now report failure honestly where hidden-API enforcement blocks them.
+
 ## [0.19.14]
 
 ### Changed

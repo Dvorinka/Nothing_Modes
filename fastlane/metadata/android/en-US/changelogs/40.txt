@@ -1,0 +1,1 @@
+- Play compliance: removed an unsupported hidden-API bypass SDK flagged by review
