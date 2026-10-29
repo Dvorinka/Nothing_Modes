@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/icon.png" width="128" alt="Nothing Modes logo" />
+</p>
+
 # Nothing Modes
 
 **[nothing-modes.vercel.app](https://nothing-modes.vercel.app)**
