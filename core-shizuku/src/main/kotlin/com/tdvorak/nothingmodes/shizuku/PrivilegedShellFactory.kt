@@ -20,12 +20,18 @@ class PrivilegedShellFactory(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Returns a [PrivilegedShell] if Shizuku is authorized, null otherwise.
-     *  Caches the shell instance; re-checks gateway status on each call. */
+     *  Caches the shell instance; re-checks gateway status on each call.
+     *  Also the choke point for user-visible loss reporting: a dead/revoked
+     *  Shizuku surfaces a throttled heads-up instead of failing silently in
+     *  the action log; a working one gets remembered and clears the alert. */
     fun resolve(): PrivilegedShell? {
         if (gateway.status() != ShizukuGatewayStatus.AUTHORIZED) {
             cached = null
+            ShizukuStatusNotifier.notifyUnavailable(context)
             return null
         }
+        ShizukuStatusNotifier.markAuthorized(context)
+        ShizukuStatusNotifier.cancel(context)
         if (cached == null) {
             cached = ShizukuPrivilegedShell(context, gateway, scope)
         }

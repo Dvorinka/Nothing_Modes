@@ -18,7 +18,17 @@ import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.automation.R
 import com.tdvorak.nothingmodes.engine.model.ScreenState
 import com.tdvorak.nothingmodes.engine.phone.PhoneNumberFormatter
+import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
+import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
+import com.tdvorak.nothingmodes.shizuku.ShizukuStatusNotifier
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
 /**
  * Persistent foreground service that keeps dynamic broadcast receivers
@@ -30,7 +40,10 @@ import java.util.Locale
  *
  * Start via: context.startForegroundService(Intent(context, PersistentMonitorService::class.java))
  */
+@AndroidEntryPoint
 class PersistentMonitorService : Service() {
+    @Inject lateinit var shizukuGateway: ShizukuGateway
+
     private var batteryReceiver: BroadcastReceiver? = null
     private var screenReceiver: BroadcastReceiver? = null
     private var connectivityReceiver: BroadcastReceiver? = null
@@ -51,9 +64,25 @@ class PersistentMonitorService : Service() {
     // and their setup work stays out of the FGS-start deadline.
     private var monitorsStarted = false
 
+    // Watches the shared gateway for Shizuku loss — kept service-scoped so
+    // the observation outlives the UI.
+    private val shizukuWatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // ForegroundServiceStartNotAllowedException exists only on API 31+; the
+    // catch is inert below it — lint just can't see that.
+    @SuppressLint("NewApi")
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        // The platform's start-in-time deadline runs from
+        // startForegroundService(), not from onStartCommand — going
+        // foreground here keeps a slow cold start from eating the window.
+        // onStartCommand still re-asserts and owns the stop-on-denied path.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            Log.w(TAG, "Foreground start not allowed at create; retry in onStartCommand", e)
+        }
     }
 
     // ForegroundServiceStartNotAllowedException exists only on API 31+; the
@@ -86,7 +115,27 @@ class PersistentMonitorService : Service() {
         registerTorchCallback()
         startCalendarObserver()
         deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
+        watchShizukuStatus()
         Log.i(TAG, "Persistent monitor started")
+    }
+
+    /**
+     * Shizuku dies silently across OTAs and idle kills — until now the only
+     * evidence was a failed action in the log. The gateway's binder-dead
+     * callback refreshes this flow; a loss after access once worked gets a
+     * throttled heads-up telling the user to restart Shizuku.
+     */
+    private fun watchShizukuStatus() {
+        shizukuWatchScope.launch {
+            shizukuGateway.observeStatus().collect { status ->
+                if (status == ShizukuGatewayStatus.AUTHORIZED) {
+                    ShizukuStatusNotifier.markAuthorized(this@PersistentMonitorService)
+                    ShizukuStatusNotifier.cancel(this@PersistentMonitorService)
+                } else {
+                    ShizukuStatusNotifier.notifyUnavailable(this@PersistentMonitorService)
+                }
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -103,6 +152,7 @@ class PersistentMonitorService : Service() {
         calendarObserver = null
         deviceStateMonitor?.stop()
         deviceStateMonitor = null
+        shizukuWatchScope.cancel()
         Log.i(TAG, "Persistent monitor stopped")
         super.onDestroy()
     }

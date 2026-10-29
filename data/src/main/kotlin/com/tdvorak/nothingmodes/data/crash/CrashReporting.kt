@@ -114,11 +114,20 @@ object CrashReporting {
         previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             runCatching {
-                saveReport(buildReport(thread, error, kind = "crash"))
+                if (!isDeadSystemError(error)) {
+                    saveReport(buildReport(thread, error, kind = "crash"))
+                }
             }
             previousHandler?.uncaughtException(thread, error)
         }
     }
+
+    // DeadSystemException/DeadSystemRuntimeException means system_server was
+    // already dying — the framework throws it into any service dispatch and
+    // kills the process regardless. Reporting it is noise, not an app bug.
+    // Matched by name because both classes are hidden framework internals.
+    private fun isDeadSystemError(error: Throwable): Boolean =
+        generateSequence(error) { it.cause }.any { "DeadSystem" in it.javaClass.name }
 
     private fun buildReport(
         thread: Thread,

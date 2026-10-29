@@ -61,6 +61,12 @@
     border-radius:99px; text-transform:uppercase; margin-top:.15rem; }
   .badge.crash { background:rgba(215,25,33,.15); color:var(--red); border:1px solid rgba(215,25,33,.4); }
   .badge.error { background:rgba(224,160,48,.1); color:var(--amber); border:1px solid rgba(224,160,48,.35); }
+  .badge.other { background:rgba(138,138,138,.12); color:var(--dim); border:1px solid var(--line); }
+  .fb-msg { color:var(--fg); font-size:.88rem; line-height:1.6; margin-top:.4rem;
+    white-space:pre-wrap; word-break:break-word; }
+  .fb-contact { color:var(--red); font-size:.78rem; font-family:"Geist Mono",monospace;
+    text-decoration:none; }
+  .fb-contact:hover { text-decoration:underline; }
   .group-body { flex:1; min-width:0; }
   .sig { font-family:"Geist Mono",monospace; font-weight:600; font-size:.9rem; word-break:break-all; }
   .msg { color:var(--dim); font-size:.82rem; margin-top:.25rem; word-break:break-all; }
@@ -81,7 +87,7 @@
   pre { background:var(--panel2); border:1px solid var(--line); border-radius:.45rem; padding:.8rem;
     overflow-x:auto; font-size:.72rem; line-height:1.55; white-space:pre-wrap; word-break:break-all; color:#bbb; }
 
-  #status, #subsStatus { color:var(--dim); margin-bottom:1rem; font-size:.85rem; min-height:1.2em; }
+  #status, #subsStatus, #fbStatus { color:var(--dim); margin-bottom:1rem; font-size:.85rem; min-height:1.2em; }
   .empty { color:var(--dim); text-align:center; padding:3rem 0; font-family:"Geist Mono",monospace; font-size:.85rem; }
 
   /* ── tabs & submissions ── */
@@ -115,6 +121,7 @@
   <div class="tabs">
     <button class="chip on" data-view="crashes">Crash reports</button>
     <button class="chip" data-view="subs">Submissions <span id="subBadge" class="subbadge"></span></button>
+    <button class="chip" data-view="feedback">Feedback</button>
   </div>
 
   <div id="crashesView">
@@ -143,6 +150,17 @@
     </div>
     <div id="subsStatus"></div>
     <div id="subsList"></div>
+  </div>
+
+  <div id="feedbackView" style="display:none">
+    <div class="filters" style="margin-bottom:1rem">
+      <button class="chip on" data-fcat="all">All</button>
+      <button class="chip" data-fcat="bug"><span class="dot" style="background:var(--red)"></span>Bugs</button>
+      <button class="chip" data-fcat="idea"><span class="dot" style="background:var(--amber)"></span>Ideas</button>
+      <button class="chip" data-fcat="other">Other</button>
+    </div>
+    <div id="fbStatus" class="mono"></div>
+    <div id="fbList"></div>
   </div>
 </div>
 
@@ -284,11 +302,14 @@ let subs = [];
 document.querySelectorAll('[data-view]').forEach(b =>
   b.addEventListener('click', () => {
     document.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('on', x === b));
-    const subs_ = b.dataset.view === 'subs';
-    document.getElementById('crashesView').style.display = subs_ ? 'none' : '';
-    document.getElementById('subsView').style.display = subs_ ? '' : 'none';
-    document.getElementById('viewTitle').textContent = subs_ ? 'SUBMISSIONS' : 'CRASH REPORTS';
-    if (subs_) loadSubs();
+    const view = b.dataset.view;
+    document.getElementById('crashesView').style.display = view === 'crashes' ? '' : 'none';
+    document.getElementById('subsView').style.display = view === 'subs' ? '' : 'none';
+    document.getElementById('feedbackView').style.display = view === 'feedback' ? '' : 'none';
+    document.getElementById('viewTitle').textContent =
+      view === 'subs' ? 'SUBMISSIONS' : view === 'feedback' ? 'FEEDBACK' : 'CRASH REPORTS';
+    if (view === 'subs') loadSubs();
+    if (view === 'feedback') loadFeedback();
   }));
 document.querySelectorAll('[data-sstatus]').forEach(b =>
   b.addEventListener('click', () => {
@@ -382,6 +403,61 @@ async function moderate(id, decision) {
   });
   if (!res.ok) { alert('Failed: ' + await res.text()); return; }
   loadSubs();
+}
+
+// ── Feedback tab ────────────────────────────────────────────────────────────
+let fbCat = 'all';
+let fb = [];
+
+document.querySelectorAll('[data-fcat]').forEach(b =>
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-fcat]').forEach(x => x.classList.toggle('on', x === b));
+    fbCat = b.dataset.fcat;
+    renderFb();
+  }));
+
+async function loadFeedback() {
+  const el = document.getElementById('fbStatus');
+  el.textContent = 'Loading…';
+  const res = await fetch('/api/feedback', {
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('crash_admin_token') }
+  });
+  if (res.status === 401) { el.textContent = 'Unauthorized.'; return; }
+  const data = await res.json();
+  fb = data.feedback || [];
+  renderFb();
+}
+
+function renderFb() {
+  const list = document.getElementById('fbList');
+  const rows = fb.filter(f => fbCat === 'all' || f.category === fbCat);
+  document.getElementById('fbStatus').textContent =
+    rows.length && fbCat !== 'all' ? `${rows.length} of ${fb.length}` : '';
+  list.innerHTML = '';
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty">NO FEEDBACK' + (fbCat === 'all' ? ' YET' : ' · ' + fbCat.toUpperCase()) + '</div>';
+    return;
+  }
+  for (const f of rows) {
+    const el = document.createElement('div');
+    el.className = 'group';
+    el.innerHTML = `
+      <div class="group-head" style="cursor:default">
+        <span class="badge ${f.category === 'bug' ? 'crash' : f.category === 'idea' ? 'error' : 'other'}">${esc(f.category)}</span>
+        <div class="group-body">
+          <div class="fb-msg">${esc(f.message)}</div>
+          ${f.contact ? `<a class="fb-contact" href="mailto:${encodeURIComponent(f.contact)}">${esc(f.contact)}</a>` : ''}
+          <div class="meta">
+            <span class="tag">${ago(f.created_at)}</span>
+            <span class="tag">v${esc(f.app_version)} (${f.version_code})</span>
+            <span class="tag">${esc(f.flavor)}</span>
+            <span class="tag">${esc(f.device)}</span>
+            <span class="tag">Android ${esc(f.android_release)} · SDK ${f.sdk_int}</span>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(el);
+  }
 }
 </script>
 </body>

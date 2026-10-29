@@ -980,6 +980,17 @@ fun SettingsScreen(
                         )
                     }
 
+                    // ── Feedback ──────────────────────────────────────────────
+                    var showFeedback by remember { mutableStateOf(false) }
+                    NothingSectionHeader(text = "Feedback")
+                    NothingCard {
+                        NothingListRow(
+                            title = "Send feedback",
+                            subtitle = "Bug report or idea — goes straight to the developer's inbox.",
+                            onClick = { showFeedback = true },
+                        )
+                    }
+
                     // ── Misc ──────────────────────────────────────────────────
                     NothingSectionHeader(text = "More")
                     NothingCard {
@@ -1083,6 +1094,10 @@ fun SettingsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+
+                    if (showFeedback) {
+                        FeedbackDialog(onDismiss = { showFeedback = false })
+                    }
                 }
             }
         }

@@ -17,6 +17,16 @@ Built like a premium system app: OLED-black surfaces, monoline iconography, dot-
   <img src="art/screenshots/catalog.png" width="24%" alt="Action catalog" />
 </p>
 
+## Beta testing (Google Play)
+
+The Play Store build is in **closed testing** — new testers are welcome.
+
+1. **Join the tester group:** [nothing-modes-testers](https://groups.google.com/g/nothing-modes-testers) — anyone can join, no approval needed.
+2. **Become a tester:** open the [opt-in link](https://play.google.com/apps/testing/com.tdvorak.nothingmodes) and tap **Become a tester**.
+3. **Install the app** from the [Play Store listing](https://play.google.com/store/apps/details?id=com.tdvorak.nothingmodes).
+
+Use the same Google account for all three steps — the one on your phone. If the opt-in page says you're not a tester right after joining the group, wait a few minutes and retry; membership can take a moment to reach Play. Feedback goes straight from the app: *Settings → Feedback → Send feedback*.
+
 ## What it does
 
 - **Modes** — persistent or event-based automations (Sleep, Work, Gaming, or event triggers) with optional conditions, actions, and automatic state restoration.
