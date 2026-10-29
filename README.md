@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/icon.png" width="128" alt="Nothing Modes logo" />
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="Nothing Modes logo" />
 </p>
 
 # Nothing Modes
