@@ -1,0 +1,3 @@
+- Classic style restyled: monochrome black-slate, no color accent — Samsung Modes & Routines look
+- Fixed top bar title clipping under the status bar
+- Better Nothing device detection — CMF phones and brand quirks now recognized

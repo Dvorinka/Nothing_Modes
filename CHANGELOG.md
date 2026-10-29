@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.14]
+
+### Changed
+- Classic UI style restyled: monochrome black-slate — pure black canvas, neutral gray surfaces with no blue tint, white/gray hierarchy, and zero color accent (Samsung Modes & Routines look). Replaces the soft-teal palette.
+- Nothing device detection unified into `DeviceIdentity.isNothingFamily()`: checks manufacturer and brand for `nothing`/`cmf` — CMF phones now resolve to the Nothing style, replacing four duplicated manufacturer checks.
+
+### Fixed
+- Top bar title clipped under the status bar: the inset was applied inside the fixed row height — it now pads before the height.
+- Classic top-bar title no longer forces the monospace face; it uses the normal sans type.
+
 ## [0.19.13]
 
 ### Added
