@@ -13,7 +13,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.Automation
+import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.AutomationStatus
+import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.CreatedBy
+import com.tdvorak.nothingmodes.engine.model.DndMode
+import com.tdvorak.nothingmodes.engine.model.Trigger
+import com.tdvorak.nothingmodes.engine.model.VolumeStream
+import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
 import com.tdvorak.nothingmodes.ui.theme.NothingCardLarge
 import com.tdvorak.nothingmodes.ui.theme.NothingColors
@@ -22,7 +37,110 @@ import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingListRow
 import com.tdvorak.nothingmodes.ui.theme.NothingSectionHeader
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
+import com.tdvorak.nothingmodes.ui.util.defaultTimeZone
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** A ready-made mode the guide installs in one tap. */
+data class StarterMode(
+    val subtitle: String,
+    val automation: Automation,
+)
+
+@HiltViewModel
+class GuideViewModel
+    @Inject
+    constructor(
+        private val store: AutomationStore,
+    ) : ViewModel() {
+        val starters: List<StarterMode> = starterModes(defaultTimeZone())
+
+        private val _installed = MutableStateFlow<Set<String>>(emptySet())
+        val installed: StateFlow<Set<String>> = _installed.asStateFlow()
+
+        init {
+            viewModelScope.launch {
+                _installed.value =
+                    starters
+                        .filter { store.get(it.automation.id) != null }
+                        .map { it.automation.id.value }
+                        .toSet()
+            }
+        }
+
+        /** Deterministic ids — installing twice overwrites, never duplicates. */
+        fun install(starterId: String) {
+            val starter = starters.firstOrNull { it.automation.id.value == starterId } ?: return
+            viewModelScope.launch {
+                store.save(starter.automation)
+                _installed.value = _installed.value + starterId
+            }
+        }
+    }
+
+private fun starterModes(tz: String): List<StarterMode> =
+    listOf(
+        StarterMode(
+            subtitle = "No trigger — run it from the Quick Settings tile when you enter a meeting. Actions: DND Total, ringer volume 0.",
+            automation =
+                Automation(
+                    id = AutomationId("starter-quick-silence"),
+                    name = "Quick silence",
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.IMPORT,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.Manual,
+                    actions =
+                        listOf(
+                            Action.SetDnd(DndMode.TOTAL),
+                            Action.SetVolume(mapOf(VolumeStream.RING to 0)),
+                        ),
+                    icon = "volume",
+                ),
+        ),
+        StarterMode(
+            subtitle = "Trigger: time every night. Actions: DND Total, brightness 20%, screen timeout 30 s.",
+            automation =
+                Automation(
+                    id = AutomationId("starter-bedtime"),
+                    name = "Bedtime",
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.IMPORT,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.Time(at = "23:00", tz = tz),
+                    actions =
+                        listOf(
+                            Action.SetDnd(DndMode.TOTAL),
+                            Action.SetBrightness(51),
+                            Action.SetScreenTimeout(30_000),
+                        ),
+                    icon = "nights",
+                ),
+        ),
+        StarterMode(
+            // Installed disabled on purpose — an any-Wi-Fi trigger would fire
+            // at home too. The user sets their network name, then enables it.
+            subtitle = "Installs disabled — open it, set your work Wi-Fi name, then enable. Action: DND Priority.",
+            automation =
+                Automation(
+                    id = AutomationId("starter-work-focus"),
+                    name = "Work focus",
+                    type = AutomationType.MODE,
+                    createdBy = CreatedBy.IMPORT,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.WifiConnected(ssid = null),
+                    actions = listOf(Action.SetDnd(DndMode.PRIORITY)),
+                    enabled = false,
+                    icon = "work",
+                ),
+        ),
+    )
 
 /**
  * First-run "how to use" guide: what a mode is, the 4-step first automation,
@@ -32,7 +150,9 @@ import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 @Composable
 fun GuideScreen(
     onBack: () -> Unit,
+    viewModel: GuideViewModel = hiltViewModel(),
 ) {
+    val installed by viewModel.installed.collectAsState()
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -108,20 +228,22 @@ fun GuideScreen(
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxl))
 
-                NothingSectionHeader(text = "Starter modes — no Shizuku needed")
+                NothingSectionHeader(text = "Starter modes — tap to install")
                 NothingCard {
-                    NothingListRow(
-                        title = "Quick silence",
-                        subtitle = "No trigger. Actions: DND Total, ringer volume 0. Run it from the Quick Settings tile when you enter a meeting.",
-                    )
-                    NothingListRow(
-                        title = "Work focus",
-                        subtitle = "Trigger: Wi-Fi named your work network. Actions: DND, launch your calendar.",
-                    )
-                    NothingListRow(
-                        title = "Bedtime",
-                        subtitle = "Trigger: time every night. Actions: DND Total, brightness 20%, screen timeout 30 s.",
-                    )
+                    viewModel.starters.forEach { starter ->
+                        val isInstalled = starter.automation.id.value in installed
+                        NothingListRow(
+                            title = starter.automation.name,
+                            subtitle = starter.subtitle,
+                            onClick = if (isInstalled) null else ({ viewModel.install(starter.automation.id.value) }),
+                            trailing = {
+                                NothingTag(
+                                    text = if (isInstalled) "Installed" else "Install",
+                                    active = isInstalled,
+                                )
+                            },
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(NothingSpacing.xxl))
