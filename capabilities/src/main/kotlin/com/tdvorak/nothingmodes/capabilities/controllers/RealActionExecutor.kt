@@ -6,6 +6,7 @@ import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.bluetooth.BluetoothDevice
+import android.media.AudioManager
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothManager
@@ -88,6 +89,11 @@ class RealActionExecutor(
     private val glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
     private val pendingUnlockStore: PendingUnlockStore? = null,
     private val lockedWriteStore: PendingUnlockStore? = null,
+    /** Fires a manual run of another automation by id — injected from
+     *  automation-android where the engine/service is visible. */
+    private val modeRunner: (suspend (String) -> ActionResult)? = null,
+    /** Enables/disables another automation by id. */
+    private val modeEnabler: (suspend (String, Boolean) -> ActionResult)? = null,
 ) : ActionExecutor {
     override suspend fun execute(
         action: Action,
@@ -301,6 +307,27 @@ class RealActionExecutor(
             is Action.ShellCommand -> executeShell(listOf("sh", "-c", action.command))
             is Action.ShowToast -> showToast(action.message)
             is Action.SpeakText -> speakText(action.text)
+            is Action.RunMode ->
+                when {
+                    action.automationId == context.automationId.value -> ActionResult.Failure("a mode cannot run itself")
+                    action.automationId.isBlank() -> ActionResult.Failure("no mode selected")
+                    else -> modeRunner?.invoke(action.automationId) ?: ActionResult.Failure("mode runner unavailable")
+                }
+            is Action.SetModeEnabled ->
+                if (action.automationId.isBlank()) {
+                    ActionResult.Failure("no mode selected")
+                } else {
+                    modeEnabler?.invoke(action.automationId, action.enabled) ?: ActionResult.Failure("mode control unavailable")
+                }
+            is Action.RejectCall -> executeShell(listOf("input", "keyevent", "6"))
+            is Action.SpeakerPhone -> speakerPhone(action.on)
+            is Action.ForceStopApp ->
+                if (action.packageName.isBlank()) {
+                    ActionResult.Failure("no app selected")
+                } else {
+                    executeShell(listOf("am", "force-stop", action.packageName))
+                }
+            is Action.ExpandStatusBar -> executeShell(listOf("cmd", "statusbar", "expand-notifications"))
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
                 when {
@@ -1255,6 +1282,14 @@ class RealActionExecutor(
         }
     }
 
+    private fun speakerPhone(on: Boolean): ActionResult =
+        try {
+            (context.getSystemService(Context.AUDIO_SERVICE) as AudioManager).isSpeakerphoneOn = on
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "speakerphone failed")
+        }
+
     private suspend fun showToast(message: String): ActionResult {
         if (message.isBlank()) return ActionResult.Failure("empty message")
         return try {
@@ -2131,6 +2166,8 @@ class RealActionExecutor(
             glyphMatrixProvider: NothingGlyphMatrixProvider? = null,
             pendingUnlockStore: PendingUnlockStore? = null,
             lockedWriteStore: PendingUnlockStore? = null,
+            modeRunner: (suspend (String) -> ActionResult)? = null,
+            modeEnabler: (suspend (String, Boolean) -> ActionResult)? = null,
         ): RealActionExecutor =
             RealActionExecutor(
                 context = context.applicationContext,
@@ -2147,6 +2184,8 @@ class RealActionExecutor(
                 glyphMatrixProvider = glyphMatrixProvider,
                 pendingUnlockStore = pendingUnlockStore,
                 lockedWriteStore = lockedWriteStore,
+                modeRunner = modeRunner,
+                modeEnabler = modeEnabler,
             )
     }
 }

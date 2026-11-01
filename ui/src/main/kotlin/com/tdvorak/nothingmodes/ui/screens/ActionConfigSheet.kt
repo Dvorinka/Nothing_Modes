@@ -20,7 +20,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -881,6 +886,49 @@ fun ActionConfigContent(
             )
         }
 
+        is Action.RunMode -> {
+            ModeSelector(
+                manualOnly = true,
+                currentId = a.automationId,
+                onSelect = { onActionChange(a.copy(automationId = it)) },
+            )
+        }
+
+        is Action.SetModeEnabled -> {
+            Column {
+                ModeSelector(
+                    manualOnly = false,
+                    currentId = a.automationId,
+                    onSelect = { onActionChange(a.copy(automationId = it)) },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                BooleanRow(
+                    label = "Enabled",
+                    checked = a.enabled,
+                    onChange = { onActionChange(a.copy(enabled = it)) },
+                )
+            }
+        }
+
+        is Action.RejectCall -> Unit
+
+        is Action.SpeakerPhone -> {
+            BooleanRow(
+                label = "Speakerphone on",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+        }
+
+        is Action.ForceStopApp -> {
+            AppPicker(
+                currentPackage = a.packageName,
+                onPkgChange = { onActionChange(a.copy(packageName = it)) },
+            )
+        }
+
+        is Action.ExpandStatusBar -> Unit
+
         is Action.LaunchApp -> {
             MultiAppPicker(
                 currentPackages = a.packages,
@@ -1738,6 +1786,12 @@ private fun actionTitle(action: Action): String =
         is Action.ShellCommand -> "Shell command"
         is Action.ShowToast -> "Show toast"
         is Action.SpeakText -> "Speak text"
+        is Action.RunMode -> "Run mode"
+        is Action.SetModeEnabled -> "Enable mode"
+        is Action.RejectCall -> "Reject call"
+        is Action.SpeakerPhone -> "Speakerphone"
+        is Action.ForceStopApp -> "Force stop app"
+        is Action.ExpandStatusBar -> "Expand status bar"
         is Action.Group -> action.name
         else -> "Action"
     }
@@ -2082,3 +2136,47 @@ internal fun parseColorHex(text: String): Int? =
         if (hex.length != 6) return@runCatching null
         Integer.parseInt(hex, 16) or 0xFF000000.toInt()
     }.getOrNull()
+
+/** Loads automations for the Run mode / Enable mode pickers. */
+@HiltViewModel
+class ModePickerViewModel
+    @Inject
+    constructor(
+        store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore,
+    ) : androidx.lifecycle.ViewModel() {
+        data class ModeEntry(
+            val id: String,
+            val name: String,
+            val manual: Boolean,
+        )
+
+        val modes = kotlinx.coroutines.flow.MutableStateFlow<List<ModeEntry>>(emptyList())
+
+        init {
+            viewModelScope.launch {
+                modes.value =
+                    store.all().map {
+                        ModeEntry(it.id.value, it.name, it.trigger is Trigger.Manual)
+                    }
+            }
+        }
+    }
+
+/** Dropdown of saved modes; manualOnly restricts to manual-trigger targets. */
+@Composable
+internal fun ModeSelector(
+    manualOnly: Boolean,
+    currentId: String,
+    onSelect: (String) -> Unit,
+    viewModel: ModePickerViewModel = hiltViewModel(),
+) {
+    val all by viewModel.modes.collectAsState()
+    val options = all.filter { !manualOnly || it.manual }
+    val current = options.firstOrNull { it.id == currentId }
+    NothingEnumSelector(
+        label = "Mode",
+        value = current?.name ?: "(pick a mode)",
+        options = options.map { it.name },
+        onSelect = { sel -> options.firstOrNull { it.name == sel }?.let { onSelect(it.id) } },
+    )
+}

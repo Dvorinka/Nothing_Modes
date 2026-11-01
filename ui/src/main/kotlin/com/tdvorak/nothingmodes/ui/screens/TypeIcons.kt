@@ -17,6 +17,8 @@ import androidx.compose.material.icons.outlined.BatterySaver
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.CallEnd
 import androidx.compose.material.icons.outlined.Brightness6
 import androidx.compose.material.icons.outlined.BrightnessLow
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -67,6 +69,7 @@ import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.ToggleOn
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.WatchLater
@@ -220,6 +223,12 @@ fun iconForAction(action: Action): ImageVector =
         is Action.ShellCommand -> Icons.Outlined.Terminal
         is Action.ShowToast -> Icons.Outlined.Message
         is Action.SpeakText -> Icons.Outlined.RecordVoiceOver
+        is Action.RunMode -> Icons.Outlined.PlayCircle
+        is Action.SetModeEnabled -> Icons.Outlined.ToggleOn
+        is Action.RejectCall -> Icons.Outlined.CallEnd
+        is Action.SpeakerPhone -> Icons.AutoMirrored.Outlined.VolumeUp
+        is Action.ForceStopApp -> Icons.Outlined.Block
+        is Action.ExpandStatusBar -> Icons.Outlined.UnfoldMore
         is Action.Group -> Icons.Outlined.Bolt
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,

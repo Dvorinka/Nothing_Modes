@@ -31,6 +31,12 @@ class UtilityActionsTest {
                 Action.ShellCommand("pm list packages"),
                 Action.ShowToast("hello"),
                 Action.SpeakText("good morning"),
+                Action.RunMode("mode-1"),
+                Action.SetModeEnabled("mode-1", false),
+                Action.RejectCall,
+                Action.SpeakerPhone(true),
+                Action.ForceStopApp("com.example.app"),
+                Action.ExpandStatusBar,
             )
         actions.forEach { assertEquals(it, roundTrip(it)) }
     }
@@ -52,6 +58,30 @@ class UtilityActionsTest {
         assertTrue(
             json.encodeToString(Action.serializer(), Action.SpeakText())
                 .contains("\"type\":\"speak_text\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.RunMode())
+                .contains("\"type\":\"run_mode\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.SetModeEnabled())
+                .contains("\"type\":\"set_mode_enabled\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.RejectCall)
+                .contains("\"type\":\"reject_call\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.SpeakerPhone(true))
+                .contains("\"type\":\"speakerphone\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.ForceStopApp())
+                .contains("\"type\":\"force_stop_app\""),
+        )
+        assertTrue(
+            json.encodeToString(Action.serializer(), Action.ExpandStatusBar)
+                .contains("\"type\":\"expand_status_bar\""),
         )
     }
 
@@ -79,6 +109,19 @@ class UtilityActionsTest {
                 listOf(Action.HttpRequest(), Action.ShowToast("x"), Action.SpeakText("x")),
             )
         assertTrue(CapabilityIds.SHIZUKU_REQUIRED !in noShell)
+
+        val shellGated =
+            CapabilityRequirements.derive(
+                Trigger.Immediate,
+                listOf(Action.RejectCall, Action.ForceStopApp("x"), Action.ExpandStatusBar),
+            )
+        assertTrue(CapabilityIds.SHIZUKU_REQUIRED in shellGated)
+        val local =
+            CapabilityRequirements.derive(
+                Trigger.Immediate,
+                listOf(Action.RunMode("m"), Action.SetModeEnabled("m", true), Action.SpeakerPhone(true)),
+            )
+        assertTrue(CapabilityIds.SHIZUKU_REQUIRED !in local)
     }
 
     @Test

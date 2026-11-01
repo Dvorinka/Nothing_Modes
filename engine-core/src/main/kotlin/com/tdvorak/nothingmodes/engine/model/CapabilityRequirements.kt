@@ -106,6 +106,12 @@ object CapabilityIds {
     const val ACTION_SHELL_COMMAND = "action_shell_command"
     const val ACTION_SHOW_TOAST = "action_show_toast"
     const val ACTION_SPEAK_TEXT = "action_speak_text"
+    const val ACTION_RUN_MODE = "action_run_mode"
+    const val ACTION_SET_MODE_ENABLED = "action_set_mode_enabled"
+    const val ACTION_REJECT_CALL = "action_reject_call"
+    const val ACTION_SPEAKERPHONE = "action_speakerphone"
+    const val ACTION_FORCE_STOP_APP = "action_force_stop_app"
+    const val ACTION_EXPAND_STATUS_BAR = "action_expand_status_bar"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -168,6 +174,9 @@ object CapabilityLabels {
             CapabilityIds.STATE_READER_SYSFS,
             CapabilityIds.STATE_READER_DUMPSYS_FIELD,
             CapabilityIds.ACTION_SHELL_COMMAND,
+            CapabilityIds.ACTION_REJECT_CALL,
+            CapabilityIds.ACTION_FORCE_STOP_APP,
+            CapabilityIds.ACTION_EXPAND_STATUS_BAR,
             -> "Shizuku"
             else -> ""
         }
@@ -300,6 +309,12 @@ object CapabilityRequirements {
             is Action.ShellCommand -> setOf(CapabilityIds.ACTION_SHELL_COMMAND, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.ShowToast -> setOf(CapabilityIds.ACTION_SHOW_TOAST)
             is Action.SpeakText -> setOf(CapabilityIds.ACTION_SPEAK_TEXT)
+            is Action.RunMode -> setOf(CapabilityIds.ACTION_RUN_MODE)
+            is Action.SetModeEnabled -> setOf(CapabilityIds.ACTION_SET_MODE_ENABLED)
+            is Action.RejectCall -> setOf(CapabilityIds.ACTION_REJECT_CALL, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SpeakerPhone -> setOf(CapabilityIds.ACTION_SPEAKERPHONE)
+            is Action.ForceStopApp -> setOf(CapabilityIds.ACTION_FORCE_STOP_APP, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ExpandStatusBar -> setOf(CapabilityIds.ACTION_EXPAND_STATUS_BAR, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

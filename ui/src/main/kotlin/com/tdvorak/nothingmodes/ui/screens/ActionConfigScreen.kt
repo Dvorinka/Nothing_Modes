@@ -501,6 +501,47 @@ fun ActionConfigScreen(
                         )
                     }
 
+                    is Action.RunMode -> {
+                        ModeSelector(
+                            manualOnly = true,
+                            currentId = a.automationId,
+                            onSelect = { action = a.copy(automationId = it) },
+                        )
+                    }
+
+                    is Action.SetModeEnabled -> {
+                        ModeSelector(
+                            manualOnly = false,
+                            currentId = a.automationId,
+                            onSelect = { action = a.copy(automationId = it) },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        BooleanRow(
+                            label = "Enabled",
+                            checked = a.enabled,
+                            onChange = { action = a.copy(enabled = it) },
+                        )
+                    }
+
+                    is Action.RejectCall -> Unit
+
+                    is Action.SpeakerPhone -> {
+                        BooleanRow(
+                            label = "Speakerphone on",
+                            checked = a.on,
+                            onChange = { action = a.copy(on = it) },
+                        )
+                    }
+
+                    is Action.ForceStopApp -> {
+                        AppPicker(
+                            currentPackage = a.packageName,
+                            onPkgChange = { action = a.copy(packageName = it) },
+                        )
+                    }
+
+                    is Action.ExpandStatusBar -> Unit
+
                     is Action.LaunchApp -> {
                         MultiAppPicker(
                             currentPackages = a.packages,

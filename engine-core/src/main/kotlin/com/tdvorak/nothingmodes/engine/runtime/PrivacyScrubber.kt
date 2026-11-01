@@ -172,6 +172,20 @@ object PrivacyScrubber {
                 if (action.text.isNotBlank()) missing += "spoken text"
                 action.copy(text = "")
             }
+            // Mode ids and package names are device-local references — a
+            // shared template must be re-pointed at the importer's own modes.
+            is Action.RunMode -> {
+                if (action.automationId.isNotBlank()) missing += "mode to run"
+                action.copy(automationId = "")
+            }
+            is Action.SetModeEnabled -> {
+                if (action.automationId.isNotBlank()) missing += "mode to toggle"
+                action.copy(automationId = "")
+            }
+            is Action.ForceStopApp -> {
+                if (action.packageName.isNotBlank()) missing += "app to force-stop"
+                action.copy(packageName = "")
+            }
             is Action.SetWallpaper -> {
                 if (action.uri.isNotBlank()) missing += "wallpaper image"
                 action.copy(uri = "")

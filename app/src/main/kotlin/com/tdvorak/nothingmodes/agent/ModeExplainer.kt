@@ -254,6 +254,12 @@ object ModeExplainer {
             is Action.ShellCommand -> "run shell command '${action.command}' via Shizuku"
             is Action.ShowToast -> "show toast '${action.message}'"
             is Action.SpeakText -> "speak '${action.text}' aloud"
+            is Action.RunMode -> "run mode ${action.automationId}"
+            is Action.SetModeEnabled -> "${if (action.enabled) "enable" else "disable"} mode ${action.automationId}"
+            is Action.RejectCall -> "reject the incoming call"
+            is Action.SpeakerPhone -> "turn speakerphone ${if (action.on) "on" else "off"}"
+            is Action.ForceStopApp -> "force-stop ${action.packageName}"
+            is Action.ExpandStatusBar -> "expand the notification shade"
             is Action.Group -> "group '${action.name}': " + action.actions.joinToString(", ") { explainAction(it) }
         }
 

@@ -8,6 +8,7 @@
 - Routine builder: multiple conditions now choose AND (all must match) or OR (any matches) with a one-tap selector — saved as Condition.And / Condition.Or and loaded back correctly when editing.
 - Guide starter modes are now one-tap installs: "Quick silence" and "Bedtime" arrive enabled and ready to run; "Work focus" installs disabled until you set your Wi-Fi name, so it never fires on the wrong network.
 - Four new actions from the MacroDroid/Automate gap analysis: HTTP request (GET/POST/PUT/DELETE — webhooks, Home Assistant, IFTTT), Shell command (runs inside the Shizuku user service — the escape hatch for force-stop, reboot, and everything Android blocks), Show toast, and Speak text (text-to-speech).
+- Six more actions closing the competitor gap: Run mode (fires another manual mode — modes as subroutines; self-reference is rejected), Enable mode (enables/disables another mode), Reject call, Force stop app, and Expand status bar (the last three via Shizuku), and Speakerphone.
 
 ### Changed
 - Routine builder fits on one page when untouched: the IF/THEN headers shrink, and the Heads-up (notify) rules and Enabled toggle fold into the Advanced section.

@@ -113,6 +113,7 @@ object AutomationModule {
         glyphMatrixProvider: NothingGlyphMatrixProvider,
         pendingUnlockStore: com.tdvorak.nothingmodes.capabilities.PendingUnlockStore,
         @javax.inject.Named("locked_writes") lockedWriteStore: com.tdvorak.nothingmodes.capabilities.PendingUnlockStore,
+        store: AutomationStore,
     ): ActionExecutor =
         RealActionExecutor.create(
             context = context,
@@ -121,6 +122,33 @@ object AutomationModule {
             glyphMatrixProvider = glyphMatrixProvider,
             pendingUnlockStore = pendingUnlockStore,
             lockedWriteStore = lockedWriteStore,
+            modeRunner = { id ->
+                val target = store.get(com.tdvorak.nothingmodes.engine.model.AutomationId(id))
+                when {
+                    target == null ->
+                        com.tdvorak.nothingmodes.engine.runtime.ActionResult.Failure("mode not found")
+                    !target.enabled || target.trigger !is com.tdvorak.nothingmodes.engine.model.Trigger.Manual ->
+                        com.tdvorak.nothingmodes.engine.runtime.ActionResult.Failure("mode is not a runnable manual mode")
+                    else -> {
+                        context.startService(
+                            android.content.Intent(context, com.tdvorak.nothingmodes.automation.lifecycle.AutomationService::class.java).apply {
+                                action = com.tdvorak.nothingmodes.automation.lifecycle.AutomationService.ACTION_MANUAL
+                                putExtra(com.tdvorak.nothingmodes.automation.lifecycle.AutomationService.EXTRA_MANUAL_ID, id)
+                            },
+                        )
+                        com.tdvorak.nothingmodes.engine.runtime.ActionResult.Success
+                    }
+                }
+            },
+            modeEnabler = { id, enabled ->
+                val target = store.get(com.tdvorak.nothingmodes.engine.model.AutomationId(id))
+                if (target == null) {
+                    com.tdvorak.nothingmodes.engine.runtime.ActionResult.Failure("mode not found")
+                } else {
+                    store.save(target.copy(enabled = enabled))
+                    com.tdvorak.nothingmodes.engine.runtime.ActionResult.Success
+                }
+            },
         )
 
     @Provides

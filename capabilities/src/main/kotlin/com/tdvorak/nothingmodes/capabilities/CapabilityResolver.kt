@@ -147,8 +147,15 @@ class CapabilityResolver(
             CapabilityIds.ACTION_HTTP_REQUEST,
             CapabilityIds.ACTION_SHOW_TOAST,
             CapabilityIds.ACTION_SPEAK_TEXT,
+            CapabilityIds.ACTION_RUN_MODE,
+            CapabilityIds.ACTION_SET_MODE_ENABLED,
+            CapabilityIds.ACTION_SPEAKERPHONE,
             -> true
-            CapabilityIds.ACTION_SHELL_COMMAND -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
+            CapabilityIds.ACTION_SHELL_COMMAND,
+            CapabilityIds.ACTION_REJECT_CALL,
+            CapabilityIds.ACTION_FORCE_STOP_APP,
+            CapabilityIds.ACTION_EXPAND_STATUS_BAR,
+            -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -242,6 +249,9 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "This device has no flashlight"
             CapabilityIds.ACTION_VIBRATE -> "This device has no vibrator"
             CapabilityIds.ACTION_SHELL_COMMAND -> "Needs Shizuku — the command runs inside its shell"
+            CapabilityIds.ACTION_REJECT_CALL -> "Needs Shizuku — ending calls is a system-only operation"
+            CapabilityIds.ACTION_FORCE_STOP_APP -> "Needs Shizuku — force-stopping apps is a system-only operation"
+            CapabilityIds.ACTION_EXPAND_STATUS_BAR -> "Needs Shizuku — expanding the shade is a system-only operation"
             else -> "Capability not available: $capability"
         }
 }

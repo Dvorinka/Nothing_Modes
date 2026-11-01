@@ -87,6 +87,12 @@ object ActionTypeIds {
     const val SHELL_COMMAND = "shell_command"
     const val SHOW_TOAST = "show_toast"
     const val SPEAK_TEXT = "speak_text"
+    const val RUN_MODE = "run_mode"
+    const val SET_MODE_ENABLED = "set_mode_enabled"
+    const val REJECT_CALL = "reject_call"
+    const val SPEAKERPHONE = "speakerphone"
+    const val FORCE_STOP_APP = "force_stop_app"
+    const val EXPAND_STATUS_BAR = "expand_status_bar"
     const val GROUP = "group"
 }
 
@@ -715,6 +721,53 @@ sealed interface Action {
     data class SpeakText(
         val text: String = "",
     ) : Action
+
+    /**
+     * Runs another mode by id — subroutines, like MacroDroid's run-macro.
+     * The target must be a manual-trigger mode; firing a mode's own id is
+     * rejected to keep loops out.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.RUN_MODE)
+    data class RunMode(
+        val automationId: String = "",
+    ) : Action
+
+    /** Enables or disables another mode by id. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_MODE_ENABLED)
+    data class SetModeEnabled(
+        val automationId: String = "",
+        val enabled: Boolean = true,
+    ) : Action
+
+    /**
+     * Ends the ringing/active call via the Shizuku shell
+     * (input keyevent KEYCODE_ENDCALL) — ANSWER_PHONE_CALLS is a
+     * signature-or-role permission normal apps can't hold.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.REJECT_CALL)
+    data object RejectCall : Action
+
+    /** Routes call audio to the loudspeaker (MODIFY_AUDIO_SETTINGS, install-grant). */
+    @Serializable
+    @SerialName(ActionTypeIds.SPEAKERPHONE)
+    data class SpeakerPhone(
+        val on: Boolean,
+    ) : Action
+
+    /** Force-stops an app inside the Shizuku shell (am force-stop). */
+    @Serializable
+    @SerialName(ActionTypeIds.FORCE_STOP_APP)
+    data class ForceStopApp(
+        val packageName: String = "",
+    ) : Action
+
+    /** Expands the notification shade via the Shizuku shell (cmd statusbar expand). */
+    @Serializable
+    @SerialName(ActionTypeIds.EXPAND_STATUS_BAR)
+    data object ExpandStatusBar : Action
 
     /** A named group of actions that are run together and can be collapsed. */
     @Serializable

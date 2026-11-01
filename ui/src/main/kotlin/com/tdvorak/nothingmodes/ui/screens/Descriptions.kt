@@ -354,6 +354,12 @@ fun actionRequirementHint(action: Action): String? =
         is Action.ShellCommand -> "Runs a shell command inside Shizuku — the escape hatch for system-only operations."
         is Action.ShowToast -> "Shows a short toast message."
         is Action.SpeakText -> "Speaks text aloud through text-to-speech."
+        is Action.RunMode -> "Runs another manual mode — use modes as subroutines."
+        is Action.SetModeEnabled -> "Enables or disables another mode."
+        is Action.RejectCall -> "Ends the ringing or active call. Needs Shizuku."
+        is Action.SpeakerPhone -> "Routes call audio to the loudspeaker."
+        is Action.ForceStopApp -> "Force-stops an app. Needs Shizuku."
+        is Action.ExpandStatusBar -> "Expands the notification shade. Needs Shizuku."
         else -> null
     }
 
@@ -431,6 +437,12 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.ShellCommand -> "Runs a shell command inside Shizuku."
         is Action.ShowToast -> "Shows a short toast message."
         is Action.SpeakText -> "Speaks text aloud."
+        is Action.RunMode -> "Runs another manual mode."
+        is Action.SetModeEnabled -> "Enables or disables another mode."
+        is Action.RejectCall -> "Ends the ringing or active call."
+        is Action.SpeakerPhone -> "Routes call audio to the loudspeaker."
+        is Action.ForceStopApp -> "Force-stops an app."
+        is Action.ExpandStatusBar -> "Expands the notification shade."
         else -> null
     }
 

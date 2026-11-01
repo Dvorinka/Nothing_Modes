@@ -166,6 +166,12 @@ fun actionDescription(action: Action): String =
             is Action.ShellCommand -> "Shell: ${action.command.take(40)}"
             is Action.ShowToast -> "Toast: ${action.message.take(30)}"
             is Action.SpeakText -> "Speak: ${action.text.take(30)}"
+            is Action.RunMode -> "Run mode: ${action.automationId}"
+            is Action.SetModeEnabled -> "Mode ${if (action.enabled) "enable" else "disable"}: ${action.automationId}"
+            is Action.RejectCall -> "Reject call"
+            is Action.SpeakerPhone -> "Speakerphone: ${if (action.on) "On" else "Off"}"
+            is Action.ForceStopApp -> "Force stop: ${action.packageName}"
+            is Action.ExpandStatusBar -> "Expand status bar"
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()
