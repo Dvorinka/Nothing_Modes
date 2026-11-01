@@ -34,12 +34,14 @@ import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.InvertColors
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Message
 import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
@@ -51,6 +53,7 @@ import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Power
 import androidx.compose.material.icons.outlined.PowerSettingsNew
+import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material.icons.outlined.Settings
@@ -59,6 +62,7 @@ import androidx.compose.material.icons.outlined.Sms
 import androidx.compose.material.icons.outlined.Snooze
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.ToggleOn
@@ -212,6 +216,10 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetAlarm -> Icons.Outlined.Alarm
         is Action.SetTimer -> Icons.Outlined.Timer
         is Action.OpenClock -> Icons.Outlined.AccessTime
+        is Action.HttpRequest -> Icons.Outlined.Http
+        is Action.ShellCommand -> Icons.Outlined.Terminal
+        is Action.ShowToast -> Icons.Outlined.Message
+        is Action.SpeakText -> Icons.Outlined.RecordVoiceOver
         is Action.Group -> Icons.Outlined.Bolt
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,

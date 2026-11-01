@@ -7,6 +7,7 @@
 - Bluetooth device control: "Disconnect Bluetooth device" (drops a connection, radio stays on) and "Forget Bluetooth device" (unpairs). The hidden system calls that Android blocks for normal apps run inside the Shizuku shell, which holds BLUETOOTH_PRIVILEGED; without Shizuku the actions report Shizuku-required instead of failing silently.
 - Routine builder: multiple conditions now choose AND (all must match) or OR (any matches) with a one-tap selector — saved as Condition.And / Condition.Or and loaded back correctly when editing.
 - Guide starter modes are now one-tap installs: "Quick silence" and "Bedtime" arrive enabled and ready to run; "Work focus" installs disabled until you set your Wi-Fi name, so it never fires on the wrong network.
+- Four new actions from the MacroDroid/Automate gap analysis: HTTP request (GET/POST/PUT/DELETE — webhooks, Home Assistant, IFTTT), Shell command (runs inside the Shizuku user service — the escape hatch for force-stop, reboot, and everything Android blocks), Show toast, and Speak text (text-to-speech).
 
 ### Changed
 - Routine builder fits on one page when untouched: the IF/THEN headers shrink, and the Heads-up (notify) rules and Enabled toggle fold into the Advanced section.

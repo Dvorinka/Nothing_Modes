@@ -350,6 +350,10 @@ fun actionRequirementHint(action: Action): String? =
         is Action.Vibrate -> "Vibrates the phone for the selected duration."
         is Action.MediaControl -> "Sends a media playback command."
         is Action.ClearNotifications -> "Clears all status bar notifications."
+        is Action.HttpRequest -> "Fires a background HTTP request — for webhooks, Home Assistant, IFTTT."
+        is Action.ShellCommand -> "Runs a shell command inside Shizuku — the escape hatch for system-only operations."
+        is Action.ShowToast -> "Shows a short toast message."
+        is Action.SpeakText -> "Speaks text aloud through text-to-speech."
         else -> null
     }
 
@@ -423,6 +427,10 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.MediaControl -> "Sends a media playback command."
         is Action.ClearNotifications -> "Clears all status bar notifications."
         is Action.SetWallpaper -> "Sets the home or lock-screen wallpaper."
+        is Action.HttpRequest -> "Fires a background HTTP request."
+        is Action.ShellCommand -> "Runs a shell command inside Shizuku."
+        is Action.ShowToast -> "Shows a short toast message."
+        is Action.SpeakText -> "Speaks text aloud."
         else -> null
     }
 

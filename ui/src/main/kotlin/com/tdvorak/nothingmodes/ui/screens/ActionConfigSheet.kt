@@ -38,6 +38,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.DndMode
+import com.tdvorak.nothingmodes.engine.model.HttpMethod
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
@@ -823,6 +824,60 @@ fun ActionConfigContent(
                     onActionChange(a.copy(packageName = pkg.takeIf { it.isNotBlank() }))
                 },
                 browserOnly = true,
+            )
+        }
+
+        is Action.HttpRequest -> {
+            NothingEnumSelector(
+                label = "Method",
+                value = a.method.name.enumLabel(),
+                options = enumLabelList<HttpMethod>(),
+                onSelect = { sel ->
+                    onActionChange(a.copy(method = HttpMethod.entries.first { it.name.enumLabel() == sel }))
+                },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.url,
+                onValueChange = { onActionChange(a.copy(url = it)) },
+                label = "URL",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.body,
+                onValueChange = { onActionChange(a.copy(body = it)) },
+                label = "Body (optional)",
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.ShellCommand -> {
+            NothingInput(
+                value = a.command,
+                onValueChange = { onActionChange(a.copy(command = it)) },
+                label = "Shell command",
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.ShowToast -> {
+            NothingInput(
+                value = a.message,
+                onValueChange = { onActionChange(a.copy(message = it)) },
+                label = "Message",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.SpeakText -> {
+            NothingInput(
+                value = a.text,
+                onValueChange = { onActionChange(a.copy(text = it)) },
+                label = "Text to speak",
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -1679,6 +1734,10 @@ private fun actionTitle(action: Action): String =
         is Action.SetAlarm -> "Set alarm"
         is Action.SetTimer -> "Set timer"
         is Action.OpenClock -> "Open clock"
+        is Action.HttpRequest -> "HTTP request"
+        is Action.ShellCommand -> "Shell command"
+        is Action.ShowToast -> "Show toast"
+        is Action.SpeakText -> "Speak text"
         is Action.Group -> action.name
         else -> "Action"
     }

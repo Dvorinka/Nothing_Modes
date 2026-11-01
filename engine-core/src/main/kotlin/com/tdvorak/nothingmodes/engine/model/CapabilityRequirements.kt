@@ -102,6 +102,10 @@ object CapabilityIds {
     const val ACTION_SET_ALARM = "action_set_alarm"
     const val ACTION_SET_TIMER = "action_set_timer"
     const val ACTION_OPEN_CLOCK = "action_open_clock"
+    const val ACTION_HTTP_REQUEST = "action_http_request"
+    const val ACTION_SHELL_COMMAND = "action_shell_command"
+    const val ACTION_SHOW_TOAST = "action_show_toast"
+    const val ACTION_SPEAK_TEXT = "action_speak_text"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -163,6 +167,7 @@ object CapabilityLabels {
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
             CapabilityIds.STATE_READER_SYSFS,
             CapabilityIds.STATE_READER_DUMPSYS_FIELD,
+            CapabilityIds.ACTION_SHELL_COMMAND,
             -> "Shizuku"
             else -> ""
         }
@@ -291,6 +296,10 @@ object CapabilityRequirements {
             is Action.SetAlarm -> setOf(CapabilityIds.ACTION_SET_ALARM)
             is Action.SetTimer -> setOf(CapabilityIds.ACTION_SET_TIMER)
             is Action.OpenClock -> setOf(CapabilityIds.ACTION_OPEN_CLOCK)
+            is Action.HttpRequest -> setOf(CapabilityIds.ACTION_HTTP_REQUEST)
+            is Action.ShellCommand -> setOf(CapabilityIds.ACTION_SHELL_COMMAND, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ShowToast -> setOf(CapabilityIds.ACTION_SHOW_TOAST)
+            is Action.SpeakText -> setOf(CapabilityIds.ACTION_SPEAK_TEXT)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

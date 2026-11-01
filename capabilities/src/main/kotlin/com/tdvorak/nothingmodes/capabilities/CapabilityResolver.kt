@@ -144,6 +144,11 @@ class CapabilityResolver(
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> capabilities.hasNotificationListenerAccess
             CapabilityIds.ACTION_SET_WALLPAPER -> true
             CapabilityIds.ACTION_SET_ULTRA_DIM -> capabilities.hasOverlayPermission
+            CapabilityIds.ACTION_HTTP_REQUEST,
+            CapabilityIds.ACTION_SHOW_TOAST,
+            CapabilityIds.ACTION_SPEAK_TEXT,
+            -> true
+            CapabilityIds.ACTION_SHELL_COMMAND -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
 
             // Shizuku
             CapabilityIds.SHIZUKU_REQUIRED -> capabilities.shizukuStatus == ShizukuCapabilityStatus.AUTHORIZED
@@ -236,6 +241,7 @@ class CapabilityResolver(
                 }
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "This device has no flashlight"
             CapabilityIds.ACTION_VIBRATE -> "This device has no vibrator"
+            CapabilityIds.ACTION_SHELL_COMMAND -> "Needs Shizuku — the command runs inside its shell"
             else -> "Capability not available: $capability"
         }
 }

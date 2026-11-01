@@ -24,6 +24,9 @@ import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.provider.AlarmClock
 import android.provider.Settings
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.tdvorak.nothingmodes.capabilities.PendingUnlockStore
 import com.tdvorak.nothingmodes.device.DeviceTools
@@ -31,6 +34,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.ClockSection
+import com.tdvorak.nothingmodes.engine.model.HttpMethod
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.NothingFeatures
 import com.tdvorak.nothingmodes.engine.model.PrivacySensor
@@ -50,12 +54,18 @@ import com.tdvorak.nothingmodes.nothing.NothingGlyphMatrixProvider
 import com.tdvorak.nothingmodes.nothing.NothingGlyphProvider
 import com.tdvorak.nothingmodes.shizuku.PrivilegedShellFactory
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.coroutines.resume
 
 /**
  * Real ActionExecutor that maps typed actions to Android API controllers.
@@ -287,6 +297,10 @@ class RealActionExecutor(
             is Action.SetAlarm -> setAlarm(action, context)
             is Action.SetTimer -> setTimerAction(action, context)
             is Action.OpenClock -> openClock(action, context)
+            is Action.HttpRequest -> httpRequest(action)
+            is Action.ShellCommand -> executeShell(listOf("sh", "-c", action.command))
+            is Action.ShowToast -> showToast(action.message)
+            is Action.SpeakText -> speakText(action.text)
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
                 when {
@@ -1210,6 +1224,90 @@ class RealActionExecutor(
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "copyText failed")
         }
+
+    private suspend fun httpRequest(action: Action.HttpRequest): ActionResult {
+        if (action.url.isBlank()) return ActionResult.Failure("no URL")
+        return withContext(Dispatchers.IO) {
+            try {
+                val conn = URL(action.url).openConnection() as HttpURLConnection
+                try {
+                    conn.requestMethod = action.method.name
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 10_000
+                    if (action.body.isNotEmpty() && action.method != HttpMethod.GET) {
+                        conn.doOutput = true
+                        conn.outputStream.use { it.write(action.body.toByteArray()) }
+                    }
+                    val code = conn.responseCode
+                    // Drain so the connection can be reused; body content is discarded.
+                    (if (code < 400) conn.inputStream else conn.errorStream)?.use { it.readBytes() }
+                    if (code in 200..299) {
+                        ActionResult.Success
+                    } else {
+                        ActionResult.Failure("HTTP $code")
+                    }
+                } finally {
+                    conn.disconnect()
+                }
+            } catch (e: Exception) {
+                ActionResult.Failure(e.message ?: "request failed")
+            }
+        }
+    }
+
+    private suspend fun showToast(message: String): ActionResult {
+        if (message.isBlank()) return ActionResult.Failure("empty message")
+        return try {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "toast failed")
+        }
+    }
+
+    private suspend fun speakText(text: String): ActionResult {
+        if (text.isBlank()) return ActionResult.Failure("empty text")
+        return withTimeoutOrNull(30_000) {
+            suspendCancellableCoroutine<ActionResult> { cont ->
+                // Nullable var — the OnInit lambda can't reference a val still
+                // being initialized; it's always assigned before OnInit fires.
+                var tts: TextToSpeech? = null
+                tts =
+                    TextToSpeech(context) { status ->
+                        val engine = tts
+                        if (status == TextToSpeech.SUCCESS && engine != null) {
+                            engine.setOnUtteranceProgressListener(
+                                object : UtteranceProgressListener() {
+                                    override fun onStart(utteranceId: String?) = Unit
+
+                                    override fun onDone(utteranceId: String?) {
+                                        engine.shutdown()
+                                        cont.resume(ActionResult.Success)
+                                    }
+
+                                    override fun onError(utteranceId: String?, errorCode: Int) {
+                                        engine.shutdown()
+                                        cont.resume(ActionResult.Failure("TTS error $errorCode"))
+                                    }
+
+                                    @Deprecated("Deprecated in API 21")
+                                    override fun onError(utteranceId: String?) = Unit
+                                },
+                            )
+                            engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "nm-speak-${System.nanoTime()}")
+                        } else {
+                            cont.resume(ActionResult.Failure("TTS init failed"))
+                        }
+                    }
+                cont.invokeOnCancellation {
+                    tts?.stop()
+                    tts?.shutdown()
+                }
+            }
+        } ?: ActionResult.Failure("TTS timed out")
+    }
 
     private fun launchApp(
         pkg: String,

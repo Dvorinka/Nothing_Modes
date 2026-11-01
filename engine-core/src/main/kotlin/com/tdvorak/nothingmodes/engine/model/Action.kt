@@ -2,6 +2,7 @@
 
 package com.tdvorak.nothingmodes.engine.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -82,6 +83,10 @@ object ActionTypeIds {
     const val SET_ALARM = "set_alarm"
     const val SET_TIMER = "set_timer"
     const val OPEN_CLOCK = "open_clock"
+    const val HTTP_REQUEST = "http_request"
+    const val SHELL_COMMAND = "shell_command"
+    const val SHOW_TOAST = "show_toast"
+    const val SPEAK_TEXT = "speak_text"
     const val GROUP = "group"
 }
 
@@ -673,6 +678,44 @@ sealed interface Action {
         val section: ClockSection = ClockSection.ALARMS,
     ) : Action
 
+    /**
+     * Fires a background HTTP request — webhooks, Home Assistant, IFTTT.
+     * The response is not stored; this is fire-and-report, not data fetching.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.HTTP_REQUEST)
+    data class HttpRequest(
+        val method: HttpMethod = HttpMethod.GET,
+        val url: String = "",
+        @EncodeDefault(EncodeDefault.Mode.NEVER)
+        val body: String = "",
+    ) : Action
+
+    /**
+     * Runs a shell command inside the Shizuku user service (uid 2000).
+     * Escape hatch for everything Android blocks — force-stop apps, reboot,
+     * settings writes the catalog doesn't model.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SHELL_COMMAND)
+    data class ShellCommand(
+        val command: String = "",
+    ) : Action
+
+    /** Shows a short toast message. */
+    @Serializable
+    @SerialName(ActionTypeIds.SHOW_TOAST)
+    data class ShowToast(
+        val message: String = "",
+    ) : Action
+
+    /** Speaks text aloud through the default text-to-speech engine. */
+    @Serializable
+    @SerialName(ActionTypeIds.SPEAK_TEXT)
+    data class SpeakText(
+        val text: String = "",
+    ) : Action
+
     /** A named group of actions that are run together and can be collapsed. */
     @Serializable
     @SerialName(ActionTypeIds.GROUP)
@@ -683,6 +726,9 @@ sealed interface Action {
         val collapsed: Boolean = false,
     ) : Action
 }
+
+@Serializable
+enum class HttpMethod { GET, POST, PUT, DELETE }
 
 @Serializable
 enum class ScreenOrientation { AUTO, PORTRAIT, LANDSCAPE }

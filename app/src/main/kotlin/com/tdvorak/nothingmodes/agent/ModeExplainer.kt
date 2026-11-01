@@ -250,6 +250,10 @@ object ModeExplainer {
             is Action.SetAlarm -> "set an alarm for %02d:%02d".format(action.hour, action.minute)
             is Action.SetTimer -> "start a ${action.seconds}s timer"
             is Action.OpenClock -> "open the clock app (${action.section.name.lowercase()})"
+            is Action.HttpRequest -> "send an HTTP ${action.method.name} request to ${action.url}"
+            is Action.ShellCommand -> "run shell command '${action.command}' via Shizuku"
+            is Action.ShowToast -> "show toast '${action.message}'"
+            is Action.SpeakText -> "speak '${action.text}' aloud"
             is Action.Group -> "group '${action.name}': " + action.actions.joinToString(", ") { explainAction(it) }
         }
 

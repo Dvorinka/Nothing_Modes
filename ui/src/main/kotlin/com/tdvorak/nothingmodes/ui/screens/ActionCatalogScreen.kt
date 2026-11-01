@@ -186,6 +186,10 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Set alarm", "Apps", Icons.Outlined.Alarm, Action.SetAlarm(7, 0)),
                 ActionItem("Set timer", "Apps", Icons.Outlined.Timer, Action.SetTimer(300)),
                 ActionItem("Open clock", "Apps", Icons.Outlined.AccessTime, Action.OpenClock()),
+                ActionItem("HTTP request", "Apps", Icons.Outlined.Http, Action.HttpRequest(), desc = "Fires a background HTTP request — webhooks, Home Assistant, IFTTT."),
+                ActionItem("Show toast", "Apps", Icons.Outlined.Message, Action.ShowToast(""), desc = "Shows a short toast message."),
+                ActionItem("Speak text", "Apps", Icons.Outlined.RecordVoiceOver, Action.SpeakText(""), desc = "Speaks text aloud through text-to-speech."),
+                ActionItem("Shell command", "Advanced", Icons.Outlined.Terminal, Action.ShellCommand(""), desc = "Runs a shell command inside Shizuku."),
                 // Three Glyph rows total: the combined composer (every design
                 // type switchable inside its sheet), a plain on/off, and the
                 // flashlight group. Hardware-blocked twins (stripe vs matrix)

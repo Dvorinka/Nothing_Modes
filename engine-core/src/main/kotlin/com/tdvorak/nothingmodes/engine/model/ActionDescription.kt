@@ -162,6 +162,10 @@ fun actionDescription(action: Action): String =
                 "Timer ${formatDuration(action.seconds * 1_000L)}$label"
             }
             is Action.OpenClock -> "Open clock: ${action.section.name.enumLabel()}"
+            is Action.HttpRequest -> "HTTP ${action.method.name}: ${action.url.take(40)}"
+            is Action.ShellCommand -> "Shell: ${action.command.take(40)}"
+            is Action.ShowToast -> "Toast: ${action.message.take(30)}"
+            is Action.SpeakText -> "Speak: ${action.text.take(30)}"
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()

@@ -155,6 +155,23 @@ object PrivacyScrubber {
                 if (action.url.isNotBlank()) missing += "URL"
                 action.copy(url = "")
             }
+            is Action.HttpRequest -> {
+                // Webhook URLs routinely carry secret tokens in the path.
+                if (action.url.isNotBlank() || action.body.isNotBlank()) missing += "request URL and body"
+                action.copy(url = "", body = "")
+            }
+            is Action.ShellCommand -> {
+                if (action.command.isNotBlank()) missing += "shell command"
+                action.copy(command = "")
+            }
+            is Action.ShowToast -> {
+                if (action.message.isNotBlank()) missing += "toast message"
+                action.copy(message = "")
+            }
+            is Action.SpeakText -> {
+                if (action.text.isNotBlank()) missing += "spoken text"
+                action.copy(text = "")
+            }
             is Action.SetWallpaper -> {
                 if (action.uri.isNotBlank()) missing += "wallpaper image"
                 action.copy(uri = "")
