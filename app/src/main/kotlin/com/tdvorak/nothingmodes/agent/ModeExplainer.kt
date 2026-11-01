@@ -178,6 +178,10 @@ object ModeExplainer {
             is Action.SetBluetooth -> "turn Bluetooth ${if (action.on) "on" else "off"}"
             is Action.ConnectBluetoothDevice ->
                 "connect ${action.deviceName?.takeIf { it.isNotBlank() } ?: "a Bluetooth device"} and retry until it connects"
+            is Action.DisconnectBluetoothDevice ->
+                "disconnect ${action.deviceName?.takeIf { it.isNotBlank() } ?: "a Bluetooth device"} and keep the radio on"
+            is Action.ForgetBluetoothDevice ->
+                "forget (unpair) ${action.deviceName?.takeIf { it.isNotBlank() } ?: "a Bluetooth device"}"
             is Action.SetMobileData -> "turn mobile data ${if (action.on) "on" else "off"}"
             is Action.SetDnd -> "set DND to ${action.mode.name.lowercase()}"
             is Action.SetRinger -> "set ringer to ${action.mode}"

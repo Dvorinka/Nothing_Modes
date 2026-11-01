@@ -163,6 +163,14 @@ object PrivacyScrubber {
                 if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
                 action.copy(address = "", deviceName = null)
             }
+            is Action.DisconnectBluetoothDevice -> {
+                if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
+                action.copy(address = "", deviceName = null)
+            }
+            is Action.ForgetBluetoothDevice -> {
+                if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
+                action.copy(address = "", deviceName = null)
+            }
             is Action.Group -> action.copy(actions = action.actions.map { scrubAction(it, missing) })
             else -> action
         }

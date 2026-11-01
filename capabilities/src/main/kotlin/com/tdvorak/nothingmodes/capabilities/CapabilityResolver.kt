@@ -71,6 +71,9 @@ class CapabilityResolver(
             CapabilityIds.ACTION_SET_BLUETOOTH -> capabilities.hasBluetooth
             CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE ->
                 capabilities.hasBluetooth && capabilities.hasBluetoothConnect
+            // Disconnect/forget rely on shell-only hidden APIs.
+            CapabilityIds.ACTION_DISCONNECT_BLUETOOTH_DEVICE -> capabilities.hasBluetooth
+            CapabilityIds.ACTION_FORGET_BLUETOOTH_DEVICE -> capabilities.hasBluetooth
             CapabilityIds.ACTION_SET_DND -> capabilities.hasNotificationPolicyAccess
             CapabilityIds.ACTION_SET_RINGER -> true
             CapabilityIds.ACTION_LAUNCH_APP -> true
@@ -218,6 +221,18 @@ class CapabilityResolver(
                     "This device has no Bluetooth hardware"
                 } else {
                     "Bluetooth permission required — the app can't page paired devices"
+                }
+            CapabilityIds.ACTION_DISCONNECT_BLUETOOTH_DEVICE ->
+                if (!capabilities.hasBluetooth) {
+                    "This device has no Bluetooth hardware"
+                } else {
+                    "Needs Shizuku — Android gives normal apps no way to disconnect devices"
+                }
+            CapabilityIds.ACTION_FORGET_BLUETOOTH_DEVICE ->
+                if (!capabilities.hasBluetooth) {
+                    "This device has no Bluetooth hardware"
+                } else {
+                    "Needs Shizuku — forgetting a device is a system-only operation"
                 }
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "This device has no flashlight"
             CapabilityIds.ACTION_VIBRATE -> "This device has no vibrator"

@@ -886,6 +886,12 @@ fun NothingTopBar(
                 Spacer(modifier = Modifier.width(NothingSpacing.sm))
             }
 
+            // CLASSIC with no back button (home) had the title flush against
+            // the xs padding — keep the normal margin other screens show.
+            if (classic && onBack == null) {
+                Spacer(modifier = Modifier.width(NothingSpacing.md))
+            }
+
             // Title — Space Grotesk in Nothing, plain sans in classic.
             Text(
                 text = if (classic) title else title.uppercase(),

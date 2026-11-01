@@ -90,6 +90,8 @@ class CapabilityResolverTest {
             CapabilityIds.ACTION_TAKE_SCREENSHOT,
             CapabilityIds.ACTION_SET_STAY_AWAKE,
             CapabilityIds.ACTION_SET_GLYPH_INTERFACE,
+            CapabilityIds.ACTION_DISCONNECT_BLUETOOTH_DEVICE,
+            CapabilityIds.ACTION_FORGET_BLUETOOTH_DEVICE,
             CapabilityIds.SHIZUKU_REQUIRED,
         )
 

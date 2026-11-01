@@ -160,6 +160,8 @@ class RealActionExecutor(
             is Action.SetWifi -> setWifi(action.on, action, context)
             is Action.SetBluetooth -> setBluetooth(action.on, action, context)
             is Action.ConnectBluetoothDevice -> connectBluetoothDevice(action)
+            is Action.DisconnectBluetoothDevice -> disconnectBluetoothDevice(action)
+            is Action.ForgetBluetoothDevice -> forgetBluetoothDevice(action)
             is Action.SetMobileData ->
                 shellOrPanel(
                     mobileDataCommand(action.on),
@@ -666,6 +668,67 @@ class RealActionExecutor(
     private suspend fun pageClassic(device: BluetoothDevice) {
         val shell = shellFactory?.resolve() ?: return
         runCatching { shell.connectBluetoothDevice(device.address) }
+    }
+
+    /**
+     * Disconnects a paired device. Android exposes nothing public — the hidden
+     * disconnect() runs inside the Shizuku shell, which holds
+     * BLUETOOTH_PRIVILEGED. No Shizuku means the action honestly can't run.
+     */
+    private suspend fun disconnectBluetoothDevice(action: Action.DisconnectBluetoothDevice): ActionResult =
+        bluetoothHiddenAction(action.address, "disconnect") { manager, device -> !deviceConnected(manager, device) }
+
+    /** Forgets a bond. Hidden removeBond() inside the Shizuku shell. */
+    private suspend fun forgetBluetoothDevice(action: Action.ForgetBluetoothDevice): ActionResult =
+        bluetoothHiddenAction(action.address, "removeBond") { manager, device ->
+            runCatching {
+                manager.adapter?.bondedDevices?.none { it.address.equals(device.address, ignoreCase = true) } ?: true
+            }.getOrDefault(true)
+        }
+
+    /** Hidden BluetoothDevice calls (disconnect / removeBond) via the shell service. */
+    private suspend fun bluetoothHiddenAction(
+        address: String,
+        method: String,
+        verify: (BluetoothManager, BluetoothDevice) -> Boolean,
+    ): ActionResult {
+        if (!MAC_ADDRESS.matches(address)) return ActionResult.Failure("no device selected")
+        val granted =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return ActionResult.PermissionRequired
+
+        val shell = shellFactory?.resolve() ?: return ActionResult.ShizukuRequired
+        val result =
+            try {
+                if (method == "removeBond") {
+                    shell.removeBluetoothDeviceBond(address)
+                } else {
+                    shell.disconnectBluetoothDevice(address)
+                }
+            } catch (e: Exception) {
+                return ActionResult.Failure(e.message ?: "bluetooth shell call failed")
+            }
+        if (result.errorCode == "unsupported") return ActionResult.ShizukuRequired
+        if (!result.successful) {
+            return ActionResult.Failure(result.stderrText.ifBlank { result.errorCode ?: "bluetooth shell call rejected" }.take(200))
+        }
+
+        val manager = context.getSystemService(BluetoothManager::class.java) ?: return ActionResult.Success
+        val device =
+            runCatching { manager.adapter?.getRemoteDevice(address) }.getOrNull()
+                ?: return ActionResult.Success
+        // Hidden calls only start the change; poll briefly for it to actually apply.
+        repeat(6) {
+            if (verify(manager, device)) return ActionResult.Success
+            delay(500)
+        }
+        return if (verify(manager, device)) {
+            ActionResult.Success
+        } else {
+            ActionResult.Failure("Android did not apply the change to $address")
+        }
     }
 
     /** 2s, 4s, 8s, then 15s. Short enough to notice, long enough not to hammer the radio. */

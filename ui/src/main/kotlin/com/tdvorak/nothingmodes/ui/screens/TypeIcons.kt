@@ -4,6 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MobileScreenShare
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.BluetoothConnected
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Alarm
@@ -160,6 +162,8 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetWifi -> Icons.Outlined.Wifi
         is Action.SetBluetooth -> Icons.Outlined.Bluetooth
         is Action.ConnectBluetoothDevice -> Icons.Outlined.BluetoothConnected
+        is Action.DisconnectBluetoothDevice -> Icons.Outlined.LinkOff
+        is Action.ForgetBluetoothDevice -> Icons.Outlined.RemoveCircleOutline
         is Action.SetMobileData -> Icons.Outlined.SignalCellular4Bar
         is Action.SetHotspot -> Icons.Outlined.WifiTethering
         is Action.SetAirplaneMode -> Icons.Outlined.Flight

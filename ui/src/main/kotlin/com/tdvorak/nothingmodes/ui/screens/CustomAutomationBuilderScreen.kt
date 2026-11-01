@@ -142,7 +142,11 @@ data class BuilderState(
     val quickAction: Boolean = true,
     val cooldownMs: Long = 0,
     val notifyRules: List<NotifyRule> = emptyList(),
+    /** How multiple conditions combine — engine maps to Condition.And / Condition.Or. */
+    val conditionMode: ConditionMode = ConditionMode.ALL,
 )
+
+enum class ConditionMode { ALL, ANY }
 
 /** Per-action "when the mode ends" behavior shown in the AFTER IT ENDS card. */
 private enum class EndChoice { REVERT, KEEP, SET }
@@ -190,6 +194,7 @@ class CustomBuilderViewModel
                         actions = automation.actions,
                         endActions = automation.endActions,
                         conditions = flattenConditions(automation.conditions),
+                        conditionMode = if (automation.conditions is Condition.Or) ConditionMode.ANY else ConditionMode.ALL,
                         priority = automation.priority,
                         icon = automation.icon,
                         iconBackground = automation.iconBackground,
@@ -217,6 +222,10 @@ class CustomBuilderViewModel
 
         fun updatePriority(priority: Int) {
             _state.value = _state.value.copy(priority = priority)
+        }
+
+        fun updateConditionMode(mode: ConditionMode) {
+            _state.value = _state.value.copy(conditionMode = mode)
         }
 
         fun updateIcon(icon: String) {
@@ -540,15 +549,17 @@ fun CustomAutomationBuilderScreen(
     val context = LocalContext.current
 
     // Dirty tracking — editing an untouched mode shows no save/cancel UI.
-    val dirty = automationId == null || (originalState != null && state != originalState)
+    // A brand-new mode counts as dirty only after a real edit, not from the pristine default.
+    val dirty = originalState?.let { state != it } ?: (state != BuilderState())
 
     var caps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
     androidx.compose.runtime.LaunchedEffect(Unit) { caps = CapabilitiesCache.refresh(context) }
 
     val combinedCondition =
-        when (state.conditions.size) {
-            0 -> null
-            1 -> state.conditions.first()
+        when {
+            state.conditions.isEmpty() -> null
+            state.conditions.size == 1 -> state.conditions.first()
+            state.conditionMode == ConditionMode.ANY -> Condition.Or(state.conditions)
             else -> Condition.And(state.conditions)
         }
     val resolution =
@@ -691,14 +702,14 @@ fun CustomAutomationBuilderScreen(
         ) {
             item {
                 Text(
-                    text = "IF · ONLY IF · THEN",
+                    text = "IF · THEN",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
                     letterSpacing = 1.0.sp,
                     modifier = Modifier.padding(top = NothingSpacing.xxs),
                 )
-                Spacer(modifier = Modifier.height(NothingSpacing.lg))
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
             }
 
             // Name (Mode/Routine type selector removed — keep If/Then semantics only)
@@ -716,16 +727,16 @@ fun CustomAutomationBuilderScreen(
                 AutomationPreviewTile(
                     state = state,
                     onClick = { showIconPicker = true },
-                    modifier = Modifier.padding(vertical = NothingSpacing.md),
+                    modifier = Modifier.padding(vertical = NothingSpacing.sm),
                 )
             }
 
             // IF: the trigger decides when the mode fires.
             item {
-                NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.md)) {
+                NothingCardLarge(modifier = Modifier.padding(vertical = NothingSpacing.sm)) {
                     Text(
                         text = stringResource(R.string.builder_if).uppercase(),
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.sans(),
                         modifier = Modifier.padding(bottom = NothingSpacing.xs),
@@ -735,7 +746,7 @@ fun CustomAutomationBuilderScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.md),
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
                     )
                     TriggerEditor(
                         trigger = state.trigger,
@@ -746,18 +757,48 @@ fun CustomAutomationBuilderScreen(
                     Spacer(modifier = Modifier.height(NothingSpacing.md))
                     Text(
                         text = stringResource(R.string.builder_only_if).uppercase(),
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.sans(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.xs),
+                        modifier = Modifier.padding(top = NothingSpacing.xs, bottom = NothingSpacing.xs),
                     )
-                    Text(
-                        text = "All of these must be true",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                    )
+                    if (state.conditions.size < 2) {
+                        Text(
+                            text = "Optional extra checks on top of the trigger",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                    } else {
+                        // PLC-style match selector: all conditions (AND) vs any condition (OR).
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(NothingSpacing.xs),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        ) {
+                            ConditionMode.entries.forEach { mode ->
+                                val selected = state.conditionMode == mode
+                                Text(
+                                    text = when (mode) {
+                                        ConditionMode.ALL -> "AND — ALL MUST MATCH"
+                                        ConditionMode.ANY -> "OR — ANY MATCHES"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color =
+                                        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = NothingFonts.mono(),
+                                    modifier =
+                                        Modifier
+                                            .clip(NothingShapes.pill)
+                                            .background(
+                                                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                            ).clickable { viewModel.updateConditionMode(mode) }
+                                            .padding(horizontal = NothingSpacing.sm, vertical = NothingSpacing.xs),
+                                )
+                            }
+                        }
+                    }
                     NothingDivider()
                     if (state.conditions.isEmpty()) {
                         Text(
@@ -798,13 +839,13 @@ fun CustomAutomationBuilderScreen(
 
             // THEN: Actions
             item {
-                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
+                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.sm)) {
                     Text(
                         text = stringResource(R.string.builder_then).uppercase(),
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = NothingFonts.sans(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.md),
+                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
                     )
                     NothingDivider()
                     if (state.actions.isEmpty()) {
@@ -1066,44 +1107,9 @@ fun CustomAutomationBuilderScreen(
             }
 
             // NOTIFY: per-mode heads-up rules. Off by default.
-            item {
-                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
-                    Text(
-                        text = stringResource(R.string.builder_notify).uppercase(),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = NothingFonts.sans(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                    )
-                    Text(
-                        text = "Heads-up about this mode. Off unless you add a rule.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = NothingFonts.mono(),
-                        modifier = Modifier.padding(bottom = NothingSpacing.sm),
-                    )
-                    NotifyRulesEditor(
-                        rules = state.notifyRules,
-                        onChange = viewModel::updateNotifyRules,
-                    )
-                }
-            }
-
-            item {
-                NothingCardLarge(modifier = Modifier.padding(bottom = NothingSpacing.md)) {
-                    NothingListRow(
-                        title = "Enabled",
-                        subtitle = "Off means the mode is saved but never fires",
-                        onClick = { viewModel.updateEnabled(!state.enabled) },
-                        trailing = {
-                            NothingToggle(
-                                checked = state.enabled,
-                                onCheckedChange = viewModel::updateEnabled,
-                            )
-                        },
-                    )
-                }
-            }
+            // ENABLED: default true.
+            // Both are folded into the Advanced card below so an untouched
+            // routine fits on one page.
 
             // Advanced — folded away; most modes never need it.
             item {
@@ -1133,6 +1139,40 @@ fun CustomAutomationBuilderScreen(
                     }
                     if (showAdvanced) {
                         NothingDivider()
+
+                        // NOTIFY (folded here): per-mode heads-up rules.
+                        Text(
+                            text = stringResource(R.string.builder_notify).uppercase(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = NothingFonts.sans(),
+                            modifier = Modifier.padding(top = NothingSpacing.sm, bottom = NothingSpacing.xs),
+                        )
+                        Text(
+                            text = "Heads-up about this mode. Off unless you add a rule.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                            modifier = Modifier.padding(bottom = NothingSpacing.sm),
+                        )
+                        NotifyRulesEditor(
+                            rules = state.notifyRules,
+                            onChange = viewModel::updateNotifyRules,
+                        )
+
+                        // ENABLED (folded here): default is true.
+                        NothingDivider()
+                        NothingListRow(
+                            title = "Enabled",
+                            subtitle = "Off means the mode is saved but never fires",
+                            onClick = { viewModel.updateEnabled(!state.enabled) },
+                            trailing = {
+                                NothingToggle(
+                                    checked = state.enabled,
+                                    onCheckedChange = viewModel::updateEnabled,
+                                )
+                            },
+                        )
 
                         Row(
                             modifier =

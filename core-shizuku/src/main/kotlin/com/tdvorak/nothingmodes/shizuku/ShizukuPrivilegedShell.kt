@@ -63,6 +63,12 @@ class ShizukuPrivilegedShell(
     override suspend fun connectBluetoothDevice(address: String): ShellResult =
         queue.connectBluetoothDevice(address)
 
+    override suspend fun disconnectBluetoothDevice(address: String): ShellResult =
+        queue.disconnectBluetoothDevice(address)
+
+    override suspend fun removeBluetoothDeviceBond(address: String): ShellResult =
+        queue.removeBluetoothDeviceBond(address)
+
     override fun close() {
         queue.close()
         transport.close()
@@ -163,6 +169,44 @@ internal class ShizukuUserServiceTransport(
             val bundle =
                 try {
                     remote.connectBluetoothDevice(address)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    invalidate(remote)
+                    throw IllegalStateException("UserService Shizuku disconnesso")
+                }
+            ShellResult(
+                exitCode = bundle.getInt(PrivilegedShellUserService.KEY_EXIT_CODE, -127),
+                stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
+                errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
+            )
+        }
+
+    override suspend fun disconnectBluetoothDevice(address: String): ShellResult =
+        withContext(Dispatchers.IO) {
+            val remote = connectedService()
+            val bundle =
+                try {
+                    remote.disconnectBluetoothDevice(address)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    invalidate(remote)
+                    throw IllegalStateException("UserService Shizuku disconnesso")
+                }
+            ShellResult(
+                exitCode = bundle.getInt(PrivilegedShellUserService.KEY_EXIT_CODE, -127),
+                stderr = bundle.getByteArray(PrivilegedShellUserService.KEY_STDERR) ?: byteArrayOf(),
+                errorCode = bundle.getString(PrivilegedShellUserService.KEY_ERROR_CODE),
+            )
+        }
+
+    override suspend fun removeBluetoothDeviceBond(address: String): ShellResult =
+        withContext(Dispatchers.IO) {
+            val remote = connectedService()
+            val bundle =
+                try {
+                    remote.removeBluetoothDeviceBond(address)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (_: Exception) {

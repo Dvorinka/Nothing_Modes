@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- New Guide screen: how modes work (trigger / condition / action), a 4-step first mode, what runs with no setup vs one-time permission vs Shizuku, starter-mode recipes, and where templates and the execution log live. Reachable from first-run onboarding, Settings > More > How to Use, and the empty home screen.
+- Bluetooth device control: "Disconnect Bluetooth device" (drops a connection, radio stays on) and "Forget Bluetooth device" (unpairs). The hidden system calls that Android blocks for normal apps run inside the Shizuku shell, which holds BLUETOOTH_PRIVILEGED; without Shizuku the actions report Shizuku-required instead of failing silently.
+- Routine builder: multiple conditions now choose AND (all must match) or OR (any matches) with a one-tap selector — saved as Condition.And / Condition.Or and loaded back correctly when editing.
+
+### Changed
+- Routine builder fits on one page when untouched: the IF/THEN headers shrink, and the Heads-up (notify) rules and Enabled toggle fold into the Advanced section.
+
+### Fixed
+- "Leave without saving?" no longer appears for a brand-new mode that was only viewed, scrolled, or rebuilt from scratch without edits.
+- Play-store installs no longer see the "Allow restricted settings" sideload guide, which doesn't apply to them.
+- Classic UI: the Modes title sat flush against the left edge on the home screen — it now keeps the same margin as other screens.
+- Template library rows: the summary tags were clipped to one tag ("1 automation 1 action n…"); the tag row now scrolls instead.
+
 ## [0.19.16]
 
 ### Changed

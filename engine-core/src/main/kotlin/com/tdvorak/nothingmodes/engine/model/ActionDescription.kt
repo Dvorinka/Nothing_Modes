@@ -58,6 +58,10 @@ fun actionDescription(action: Action): String =
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
             is Action.ConnectBluetoothDevice ->
                 "Connect Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
+            is Action.DisconnectBluetoothDevice ->
+                "Disconnect Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
+            is Action.ForgetBluetoothDevice ->
+                "Forget Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
             is Action.SetDnd -> "Do Not Disturb: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"

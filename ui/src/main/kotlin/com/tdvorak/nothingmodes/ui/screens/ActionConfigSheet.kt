@@ -215,6 +215,10 @@ fun ActionConfigContent(
 
         is Action.ConnectBluetoothDevice -> ConnectBluetoothDeviceConfig(a, onActionChange)
 
+        is Action.DisconnectBluetoothDevice -> DisconnectBluetoothDeviceConfig(a, onActionChange)
+
+        is Action.ForgetBluetoothDevice -> ForgetBluetoothDeviceConfig(a, onActionChange)
+
         is Action.SetMobileData -> {
             BooleanRow(
                 label = "Mobile data enabled",
@@ -1613,6 +1617,8 @@ private fun actionTitle(action: Action): String =
         is Action.SetWifi -> "Wi-Fi"
         is Action.SetBluetooth -> "Bluetooth"
         is Action.ConnectBluetoothDevice -> "Connect Bluetooth device"
+        is Action.DisconnectBluetoothDevice -> "Disconnect Bluetooth device"
+        is Action.ForgetBluetoothDevice -> "Forget Bluetooth device"
         is Action.SetMobileData -> "Mobile data"
         is Action.SetAirplaneMode -> "Airplane mode"
         is Action.SetDarkMode -> "Dark mode"
@@ -1754,6 +1760,96 @@ internal fun ConnectBluetoothDeviceConfig(
             onDismiss = { showPicker = false },
         )
     }
+}
+
+/**
+ * Shared config for disconnect / forget: pick one bonded device, no other
+ * knobs. Both actions run hidden APIs and require Shizuku.
+ */
+@Composable
+internal fun BluetoothDeviceOnlyConfig(
+    chosenName: String?,
+    chosenAddress: String,
+    onPick: (String?, String?) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    Column {
+        PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                ),
+            rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+        ) {
+            NothingPillButton(
+                text = "Pick paired device",
+                onClick = { showPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = chosenName?.takeIf { it.isNotBlank() } ?: "No device selected",
+            style = MaterialTheme.typography.bodyMedium,
+            color =
+                if (chosenName.isNullOrBlank()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            fontFamily = NothingFonts.mono(),
+        )
+        if (chosenAddress.isNotBlank()) {
+            Text(
+                text = chosenAddress,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(
+            text = "Needs Shizuku. Android gives normal apps no way to disconnect a device or drop a bond.",
+        )
+    }
+    if (showPicker) {
+        BondedDevicePickerDialog(
+            onSelect = { name, address ->
+                if (address != null) onPick(name, address)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+@Composable
+internal fun DisconnectBluetoothDeviceConfig(
+    action: Action.DisconnectBluetoothDevice,
+    onChange: (Action.DisconnectBluetoothDevice) -> Unit,
+) {
+    BluetoothDeviceOnlyConfig(
+        chosenName = action.deviceName,
+        chosenAddress = action.address,
+        onPick = { name, address ->
+            if (address != null) onChange(action.copy(deviceName = name, address = address))
+        },
+    )
+}
+
+@Composable
+internal fun ForgetBluetoothDeviceConfig(
+    action: Action.ForgetBluetoothDevice,
+    onChange: (Action.ForgetBluetoothDevice) -> Unit,
+) {
+    BluetoothDeviceOnlyConfig(
+        chosenName = action.deviceName,
+        chosenAddress = action.address,
+        onPick = { name, address ->
+            if (address != null) onChange(action.copy(deviceName = name, address = address))
+        },
+    )
 }
 
 @Composable

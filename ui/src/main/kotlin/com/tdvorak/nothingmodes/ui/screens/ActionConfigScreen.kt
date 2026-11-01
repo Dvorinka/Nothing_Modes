@@ -115,6 +115,12 @@ fun ActionConfigScreen(
                     is Action.ConnectBluetoothDevice ->
                         ConnectBluetoothDeviceConfig(a) { action = it }
 
+                    is Action.DisconnectBluetoothDevice ->
+                        DisconnectBluetoothDeviceConfig(a) { action = it }
+
+                    is Action.ForgetBluetoothDevice ->
+                        ForgetBluetoothDeviceConfig(a) { action = it }
+
                     is Action.SetMobileData -> {
                         BooleanRow(
                             label = "Mobile data enabled",

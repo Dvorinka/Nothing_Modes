@@ -67,6 +67,14 @@ interface PrivilegedShell {
     suspend fun connectBluetoothDevice(address: String): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 
+    /** Disconnects a paired device inside the shell service (hidden disconnect()). */
+    suspend fun disconnectBluetoothDevice(address: String): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    /** Forgets the bond for an address inside the shell service (hidden removeBond()). */
+    suspend fun removeBluetoothDeviceBond(address: String): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 30_000L
         const val DEFAULT_TEXT_OUTPUT_BYTES = 256 * 1024
@@ -111,6 +119,12 @@ internal fun interface ShellTransport {
         ShellResult(exitCode = -1, errorCode = "unsupported")
 
     suspend fun connectBluetoothDevice(address: String): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    suspend fun disconnectBluetoothDevice(address: String): ShellResult =
+        ShellResult(exitCode = -1, errorCode = "unsupported")
+
+    suspend fun removeBluetoothDeviceBond(address: String): ShellResult =
         ShellResult(exitCode = -1, errorCode = "unsupported")
 }
 
@@ -181,6 +195,12 @@ internal class PrioritizedPrivilegedShell(
 
     override suspend fun connectBluetoothDevice(address: String): ShellResult =
         transport.connectBluetoothDevice(address)
+
+    override suspend fun disconnectBluetoothDevice(address: String): ShellResult =
+        transport.disconnectBluetoothDevice(address)
+
+    override suspend fun removeBluetoothDeviceBond(address: String): ShellResult =
+        transport.removeBluetoothDeviceBond(address)
 
     private suspend fun enqueue(
         request: ShellRequest,

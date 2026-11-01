@@ -20,6 +20,8 @@ object ActionTypeIds {
     const val SET_WIFI = "set_wifi"
     const val SET_BLUETOOTH = "set_bluetooth"
     const val CONNECT_BLUETOOTH_DEVICE = "connect_bluetooth_device"
+    const val DISCONNECT_BLUETOOTH_DEVICE = "disconnect_bluetooth_device"
+    const val FORGET_BLUETOOTH_DEVICE = "forget_bluetooth_device"
     const val SET_DND = "set_dnd"
     const val SET_RINGER = "set_ringer"
     const val LAUNCH_APP = "launch_app"
@@ -127,6 +129,30 @@ sealed interface Action {
             const val MAX_RETRY_BUDGET_MS = 600_000L
         }
     }
+
+    /**
+     * Disconnects a paired device while keeping the radio on. Android offers no
+     * public disconnect API — this runs the hidden BluetoothDevice.disconnect()
+     * inside the Shizuku shell, which holds BLUETOOTH_PRIVILEGED.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.DISCONNECT_BLUETOOTH_DEVICE)
+    data class DisconnectBluetoothDevice(
+        val address: String,
+        val deviceName: String? = null,
+    ) : Action
+
+    /**
+     * Removes the bond ("forget device"). Hidden BluetoothDevice.removeBond()
+     * inside the Shizuku shell. Irreversible on the phone — the device usually
+     * needs re-pairing by hand afterwards.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.FORGET_BLUETOOTH_DEVICE)
+    data class ForgetBluetoothDevice(
+        val address: String,
+        val deviceName: String? = null,
+    ) : Action
 
     @Serializable
     @SerialName(ActionTypeIds.SET_MOBILE_DATA)

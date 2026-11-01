@@ -721,11 +721,22 @@ private fun LibraryRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
             )
-            if (item.summary.isNotBlank()) {
-                NothingTag(text = item.summary, active = false)
-            }
-            if ("shizuku_required" in item.capabilities) {
-                NothingTag(text = "Shizuku", active = false)
+            // Scrollable — long summaries ("1 automation, 1 action, no setup")
+            // were truncated to a single clipped tag otherwise.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+            ) {
+                if (item.summary.isNotBlank()) {
+                    NothingTag(text = item.summary, active = false)
+                }
+                if ("shizuku_required" in item.capabilities) {
+                    NothingTag(text = "Shizuku", active = false)
+                }
             }
         }
     }
