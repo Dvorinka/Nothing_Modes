@@ -209,6 +209,7 @@ class SettingsViewModel
 fun SettingsScreen(
     onBack: () -> Unit,
     onOnboarding: () -> Unit = {},
+    onGuide: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
     onNotificationLog: () -> Unit = {},
     onQuickSettings: () -> Unit = {},
@@ -987,6 +988,11 @@ fun SettingsScreen(
                     // ── Misc ──────────────────────────────────────────────────
                     NothingSectionHeader(text = "More")
                     NothingCard {
+                        NothingListRow(
+                            title = "How to Use",
+                            onClick = onGuide,
+                        )
+                        NothingDivider()
                         NothingListRow(
                             title = "Setup Guide",
                             onClick = onOnboarding,

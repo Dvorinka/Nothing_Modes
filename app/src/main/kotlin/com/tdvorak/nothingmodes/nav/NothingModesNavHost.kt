@@ -21,6 +21,7 @@ import com.tdvorak.nothingmodes.ui.screens.CustomAutomationBuilderScreen
 import com.tdvorak.nothingmodes.ui.screens.ExecutionLogScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphEditorScreen
 import com.tdvorak.nothingmodes.ui.screens.GlyphPreviewScreen
+import com.tdvorak.nothingmodes.ui.screens.GuideScreen
 import com.tdvorak.nothingmodes.ui.screens.IntegratedBrowserScreen
 import com.tdvorak.nothingmodes.ui.screens.NotificationLogScreen
 import com.tdvorak.nothingmodes.ui.screens.OnboardingScreen
@@ -32,6 +33,7 @@ import java.net.URLEncoder
 
 object Routes {
     const val ONBOARDING = "onboarding"
+    const val GUIDE = "guide"
     const val AUTOMATION_LIST = "automations"
     const val AUTOMATION_DETAIL = "automation/{id}"
     const val CREATE_AUTOMATION = "create"
@@ -82,6 +84,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
     ) {
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
+                onGuide = { navController.navigate(Routes.GUIDE) },
                 onComplete = {
                     prefs.edit().putBoolean("onboarding_completed", true).apply()
                     navController.navigate(Routes.AUTOMATION_LIST) {
@@ -91,6 +94,10 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             )
         }
 
+        composable(Routes.GUIDE) {
+            GuideScreen(onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) })
+        }
+
         composable(Routes.AUTOMATION_LIST) { entry ->
             AutomationListScreen(
                 onAutomationClick = { id -> navController.navigate(Routes.automationDetail(id)) },
@@ -98,6 +105,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
                 onLogClick = { navController.navigate(Routes.EXECUTION_LOG) },
                 onCreateClick = { navController.navigate(Routes.CREATE_AUTOMATION) },
                 onTemplatesClick = { navController.navigate(Routes.TEMPLATES) },
+                onGuideClick = { navController.navigate(Routes.GUIDE) },
                 savedMessageFlow = entry.savedStateHandle.getStateFlow("mode_saved_msg", ""),
                 onSavedMessageConsumed = { entry.savedStateHandle["mode_saved_msg"] = "" },
             )
@@ -321,6 +329,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
             SettingsScreen(
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
                 onOnboarding = { navController.navigate(Routes.ONBOARDING) },
+                onGuide = { navController.navigate(Routes.GUIDE) },
                 onGlyphPreview = { navController.navigate(Routes.GLYPH_PREVIEW) },
                 onNotificationLog = { navController.navigate(Routes.NOTIFICATION_LOG) },
                 onQuickSettings = { navController.navigate(Routes.QUICK_SETTINGS) },
