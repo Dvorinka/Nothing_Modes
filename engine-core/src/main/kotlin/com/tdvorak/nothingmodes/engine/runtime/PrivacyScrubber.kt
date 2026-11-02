@@ -155,11 +155,50 @@ object PrivacyScrubber {
                 if (action.url.isNotBlank()) missing += "URL"
                 action.copy(url = "")
             }
+            is Action.HttpRequest -> {
+                // Webhook URLs routinely carry secret tokens in the path.
+                if (action.url.isNotBlank() || action.body.isNotBlank()) missing += "request URL and body"
+                action.copy(url = "", body = "")
+            }
+            is Action.ShellCommand -> {
+                if (action.command.isNotBlank()) missing += "shell command"
+                action.copy(command = "")
+            }
+            is Action.ShowToast -> {
+                if (action.message.isNotBlank()) missing += "toast message"
+                action.copy(message = "")
+            }
+            is Action.SpeakText -> {
+                if (action.text.isNotBlank()) missing += "spoken text"
+                action.copy(text = "")
+            }
+            // Mode ids and package names are device-local references — a
+            // shared template must be re-pointed at the importer's own modes.
+            is Action.RunMode -> {
+                if (action.automationId.isNotBlank()) missing += "mode to run"
+                action.copy(automationId = "")
+            }
+            is Action.SetModeEnabled -> {
+                if (action.automationId.isNotBlank()) missing += "mode to toggle"
+                action.copy(automationId = "")
+            }
+            is Action.ForceStopApp -> {
+                if (action.packageName.isNotBlank()) missing += "app to force-stop"
+                action.copy(packageName = "")
+            }
             is Action.SetWallpaper -> {
                 if (action.uri.isNotBlank()) missing += "wallpaper image"
                 action.copy(uri = "")
             }
             is Action.ConnectBluetoothDevice -> {
+                if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
+                action.copy(address = "", deviceName = null)
+            }
+            is Action.DisconnectBluetoothDevice -> {
+                if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
+                action.copy(address = "", deviceName = null)
+            }
+            is Action.ForgetBluetoothDevice -> {
                 if (action.address.isNotBlank() || action.deviceName != null) missing += "Bluetooth device"
                 action.copy(address = "", deviceName = null)
             }

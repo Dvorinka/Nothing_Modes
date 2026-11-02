@@ -21,12 +21,18 @@ class RoomExecutionJournal(
                 ExecutionStatus.SUPPRESSED_COOLDOWN -> "SUPPRESSED"
                 ExecutionStatus.SUPPRESSED_NOT_ELIGIBLE -> "SUPPRESSED"
             }
-        fireClaimDao.complete(
-            executionId = completion.executionId,
-            status = status,
-            atMillis = completion.atMillis,
-            succeeded = succeeded,
-            failed = failed,
-        )
+        guardedAppend(
+            prune = {
+                fireClaimDao.pruneBefore(System.currentTimeMillis() - LOG_RETENTION_MILLIS)
+            },
+        ) {
+            fireClaimDao.complete(
+                executionId = completion.executionId,
+                status = status,
+                atMillis = completion.atMillis,
+                succeeded = succeeded,
+                failed = failed,
+            )
+        }
     }
 }

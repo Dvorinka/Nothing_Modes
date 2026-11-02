@@ -243,6 +243,48 @@ sealed interface Trigger {
         val packageName: String? = null,
     ) : Trigger
 
+    /** The now-playing track changed on an active media session. */
+    @Serializable
+    @SerialName("media_track_changed")
+    data class MediaTrackChanged(
+        val packageName: String? = null,
+    ) : Trigger
+
+    /** Headphones or a headset connected/disconnected (wired, BT, BLE, USB). */
+    @Serializable
+    @SerialName("headphones_connected")
+    data class HeadphonesConnected(
+        val connected: Boolean = true,
+    ) : Trigger
+
+    /** An app package was installed or removed; packageName filters to one app. */
+    @Serializable
+    @SerialName("app_installed_removed")
+    data class AppInstalledRemoved(
+        val installed: Boolean = true,
+        val packageName: String? = null,
+    ) : Trigger
+
+    /** A broadcast intent with the given action arrived — the interop edge
+     *  paired with [Action.SendBroadcast] and other apps' broadcasts. */
+    @Serializable
+    @SerialName("intent_received")
+    data class IntentReceived(
+        val action: String,
+    ) : Trigger
+
+    /** A lock-screen unlock attempt failed. Requires the device admin to be
+     *  active — the platform only reports failures to admin receivers. */
+    @Serializable
+    @SerialName("failed_login")
+    data object FailedLogin : Trigger
+
+    /** The user shook the phone — a quick wrist-flip spike pattern on the
+     *  accelerometer. Works with the screen on or off while the monitor runs. */
+    @Serializable
+    @SerialName("shake")
+    data object Shake : Trigger
+
     /**
      * Generic device-state edge: fires when the named state key transitions
      * TO [value]. `"*"` matches any change. Keys come from
@@ -286,6 +328,8 @@ object DeviceStateKeys {
     const val GLYPH_INTERFACE = "glyph_interface"
     const val GLYPH_CHARGE_LED = "glyph_charge_led"
     const val THERMAL = "thermal_status"
+    const val ORIENTATION = "orientation"
+    const val PROXIMITY = "proximity"
 
     /** Wildcard: fires on any change of the key. */
     const val ANY_VALUE = "*"
@@ -305,6 +349,7 @@ val Trigger.hasStateLifecycle: Boolean
             is Trigger.TorchState,
             is Trigger.ScreenStateTrigger,
             is Trigger.MediaPlayback,
+            is Trigger.HeadphonesConnected,
             is Trigger.BluetoothDevice,
             is Trigger.WifiConnected,
             is Trigger.Connectivity,

@@ -6,8 +6,10 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.tdvorak.nothingmodes.data.LOG_RETENTION_MILLIS
 import com.tdvorak.nothingmodes.data.NothingModesDatabase
 import com.tdvorak.nothingmodes.data.entities.NotificationLogEntity
+import com.tdvorak.nothingmodes.data.guardedAppend
 import com.tdvorak.nothingmodes.engine.runtime.ActiveNotifications
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,9 +60,13 @@ class AutomationNotificationListener : NotificationListenerService() {
         // Persist to notification log on a background thread.
         database?.let { db ->
             scope.launch {
-                db
-                    .notificationLogDao()
-                    .insert(
+                val dao = db.notificationLogDao()
+                guardedAppend(
+                    prune = {
+                        dao.pruneBefore(System.currentTimeMillis() - LOG_RETENTION_MILLIS)
+                    },
+                ) {
+                    dao.insert(
                         NotificationLogEntity(
                             packageName = pkg,
                             title = title,
@@ -68,6 +74,7 @@ class AutomationNotificationListener : NotificationListenerService() {
                             postTime = sbn.postTime,
                         ),
                     )
+                }
             }
         }
 

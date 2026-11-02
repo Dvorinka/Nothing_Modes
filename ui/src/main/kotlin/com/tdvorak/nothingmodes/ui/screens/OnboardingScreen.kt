@@ -88,6 +88,7 @@ class OnboardingViewModel
 @Composable
 fun OnboardingScreen(
     onComplete: () -> Unit,
+    onGuide: () -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -139,6 +140,25 @@ fun OnboardingScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = NothingSpacing.sm),
             )
+
+            Spacer(modifier = Modifier.height(NothingSpacing.xxl))
+
+            NothingSectionHeader(text = "New Here?")
+            NothingCard {
+                NothingListRow(
+                    title = "How modes work",
+                    subtitle = "Short tour: triggers, conditions, actions, and what runs without setup.",
+                    onClick = onGuide,
+                    trailing = {
+                        Text(
+                            text = "OPEN",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NothingColors.accent,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                    },
+                )
+            }
 
             // Vast gap — new context
             Spacer(modifier = Modifier.height(NothingSpacing.xxl))

@@ -304,6 +304,52 @@ class PrivilegedShellUserService() : IPrivilegedShellService.Stub() {
         }
     }
 
+    /**
+     * Disconnects a paired device (keeps the radio on). Hidden
+     * BluetoothDevice.disconnect() demands BLUETOOTH_PRIVILEGED, which the
+     * shell-uid process holds. The app verifies profile connection state.
+     */
+    override fun disconnectBluetoothDevice(address: String?): Bundle {
+        val ctx = serviceContext ?: return errorBundle("context_missing")
+        if (address.isNullOrBlank()) return errorBundle("address_missing")
+        return bluetoothHiddenCall(ctx, address, "disconnect")
+    }
+
+    /**
+     * Forgets the bond for an address. Hidden BluetoothDevice.removeBond();
+     * returns success also when the address is already unbonded — invokers
+     * verify the bonded list themselves.
+     */
+    override fun removeBluetoothDeviceBond(address: String?): Bundle {
+        val ctx = serviceContext ?: return errorBundle("context_missing")
+        if (address.isNullOrBlank()) return errorBundle("address_missing")
+        return bluetoothHiddenCall(ctx, address, "removeBond")
+    }
+
+    /** Shared body for hidden, BLUETOOTH_PRIVILEGED BluetoothDevice methods. */
+    private fun bluetoothHiddenCall(
+        ctx: Context,
+        address: String,
+        method: String,
+    ): Bundle =
+        try {
+            val manager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                ?: return errorBundle("no_bluetooth")
+            val device = manager.adapter?.getRemoteDevice(address)
+                ?: return errorBundle("no_adapter")
+            val accepted = device.javaClass.getMethod(method).invoke(device) as? Boolean
+            if (accepted == true) {
+                Bundle().apply { putInt(KEY_EXIT_CODE, 0) }
+            } else {
+                errorBundle("rejected", "$method() returned $accepted")
+            }
+        } catch (e: InvocationTargetException) {
+            val cause = e.cause ?: e
+            errorBundle("failed", "${cause.javaClass.simpleName}: ${cause.message}")
+        } catch (e: Exception) {
+            errorBundle("failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
+
     override fun setMasterSyncAutomatically(enabled: Boolean): Bundle =
         try {
             ContentResolver.setMasterSyncAutomatically(enabled)

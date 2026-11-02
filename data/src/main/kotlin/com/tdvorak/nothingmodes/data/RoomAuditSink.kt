@@ -9,16 +9,22 @@ class RoomAuditSink(
     private val dao: AuditDao,
 ) : AuditSink {
     override suspend fun record(event: AuditEvent) {
-        dao.insert(
-            AuditEntity(
-                automationId = event.automationId.value,
-                kind = event.kind.name,
-                atMillis = event.atMillis,
-                detail = event.detail,
-                eventId = event.eventId,
-                executionId = event.executionId,
-                latencyMillis = event.latencyMillis,
-            ),
-        )
+        guardedAppend(
+            prune = {
+                dao.pruneBefore(System.currentTimeMillis() - LOG_RETENTION_MILLIS)
+            },
+        ) {
+            dao.insert(
+                AuditEntity(
+                    automationId = event.automationId.value,
+                    kind = event.kind.name,
+                    atMillis = event.atMillis,
+                    detail = event.detail,
+                    eventId = event.eventId,
+                    executionId = event.executionId,
+                    latencyMillis = event.latencyMillis,
+                ),
+            )
+        }
     }
 }

@@ -121,6 +121,20 @@ fun ActionCatalogScreen(navController: NavController) {
                     Action.ConnectBluetoothDevice(""),
                     desc = "Turns Bluetooth on, then keeps paging a paired device until it connects.",
                 ),
+                ActionItem(
+                    "Disconnect Bluetooth device",
+                    "Connections",
+                    Icons.Outlined.LinkOff,
+                    Action.DisconnectBluetoothDevice(""),
+                    desc = "Drops a paired device's connection; Bluetooth stays on. Needs Shizuku.",
+                ),
+                ActionItem(
+                    "Forget Bluetooth device",
+                    "Connections",
+                    Icons.Outlined.RemoveCircleOutline,
+                    Action.ForgetBluetoothDevice(""),
+                    desc = "Unpairs a device from the phone so it can't reconnect. Needs Shizuku.",
+                ),
                 ActionItem("Mobile data", "Connections", Icons.Outlined.SignalCellular4Bar, Action.SetMobileData(true)),
                 ActionItem("Mobile hotspot", "Connections", Icons.Outlined.Wifi, Action.SetHotspot(true)),
                 ActionItem("Airplane mode", "Connections", Icons.Outlined.Flight, Action.SetAirplaneMode(true)),
@@ -172,6 +186,17 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Set alarm", "Apps", Icons.Outlined.Alarm, Action.SetAlarm(7, 0)),
                 ActionItem("Set timer", "Apps", Icons.Outlined.Timer, Action.SetTimer(300)),
                 ActionItem("Open clock", "Apps", Icons.Outlined.AccessTime, Action.OpenClock()),
+                ActionItem("HTTP request", "Apps", Icons.Outlined.Http, Action.HttpRequest(), desc = "Fires a background HTTP request — webhooks, Home Assistant, IFTTT."),
+                ActionItem("Show toast", "Apps", Icons.Outlined.Message, Action.ShowToast(""), desc = "Shows a short toast message."),
+                ActionItem("Speak text", "Apps", Icons.Outlined.RecordVoiceOver, Action.SpeakText(""), desc = "Speaks text aloud through text-to-speech."),
+                ActionItem("Shell command", "Advanced", Icons.Outlined.Terminal, Action.ShellCommand(""), desc = "Runs a shell command inside Shizuku."),
+                ActionItem("Run mode", "Advanced", Icons.Outlined.PlayCircle, Action.RunMode(""), desc = "Runs another manual mode — modes as subroutines."),
+                ActionItem("Enable mode", "Advanced", Icons.Outlined.ToggleOn, Action.SetModeEnabled("", true), desc = "Enables or disables another mode."),
+                ActionItem("Reject call", "Advanced", Icons.Outlined.CallEnd, Action.RejectCall, desc = "Ends the ringing or active call. Needs Shizuku."),
+                ActionItem("Speakerphone", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SpeakerPhone(true), desc = "Routes call audio to the loudspeaker."),
+                ActionItem("Force stop app", "Advanced", Icons.Outlined.Block, Action.ForceStopApp(""), desc = "Force-stops an app. Needs Shizuku."),
+                ActionItem("Expand status bar", "Advanced", Icons.Outlined.UnfoldMore, Action.ExpandStatusBar, desc = "Expands the notification shade. Needs Shizuku."),
+                ActionItem("Send broadcast", "Advanced", Icons.Outlined.Send, Action.SendBroadcast(""), desc = "Sends a broadcast intent — interop with other apps and automations."),
                 // Three Glyph rows total: the combined composer (every design
                 // type switchable inside its sheet), a plain on/off, and the
                 // flashlight group. Hardware-blocked twins (stripe vs matrix)

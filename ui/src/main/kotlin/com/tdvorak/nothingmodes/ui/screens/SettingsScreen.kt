@@ -209,6 +209,7 @@ class SettingsViewModel
 fun SettingsScreen(
     onBack: () -> Unit,
     onOnboarding: () -> Unit = {},
+    onGuide: () -> Unit = {},
     onGlyphPreview: () -> Unit = {},
     onNotificationLog: () -> Unit = {},
     onQuickSettings: () -> Unit = {},
@@ -354,7 +355,11 @@ fun SettingsScreen(
                                     !capabilities.hasUsageAccess
                             )
 
-                    if (restrictedMissing) {
+                    // Play-distribution installs are exempt from Android 13+
+                    // restricted settings — showing the sideload steps there is
+                    // the confusing case reported by testers.
+                    val playInstall = remember { context.distributionFlavor() == "play" }
+                    if (restrictedMissing && !playInstall) {
                         RestrictedSettingsGuide(context, capabilities)
                     }
 
@@ -987,6 +992,11 @@ fun SettingsScreen(
                     // ── Misc ──────────────────────────────────────────────────
                     NothingSectionHeader(text = "More")
                     NothingCard {
+                        NothingListRow(
+                            title = "How to Use",
+                            onClick = onGuide,
+                        )
+                        NothingDivider()
                         NothingListRow(
                             title = "Setup Guide",
                             onClick = onOnboarding,

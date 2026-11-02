@@ -20,7 +20,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +43,7 @@ import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.DndMode
+import com.tdvorak.nothingmodes.engine.model.HttpMethod
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
@@ -214,6 +220,10 @@ fun ActionConfigContent(
         }
 
         is Action.ConnectBluetoothDevice -> ConnectBluetoothDeviceConfig(a, onActionChange)
+
+        is Action.DisconnectBluetoothDevice -> DisconnectBluetoothDeviceConfig(a, onActionChange)
+
+        is Action.ForgetBluetoothDevice -> ForgetBluetoothDeviceConfig(a, onActionChange)
 
         is Action.SetMobileData -> {
             BooleanRow(
@@ -820,6 +830,120 @@ fun ActionConfigContent(
                 },
                 browserOnly = true,
             )
+        }
+
+        is Action.HttpRequest -> {
+            NothingEnumSelector(
+                label = "Method",
+                value = a.method.name.enumLabel(),
+                options = enumLabelList<HttpMethod>(),
+                onSelect = { sel ->
+                    onActionChange(a.copy(method = HttpMethod.entries.first { it.name.enumLabel() == sel }))
+                },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.url,
+                onValueChange = { onActionChange(a.copy(url = it)) },
+                label = "URL",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            NothingInput(
+                value = a.body,
+                onValueChange = { onActionChange(a.copy(body = it)) },
+                label = "Body (optional)",
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.ShellCommand -> {
+            NothingInput(
+                value = a.command,
+                onValueChange = { onActionChange(a.copy(command = it)) },
+                label = "Shell command",
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.ShowToast -> {
+            NothingInput(
+                value = a.message,
+                onValueChange = { onActionChange(a.copy(message = it)) },
+                label = "Message",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.SpeakText -> {
+            NothingInput(
+                value = a.text,
+                onValueChange = { onActionChange(a.copy(text = it)) },
+                label = "Text to speak",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        is Action.RunMode -> {
+            ModeSelector(
+                manualOnly = true,
+                currentId = a.automationId,
+                onSelect = { onActionChange(a.copy(automationId = it)) },
+            )
+        }
+
+        is Action.SetModeEnabled -> {
+            Column {
+                ModeSelector(
+                    manualOnly = false,
+                    currentId = a.automationId,
+                    onSelect = { onActionChange(a.copy(automationId = it)) },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                BooleanRow(
+                    label = "Enabled",
+                    checked = a.enabled,
+                    onChange = { onActionChange(a.copy(enabled = it)) },
+                )
+            }
+        }
+
+        is Action.RejectCall -> Unit
+
+        is Action.SpeakerPhone -> {
+            BooleanRow(
+                label = "Speakerphone on",
+                checked = a.on,
+                onChange = { onActionChange(a.copy(on = it)) },
+            )
+        }
+
+        is Action.ForceStopApp -> {
+            AppPicker(
+                currentPackage = a.packageName,
+                onPkgChange = { onActionChange(a.copy(packageName = it)) },
+            )
+        }
+
+        is Action.ExpandStatusBar -> Unit
+
+        is Action.SendBroadcast -> {
+            NothingInput(
+                value = a.action,
+                onValueChange = { onActionChange(a.copy(action = it)) },
+                label = "Intent action",
+                infoText = "Exact action of the broadcast to send, e.g. com.example.EVENT. Pair it with an Intent received trigger.",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            AppPicker(
+                currentPackage = a.packageName,
+                onPkgChange = { onActionChange(a.copy(packageName = it.takeIf { pkg -> pkg.isNotBlank() } ?: "")) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            HelpText(text = "Empty app selection broadcasts device-wide; picking an app scopes it to that one.")
         }
 
         is Action.LaunchApp -> {
@@ -1613,6 +1737,8 @@ private fun actionTitle(action: Action): String =
         is Action.SetWifi -> "Wi-Fi"
         is Action.SetBluetooth -> "Bluetooth"
         is Action.ConnectBluetoothDevice -> "Connect Bluetooth device"
+        is Action.DisconnectBluetoothDevice -> "Disconnect Bluetooth device"
+        is Action.ForgetBluetoothDevice -> "Forget Bluetooth device"
         is Action.SetMobileData -> "Mobile data"
         is Action.SetAirplaneMode -> "Airplane mode"
         is Action.SetDarkMode -> "Dark mode"
@@ -1673,6 +1799,17 @@ private fun actionTitle(action: Action): String =
         is Action.SetAlarm -> "Set alarm"
         is Action.SetTimer -> "Set timer"
         is Action.OpenClock -> "Open clock"
+        is Action.HttpRequest -> "HTTP request"
+        is Action.ShellCommand -> "Shell command"
+        is Action.ShowToast -> "Show toast"
+        is Action.SpeakText -> "Speak text"
+        is Action.RunMode -> "Run mode"
+        is Action.SetModeEnabled -> "Enable mode"
+        is Action.RejectCall -> "Reject call"
+        is Action.SpeakerPhone -> "Speakerphone"
+        is Action.ForceStopApp -> "Force stop app"
+        is Action.ExpandStatusBar -> "Expand status bar"
+        is Action.SendBroadcast -> "Send broadcast"
         is Action.Group -> action.name
         else -> "Action"
     }
@@ -1754,6 +1891,96 @@ internal fun ConnectBluetoothDeviceConfig(
             onDismiss = { showPicker = false },
         )
     }
+}
+
+/**
+ * Shared config for disconnect / forget: pick one bonded device, no other
+ * knobs. Both actions run hidden APIs and require Shizuku.
+ */
+@Composable
+internal fun BluetoothDeviceOnlyConfig(
+    chosenName: String?,
+    chosenAddress: String,
+    onPick: (String?, String?) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    Column {
+        PermissionGate(
+            permissions =
+                listOf(
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                ),
+            rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+        ) {
+            NothingPillButton(
+                text = "Pick paired device",
+                onClick = { showPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        Text(
+            text = chosenName?.takeIf { it.isNotBlank() } ?: "No device selected",
+            style = MaterialTheme.typography.bodyMedium,
+            color =
+                if (chosenName.isNullOrBlank()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            fontFamily = NothingFonts.mono(),
+        )
+        if (chosenAddress.isNotBlank()) {
+            Text(
+                text = chosenAddress,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
+            )
+        }
+        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+        HelpText(
+            text = "Needs Shizuku. Android gives normal apps no way to disconnect a device or drop a bond.",
+        )
+    }
+    if (showPicker) {
+        BondedDevicePickerDialog(
+            onSelect = { name, address ->
+                if (address != null) onPick(name, address)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+@Composable
+internal fun DisconnectBluetoothDeviceConfig(
+    action: Action.DisconnectBluetoothDevice,
+    onChange: (Action.DisconnectBluetoothDevice) -> Unit,
+) {
+    BluetoothDeviceOnlyConfig(
+        chosenName = action.deviceName,
+        chosenAddress = action.address,
+        onPick = { name, address ->
+            if (address != null) onChange(action.copy(deviceName = name, address = address))
+        },
+    )
+}
+
+@Composable
+internal fun ForgetBluetoothDeviceConfig(
+    action: Action.ForgetBluetoothDevice,
+    onChange: (Action.ForgetBluetoothDevice) -> Unit,
+) {
+    BluetoothDeviceOnlyConfig(
+        chosenName = action.deviceName,
+        chosenAddress = action.address,
+        onPick = { name, address ->
+            if (address != null) onChange(action.copy(deviceName = name, address = address))
+        },
+    )
 }
 
 @Composable
@@ -1927,3 +2154,47 @@ internal fun parseColorHex(text: String): Int? =
         if (hex.length != 6) return@runCatching null
         Integer.parseInt(hex, 16) or 0xFF000000.toInt()
     }.getOrNull()
+
+/** Loads automations for the Run mode / Enable mode pickers. */
+@HiltViewModel
+class ModePickerViewModel
+    @Inject
+    constructor(
+        store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore,
+    ) : androidx.lifecycle.ViewModel() {
+        data class ModeEntry(
+            val id: String,
+            val name: String,
+            val manual: Boolean,
+        )
+
+        val modes = kotlinx.coroutines.flow.MutableStateFlow<List<ModeEntry>>(emptyList())
+
+        init {
+            viewModelScope.launch {
+                modes.value =
+                    store.all().map {
+                        ModeEntry(it.id.value, it.name, it.trigger is Trigger.Manual)
+                    }
+            }
+        }
+    }
+
+/** Dropdown of saved modes; manualOnly restricts to manual-trigger targets. */
+@Composable
+internal fun ModeSelector(
+    manualOnly: Boolean,
+    currentId: String,
+    onSelect: (String) -> Unit,
+    viewModel: ModePickerViewModel = hiltViewModel(),
+) {
+    val all by viewModel.modes.collectAsState()
+    val options = all.filter { !manualOnly || it.manual }
+    val current = options.firstOrNull { it.id == currentId }
+    NothingEnumSelector(
+        label = "Mode",
+        value = current?.name ?: "(pick a mode)",
+        options = options.map { it.name },
+        onSelect = { sel -> options.firstOrNull { it.name == sel }?.let { onSelect(it.id) } },
+    )
+}

@@ -164,6 +164,11 @@ class AutomationService : Service() {
                 ACTION_WIFI_CONNECTED -> handleWifiConnected(intent)
                 ACTION_TORCH_STATE -> handleTorchState(intent)
                 ACTION_MEDIA_PLAYBACK -> handleMediaPlayback(intent)
+                ACTION_MEDIA_TRACK -> handleMediaTrack(intent)
+                ACTION_PACKAGE_CHANGED -> handlePackageChanged(intent)
+                ACTION_INTENT -> handleIntentReceived(intent)
+                ACTION_LOGIN_FAILED -> handleLoginFailed()
+                ACTION_SHAKE -> handleShake()
                 ACTION_MANUAL -> handleManual(intent)
                 ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
                 ACTION_DEVICE_STATE -> handleDeviceState(intent)
@@ -673,6 +678,45 @@ class AutomationService : Service() {
         )
     }
 
+    private fun handleMediaTrack(intent: Intent) {
+        dispatchEvent(
+            TriggerEvent.MediaTrackChanged(
+                eventId = "track:${System.currentTimeMillis()}",
+                packageName = intent.getStringExtra(EXTRA_MEDIA_PACKAGE),
+                artist = intent.getStringExtra(EXTRA_MEDIA_ARTIST),
+                title = intent.getStringExtra(EXTRA_MEDIA_TITLE),
+            ),
+        )
+    }
+
+    private fun handlePackageChanged(intent: Intent) {
+        dispatchEvent(
+            TriggerEvent.AppPackageChanged(
+                eventId = "pkg:${System.currentTimeMillis()}",
+                installed = intent.getBooleanExtra(EXTRA_PACKAGE_INSTALLED, true),
+                pkg = intent.getStringExtra(EXTRA_PACKAGE_NAME),
+            ),
+        )
+    }
+
+    private fun handleIntentReceived(intent: Intent) {
+        val action = intent.getStringExtra(EXTRA_INTENT_ACTION) ?: return
+        dispatchEvent(
+            TriggerEvent.IntentReceived(
+                eventId = "intent:$action:${System.currentTimeMillis()}",
+                action = action,
+            ),
+        )
+    }
+
+    private fun handleLoginFailed() {
+        dispatchEvent(TriggerEvent.LoginFailed(eventId = "login_failed:${System.currentTimeMillis()}"))
+    }
+
+    private fun handleShake() {
+        dispatchEvent(TriggerEvent.Shake(eventId = "shake:${System.currentTimeMillis()}"))
+    }
+
     private fun handleManual(intent: Intent) {
         val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
         val automationId = AutomationId(idStr)
@@ -858,6 +902,11 @@ class AutomationService : Service() {
         const val ACTION_MANUAL = "com.tdvorak.nothingmodes.MANUAL"
         const val ACTION_CALENDAR_EVENT = "com.tdvorak.nothingmodes.CALENDAR_EVENT"
         const val ACTION_MEDIA_PLAYBACK = "com.tdvorak.nothingmodes.MEDIA_PLAYBACK"
+        const val ACTION_MEDIA_TRACK = "com.tdvorak.nothingmodes.MEDIA_TRACK"
+        const val ACTION_PACKAGE_CHANGED = "com.tdvorak.nothingmodes.PACKAGE_CHANGED"
+        const val ACTION_INTENT = "com.tdvorak.nothingmodes.INTENT_RECEIVED"
+        const val ACTION_LOGIN_FAILED = "com.tdvorak.nothingmodes.LOGIN_FAILED"
+        const val ACTION_SHAKE = "com.tdvorak.nothingmodes.SHAKE"
         const val ACTION_DEVICE_STATE = "com.tdvorak.nothingmodes.DEVICE_STATE"
         const val ACTION_AUTOMATION_REMOVED = "com.tdvorak.nothingmodes.AUTOMATION_REMOVED"
         const val ACTION_GATE_FORCE_END = "com.tdvorak.nothingmodes.GATE_FORCE_END"
@@ -869,6 +918,9 @@ class AutomationService : Service() {
         const val EXTRA_MEDIA_ARTIST = "media_artist"
         const val EXTRA_MEDIA_TITLE = "media_title"
         const val EXTRA_MANUAL_ID = "manual_automation_id"
+        const val EXTRA_PACKAGE_INSTALLED = "package_installed"
+        const val EXTRA_PACKAGE_NAME = "package_name"
+        const val EXTRA_INTENT_ACTION = "intent_action"
         const val EXTRA_BATTERY_LEVEL = "battery_level"
         const val EXTRA_BATTERY_CHARGING = "battery_charging"
         const val EXTRA_SCREEN_STATE = "screen_state"

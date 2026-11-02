@@ -18,4 +18,16 @@ interface StateSnapshotDao {
 
     @Query("DELETE FROM state_snapshots WHERE capturedAtMillis < :beforeMillis")
     suspend fun pruneBefore(beforeMillis: Long): Int
+
+    @Query(
+        "DELETE FROM state_snapshots WHERE automationId = :automationId " +
+            "AND capturedAtMillis NOT IN (" +
+            "SELECT capturedAtMillis FROM state_snapshots " +
+            "WHERE automationId = :automationId " +
+            "ORDER BY capturedAtMillis DESC LIMIT :keep)",
+    )
+    suspend fun pruneToLatest(
+        automationId: String,
+        keep: Int,
+    ): Int
 }

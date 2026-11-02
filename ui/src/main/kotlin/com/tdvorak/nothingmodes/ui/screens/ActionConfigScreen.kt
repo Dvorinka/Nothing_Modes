@@ -30,6 +30,7 @@ import androidx.navigation.NavController
 import com.tdvorak.nothingmodes.engine.model.Action
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.DndMode
+import com.tdvorak.nothingmodes.engine.model.HttpMethod
 import com.tdvorak.nothingmodes.engine.model.LocationMode
 import com.tdvorak.nothingmodes.engine.model.MediaCommand
 import com.tdvorak.nothingmodes.engine.model.MusicVisualizerStyles
@@ -114,6 +115,12 @@ fun ActionConfigScreen(
 
                     is Action.ConnectBluetoothDevice ->
                         ConnectBluetoothDeviceConfig(a) { action = it }
+
+                    is Action.DisconnectBluetoothDevice ->
+                        DisconnectBluetoothDeviceConfig(a) { action = it }
+
+                    is Action.ForgetBluetoothDevice ->
+                        ForgetBluetoothDeviceConfig(a) { action = it }
 
                     is Action.SetMobileData -> {
                         BooleanRow(
@@ -445,6 +452,112 @@ fun ActionConfigScreen(
                             },
                             browserOnly = true,
                         )
+                    }
+
+                    is Action.HttpRequest -> {
+                        NothingEnumSelector(
+                            label = "Method",
+                            value = a.method.name.enumLabel(),
+                            options = enumLabelList<HttpMethod>(),
+                            onSelect = { sel -> action = a.copy(method = HttpMethod.entries.first { it.name.enumLabel() == sel }) },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingInput(
+                            value = a.url,
+                            onValueChange = { action = a.copy(url = it) },
+                            label = "URL",
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        NothingInput(
+                            value = a.body,
+                            onValueChange = { action = a.copy(body = it) },
+                            label = "Body (optional)",
+                            singleLine = false,
+                        )
+                    }
+
+                    is Action.ShellCommand -> {
+                        NothingInput(
+                            value = a.command,
+                            onValueChange = { action = a.copy(command = it) },
+                            label = "Shell command",
+                            singleLine = false,
+                        )
+                    }
+
+                    is Action.ShowToast -> {
+                        NothingInput(
+                            value = a.message,
+                            onValueChange = { action = a.copy(message = it) },
+                            label = "Message",
+                        )
+                    }
+
+                    is Action.SpeakText -> {
+                        NothingInput(
+                            value = a.text,
+                            onValueChange = { action = a.copy(text = it) },
+                            label = "Text to speak",
+                        )
+                    }
+
+                    is Action.RunMode -> {
+                        ModeSelector(
+                            manualOnly = true,
+                            currentId = a.automationId,
+                            onSelect = { action = a.copy(automationId = it) },
+                        )
+                    }
+
+                    is Action.SetModeEnabled -> {
+                        ModeSelector(
+                            manualOnly = false,
+                            currentId = a.automationId,
+                            onSelect = { action = a.copy(automationId = it) },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        BooleanRow(
+                            label = "Enabled",
+                            checked = a.enabled,
+                            onChange = { action = a.copy(enabled = it) },
+                        )
+                    }
+
+                    is Action.RejectCall -> Unit
+
+                    is Action.SpeakerPhone -> {
+                        BooleanRow(
+                            label = "Speakerphone on",
+                            checked = a.on,
+                            onChange = { action = a.copy(on = it) },
+                        )
+                    }
+
+                    is Action.ForceStopApp -> {
+                        AppPicker(
+                            currentPackage = a.packageName,
+                            onPkgChange = { action = a.copy(packageName = it) },
+                        )
+                    }
+
+                    is Action.ExpandStatusBar -> Unit
+
+                    is Action.SendBroadcast -> {
+                        NothingInput(
+                            value = a.action,
+                            onValueChange = { action = a.copy(action = it) },
+                            label = "Intent action",
+                            infoText = "Exact action of the broadcast to send, e.g. com.example.EVENT. Pair it with an Intent received trigger.",
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        AppPicker(
+                            currentPackage = a.packageName,
+                            onPkgChange = { pkg ->
+                                action = a.copy(packageName = pkg.takeIf { it.isNotBlank() } ?: "")
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        HelpText(text = "Empty app selection broadcasts device-wide; picking an app scopes it to that one.")
                     }
 
                     is Action.LaunchApp -> {

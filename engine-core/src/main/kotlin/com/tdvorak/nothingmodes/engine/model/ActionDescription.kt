@@ -58,6 +58,10 @@ fun actionDescription(action: Action): String =
             is Action.SetBluetooth -> "Bluetooth: ${if (action.on) "On" else "Off"}"
             is Action.ConnectBluetoothDevice ->
                 "Connect Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
+            is Action.DisconnectBluetoothDevice ->
+                "Disconnect Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
+            is Action.ForgetBluetoothDevice ->
+                "Forget Bluetooth: ${action.deviceName?.takeIf { it.isNotBlank() } ?: action.address.ifBlank { "no device" }}"
             is Action.SetMobileData -> "Mobile Data: ${if (action.on) "On" else "Off"}"
             is Action.SetDnd -> "Do Not Disturb: ${action.mode.displayName()}"
             is Action.SetRinger -> "Ringer: ${action.mode.replaceFirstChar { it.uppercase() }}"
@@ -158,6 +162,17 @@ fun actionDescription(action: Action): String =
                 "Timer ${formatDuration(action.seconds * 1_000L)}$label"
             }
             is Action.OpenClock -> "Open clock: ${action.section.name.enumLabel()}"
+            is Action.HttpRequest -> "HTTP ${action.method.name}: ${action.url.take(40)}"
+            is Action.ShellCommand -> "Shell: ${action.command.take(40)}"
+            is Action.ShowToast -> "Toast: ${action.message.take(30)}"
+            is Action.SpeakText -> "Speak: ${action.text.take(30)}"
+            is Action.RunMode -> "Run mode: ${action.automationId}"
+            is Action.SetModeEnabled -> "Mode ${if (action.enabled) "enable" else "disable"}: ${action.automationId}"
+            is Action.RejectCall -> "Reject call"
+            is Action.SpeakerPhone -> "Speakerphone: ${if (action.on) "On" else "Off"}"
+            is Action.ForceStopApp -> "Force stop: ${action.packageName}"
+            is Action.ExpandStatusBar -> "Expand status bar"
+            is Action.SendBroadcast -> "Broadcast: ${action.action.take(40)}"
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()

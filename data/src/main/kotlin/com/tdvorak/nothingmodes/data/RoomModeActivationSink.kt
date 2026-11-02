@@ -14,15 +14,21 @@ class RoomModeActivationSink(
         automationId: AutomationId,
         atMillis: Long,
     ) {
-        db.withTransaction {
-            dao.deactivate(automationId.value, atMillis)
-            dao.insert(
-                ModeActivationEntity(
-                    modeId = automationId.value,
-                    activatedAtMillis = atMillis,
-                    status = "ACTIVE",
-                ),
-            )
+        guardedAppend(
+            prune = {
+                dao.pruneBefore(System.currentTimeMillis() - LOG_RETENTION_MILLIS)
+            },
+        ) {
+            db.withTransaction {
+                dao.deactivate(automationId.value, atMillis)
+                dao.insert(
+                    ModeActivationEntity(
+                        modeId = automationId.value,
+                        activatedAtMillis = atMillis,
+                        status = "ACTIVE",
+                    ),
+                )
+            }
         }
     }
 

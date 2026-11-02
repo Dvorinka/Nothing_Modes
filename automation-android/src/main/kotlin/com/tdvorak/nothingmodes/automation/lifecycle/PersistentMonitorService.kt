@@ -44,13 +44,19 @@ import javax.inject.Inject
 class PersistentMonitorService : Service() {
     @Inject lateinit var shizukuGateway: ShizukuGateway
 
+    @Inject lateinit var store: com.tdvorak.nothingmodes.engine.runtime.AutomationStore
+
     private var batteryReceiver: BroadcastReceiver? = null
     private var screenReceiver: BroadcastReceiver? = null
     private var connectivityReceiver: BroadcastReceiver? = null
     private var phoneStateReceiver: BroadcastReceiver? = null
+    private var packageReceiver: BroadcastReceiver? = null
+    private var intentReceiver: BroadcastReceiver? = null
+    private var watchedIntentActions: Set<String> = emptySet()
     private var torchCallback: android.hardware.camera2.CameraManager.TorchCallback? = null
     private var usageStatsMonitor: UsageStatsMonitor? = null
     private var mediaSessionMonitor: MediaSessionMonitor? = null
+    private var sensorStateMonitor: SensorStateMonitor? = null
     private var calendarObserver: CalendarObserver? = null
     private var deviceStateMonitor: DeviceStateMonitor? = null
 
@@ -105,6 +111,7 @@ class PersistentMonitorService : Service() {
             return START_NOT_STICKY
         }
         ensureMonitorsStarted()
+        if (intent?.action == ACTION_REFRESH_INTENT_TRIGGERS) refreshIntentTriggers()
         return START_STICKY
     }
 
@@ -115,7 +122,11 @@ class PersistentMonitorService : Service() {
         registerTorchCallback()
         startCalendarObserver()
         deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
+        deviceStateMonitor?.let { monitor ->
+            sensorStateMonitor = SensorStateMonitor(this, monitor).also { it.start() }
+        }
         watchShizukuStatus()
+        refreshIntentTriggers()
         Log.i(TAG, "Persistent monitor started")
     }
 
@@ -152,6 +163,8 @@ class PersistentMonitorService : Service() {
         calendarObserver = null
         deviceStateMonitor?.stop()
         deviceStateMonitor = null
+        sensorStateMonitor?.stop()
+        sensorStateMonitor = null
         shizukuWatchScope.cancel()
         Log.i(TAG, "Persistent monitor stopped")
         super.onDestroy()
@@ -280,6 +293,41 @@ class PersistentMonitorService : Service() {
         runCatching { registerReceiver(phoneStateReceiver, smsFilter) }
             .onFailure { Log.e(TAG, "Failed to register SMS receiver", it) }
 
+        // Package installs/removals. Not on the implicit-broadcast ban, but a
+        // manifest receiver holds no FGS-start exemption — registered here so
+        // the dispatch to AutomationService always lands.
+        packageReceiver =
+            object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context,
+                    intent: Intent,
+                ) {
+                    val installed =
+                        when (intent.action) {
+                            Intent.ACTION_PACKAGE_ADDED -> true
+                            Intent.ACTION_PACKAGE_REMOVED -> false
+                            else -> return
+                        }
+                    val serviceIntent =
+                        Intent(context, AutomationService::class.java).apply {
+                            action = AutomationService.ACTION_PACKAGE_CHANGED
+                            putExtra(AutomationService.EXTRA_PACKAGE_INSTALLED, installed)
+                            intent.data?.schemeSpecificPart?.let {
+                                putExtra(AutomationService.EXTRA_PACKAGE_NAME, it)
+                            }
+                        }
+                    context.startForegroundServiceSafely(serviceIntent)
+                }
+            }
+        val pkgFilter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addDataScheme("package")
+            }
+        runCatching { registerReceiver(packageReceiver, pkgFilter) }
+            .onFailure { Log.e(TAG, "Failed to register package receiver", it) }
+
         // Call state via TelephonyCallback/PhoneStateListener — more reliable than the
         // ACTION_PHONE_STATE broadcast on modern Android.
         registerCallStateListener()
@@ -323,10 +371,65 @@ class PersistentMonitorService : Service() {
         screenReceiver?.let { runCatching { unregisterReceiver(it) } }
         connectivityReceiver?.let { runCatching { unregisterReceiver(it) } }
         phoneStateReceiver?.let { runCatching { unregisterReceiver(it) } }
+        packageReceiver?.let { runCatching { unregisterReceiver(it) } }
+        intentReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
         screenReceiver = null
         connectivityReceiver = null
         phoneStateReceiver = null
+        packageReceiver = null
+        intentReceiver = null
+        watchedIntentActions = emptySet()
+    }
+
+    /**
+     * Re-reads the armed automations and registers one dynamic receiver for
+     * the union of Intent-received trigger actions. Exported: these intents
+     * come from other apps (or our own Send broadcast action). An empty set
+     * leaves the receiver unregistered.
+     */
+    private fun refreshIntentTriggers() {
+        shizukuWatchScope.launch {
+            val actions =
+                runCatching {
+                    store
+                        .armed()
+                        .mapNotNull { (it.trigger as? com.tdvorak.nothingmodes.engine.model.Trigger.IntentReceived)?.action?.trim() }
+                        .filter { it.isNotEmpty() }
+                        .toSet()
+                }.getOrDefault(emptySet())
+            if (actions == watchedIntentActions) return@launch
+            watchedIntentActions = actions
+            intentReceiver?.let { runCatching { unregisterReceiver(it) } }
+            intentReceiver = null
+            if (actions.isEmpty()) return@launch
+            val receiver =
+                object : BroadcastReceiver() {
+                    override fun onReceive(
+                        context: Context,
+                        intent: Intent,
+                    ) {
+                        val received = intent.action ?: return
+                        val serviceIntent =
+                            Intent(context, AutomationService::class.java).apply {
+                                action = AutomationService.ACTION_INTENT
+                                putExtra(AutomationService.EXTRA_INTENT_ACTION, received)
+                            }
+                        context.startForegroundServiceSafely(serviceIntent)
+                    }
+                }
+            val filter = IntentFilter()
+            actions.forEach { filter.addAction(it) }
+            runCatching {
+                ContextCompat.registerReceiver(
+                    this@PersistentMonitorService,
+                    receiver,
+                    filter,
+                    ContextCompat.RECEIVER_EXPORTED,
+                )
+            }.onSuccess { intentReceiver = receiver }
+                .onFailure { Log.e(TAG, "Failed to register intent-trigger receiver", it) }
+        }
     }
 
     private val phoneStateListeners = mutableMapOf<Int, PhoneStateListener>()
@@ -510,6 +613,7 @@ class PersistentMonitorService : Service() {
 
     companion object {
         private const val TAG = "PersistentMonitor"
+        const val ACTION_REFRESH_INTENT_TRIGGERS = "com.tdvorak.nothingmodes.REFRESH_INTENT_TRIGGERS"
         private const val CHANNEL_ID = "persistent_monitor"
         private const val NOTIFICATION_ID = 1002
         const val EXTRA_BATTERY_SOURCE = "battery_source"

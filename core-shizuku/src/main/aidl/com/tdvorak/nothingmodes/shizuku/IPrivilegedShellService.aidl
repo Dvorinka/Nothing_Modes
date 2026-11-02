@@ -15,6 +15,11 @@ interface IPrivilegedShellService {
     // Pages a bonded device's classic profiles. Hidden BluetoothDevice.connect()
     // needs BLUETOOTH_PRIVILEGED, which shell holds and the app does not.
     Bundle connectBluetoothDevice(String address);
+    // Disconnects a paired device. Hidden BluetoothDevice.disconnect() needs
+    // BLUETOOTH_PRIVILEGED, which shell holds and the app does not.
+    Bundle disconnectBluetoothDevice(String address);
+    // Forgets the bond for an address. Hidden BluetoothDevice.removeBond().
+    Bundle removeBluetoothDeviceBond(String address);
     int uid();
     void destroy();
 }

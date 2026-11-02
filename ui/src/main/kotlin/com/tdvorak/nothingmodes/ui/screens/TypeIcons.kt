@@ -4,6 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MobileScreenShare
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.BluetoothConnected
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Alarm
@@ -15,6 +17,8 @@ import androidx.compose.material.icons.outlined.BatterySaver
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.CallEnd
 import androidx.compose.material.icons.outlined.Brightness6
 import androidx.compose.material.icons.outlined.BrightnessLow
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -32,16 +36,22 @@ import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.InstallMobile
+import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.InvertColors
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Message
 import androidx.compose.material.icons.outlined.MicOff
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Podcasts
 import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Phone
@@ -49,18 +59,24 @@ import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Power
 import androidx.compose.material.icons.outlined.PowerSettingsNew
+import androidx.compose.material.icons.outlined.RecordVoiceOver
+import androidx.compose.material.icons.outlined.Rotate90DegreesCcw
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ScreenRotation
+import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SignalCellular4Bar
 import androidx.compose.material.icons.outlined.Sms
 import androidx.compose.material.icons.outlined.Snooze
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.ToggleOn
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.WatchLater
@@ -108,6 +124,12 @@ fun iconForTrigger(trigger: Trigger): ImageVector =
         is Trigger.DeviceLocked -> Icons.Outlined.Lock
         is Trigger.TorchState -> Icons.Outlined.FlashlightOn
         is Trigger.MediaPlayback -> Icons.Outlined.PlayCircle
+        is Trigger.MediaTrackChanged -> Icons.Outlined.SkipNext
+        is Trigger.HeadphonesConnected -> Icons.Outlined.Headphones
+        is Trigger.AppInstalledRemoved -> Icons.Outlined.InstallMobile
+        is Trigger.IntentReceived -> Icons.Outlined.Podcasts
+        is Trigger.FailedLogin -> Icons.Outlined.Password
+        is Trigger.Shake -> Icons.Outlined.Vibration
         is Trigger.DeviceState -> iconForDeviceStateKey(trigger.key)
     }
 
@@ -160,6 +182,8 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetWifi -> Icons.Outlined.Wifi
         is Action.SetBluetooth -> Icons.Outlined.Bluetooth
         is Action.ConnectBluetoothDevice -> Icons.Outlined.BluetoothConnected
+        is Action.DisconnectBluetoothDevice -> Icons.Outlined.LinkOff
+        is Action.ForgetBluetoothDevice -> Icons.Outlined.RemoveCircleOutline
         is Action.SetMobileData -> Icons.Outlined.SignalCellular4Bar
         is Action.SetHotspot -> Icons.Outlined.WifiTethering
         is Action.SetAirplaneMode -> Icons.Outlined.Flight
@@ -208,6 +232,17 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SetAlarm -> Icons.Outlined.Alarm
         is Action.SetTimer -> Icons.Outlined.Timer
         is Action.OpenClock -> Icons.Outlined.AccessTime
+        is Action.HttpRequest -> Icons.Outlined.Http
+        is Action.ShellCommand -> Icons.Outlined.Terminal
+        is Action.ShowToast -> Icons.Outlined.Message
+        is Action.SpeakText -> Icons.Outlined.RecordVoiceOver
+        is Action.RunMode -> Icons.Outlined.PlayCircle
+        is Action.SetModeEnabled -> Icons.Outlined.ToggleOn
+        is Action.RejectCall -> Icons.Outlined.CallEnd
+        is Action.SpeakerPhone -> Icons.AutoMirrored.Outlined.VolumeUp
+        is Action.ForceStopApp -> Icons.Outlined.Block
+        is Action.ExpandStatusBar -> Icons.Outlined.UnfoldMore
+        is Action.SendBroadcast -> Icons.Outlined.Send
         is Action.Group -> Icons.Outlined.Bolt
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
@@ -232,6 +267,8 @@ private fun iconForDeviceStateKey(key: String): ImageVector =
         DeviceStateKeys.AUTO_ROTATE -> Icons.Outlined.ScreenRotation
         DeviceStateKeys.AOD -> Icons.Outlined.WatchLater
         DeviceStateKeys.THERMAL -> Icons.Outlined.Thermostat
+        DeviceStateKeys.ORIENTATION -> Icons.Outlined.Rotate90DegreesCcw
+        DeviceStateKeys.PROXIMITY -> Icons.Outlined.NearMe
         DeviceStateKeys.WIFI_RADIO -> Icons.Outlined.Wifi
         DeviceStateKeys.BLUETOOTH_RADIO -> Icons.Outlined.Bluetooth
         DeviceStateKeys.NFC -> Icons.Outlined.Nfc
@@ -251,6 +288,7 @@ internal fun appPackageOf(item: Any): String? =
         is Trigger.AppOpened -> item.pkg
         is Trigger.Notification -> item.pkg
         is Trigger.MediaPlayback -> item.packageName
+        is Trigger.MediaTrackChanged -> item.packageName
         is Condition.AppInForeground -> item.pkg
         is Condition.NotificationPresent -> item.pkg
         is Action.LaunchApp -> item.packages.firstOrNull()

@@ -25,6 +25,12 @@ object CapabilityIds {
     const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
     const val TRIGGER_TORCH_STATE = "trigger_torch_state"
     const val TRIGGER_MEDIA_PLAYBACK = "trigger_media_playback"
+    const val TRIGGER_MEDIA_TRACK = "trigger_media_track"
+    const val TRIGGER_HEADPHONES = "trigger_headphones"
+    const val TRIGGER_APP_INSTALLED = "trigger_app_installed"
+    const val TRIGGER_INTENT = "trigger_intent"
+    const val TRIGGER_FAILED_LOGIN = "trigger_failed_login"
+    const val TRIGGER_SHAKE = "trigger_shake"
     const val TRIGGER_DEVICE_STATE = "trigger_device_state"
 
     // State readers
@@ -40,6 +46,8 @@ object CapabilityIds {
     const val ACTION_SET_WIFI = "action_set_wifi"
     const val ACTION_SET_BLUETOOTH = "action_set_bluetooth"
     const val ACTION_CONNECT_BLUETOOTH_DEVICE = "action_connect_bluetooth_device"
+    const val ACTION_DISCONNECT_BLUETOOTH_DEVICE = "action_disconnect_bluetooth_device"
+    const val ACTION_FORGET_BLUETOOTH_DEVICE = "action_forget_bluetooth_device"
     const val ACTION_SET_MOBILE_DATA = "action_set_mobile_data"
     const val ACTION_SET_DND = "action_set_dnd"
     const val ACTION_SET_RINGER = "action_set_ringer"
@@ -100,6 +108,17 @@ object CapabilityIds {
     const val ACTION_SET_ALARM = "action_set_alarm"
     const val ACTION_SET_TIMER = "action_set_timer"
     const val ACTION_OPEN_CLOCK = "action_open_clock"
+    const val ACTION_HTTP_REQUEST = "action_http_request"
+    const val ACTION_SHELL_COMMAND = "action_shell_command"
+    const val ACTION_SHOW_TOAST = "action_show_toast"
+    const val ACTION_SPEAK_TEXT = "action_speak_text"
+    const val ACTION_RUN_MODE = "action_run_mode"
+    const val ACTION_SET_MODE_ENABLED = "action_set_mode_enabled"
+    const val ACTION_REJECT_CALL = "action_reject_call"
+    const val ACTION_SPEAKERPHONE = "action_speakerphone"
+    const val ACTION_FORCE_STOP_APP = "action_force_stop_app"
+    const val ACTION_EXPAND_STATUS_BAR = "action_expand_status_bar"
+    const val ACTION_SEND_BROADCAST = "action_send_broadcast"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -155,12 +174,18 @@ object CapabilityLabels {
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
             CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
-            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Media session access"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK, CapabilityIds.TRIGGER_MEDIA_TRACK -> "Media session access"
+            CapabilityIds.TRIGGER_FAILED_LOGIN -> "Device admin access"
+            CapabilityIds.TRIGGER_SHAKE -> "Motion sensor"
             CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
             CapabilityIds.STATE_READER_SYSFS,
             CapabilityIds.STATE_READER_DUMPSYS_FIELD,
+            CapabilityIds.ACTION_SHELL_COMMAND,
+            CapabilityIds.ACTION_REJECT_CALL,
+            CapabilityIds.ACTION_FORCE_STOP_APP,
+            CapabilityIds.ACTION_EXPAND_STATUS_BAR,
             -> "Shizuku"
             else -> ""
         }
@@ -214,6 +239,12 @@ object CapabilityRequirements {
             is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.TorchState -> setOf(CapabilityIds.TRIGGER_TORCH_STATE)
             is Trigger.MediaPlayback -> setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK)
+            is Trigger.MediaTrackChanged -> setOf(CapabilityIds.TRIGGER_MEDIA_TRACK)
+            is Trigger.HeadphonesConnected -> setOf(CapabilityIds.TRIGGER_HEADPHONES)
+            is Trigger.AppInstalledRemoved -> setOf(CapabilityIds.TRIGGER_APP_INSTALLED)
+            is Trigger.IntentReceived -> setOf(CapabilityIds.TRIGGER_INTENT)
+            is Trigger.FailedLogin -> setOf(CapabilityIds.TRIGGER_FAILED_LOGIN)
+            is Trigger.Shake -> setOf(CapabilityIds.TRIGGER_SHAKE)
             is Trigger.DeviceState -> setOf(CapabilityIds.TRIGGER_DEVICE_STATE)
         }
 
@@ -223,6 +254,11 @@ object CapabilityRequirements {
             is Action.SetBluetooth -> setOf(CapabilityIds.ACTION_SET_BLUETOOTH, CapabilityIds.SHIZUKU_REQUIRED)
             // BLE connect works without Shizuku; classic profiles degrade inside the executor.
             is Action.ConnectBluetoothDevice -> setOf(CapabilityIds.ACTION_CONNECT_BLUETOOTH_DEVICE)
+            // No public disconnect/unpair API — both need the shell.
+            is Action.DisconnectBluetoothDevice ->
+                setOf(CapabilityIds.ACTION_DISCONNECT_BLUETOOTH_DEVICE, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ForgetBluetoothDevice ->
+                setOf(CapabilityIds.ACTION_FORGET_BLUETOOTH_DEVICE, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetMobileData -> setOf(CapabilityIds.ACTION_SET_MOBILE_DATA, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.SetDnd -> setOf(CapabilityIds.ACTION_SET_DND)
             is Action.SetRinger -> setOf(CapabilityIds.ACTION_SET_RINGER)
@@ -284,6 +320,17 @@ object CapabilityRequirements {
             is Action.SetAlarm -> setOf(CapabilityIds.ACTION_SET_ALARM)
             is Action.SetTimer -> setOf(CapabilityIds.ACTION_SET_TIMER)
             is Action.OpenClock -> setOf(CapabilityIds.ACTION_OPEN_CLOCK)
+            is Action.HttpRequest -> setOf(CapabilityIds.ACTION_HTTP_REQUEST)
+            is Action.ShellCommand -> setOf(CapabilityIds.ACTION_SHELL_COMMAND, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ShowToast -> setOf(CapabilityIds.ACTION_SHOW_TOAST)
+            is Action.SpeakText -> setOf(CapabilityIds.ACTION_SPEAK_TEXT)
+            is Action.RunMode -> setOf(CapabilityIds.ACTION_RUN_MODE)
+            is Action.SetModeEnabled -> setOf(CapabilityIds.ACTION_SET_MODE_ENABLED)
+            is Action.RejectCall -> setOf(CapabilityIds.ACTION_REJECT_CALL, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SpeakerPhone -> setOf(CapabilityIds.ACTION_SPEAKERPHONE)
+            is Action.ForceStopApp -> setOf(CapabilityIds.ACTION_FORCE_STOP_APP, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.ExpandStatusBar -> setOf(CapabilityIds.ACTION_EXPAND_STATUS_BAR, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SendBroadcast -> setOf(CapabilityIds.ACTION_SEND_BROADCAST)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

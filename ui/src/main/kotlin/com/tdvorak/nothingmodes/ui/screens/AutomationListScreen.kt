@@ -376,6 +376,7 @@ fun AutomationListScreen(
     onLogClick: () -> Unit,
     onCreateClick: () -> Unit = {},
     onTemplatesClick: () -> Unit = {},
+    onGuideClick: () -> Unit = {},
     savedMessageFlow: StateFlow<String>? = null,
     onSavedMessageConsumed: () -> Unit = {},
     viewModel: AutomationListViewModel = hiltViewModel(),
@@ -500,6 +501,10 @@ fun AutomationListScreen(
                                 NothingGhostButton(
                                     text = "Browse templates",
                                     onClick = onTemplatesClick,
+                                )
+                                NothingGhostButton(
+                                    text = "How it works",
+                                    onClick = onGuideClick,
                                 )
                             }
                         },

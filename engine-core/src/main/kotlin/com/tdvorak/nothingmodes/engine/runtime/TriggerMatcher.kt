@@ -122,6 +122,28 @@ class TriggerMatcher {
                     event.playing == trigger.playing &&
                     (trigger.packageName == null || event.packageName == trigger.packageName)
 
+            is Trigger.MediaTrackChanged ->
+                event is TriggerEvent.MediaTrackChanged &&
+                    (trigger.packageName == null || event.packageName == trigger.packageName)
+
+            is Trigger.HeadphonesConnected ->
+                event is TriggerEvent.DeviceStateChanged &&
+                    event.key == DeviceStateKeys.HEADPHONES &&
+                    event.value == trigger.connected.toString() &&
+                    event.previous != event.value
+
+            is Trigger.AppInstalledRemoved ->
+                event is TriggerEvent.AppPackageChanged &&
+                    event.installed == trigger.installed &&
+                    (trigger.packageName == null || event.pkg == trigger.packageName)
+
+            is Trigger.IntentReceived ->
+                event is TriggerEvent.IntentReceived && event.action == trigger.action
+
+            is Trigger.FailedLogin -> event is TriggerEvent.LoginFailed
+
+            is Trigger.Shake -> event is TriggerEvent.Shake
+
             is Trigger.DeviceState ->
                 event is TriggerEvent.DeviceStateChanged &&
                     event.key == trigger.key &&
@@ -155,6 +177,11 @@ class TriggerMatcher {
                 event is TriggerEvent.MediaPlaybackChanged &&
                     event.playing != trigger.playing &&
                     (trigger.packageName == null || event.packageName == trigger.packageName)
+
+            is Trigger.HeadphonesConnected ->
+                event is TriggerEvent.DeviceStateChanged &&
+                    event.key == DeviceStateKeys.HEADPHONES &&
+                    event.value != trigger.connected.toString()
 
             is Trigger.BluetoothDevice ->
                 event is TriggerEvent.BluetoothDeviceChanged &&

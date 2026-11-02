@@ -41,6 +41,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tdvorak.nothingmodes.capabilities.CapabilitiesCache
 import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
+import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.data.community.CommunityApi
 import com.tdvorak.nothingmodes.engine.canonicalJson
 import com.tdvorak.nothingmodes.engine.model.Automation
@@ -401,6 +402,13 @@ fun TemplateCatalogScreen(
     var selectedCaps by remember { mutableStateOf<Set<String>>(emptySet()) }
     val allCaps = remember(library) { library.flatMap { it.capabilities }.distinct().sorted() }
 
+    // Hardware the phone permanently lacks (Glyph on non-Nothing devices)
+    // hides the row entirely — same rule as the action/trigger catalogs.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var deviceCaps by remember { mutableStateOf(CapabilitiesCache.peek() ?: DeviceCapabilities()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { deviceCaps = CapabilitiesCache.refresh(context) }
+    val resolver = remember(deviceCaps) { CapabilityResolver(deviceCaps) }
+
     val visibleUser =
         userTemplates.filter {
             search.isBlank() ||
@@ -410,6 +418,11 @@ fun TemplateCatalogScreen(
     val visibleLibrary =
         library
             .filter {
+                !com.tdvorak.nothingmodes.ui.util.isHardwareBlocked(
+                    resolver.resolve(it.id, it.capabilities.toSet()).missing,
+                    deviceCaps,
+                )
+            }.filter {
                 search.isBlank() ||
                     it.title.contains(search, true) ||
                     it.description.contains(search, true) ||
@@ -721,11 +734,22 @@ private fun LibraryRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = NothingFonts.mono(),
             )
-            if (item.summary.isNotBlank()) {
-                NothingTag(text = item.summary, active = false)
-            }
-            if ("shizuku_required" in item.capabilities) {
-                NothingTag(text = "Shizuku", active = false)
+            // Scrollable — long summaries ("1 automation, 1 action, no setup")
+            // were truncated to a single clipped tag otherwise.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(NothingSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+            ) {
+                if (item.summary.isNotBlank()) {
+                    NothingTag(text = item.summary, active = false)
+                }
+                if ("shizuku_required" in item.capabilities) {
+                    NothingTag(text = "Shizuku", active = false)
+                }
             }
         }
     }

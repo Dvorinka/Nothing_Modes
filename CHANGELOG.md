@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- New Guide screen: how modes work (trigger / condition / action), a 4-step first mode, what runs with no setup vs one-time permission vs Shizuku, starter-mode recipes, and where templates and the execution log live. Reachable from first-run onboarding, Settings > More > How to Use, and the empty home screen.
+- Bluetooth device control: "Disconnect Bluetooth device" (drops a connection, radio stays on) and "Forget Bluetooth device" (unpairs). The hidden system calls that Android blocks for normal apps run inside the Shizuku shell, which holds BLUETOOTH_PRIVILEGED; without Shizuku the actions report Shizuku-required instead of failing silently.
+- Routine builder: multiple conditions now choose AND (all must match) or OR (any matches) with a one-tap selector — saved as Condition.And / Condition.Or and loaded back correctly when editing.
+- Guide starter modes are now one-tap installs: "Quick silence" and "Bedtime" arrive enabled and ready to run; "Work focus" installs disabled until you set your Wi-Fi name, so it never fires on the wrong network.
+- Four new actions from the MacroDroid/Automate gap analysis: HTTP request (GET/POST/PUT/DELETE — webhooks, Home Assistant, IFTTT), Shell command (runs inside the Shizuku user service — the escape hatch for force-stop, reboot, and everything Android blocks), Show toast, and Speak text (text-to-speech).
+- Six more actions closing the competitor gap: Run mode (fires another manual mode — modes as subroutines; self-reference is rejected), Enable mode (enables/disables another mode), Reject call, Force stop app, and Expand status bar (the last three via Shizuku), and Speakerphone.
+- Three sensor triggers round out the batch: Shake (a quick wrist-flip fires it; slow moves don't), Orientation (portrait/landscape transitions), and Proximity (covered in pocket / uncovered), all workable as pocket on/off automations. Plus Failed login requires a one-time device admin activation, and Intent received listens for broadcast actions from other apps.
+- Five new triggers close the biggest trigger gaps: Headphones (connect/disconnect for wired, USB, Bluetooth and BLE — useful for “Do Not Disturb on the bus”), Media track changed (fires every time the now-playing song moves, optional player filter), App installed/removed (optional single-app filter), Intent received (listens for a broadcast action from other apps — pairs with the new Send broadcast action), and Failed login (device admin must be active). Send broadcast action sends a broadcast intent device-wide or scoped to one app, so two modes can talk to each other or to your automation frameworks.
+
+### Changed
+- Routine builder fits on one page when untouched: the IF/THEN headers shrink, and the Heads-up (notify) rules and Enabled toggle fold into the Advanced section.
+
+### Fixed
+- "Leave without saving?" no longer appears for a brand-new mode that was only viewed, scrolled, or rebuilt from scratch without edits.
+- Play-store installs no longer see the "Allow restricted settings" sideload guide, which doesn't apply to them.
+- Classic UI: the Modes title sat flush against the left edge on the home screen — it now keeps the same margin as other screens.
+- Template library rows: the summary tags were clipped to one tag ("1 automation 1 action n…"); the tag row now scrolls instead.
+- Templates that need hardware the phone doesn't have (Glyph lights on non-Nothing devices) no longer appear in the template library — same rule the action and trigger catalogs already used.
+
 ## [0.19.16]
 
 ### Changed

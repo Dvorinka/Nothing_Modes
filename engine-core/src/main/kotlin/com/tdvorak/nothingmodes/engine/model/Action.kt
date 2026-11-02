@@ -2,6 +2,7 @@
 
 package com.tdvorak.nothingmodes.engine.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -20,6 +21,8 @@ object ActionTypeIds {
     const val SET_WIFI = "set_wifi"
     const val SET_BLUETOOTH = "set_bluetooth"
     const val CONNECT_BLUETOOTH_DEVICE = "connect_bluetooth_device"
+    const val DISCONNECT_BLUETOOTH_DEVICE = "disconnect_bluetooth_device"
+    const val FORGET_BLUETOOTH_DEVICE = "forget_bluetooth_device"
     const val SET_DND = "set_dnd"
     const val SET_RINGER = "set_ringer"
     const val LAUNCH_APP = "launch_app"
@@ -80,6 +83,17 @@ object ActionTypeIds {
     const val SET_ALARM = "set_alarm"
     const val SET_TIMER = "set_timer"
     const val OPEN_CLOCK = "open_clock"
+    const val HTTP_REQUEST = "http_request"
+    const val SHELL_COMMAND = "shell_command"
+    const val SHOW_TOAST = "show_toast"
+    const val SPEAK_TEXT = "speak_text"
+    const val RUN_MODE = "run_mode"
+    const val SET_MODE_ENABLED = "set_mode_enabled"
+    const val REJECT_CALL = "reject_call"
+    const val SPEAKERPHONE = "speakerphone"
+    const val FORCE_STOP_APP = "force_stop_app"
+    const val EXPAND_STATUS_BAR = "expand_status_bar"
+    const val SEND_BROADCAST = "send_broadcast"
     const val GROUP = "group"
 }
 
@@ -127,6 +141,30 @@ sealed interface Action {
             const val MAX_RETRY_BUDGET_MS = 600_000L
         }
     }
+
+    /**
+     * Disconnects a paired device while keeping the radio on. Android offers no
+     * public disconnect API — this runs the hidden BluetoothDevice.disconnect()
+     * inside the Shizuku shell, which holds BLUETOOTH_PRIVILEGED.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.DISCONNECT_BLUETOOTH_DEVICE)
+    data class DisconnectBluetoothDevice(
+        val address: String,
+        val deviceName: String? = null,
+    ) : Action
+
+    /**
+     * Removes the bond ("forget device"). Hidden BluetoothDevice.removeBond()
+     * inside the Shizuku shell. Irreversible on the phone — the device usually
+     * needs re-pairing by hand afterwards.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.FORGET_BLUETOOTH_DEVICE)
+    data class ForgetBluetoothDevice(
+        val address: String,
+        val deviceName: String? = null,
+    ) : Action
 
     @Serializable
     @SerialName(ActionTypeIds.SET_MOBILE_DATA)
@@ -647,6 +685,104 @@ sealed interface Action {
         val section: ClockSection = ClockSection.ALARMS,
     ) : Action
 
+    /**
+     * Fires a background HTTP request — webhooks, Home Assistant, IFTTT.
+     * The response is not stored; this is fire-and-report, not data fetching.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.HTTP_REQUEST)
+    data class HttpRequest(
+        val method: HttpMethod = HttpMethod.GET,
+        val url: String = "",
+        @EncodeDefault(EncodeDefault.Mode.NEVER)
+        val body: String = "",
+    ) : Action
+
+    /**
+     * Runs a shell command inside the Shizuku user service (uid 2000).
+     * Escape hatch for everything Android blocks — force-stop apps, reboot,
+     * settings writes the catalog doesn't model.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SHELL_COMMAND)
+    data class ShellCommand(
+        val command: String = "",
+    ) : Action
+
+    /** Shows a short toast message. */
+    @Serializable
+    @SerialName(ActionTypeIds.SHOW_TOAST)
+    data class ShowToast(
+        val message: String = "",
+    ) : Action
+
+    /** Speaks text aloud through the default text-to-speech engine. */
+    @Serializable
+    @SerialName(ActionTypeIds.SPEAK_TEXT)
+    data class SpeakText(
+        val text: String = "",
+    ) : Action
+
+    /**
+     * Runs another mode by id — subroutines, like MacroDroid's run-macro.
+     * The target must be a manual-trigger mode; firing a mode's own id is
+     * rejected to keep loops out.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.RUN_MODE)
+    data class RunMode(
+        val automationId: String = "",
+    ) : Action
+
+    /** Enables or disables another mode by id. */
+    @Serializable
+    @SerialName(ActionTypeIds.SET_MODE_ENABLED)
+    data class SetModeEnabled(
+        val automationId: String = "",
+        val enabled: Boolean = true,
+    ) : Action
+
+    /**
+     * Ends the ringing/active call via the Shizuku shell
+     * (input keyevent KEYCODE_ENDCALL) — ANSWER_PHONE_CALLS is a
+     * signature-or-role permission normal apps can't hold.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.REJECT_CALL)
+    data object RejectCall : Action
+
+    /** Routes call audio to the loudspeaker (MODIFY_AUDIO_SETTINGS, install-grant). */
+    @Serializable
+    @SerialName(ActionTypeIds.SPEAKERPHONE)
+    data class SpeakerPhone(
+        val on: Boolean,
+    ) : Action
+
+    /** Force-stops an app inside the Shizuku shell (am force-stop). */
+    @Serializable
+    @SerialName(ActionTypeIds.FORCE_STOP_APP)
+    data class ForceStopApp(
+        val packageName: String = "",
+    ) : Action
+
+    /** Expands the notification shade via the Shizuku shell (cmd statusbar expand). */
+    @Serializable
+    @SerialName(ActionTypeIds.EXPAND_STATUS_BAR)
+    data object ExpandStatusBar : Action
+
+    /**
+     * Sends a broadcast intent — the send half of the Intent-received
+     * trigger and the Tasker-style interop primitive. [packageName] scopes
+     * delivery to one app; empty broadcasts device-wide.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SEND_BROADCAST)
+    data class SendBroadcast(
+        val action: String = "",
+        @EncodeDefault(EncodeDefault.Mode.NEVER)
+        val packageName: String = "",
+    ) : Action
+
     /** A named group of actions that are run together and can be collapsed. */
     @Serializable
     @SerialName(ActionTypeIds.GROUP)
@@ -657,6 +793,9 @@ sealed interface Action {
         val collapsed: Boolean = false,
     ) : Action
 }
+
+@Serializable
+enum class HttpMethod { GET, POST, PUT, DELETE }
 
 @Serializable
 enum class ScreenOrientation { AUTO, PORTRAIT, LANDSCAPE }
