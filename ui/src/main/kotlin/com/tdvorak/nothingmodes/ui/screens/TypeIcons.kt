@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.Http
 import androidx.compose.material.icons.outlined.InvertColors
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -48,6 +49,8 @@ import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Podcasts
 import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Phone
@@ -58,6 +61,8 @@ import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ScreenRotation
+import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SignalCellular4Bar
 import androidx.compose.material.icons.outlined.Sms
@@ -117,6 +122,11 @@ fun iconForTrigger(trigger: Trigger): ImageVector =
         is Trigger.DeviceLocked -> Icons.Outlined.Lock
         is Trigger.TorchState -> Icons.Outlined.FlashlightOn
         is Trigger.MediaPlayback -> Icons.Outlined.PlayCircle
+        is Trigger.MediaTrackChanged -> Icons.Outlined.SkipNext
+        is Trigger.HeadphonesConnected -> Icons.Outlined.Headphones
+        is Trigger.AppInstalledRemoved -> Icons.Outlined.InstallMobile
+        is Trigger.IntentReceived -> Icons.Outlined.Podcasts
+        is Trigger.FailedLogin -> Icons.Outlined.Password
         is Trigger.DeviceState -> iconForDeviceStateKey(trigger.key)
     }
 
@@ -229,6 +239,7 @@ fun iconForAction(action: Action): ImageVector =
         is Action.SpeakerPhone -> Icons.AutoMirrored.Outlined.VolumeUp
         is Action.ForceStopApp -> Icons.Outlined.Block
         is Action.ExpandStatusBar -> Icons.Outlined.UnfoldMore
+        is Action.SendBroadcast -> Icons.Outlined.Send
         is Action.Group -> Icons.Outlined.Bolt
         is Action.SetGlyph, is Action.SetGlyphMatrix, is Action.GlyphAnimate,
         is Action.GlyphProgress, is Action.GlyphText, is Action.GlyphScrollingText,
@@ -272,6 +283,7 @@ internal fun appPackageOf(item: Any): String? =
         is Trigger.AppOpened -> item.pkg
         is Trigger.Notification -> item.pkg
         is Trigger.MediaPlayback -> item.packageName
+        is Trigger.MediaTrackChanged -> item.packageName
         is Condition.AppInForeground -> item.pkg
         is Condition.NotificationPresent -> item.pkg
         is Action.LaunchApp -> item.packages.firstOrNull()

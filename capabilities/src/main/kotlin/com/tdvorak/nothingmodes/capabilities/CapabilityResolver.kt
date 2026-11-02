@@ -53,7 +53,15 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> capabilities.hasLocation && capabilities.hasLocationPermission
             CapabilityIds.TRIGGER_MANUAL -> true
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> capabilities.hasReadCalendar
-            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> capabilities.hasNotificationListenerAccess
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
+            CapabilityIds.TRIGGER_MEDIA_TRACK,
+            -> capabilities.hasNotificationListenerAccess
+            // All three ride the same local monitors/receivers — no permission.
+            CapabilityIds.TRIGGER_HEADPHONES,
+            CapabilityIds.TRIGGER_APP_INSTALLED,
+            CapabilityIds.TRIGGER_INTENT,
+            -> true
+            CapabilityIds.TRIGGER_FAILED_LOGIN -> capabilities.hasActiveDeviceAdmin
 
             // State readers
             CapabilityIds.STATE_READER_BUILTIN -> true
@@ -150,6 +158,7 @@ class CapabilityResolver(
             CapabilityIds.ACTION_RUN_MODE,
             CapabilityIds.ACTION_SET_MODE_ENABLED,
             CapabilityIds.ACTION_SPEAKERPHONE,
+            CapabilityIds.ACTION_SEND_BROADCAST,
             -> true
             CapabilityIds.ACTION_SHELL_COMMAND,
             CapabilityIds.ACTION_REJECT_CALL,
@@ -219,7 +228,10 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
             CapabilityIds.TRIGGER_PHONE_CALL -> "Phone state permission required"
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> "Calendar permission required"
-            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Notification access required — the app can't see media sessions"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
+            CapabilityIds.TRIGGER_MEDIA_TRACK,
+            -> "Notification access required — the app can't see media sessions"
+            CapabilityIds.TRIGGER_FAILED_LOGIN -> "Device admin required — enable it in Settings"
             CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification access required"
             CapabilityIds.ACTION_SET_ULTRA_DIM -> "'Display over other apps' permission required"

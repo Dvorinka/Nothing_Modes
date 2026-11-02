@@ -929,6 +929,23 @@ fun ActionConfigContent(
 
         is Action.ExpandStatusBar -> Unit
 
+        is Action.SendBroadcast -> {
+            NothingInput(
+                value = a.action,
+                onValueChange = { onActionChange(a.copy(action = it)) },
+                label = "Intent action",
+                infoText = "Exact action of the broadcast to send, e.g. com.example.EVENT. Pair it with an Intent received trigger.",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            AppPicker(
+                currentPackage = a.packageName,
+                onPkgChange = { onActionChange(a.copy(packageName = it.takeIf { pkg -> pkg.isNotBlank() } ?: "")) },
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.sm))
+            HelpText(text = "Empty app selection broadcasts device-wide; picking an app scopes it to that one.")
+        }
+
         is Action.LaunchApp -> {
             MultiAppPicker(
                 currentPackages = a.packages,
@@ -1792,6 +1809,7 @@ private fun actionTitle(action: Action): String =
         is Action.SpeakerPhone -> "Speakerphone"
         is Action.ForceStopApp -> "Force stop app"
         is Action.ExpandStatusBar -> "Expand status bar"
+        is Action.SendBroadcast -> "Send broadcast"
         is Action.Group -> action.name
         else -> "Action"
     }

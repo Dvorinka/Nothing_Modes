@@ -93,6 +93,7 @@ object ActionTypeIds {
     const val SPEAKERPHONE = "speakerphone"
     const val FORCE_STOP_APP = "force_stop_app"
     const val EXPAND_STATUS_BAR = "expand_status_bar"
+    const val SEND_BROADCAST = "send_broadcast"
     const val GROUP = "group"
 }
 
@@ -768,6 +769,19 @@ sealed interface Action {
     @Serializable
     @SerialName(ActionTypeIds.EXPAND_STATUS_BAR)
     data object ExpandStatusBar : Action
+
+    /**
+     * Sends a broadcast intent — the send half of the Intent-received
+     * trigger and the Tasker-style interop primitive. [packageName] scopes
+     * delivery to one app; empty broadcasts device-wide.
+     */
+    @Serializable
+    @SerialName(ActionTypeIds.SEND_BROADCAST)
+    data class SendBroadcast(
+        val action: String = "",
+        @EncodeDefault(EncodeDefault.Mode.NEVER)
+        val packageName: String = "",
+    ) : Action
 
     /** A named group of actions that are run together and can be collapsed. */
     @Serializable

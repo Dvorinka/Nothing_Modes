@@ -28,6 +28,9 @@ class MediaSessionMonitor(
     private val activeControllers = mutableListOf<MediaController>()
     private var lastPlaying: Boolean? = null
     private var lastPackage: String? = null
+    private var lastTrackPackage: String? = null
+    private var lastTrackArtist: String? = null
+    private var lastTrackTitle: String? = null
 
     private val sessionChangeListener =
         MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -85,16 +88,32 @@ class MediaSessionMonitor(
                 state == PlaybackState.STATE_BUFFERING
 
         val packageName = top?.packageName
-
-        if (playing == lastPlaying && packageName == lastPackage) return
-        lastPlaying = playing
-        lastPackage = packageName
-
         val metadata = top?.metadata
         val artist =
             metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 ?: metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
         val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
+
+        // Track-change edge fires while the same session keeps playing:
+        // the now-playing identity moved. Ships every edge, so a filter
+        // sees install/remove style transitions, not just the state hold.
+        if (playing && (artist != lastTrackArtist || title != lastTrackTitle || packageName != lastTrackPackage)) {
+            lastTrackPackage = packageName
+            lastTrackArtist = artist
+            lastTrackTitle = title
+            context.startForegroundServiceSafely(
+                Intent(context, AutomationService::class.java).apply {
+                    action = AutomationService.ACTION_MEDIA_TRACK
+                    putExtra(AutomationService.EXTRA_MEDIA_PACKAGE, packageName)
+                    putExtra(AutomationService.EXTRA_MEDIA_ARTIST, artist)
+                    putExtra(AutomationService.EXTRA_MEDIA_TITLE, title)
+                },
+            )
+        }
+
+        if (playing == lastPlaying && packageName == lastPackage) return
+        lastPlaying = playing
+        lastPackage = packageName
 
         ActiveMedia.update(packageName, artist, title)
 

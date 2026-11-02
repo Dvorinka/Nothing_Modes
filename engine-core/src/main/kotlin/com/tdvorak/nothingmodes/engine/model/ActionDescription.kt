@@ -172,6 +172,7 @@ fun actionDescription(action: Action): String =
             is Action.SpeakerPhone -> "Speakerphone: ${if (action.on) "On" else "Off"}"
             is Action.ForceStopApp -> "Force stop: ${action.packageName}"
             is Action.ExpandStatusBar -> "Expand status bar"
+            is Action.SendBroadcast -> "Broadcast: ${action.action.take(40)}"
             is Action.Group -> "${action.name}: ${action.actions.size} actions"
         }
     ).uppercase()

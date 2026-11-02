@@ -251,6 +251,11 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Device locked", "Device", Icons.Outlined.Lock, Trigger.DeviceLocked),
         TriggerType("Flashlight", "Device", Icons.Outlined.FlashlightOn, Trigger.TorchState()),
         TriggerType("Media playback", "Device", Icons.Outlined.PlayCircle, Trigger.MediaPlayback()),
+        TriggerType("Media track", "Device", Icons.Outlined.SkipNext, Trigger.MediaTrackChanged()),
+        TriggerType("App installed", "Apps", Icons.Outlined.InstallMobile, Trigger.AppInstalledRemoved()),
+        TriggerType("Intent received", "Apps", Icons.Outlined.Podcasts, Trigger.IntentReceived("")),
+        TriggerType("Headphones", "Connections", Icons.Outlined.Headphones, Trigger.HeadphonesConnected()),
+        TriggerType("Failed login", "Device", Icons.Outlined.Password, Trigger.FailedLogin),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -566,6 +571,7 @@ private fun TriggerConfigContent(
         is Trigger.Boot,
         is Trigger.DeviceUnlocked,
         is Trigger.DeviceLocked,
+        is Trigger.FailedLogin,
         -> {
             // Parameterless triggers get a plain-English explainer so the
             // config sheet isn't an empty card with one word on it.
@@ -594,6 +600,10 @@ private fun TriggerConfigContent(
                         is Trigger.DeviceLocked ->
                             "Fires when the screen turns off and the lock " +
                                 "engages — not just any screen-off."
+                        is Trigger.FailedLogin ->
+                            "Fires when someone tries to unlock the phone and " +
+                                "fails. Device admin must be active — the system " +
+                                "only reports lock failures to admin receivers."
                         else -> "Nothing to set up — this trigger works as soon as the mode is armed."
                     },
             )
@@ -611,6 +621,60 @@ private fun TriggerConfigContent(
                 onUpdate = onUpdate,
             )
 
+        is Trigger.MediaTrackChanged ->
+            Column {
+                HelpText(
+                    text = "Fires whenever the now-playing artist or title changes on an active media session. " +
+                        "Notification access is required. Leave the app filter empty to react to any player.",
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                AppPicker(
+                    currentPackage = t.packageName ?: "",
+                    onPkgChange = { onUpdate(t.copy(packageName = it.takeIf { pkg -> pkg.isNotBlank() })) },
+                )
+            }
+
+        is Trigger.HeadphonesConnected ->
+            Column {
+                NothingEnumSelector(
+                    label = "Headphones",
+                    value = if (t.connected) "Connected" else "Disconnected",
+                    options = listOf("Connected", "Disconnected"),
+                    onSelect = { onUpdate(t.copy(connected = it == "Connected")) },
+                    infoText =
+                        "Connected fires when wired, USB, Bluetooth or BLE " +
+                            "headphones attach; Disconnected fires when they leave. " +
+                            "A mode using this stays active while headphones hold the state.",
+                )
+            }
+
+        is Trigger.AppInstalledRemoved ->
+            Column {
+                NothingEnumSelector(
+                    label = "Package event",
+                    value = if (t.installed) "Installed" else "Removed",
+                    options = listOf("Installed", "Removed"),
+                    onSelect = { onUpdate(t.copy(installed = it == "Installed")) },
+                    infoText = "Installed fires when any app is installed (including sideloads and Play installs); Removed fires when one is uninstalled.",
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                AppPicker(
+                    currentPackage = t.packageName ?: "",
+                    onPkgChange = { onUpdate(t.copy(packageName = it.takeIf { pkg -> pkg.isNotBlank() })) },
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                HelpText(text = "Leave the app filter empty for every app — include sideloads and Play installs.")
+            }
+
+        is Trigger.IntentReceived ->
+            Column {
+                NothingInput(
+                    value = t.action,
+                    onValueChange = { onUpdate(t.copy(action = it)) },
+                    label = "Intent action",
+                    infoText = "Exact broadcast action to listen for, e.g. com.example.EVENT. Fires when that broadcast arrives from any app or from a Send broadcast action.",
+                )
+            }
         is Trigger.ScreenStateTrigger ->
             ScreenStateContent(
                 state = t.state,

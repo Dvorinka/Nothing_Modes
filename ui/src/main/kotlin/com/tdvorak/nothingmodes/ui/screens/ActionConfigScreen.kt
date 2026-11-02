@@ -542,6 +542,24 @@ fun ActionConfigScreen(
 
                     is Action.ExpandStatusBar -> Unit
 
+                    is Action.SendBroadcast -> {
+                        NothingInput(
+                            value = a.action,
+                            onValueChange = { action = a.copy(action = it) },
+                            label = "Intent action",
+                            infoText = "Exact action of the broadcast to send, e.g. com.example.EVENT. Pair it with an Intent received trigger.",
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        AppPicker(
+                            currentPackage = a.packageName,
+                            onPkgChange = { pkg ->
+                                action = a.copy(packageName = pkg.takeIf { it.isNotBlank() } ?: "")
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                        HelpText(text = "Empty app selection broadcasts device-wide; picking an app scopes it to that one.")
+                    }
+
                     is Action.LaunchApp -> {
                         MultiAppPicker(
                             currentPackages = a.packages,

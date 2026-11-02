@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.tdvorak.nothingmodes.automation.lifecycle.AutomationService
+import com.tdvorak.nothingmodes.automation.lifecycle.PersistentMonitorService
 import com.tdvorak.nothingmodes.automation.lifecycle.startForegroundServiceSafely
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
@@ -46,6 +47,7 @@ class SchedulingAutomationStore(
                 dispatchRemoved(automation)
             }
         }.onFailure { Log.w(TAG, "Failed to reschedule ${automation.id.value}", it) }
+        refreshIntentTriggers()
     }
 
     override suspend fun delete(id: AutomationId) {
@@ -54,6 +56,22 @@ class SchedulingAutomationStore(
         runCatching { scheduler.cancel(id) }
             .onFailure { Log.w(TAG, "Failed to cancel schedules for ${id.value}", it) }
         existing?.let { dispatchRemoved(it) }
+        refreshIntentTriggers()
+    }
+
+    /**
+     * Asks the persistent monitor to re-read the armed automations for the
+     * dynamic Intent-received receiver registration. Cheap: the monitor
+     * registers receive only when the action set changed.
+     */
+    private fun refreshIntentTriggers() {
+        runCatching {
+            context.startForegroundServiceSafely(
+                Intent(context, PersistentMonitorService::class.java).apply {
+                    action = PersistentMonitorService.ACTION_REFRESH_INTENT_TRIGGERS
+                },
+            )
+        }.onFailure { Log.w(TAG, "Failed to request intent-trigger refresh", it) }
     }
 
     /**

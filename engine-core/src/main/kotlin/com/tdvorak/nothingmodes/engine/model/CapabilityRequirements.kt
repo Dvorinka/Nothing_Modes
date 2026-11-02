@@ -25,6 +25,11 @@ object CapabilityIds {
     const val TRIGGER_CALENDAR_EVENT = "trigger_calendar_event"
     const val TRIGGER_TORCH_STATE = "trigger_torch_state"
     const val TRIGGER_MEDIA_PLAYBACK = "trigger_media_playback"
+    const val TRIGGER_MEDIA_TRACK = "trigger_media_track"
+    const val TRIGGER_HEADPHONES = "trigger_headphones"
+    const val TRIGGER_APP_INSTALLED = "trigger_app_installed"
+    const val TRIGGER_INTENT = "trigger_intent"
+    const val TRIGGER_FAILED_LOGIN = "trigger_failed_login"
     const val TRIGGER_DEVICE_STATE = "trigger_device_state"
 
     // State readers
@@ -112,6 +117,7 @@ object CapabilityIds {
     const val ACTION_SPEAKERPHONE = "action_speakerphone"
     const val ACTION_FORCE_STOP_APP = "action_force_stop_app"
     const val ACTION_EXPAND_STATUS_BAR = "action_expand_status_bar"
+    const val ACTION_SEND_BROADCAST = "action_send_broadcast"
 
     // Shizuku
     const val SHIZUKU_REQUIRED = "shizuku_required"
@@ -167,7 +173,8 @@ object CapabilityLabels {
             CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
             CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
-            CapabilityIds.TRIGGER_MEDIA_PLAYBACK -> "Media session access"
+            CapabilityIds.TRIGGER_MEDIA_PLAYBACK, CapabilityIds.TRIGGER_MEDIA_TRACK -> "Media session access"
+            CapabilityIds.TRIGGER_FAILED_LOGIN -> "Device admin access"
             CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -230,6 +237,11 @@ object CapabilityRequirements {
             is Trigger.DeviceLocked -> setOf(CapabilityIds.TRIGGER_SCREEN_STATE)
             is Trigger.TorchState -> setOf(CapabilityIds.TRIGGER_TORCH_STATE)
             is Trigger.MediaPlayback -> setOf(CapabilityIds.TRIGGER_MEDIA_PLAYBACK)
+            is Trigger.MediaTrackChanged -> setOf(CapabilityIds.TRIGGER_MEDIA_TRACK)
+            is Trigger.HeadphonesConnected -> setOf(CapabilityIds.TRIGGER_HEADPHONES)
+            is Trigger.AppInstalledRemoved -> setOf(CapabilityIds.TRIGGER_APP_INSTALLED)
+            is Trigger.IntentReceived -> setOf(CapabilityIds.TRIGGER_INTENT)
+            is Trigger.FailedLogin -> setOf(CapabilityIds.TRIGGER_FAILED_LOGIN)
             is Trigger.DeviceState -> setOf(CapabilityIds.TRIGGER_DEVICE_STATE)
         }
 
@@ -315,6 +327,7 @@ object CapabilityRequirements {
             is Action.SpeakerPhone -> setOf(CapabilityIds.ACTION_SPEAKERPHONE)
             is Action.ForceStopApp -> setOf(CapabilityIds.ACTION_FORCE_STOP_APP, CapabilityIds.SHIZUKU_REQUIRED)
             is Action.ExpandStatusBar -> setOf(CapabilityIds.ACTION_EXPAND_STATUS_BAR, CapabilityIds.SHIZUKU_REQUIRED)
+            is Action.SendBroadcast -> setOf(CapabilityIds.ACTION_SEND_BROADCAST)
             is Action.Group -> action.actions.flatMapTo(mutableSetOf()) { actionCapabilities(it) }
         }
 

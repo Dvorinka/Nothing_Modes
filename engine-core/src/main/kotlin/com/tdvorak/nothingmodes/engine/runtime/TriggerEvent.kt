@@ -144,6 +144,32 @@ sealed interface TriggerEvent {
         val title: String?,
     ) : TriggerEvent
 
+    /** The now-playing track changed on an active media session. */
+    data class MediaTrackChanged(
+        override val eventId: String,
+        val packageName: String?,
+        val artist: String?,
+        val title: String?,
+    ) : TriggerEvent
+
+    /** A package was installed or removed; [pkg] is null when unreadable. */
+    data class AppPackageChanged(
+        override val eventId: String,
+        val installed: Boolean,
+        val pkg: String?,
+    ) : TriggerEvent
+
+    /** A broadcast intent with the given action arrived. */
+    data class IntentReceived(
+        override val eventId: String,
+        val action: String,
+    ) : TriggerEvent
+
+    /** A lock-screen unlock attempt failed (device-admin broadcast). */
+    data class LoginFailed(
+        override val eventId: String,
+    ) : TriggerEvent
+
     /**
      * A named device-state value changed. Emitted by the monitor service for
      * settings toggles and radios that have no dedicated event type.

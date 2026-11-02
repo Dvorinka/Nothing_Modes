@@ -182,6 +182,11 @@ fun triggerTypeDescription(trigger: Trigger): String =
         is Trigger.DeviceLocked -> "When the device is locked"
         is Trigger.TorchState -> "When the flashlight toggles"
         is Trigger.MediaPlayback -> "When media starts or stops"
+        is Trigger.MediaTrackChanged -> "When the now-playing track changes"
+        is Trigger.HeadphonesConnected -> "When headphones connect or unplug"
+        is Trigger.AppInstalledRemoved -> "When an app is installed or removed"
+        is Trigger.IntentReceived -> "When a broadcast intent with a matching action arrives"
+        is Trigger.FailedLogin -> "When a lock-screen unlock attempt fails"
         is Trigger.DeviceState -> "While ${deviceStateLabel(trigger.key).lowercase()} matches a state"
     }
 
@@ -227,6 +232,11 @@ fun triggerDescription(
             is Trigger.DeviceLocked -> "Device locked"
             is Trigger.TorchState -> "Flashlight ${if (trigger.on) "on" else "off"}"
             is Trigger.MediaPlayback -> "Media ${if (trigger.playing) "playing" else "stopped"}${trigger.packageName?.let { ": ${appLabel(it)}" } ?: ""}"
+            is Trigger.MediaTrackChanged -> "Track changed${trigger.packageName?.let { ": ${appLabel(it)}" } ?: ""}"
+            is Trigger.HeadphonesConnected -> "Headphones ${if (trigger.connected) "connected" else "disconnected"}"
+            is Trigger.AppInstalledRemoved -> "${if (trigger.installed) "App installed" else "App removed"}${trigger.packageName?.let { ": ${appLabel(it)}" } ?: ""}"
+            is Trigger.IntentReceived -> "Intent received: ${trigger.action.take(30)}"
+            Trigger.FailedLogin -> "Failed unlock"
             is Trigger.DeviceState ->
                 "${deviceStateLabel(trigger.key)} = ${deviceStateValueLabel(trigger.key, trigger.value)}"
         }
@@ -360,6 +370,7 @@ fun actionRequirementHint(action: Action): String? =
         is Action.SpeakerPhone -> "Routes call audio to the loudspeaker."
         is Action.ForceStopApp -> "Force-stops an app. Needs Shizuku."
         is Action.ExpandStatusBar -> "Expands the notification shade. Needs Shizuku."
+        is Action.SendBroadcast -> "Sends a broadcast intent — device-wide or to one app."
         else -> null
     }
 
@@ -443,6 +454,7 @@ fun actionFeatureDescription(action: Action): String? =
         is Action.SpeakerPhone -> "Routes call audio to the loudspeaker."
         is Action.ForceStopApp -> "Force-stops an app."
         is Action.ExpandStatusBar -> "Expands the notification shade."
+        is Action.SendBroadcast -> "Sends a broadcast intent."
         else -> null
     }
 

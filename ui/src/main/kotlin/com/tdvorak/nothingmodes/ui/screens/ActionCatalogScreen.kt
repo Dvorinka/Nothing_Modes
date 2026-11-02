@@ -196,6 +196,7 @@ fun ActionCatalogScreen(navController: NavController) {
                 ActionItem("Speakerphone", "Sound", Icons.AutoMirrored.Outlined.VolumeUp, Action.SpeakerPhone(true), desc = "Routes call audio to the loudspeaker."),
                 ActionItem("Force stop app", "Advanced", Icons.Outlined.Block, Action.ForceStopApp(""), desc = "Force-stops an app. Needs Shizuku."),
                 ActionItem("Expand status bar", "Advanced", Icons.Outlined.UnfoldMore, Action.ExpandStatusBar, desc = "Expands the notification shade. Needs Shizuku."),
+                ActionItem("Send broadcast", "Advanced", Icons.Outlined.Send, Action.SendBroadcast(""), desc = "Sends a broadcast intent — interop with other apps and automations."),
                 // Three Glyph rows total: the combined composer (every design
                 // type switchable inside its sheet), a plain on/off, and the
                 // flashlight group. Hardware-blocked twins (stripe vs matrix)

@@ -328,6 +328,7 @@ class RealActionExecutor(
                     executeShell(listOf("am", "force-stop", action.packageName))
                 }
             is Action.ExpandStatusBar -> executeShell(listOf("cmd", "statusbar", "expand-notifications"))
+            is Action.SendBroadcast -> sendBroadcastIntent(action)
             is Action.Group -> {
                 val results = action.actions.map { execute(it, context) }
                 when {
@@ -1289,6 +1290,20 @@ class RealActionExecutor(
         } catch (e: Exception) {
             ActionResult.Failure(e.message ?: "speakerphone failed")
         }
+
+    private fun sendBroadcastIntent(action: Action.SendBroadcast): ActionResult {
+        if (action.action.isBlank()) return ActionResult.Failure("empty intent action")
+        return try {
+            context.sendBroadcast(
+                Intent(action.action).apply {
+                    if (action.packageName.isNotBlank()) setPackage(action.packageName)
+                },
+            )
+            ActionResult.Success
+        } catch (e: Exception) {
+            ActionResult.Failure(e.message ?: "broadcast failed")
+        }
+    }
 
     private suspend fun showToast(message: String): ActionResult {
         if (message.isBlank()) return ActionResult.Failure("empty message")

@@ -243,6 +243,42 @@ sealed interface Trigger {
         val packageName: String? = null,
     ) : Trigger
 
+    /** The now-playing track changed on an active media session. */
+    @Serializable
+    @SerialName("media_track_changed")
+    data class MediaTrackChanged(
+        val packageName: String? = null,
+    ) : Trigger
+
+    /** Headphones or a headset connected/disconnected (wired, BT, BLE, USB). */
+    @Serializable
+    @SerialName("headphones_connected")
+    data class HeadphonesConnected(
+        val connected: Boolean = true,
+    ) : Trigger
+
+    /** An app package was installed or removed; packageName filters to one app. */
+    @Serializable
+    @SerialName("app_installed_removed")
+    data class AppInstalledRemoved(
+        val installed: Boolean = true,
+        val packageName: String? = null,
+    ) : Trigger
+
+    /** A broadcast intent with the given action arrived — the interop edge
+     *  paired with [Action.SendBroadcast] and other apps' broadcasts. */
+    @Serializable
+    @SerialName("intent_received")
+    data class IntentReceived(
+        val action: String,
+    ) : Trigger
+
+    /** A lock-screen unlock attempt failed. Requires the device admin to be
+     *  active — the platform only reports failures to admin receivers. */
+    @Serializable
+    @SerialName("failed_login")
+    data object FailedLogin : Trigger
+
     /**
      * Generic device-state edge: fires when the named state key transitions
      * TO [value]. `"*"` matches any change. Keys come from
@@ -305,6 +341,7 @@ val Trigger.hasStateLifecycle: Boolean
             is Trigger.TorchState,
             is Trigger.ScreenStateTrigger,
             is Trigger.MediaPlayback,
+            is Trigger.HeadphonesConnected,
             is Trigger.BluetoothDevice,
             is Trigger.WifiConnected,
             is Trigger.Connectivity,

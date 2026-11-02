@@ -122,6 +122,20 @@ object ModeExplainer {
                     if (trigger.packageName?.isNotBlank() == true) append(" in ${trigger.packageName}")
                 }
             }
+            is Trigger.MediaTrackChanged -> {
+                buildString {
+                    append("the now-playing track changes")
+                    if (trigger.packageName?.isNotBlank() == true) append(" in ${trigger.packageName}")
+                }
+            }
+            is Trigger.HeadphonesConnected -> "headphones are ${if (trigger.connected) "connected" else "disconnected"}"
+            is Trigger.AppInstalledRemoved ->
+                buildString {
+                    append("an app is ${if (trigger.installed) "installed" else "removed"}")
+                    if (trigger.packageName?.isNotBlank() == true) append(" (${trigger.packageName})")
+                }
+            is Trigger.IntentReceived -> "a broadcast with action '${trigger.action}' arrives"
+            Trigger.FailedLogin -> "a lock-screen unlock attempt fails"
             is Trigger.DeviceState ->
                 if (trigger.value == DeviceStateKeys.ANY_VALUE) {
                     "device state '${trigger.key}' changes"
@@ -260,6 +274,9 @@ object ModeExplainer {
             is Action.SpeakerPhone -> "turn speakerphone ${if (action.on) "on" else "off"}"
             is Action.ForceStopApp -> "force-stop ${action.packageName}"
             is Action.ExpandStatusBar -> "expand the notification shade"
+            is Action.SendBroadcast ->
+                "send broadcast '${action.action}'" +
+                    if (action.packageName.isNotBlank()) " to ${action.packageName}" else ""
             is Action.Group -> "group '${action.name}': " + action.actions.joinToString(", ") { explainAction(it) }
         }
 
