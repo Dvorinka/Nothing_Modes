@@ -170,6 +170,11 @@ sealed interface TriggerEvent {
         override val eventId: String,
     ) : TriggerEvent
 
+    /** The user shook the phone (accelerometer spike pattern). */
+    data class Shake(
+        override val eventId: String,
+    ) : TriggerEvent
+
     /**
      * A named device-state value changed. Emitted by the monitor service for
      * settings toggles and radios that have no dedicated event type.

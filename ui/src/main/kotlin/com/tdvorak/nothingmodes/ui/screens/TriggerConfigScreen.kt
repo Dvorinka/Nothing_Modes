@@ -197,6 +197,10 @@ private fun deviceStateSpecs(): List<DeviceStateSpec> =
             info = "Fires when headphones connect or disconnect — wired, Bluetooth, BLE, and USB headsets all count."),
         DeviceStateSpec(DeviceStateKeys.DARK_MODE, "Device", Icons.Outlined.DarkMode, BOOL_VALUES,
             info = "Fires when the system dark theme turns on or off."),
+        DeviceStateSpec(DeviceStateKeys.ORIENTATION, "Device", Icons.Outlined.Rotate90DegreesCcw, listOf("portrait" to "Portrait", "landscape" to "Landscape"),
+            info = "Fires when the phone rotates between portrait and landscape. Auto-rotate must be on for the sensor to drive this."),
+        DeviceStateSpec(DeviceStateKeys.PROXIMITY, "Device", Icons.Outlined.NearMe, listOf("near" to "Near (covered)", "far" to "Far (uncovered)"),
+            info = "Fires when the phone is covered (pocket, face-down, a hand over it) or uncovered. Great for pocket-on/off automations."),
         DeviceStateSpec(DeviceStateKeys.AUTO_ROTATE, "Device", Icons.Outlined.ScreenRotation, BOOL_VALUES,
             info = "Fires when auto-rotate turns on or off."),
         DeviceStateSpec(DeviceStateKeys.AOD, "Device", Icons.Outlined.WatchLater, BOOL_VALUES,
@@ -256,6 +260,7 @@ private fun triggerTypes(): List<TriggerType> =
         TriggerType("Intent received", "Apps", Icons.Outlined.Podcasts, Trigger.IntentReceived("")),
         TriggerType("Headphones", "Connections", Icons.Outlined.Headphones, Trigger.HeadphonesConnected()),
         TriggerType("Failed login", "Device", Icons.Outlined.Password, Trigger.FailedLogin),
+        TriggerType("Shake", "Device", Icons.Outlined.Vibration, Trigger.Shake),
         TriggerType("App opened", "Apps", Icons.Outlined.Apps, Trigger.AppOpened("")),
         TriggerType("Notification", "Apps", Icons.Outlined.Notifications, Trigger.Notification("")),
         TriggerType("Phone", "Connections", Icons.Outlined.Phone, Trigger.PhoneState(PhoneEvent.INCOMING_CALL)),
@@ -572,6 +577,7 @@ private fun TriggerConfigContent(
         is Trigger.DeviceUnlocked,
         is Trigger.DeviceLocked,
         is Trigger.FailedLogin,
+        is Trigger.Shake,
         -> {
             // Parameterless triggers get a plain-English explainer so the
             // config sheet isn't an empty card with one word on it.
@@ -604,6 +610,10 @@ private fun TriggerConfigContent(
                             "Fires when someone tries to unlock the phone and " +
                                 "fails. Device admin must be active — the system " +
                                 "only reports lock failures to admin receivers."
+                        is Trigger.Shake ->
+                            "Fires when you give the phone a quick double-jerk " +
+                                "shake — a wrist flip fires it, slow movement does " +
+                                "not. There is a short cooldown between fires."
                         else -> "Nothing to set up — this trigger works as soon as the mode is armed."
                     },
             )

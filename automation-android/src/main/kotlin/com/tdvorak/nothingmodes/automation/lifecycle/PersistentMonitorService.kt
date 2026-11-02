@@ -56,6 +56,7 @@ class PersistentMonitorService : Service() {
     private var torchCallback: android.hardware.camera2.CameraManager.TorchCallback? = null
     private var usageStatsMonitor: UsageStatsMonitor? = null
     private var mediaSessionMonitor: MediaSessionMonitor? = null
+    private var sensorStateMonitor: SensorStateMonitor? = null
     private var calendarObserver: CalendarObserver? = null
     private var deviceStateMonitor: DeviceStateMonitor? = null
 
@@ -121,6 +122,9 @@ class PersistentMonitorService : Service() {
         registerTorchCallback()
         startCalendarObserver()
         deviceStateMonitor = DeviceStateMonitor(this).also { it.start() }
+        deviceStateMonitor?.let { monitor ->
+            sensorStateMonitor = SensorStateMonitor(this, monitor).also { it.start() }
+        }
         watchShizukuStatus()
         refreshIntentTriggers()
         Log.i(TAG, "Persistent monitor started")
@@ -159,6 +163,8 @@ class PersistentMonitorService : Service() {
         calendarObserver = null
         deviceStateMonitor?.stop()
         deviceStateMonitor = null
+        sensorStateMonitor?.stop()
+        sensorStateMonitor = null
         shizukuWatchScope.cancel()
         Log.i(TAG, "Persistent monitor stopped")
         super.onDestroy()

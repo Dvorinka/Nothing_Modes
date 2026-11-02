@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Message
 import androidx.compose.material.icons.outlined.MicOff
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -59,6 +60,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Power
 import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.RecordVoiceOver
+import androidx.compose.material.icons.outlined.Rotate90DegreesCcw
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material.icons.outlined.Send
@@ -127,6 +129,7 @@ fun iconForTrigger(trigger: Trigger): ImageVector =
         is Trigger.AppInstalledRemoved -> Icons.Outlined.InstallMobile
         is Trigger.IntentReceived -> Icons.Outlined.Podcasts
         is Trigger.FailedLogin -> Icons.Outlined.Password
+        is Trigger.Shake -> Icons.Outlined.Vibration
         is Trigger.DeviceState -> iconForDeviceStateKey(trigger.key)
     }
 
@@ -264,6 +267,8 @@ private fun iconForDeviceStateKey(key: String): ImageVector =
         DeviceStateKeys.AUTO_ROTATE -> Icons.Outlined.ScreenRotation
         DeviceStateKeys.AOD -> Icons.Outlined.WatchLater
         DeviceStateKeys.THERMAL -> Icons.Outlined.Thermostat
+        DeviceStateKeys.ORIENTATION -> Icons.Outlined.Rotate90DegreesCcw
+        DeviceStateKeys.PROXIMITY -> Icons.Outlined.NearMe
         DeviceStateKeys.WIFI_RADIO -> Icons.Outlined.Wifi
         DeviceStateKeys.BLUETOOTH_RADIO -> Icons.Outlined.Bluetooth
         DeviceStateKeys.NFC -> Icons.Outlined.Nfc

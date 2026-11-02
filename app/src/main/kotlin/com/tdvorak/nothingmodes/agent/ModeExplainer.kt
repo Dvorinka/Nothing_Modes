@@ -136,6 +136,7 @@ object ModeExplainer {
                 }
             is Trigger.IntentReceived -> "a broadcast with action '${trigger.action}' arrives"
             Trigger.FailedLogin -> "a lock-screen unlock attempt fails"
+            Trigger.Shake -> "you shake the phone"
             is Trigger.DeviceState ->
                 if (trigger.value == DeviceStateKeys.ANY_VALUE) {
                     "device state '${trigger.key}' changes"

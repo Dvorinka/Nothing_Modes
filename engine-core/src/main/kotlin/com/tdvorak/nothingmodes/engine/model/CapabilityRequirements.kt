@@ -30,6 +30,7 @@ object CapabilityIds {
     const val TRIGGER_APP_INSTALLED = "trigger_app_installed"
     const val TRIGGER_INTENT = "trigger_intent"
     const val TRIGGER_FAILED_LOGIN = "trigger_failed_login"
+    const val TRIGGER_SHAKE = "trigger_shake"
     const val TRIGGER_DEVICE_STATE = "trigger_device_state"
 
     // State readers
@@ -175,6 +176,7 @@ object CapabilityLabels {
             CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK, CapabilityIds.TRIGGER_MEDIA_TRACK -> "Media session access"
             CapabilityIds.TRIGGER_FAILED_LOGIN -> "Device admin access"
+            CapabilityIds.TRIGGER_SHAKE -> "Motion sensor"
             CapabilityIds.TRIGGER_GEOFENCE, CapabilityIds.STATE_LOCATION -> "Location permission"
             CapabilityIds.STATE_READER_SETTING,
             CapabilityIds.STATE_READER_SYSTEM_PROPERTY,
@@ -242,6 +244,7 @@ object CapabilityRequirements {
             is Trigger.AppInstalledRemoved -> setOf(CapabilityIds.TRIGGER_APP_INSTALLED)
             is Trigger.IntentReceived -> setOf(CapabilityIds.TRIGGER_INTENT)
             is Trigger.FailedLogin -> setOf(CapabilityIds.TRIGGER_FAILED_LOGIN)
+            is Trigger.Shake -> setOf(CapabilityIds.TRIGGER_SHAKE)
             is Trigger.DeviceState -> setOf(CapabilityIds.TRIGGER_DEVICE_STATE)
         }
 

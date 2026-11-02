@@ -168,6 +168,7 @@ class AutomationService : Service() {
                 ACTION_PACKAGE_CHANGED -> handlePackageChanged(intent)
                 ACTION_INTENT -> handleIntentReceived(intent)
                 ACTION_LOGIN_FAILED -> handleLoginFailed()
+                ACTION_SHAKE -> handleShake()
                 ACTION_MANUAL -> handleManual(intent)
                 ACTION_CALENDAR_EVENT -> handleCalendarEvent(intent)
                 ACTION_DEVICE_STATE -> handleDeviceState(intent)
@@ -712,6 +713,10 @@ class AutomationService : Service() {
         dispatchEvent(TriggerEvent.LoginFailed(eventId = "login_failed:${System.currentTimeMillis()}"))
     }
 
+    private fun handleShake() {
+        dispatchEvent(TriggerEvent.Shake(eventId = "shake:${System.currentTimeMillis()}"))
+    }
+
     private fun handleManual(intent: Intent) {
         val idStr = intent.getStringExtra(EXTRA_MANUAL_ID) ?: return
         val automationId = AutomationId(idStr)
@@ -901,6 +906,7 @@ class AutomationService : Service() {
         const val ACTION_PACKAGE_CHANGED = "com.tdvorak.nothingmodes.PACKAGE_CHANGED"
         const val ACTION_INTENT = "com.tdvorak.nothingmodes.INTENT_RECEIVED"
         const val ACTION_LOGIN_FAILED = "com.tdvorak.nothingmodes.LOGIN_FAILED"
+        const val ACTION_SHAKE = "com.tdvorak.nothingmodes.SHAKE"
         const val ACTION_DEVICE_STATE = "com.tdvorak.nothingmodes.DEVICE_STATE"
         const val ACTION_AUTOMATION_REMOVED = "com.tdvorak.nothingmodes.AUTOMATION_REMOVED"
         const val ACTION_GATE_FORCE_END = "com.tdvorak.nothingmodes.GATE_FORCE_END"

@@ -142,6 +142,8 @@ class TriggerMatcher {
 
             is Trigger.FailedLogin -> event is TriggerEvent.LoginFailed
 
+            is Trigger.Shake -> event is TriggerEvent.Shake
+
             is Trigger.DeviceState ->
                 event is TriggerEvent.DeviceStateChanged &&
                     event.key == trigger.key &&

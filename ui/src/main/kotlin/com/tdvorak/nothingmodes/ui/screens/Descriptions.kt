@@ -127,6 +127,8 @@ fun deviceStateLabel(key: String): String =
         DeviceStateKeys.GLYPH_INTERFACE -> "Glyph interface"
         DeviceStateKeys.GLYPH_CHARGE_LED -> "Glyph charge LED"
         DeviceStateKeys.THERMAL -> "Thermal status"
+        DeviceStateKeys.ORIENTATION -> "Orientation"
+        DeviceStateKeys.PROXIMITY -> "Proximity"
         else -> key.replace('_', ' ').replaceFirstChar { it.uppercase() }
     }
 
@@ -187,6 +189,7 @@ fun triggerTypeDescription(trigger: Trigger): String =
         is Trigger.AppInstalledRemoved -> "When an app is installed or removed"
         is Trigger.IntentReceived -> "When a broadcast intent with a matching action arrives"
         is Trigger.FailedLogin -> "When a lock-screen unlock attempt fails"
+        is Trigger.Shake -> "When you shake the phone"
         is Trigger.DeviceState -> "While ${deviceStateLabel(trigger.key).lowercase()} matches a state"
     }
 
@@ -237,6 +240,7 @@ fun triggerDescription(
             is Trigger.AppInstalledRemoved -> "${if (trigger.installed) "App installed" else "App removed"}${trigger.packageName?.let { ": ${appLabel(it)}" } ?: ""}"
             is Trigger.IntentReceived -> "Intent received: ${trigger.action.take(30)}"
             Trigger.FailedLogin -> "Failed unlock"
+            Trigger.Shake -> "Shake"
             is Trigger.DeviceState ->
                 "${deviceStateLabel(trigger.key)} = ${deviceStateValueLabel(trigger.key, trigger.value)}"
         }

@@ -276,6 +276,13 @@ class DeviceStateMonitor(
         return if (plugged != 0) "charging" else "discharging"
     }
 
+    private fun readOrientation(): String {
+        return when (context.resources.configuration.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> "landscape"
+            else -> "portrait"
+        }
+    }
+
     // --- settings observer ----------------------------------------------------
 
     private fun registerSettingsObserver() {
@@ -352,8 +359,10 @@ class DeviceStateMonitor(
                         -> update(DeviceStateKeys.LOCATION) { readLocation() }
                         Intent.ACTION_AIRPLANE_MODE_CHANGED ->
                             update(DeviceStateKeys.AIRPLANE) { globalBool("airplane_mode_on") }
-                        Intent.ACTION_CONFIGURATION_CHANGED ->
+                        Intent.ACTION_CONFIGURATION_CHANGED -> {
                             update(DeviceStateKeys.DARK_MODE) { readDarkMode() }
+                            update(DeviceStateKeys.ORIENTATION) { readOrientation() }
+                        }
                         WifiManager.WIFI_STATE_CHANGED_ACTION ->
                             update(DeviceStateKeys.WIFI_RADIO) { readWifiRadio() }
                         BluetoothAdapter.ACTION_STATE_CHANGED ->
@@ -512,6 +521,7 @@ class DeviceStateMonitor(
                 DeviceStateKeys.BLUETOOTH_RADIO to { readBluetoothRadio() },
                 DeviceStateKeys.THERMAL to { readThermal() },
                 DeviceStateKeys.CHARGING_STATUS to { readChargingStatus() },
+                DeviceStateKeys.ORIENTATION to { readOrientation() },
             )
 
         /**

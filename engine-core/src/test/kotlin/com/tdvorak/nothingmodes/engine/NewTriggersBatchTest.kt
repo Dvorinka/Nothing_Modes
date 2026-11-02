@@ -123,6 +123,39 @@ class NewTriggersBatchTest {
         assertFalse(matcher.matches(trigger, TriggerEvent.BootCompleted("e2")))
     }
 
+    // --- Shake ---
+
+    @Test
+    fun `Shake matches shake event only`() {
+        val trigger = Trigger.Shake
+        assertTrue(matcher.matches(trigger, TriggerEvent.Shake("e1")))
+        assertFalse(matcher.matches(trigger, TriggerEvent.LoginFailed("e2")))
+    }
+
+    @Test
+    fun `DeviceState orientation and proximity events match by key and value`() {
+        val portrait = Trigger.DeviceState(DeviceStateKeys.ORIENTATION, "portrait")
+        assertTrue(
+            matcher.matches(
+                portrait,
+                TriggerEvent.DeviceStateChanged("e1", DeviceStateKeys.ORIENTATION, value = "portrait", previous = "landscape"),
+            ),
+        )
+        assertFalse(
+            matcher.matches(
+                portrait,
+                TriggerEvent.DeviceStateChanged("e2", DeviceStateKeys.PROXIMITY, value = "portrait", previous = "far"),
+            ),
+        )
+        val near = Trigger.DeviceState(DeviceStateKeys.PROXIMITY, "near")
+        assertTrue(
+            matcher.matches(
+                near,
+                TriggerEvent.DeviceStateChanged("e3", DeviceStateKeys.PROXIMITY, value = "near", previous = "far"),
+            ),
+        )
+    }
+
     // --- Serialization ---
 
     @Test
@@ -136,6 +169,7 @@ class NewTriggersBatchTest {
                 Trigger.AppInstalledRemoved(installed = false),
                 Trigger.IntentReceived("com.example.CUSTOM"),
                 Trigger.FailedLogin,
+                Trigger.Shake,
             )
         triggers.forEach { assertEquals(it, roundTrip(it)) }
     }
@@ -150,6 +184,11 @@ class NewTriggersBatchTest {
         assertTrue(
             json.encodeToString(Trigger.serializer(), Trigger.FailedLogin).contains(
                 "\"type\":\"failed_login\"",
+            ),
+        )
+        assertTrue(
+            json.encodeToString(Trigger.serializer(), Trigger.Shake).contains(
+                "\"type\":\"shake\"",
             ),
         )
     }

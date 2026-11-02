@@ -279,6 +279,12 @@ sealed interface Trigger {
     @SerialName("failed_login")
     data object FailedLogin : Trigger
 
+    /** The user shook the phone — a quick wrist-flip spike pattern on the
+     *  accelerometer. Works with the screen on or off while the monitor runs. */
+    @Serializable
+    @SerialName("shake")
+    data object Shake : Trigger
+
     /**
      * Generic device-state edge: fires when the named state key transitions
      * TO [value]. `"*"` matches any change. Keys come from
@@ -322,6 +328,8 @@ object DeviceStateKeys {
     const val GLYPH_INTERFACE = "glyph_interface"
     const val GLYPH_CHARGE_LED = "glyph_charge_led"
     const val THERMAL = "thermal_status"
+    const val ORIENTATION = "orientation"
+    const val PROXIMITY = "proximity"
 
     /** Wildcard: fires on any change of the key. */
     const val ANY_VALUE = "*"
