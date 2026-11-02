@@ -10,15 +10,21 @@ class RoomStateSnapshotStore(
     private val dao: StateSnapshotDao,
 ) : StateSnapshotStore {
     override suspend fun save(snapshot: EngineStateSnapshot) {
-        dao.insert(
-            StateSnapshotEntity(
-                automationId = snapshot.automationId.value,
-                settingKey = snapshot.settingKey,
-                previousValue = snapshot.previousValue,
-                capturedAtMillis = snapshot.capturedAtMillis,
-                namespace = snapshot.namespace,
-            ),
-        )
+        // Snapshots drive mode reverts: keep the newest few per automation
+        // rather than pruning by age and possibly dropping live revert data.
+        guardedAppend(
+            prune = { dao.pruneToLatest(snapshot.automationId.value, keep = 10) },
+        ) {
+            dao.insert(
+                StateSnapshotEntity(
+                    automationId = snapshot.automationId.value,
+                    settingKey = snapshot.settingKey,
+                    previousValue = snapshot.previousValue,
+                    capturedAtMillis = snapshot.capturedAtMillis,
+                    namespace = snapshot.namespace,
+                ),
+            )
+        }
     }
 
     override suspend fun forAutomation(id: AutomationId): List<EngineStateSnapshot> =

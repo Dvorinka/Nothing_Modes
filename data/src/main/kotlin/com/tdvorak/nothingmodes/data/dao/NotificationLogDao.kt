@@ -16,4 +16,7 @@ interface NotificationLogDao {
 
     @Query("SELECT * FROM notification_log ORDER BY postTime DESC LIMIT :limit")
     fun getRecentAsFlow(limit: Int = 100): Flow<List<NotificationLogEntity>>
+
+    @Query("DELETE FROM notification_log WHERE postTime < :beforeMillis")
+    suspend fun pruneBefore(beforeMillis: Long): Int
 }
