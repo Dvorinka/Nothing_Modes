@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.19.17]
 
 ### Added
 - New Guide screen: how modes work (trigger / condition / action), a 4-step first mode, what runs with no setup vs one-time permission vs Shizuku, starter-mode recipes, and where templates and the execution log live. Reachable from first-run onboarding, Settings > More > How to Use, and the empty home screen.
@@ -21,6 +21,7 @@
 - Classic UI: the Modes title sat flush against the left edge on the home screen — it now keeps the same margin as other screens.
 - Template library rows: the summary tags were clipped to one tag ("1 automation 1 action n…"); the tag row now scrolls instead.
 - Templates that need hardware the phone doesn't have (Glyph lights on non-Nothing devices) no longer appear in the template library — same rule the action and trigger catalogs already used.
+- Crash: SQLiteFullException (code 13) inside Room endTransaction on devices with a full disk. The audit, notification, journal, snapshot, and fire-claim tables now prune old rows on each write, and a genuinely full disk drops the row instead of crashing a background worker.
 
 ## [0.19.16]
 

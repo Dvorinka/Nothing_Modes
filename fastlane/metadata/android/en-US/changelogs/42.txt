@@ -1,0 +1,5 @@
+- New Guide screen with one-tap starter modes (Quick silence, Bedtime, Work focus)
+- Bluetooth device control: disconnect and forget paired devices via Shizuku
+- Conditions can now be combined with AND or OR
+- New triggers and actions from the competitor gap analysis (HTTP request, Shell command, Shake, and more)
+- Fix: crash on devices with a full disk when Room writes log entries
