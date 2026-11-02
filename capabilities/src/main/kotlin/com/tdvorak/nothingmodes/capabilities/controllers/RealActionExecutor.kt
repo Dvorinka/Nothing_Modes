@@ -721,6 +721,7 @@ class RealActionExecutor(
         bluetoothHiddenAction(action.address, "disconnect") { manager, device -> !deviceConnected(manager, device) }
 
     /** Forgets a bond. Hidden removeBond() inside the Shizuku shell. */
+    @SuppressLint("MissingPermission") // verify lambda runs only after bluetoothHiddenAction's BLUETOOTH_CONNECT check
     private suspend fun forgetBluetoothDevice(action: Action.ForgetBluetoothDevice): ActionResult =
         bluetoothHiddenAction(action.address, "removeBond") { manager, device ->
             runCatching {
