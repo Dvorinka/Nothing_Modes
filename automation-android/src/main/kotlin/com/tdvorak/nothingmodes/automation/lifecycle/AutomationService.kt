@@ -101,20 +101,18 @@ class AutomationService : Service() {
     // catch is inert below it — lint just can't see that.
     @SuppressLint("NewApi")
     override fun onCreate() {
-        super.onCreate()
+        // Deadline runs from startForegroundService(), and super.onCreate()
+        // is Hilt injection on this thread. Promote first. Doing it after
+        // injection is what still produced
+        // ForegroundServiceDidNotStartInTimeException on a cold start.
+        // onStartCommand re-asserts after maybeStop() drops foreground.
         createNotificationChannel()
-        // The platform's start-in-time deadline runs from
-        // startForegroundService(), not from onStartCommand — going
-        // foreground here keeps a slow cold start (Hilt injection, class
-        // loading) from eating the window, which is what produced
-        // ForegroundServiceDidNotStartInTimeException on API 31+.
-        // The onStartCommand call stays for re-foregrounding after
-        // maybeStop() dropped foreground.
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (e: ForegroundServiceStartNotAllowedException) {
             android.util.Log.w("AutomationService", "Foreground start not allowed at create; retry in onStartCommand", e)
         }
+        super.onCreate()
     }
 
     // ForegroundServiceStartNotAllowedException exists only on API 31+; the

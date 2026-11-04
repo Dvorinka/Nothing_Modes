@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `ForegroundServiceDidNotStartInTimeException` on `AutomationService` (Android 15, Xiaomi, reported against 0.19.12). A posted notification called `startForegroundService()` and then read the whole shade on the main thread, so the service could not call `startForeground()` before the platform deadline. The shade refresh now runs off the main thread. `AutomationService` and `PersistentMonitorService` also call `startForeground()` before Hilt injection, which previously ran first inside `super.onCreate()` and ate the same deadline on a cold start.
+
 ## [0.19.17]
 
 ### Added
