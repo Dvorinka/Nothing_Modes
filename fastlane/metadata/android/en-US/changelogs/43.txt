@@ -1,0 +1,1 @@
+- Fix: crash when a notification starts automation on Android 15. The service now enters the foreground before other startup work.
