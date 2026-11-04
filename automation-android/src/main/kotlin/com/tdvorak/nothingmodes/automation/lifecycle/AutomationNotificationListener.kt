@@ -15,7 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * NotificationListenerService that dispatches notification trigger events.
@@ -32,6 +34,7 @@ import kotlinx.coroutines.launch
  */
 class AutomationNotificationListener : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val refreshGeneration = AtomicInteger()
     private var database: NothingModesDatabase? = null
 
     override fun onCreate() {
@@ -93,6 +96,9 @@ class AutomationNotificationListener : NotificationListenerService() {
                 sbn.groupKey?.let { putExtra(EXTRA_CONVERSATION_ID, it) }
             }
         startForegroundServiceSafely(intent)
+        // getActiveNotifications() is a binder call. Running it here holds
+        // the main looper, so AutomationService cannot reach startForeground()
+        // inside the FGS deadline (DidNotStartInTime on Android 15 / Xiaomi).
         refreshActiveNotifications()
     }
 
@@ -115,8 +121,13 @@ class AutomationNotificationListener : NotificationListenerService() {
 
     private fun refreshActiveNotifications() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-        val notifications = runCatching { activeNotifications?.toList() ?: emptyList() }.getOrDefault(emptyList())
-        ActiveNotifications.update(notifications.map { it.toSnapshot() })
+        val generation = refreshGeneration.incrementAndGet()
+        scope.launch {
+            val notifications =
+                runCatching { activeNotifications?.toList() ?: emptyList() }.getOrDefault(emptyList())
+            if (!isActive || generation != refreshGeneration.get()) return@launch
+            ActiveNotifications.update(notifications.map { it.toSnapshot() })
+        }
     }
 
     private fun StatusBarNotification.toSnapshot(): ActiveNotifications.NotificationSnapshot {

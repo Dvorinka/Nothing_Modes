@@ -78,17 +78,15 @@ class PersistentMonitorService : Service() {
     // catch is inert below it — lint just can't see that.
     @SuppressLint("NewApi")
     override fun onCreate() {
-        super.onCreate()
+        // Same deadline as AutomationService: super.onCreate() injects on
+        // this thread, so promote before it. onStartCommand re-asserts.
         createNotificationChannel()
-        // The platform's start-in-time deadline runs from
-        // startForegroundService(), not from onStartCommand — going
-        // foreground here keeps a slow cold start from eating the window.
-        // onStartCommand still re-asserts and owns the stop-on-denied path.
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (e: ForegroundServiceStartNotAllowedException) {
             Log.w(TAG, "Foreground start not allowed at create; retry in onStartCommand", e)
         }
+        super.onCreate()
     }
 
     // ForegroundServiceStartNotAllowedException exists only on API 31+; the
