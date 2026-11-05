@@ -17,6 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -35,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class AutomationNotificationListener : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val refreshGeneration = AtomicInteger()
+    private val refreshMutex = Mutex()
     private var database: NothingModesDatabase? = null
 
     override fun onCreate() {
@@ -52,11 +55,8 @@ class AutomationNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName ?: return
         val notification = sbn.notification ?: return
-        val extras = notification.extras
-        val title = extras.getString(Notification.EXTRA_TITLE, "") ?: ""
-        val text = extras.getString(Notification.EXTRA_TEXT, "") ?: ""
         val category = notification.category ?: ""
-        val sender = extras.getString(Notification.EXTRA_SUB_TEXT, "") ?: ""
+        val (title, text, sender) = notification.readExtras(pkg)
 
         Log.d(TAG, "Notification posted from $pkg")
 
@@ -123,19 +123,50 @@ class AutomationNotificationListener : NotificationListenerService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         val generation = refreshGeneration.incrementAndGet()
         scope.launch {
-            val notifications =
-                runCatching { activeNotifications?.toList() ?: emptyList() }.getOrDefault(emptyList())
-            if (!isActive || generation != refreshGeneration.get()) return@launch
-            ActiveNotifications.update(notifications.map { it.toSnapshot() })
+            // Serialize refreshes: each one unparcels every active
+            // notification's extras, and concurrent runs would multiply the
+            // heap spike that OOMed on oversized parcels.
+            refreshMutex.withLock {
+                // A superseded generation must not even pay the binder call
+                // and unparcel; re-check after the fetch so one overtaken
+                // mid-flight can't overwrite fresher snapshots.
+                if (!isActive || generation != refreshGeneration.get()) return@withLock
+                val notifications =
+                    runCatching { activeNotifications?.toList() ?: emptyList() }
+                        .getOrDefault(emptyList())
+                if (!isActive || generation != refreshGeneration.get()) return@withLock
+                ActiveNotifications.update(notifications.map { it.toSnapshot() })
+            }
         }
     }
 
     private fun StatusBarNotification.toSnapshot(): ActiveNotifications.NotificationSnapshot {
-        val notification = this.notification ?: return ActiveNotifications.NotificationSnapshot(packageName ?: "", "", "")
-        val extras = notification.extras
-        val title = extras?.getString(Notification.EXTRA_TITLE, "") ?: ""
-        val text = extras?.getString(Notification.EXTRA_TEXT, "") ?: ""
-        return ActiveNotifications.NotificationSnapshot(packageName ?: "", title, text)
+        val pkg = packageName ?: ""
+        val notification = notification
+            ?: return ActiveNotifications.NotificationSnapshot(pkg, "", "")
+        val (title, text) = notification.readExtras(pkg)
+        return ActiveNotifications.NotificationSnapshot(pkg, title, text)
+    }
+
+    /**
+     * First extras access unparcels the whole bundle — a notification
+     * carrying an oversized parcelled payload (chat history, embedded
+     * images) can OOM the process mid-read. Title/text/sender are
+     * best-effort: pkg, category, group state and timestamps still
+     * dispatch without them.
+     */
+    private fun Notification.readExtras(pkg: String): Triple<String, String, String> {
+        val bundle = extras ?: return Triple("", "", "")
+        return runCatching {
+            Triple(
+                bundle.getString(Notification.EXTRA_TITLE, "") ?: "",
+                bundle.getString(Notification.EXTRA_TEXT, "") ?: "",
+                bundle.getString(Notification.EXTRA_SUB_TEXT, "") ?: "",
+            )
+        }.getOrElse {
+            Log.w(TAG, "Notification extras unreadable for $pkg (${it.javaClass.simpleName})")
+            Triple("", "", "")
+        }
     }
 
     companion object {

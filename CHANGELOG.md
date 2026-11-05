@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `OutOfMemoryError` in the notification listener (0.19.18, moto g23). The first read of a posted notification's extras unparcels the entire bundle, so one oversized parcel — chat history, embedded images — could exhaust the heap. Title, text and sender now degrade to empty when the parcel won't read, and the trigger still fires on package and category. Shade refreshes are serialized so concurrent reads can't stack the same spike.
+
 ## [0.19.18]
 
 ### Fixed
