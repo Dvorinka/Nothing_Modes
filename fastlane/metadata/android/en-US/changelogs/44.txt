@@ -1,0 +1,1 @@
+- Fix: crash when a notification carries a very large payload. Oversized notification details are now skipped instead of exhausting memory.
