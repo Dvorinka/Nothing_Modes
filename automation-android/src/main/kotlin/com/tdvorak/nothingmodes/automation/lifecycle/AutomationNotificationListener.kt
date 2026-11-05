@@ -127,6 +127,10 @@ class AutomationNotificationListener : NotificationListenerService() {
             // notification's extras, and concurrent runs would multiply the
             // heap spike that OOMed on oversized parcels.
             refreshMutex.withLock {
+                // A superseded generation must not even pay the binder call
+                // and unparcel; re-check after the fetch so one overtaken
+                // mid-flight can't overwrite fresher snapshots.
+                if (!isActive || generation != refreshGeneration.get()) return@withLock
                 val notifications =
                     runCatching { activeNotifications?.toList() ?: emptyList() }
                         .getOrDefault(emptyList())
