@@ -58,6 +58,7 @@ Thumbs.db
 
 # Secrets
 .env
+.kern-secrets.env
 *.pem
 secrets/
 
