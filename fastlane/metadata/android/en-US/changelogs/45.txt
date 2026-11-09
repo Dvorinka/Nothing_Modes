@@ -1,0 +1,1 @@
+- Fix: OutOfMemoryError crashes on phones with little free memory. Large image imports, the in-app browser, and notification refreshes are now bounded so they can't exhaust the app's memory.
