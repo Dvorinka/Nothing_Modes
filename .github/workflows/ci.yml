@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: [self-hosted, linux, x64]
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/*/debug/*.apk
           if-no-files-found: ignore
 
       - name: Upload Test Results
