@@ -4,7 +4,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
@@ -93,6 +92,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
 import com.tdvorak.nothingmodes.ui.theme.NothingTag
 import com.tdvorak.nothingmodes.ui.theme.NothingTopBar
 import com.tdvorak.nothingmodes.ui.theme.ThemeManager
+import com.tdvorak.nothingmodes.ui.util.decodeSampledBitmap
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
@@ -496,7 +496,7 @@ fun GlyphEditorScreen(
                 ImportType.GIF,
                 -> {
                     runCatching {
-                        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                        decodeSampledBitmap(context.contentResolver, uri, 1024)
                     }.getOrNull()
                         ?: runCatching {
                             val source = ImageDecoder.createSource(context.contentResolver, uri)
@@ -545,7 +545,7 @@ fun GlyphEditorScreen(
         if (uri != null) {
             val bitmap =
                 runCatching {
-                    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                    decodeSampledBitmap(context.contentResolver, uri, 1024)
                 }.getOrNull()
             if (bitmap != null) applyBitmap(bitmap) else Toast.makeText(context, "Could not load image", Toast.LENGTH_SHORT).show()
         } else {

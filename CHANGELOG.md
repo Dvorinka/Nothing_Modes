@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `OutOfMemoryError` on low-memory devices (0.19.19, Samsung A30 / Android 11, 192MB heap). Several unbounded allocations are now capped: the wallpaper and glyph-editor image imports decode sampled instead of full-resolution, the in-app browser destroys its WebView on exit instead of leaking it, `HttpRequest` actions drain at most 256KB of a response, and the shade refresh is debounced so notification bursts can't stack parcel-unpack churn. `largeHeap` is enabled for headroom on 3-4GB devices.
+
 ## [0.19.19]
 
 ### Fixed

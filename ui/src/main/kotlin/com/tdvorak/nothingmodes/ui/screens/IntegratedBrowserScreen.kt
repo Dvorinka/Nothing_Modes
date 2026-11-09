@@ -316,10 +316,15 @@ fun IntegratedBrowserScreen(
                         View(ctx)
                     }
                 },
+                // A WebView left alive keeps its renderer and page state —
+                // repeated browser visits otherwise pile up toward OOM.
+                onRelease = { (it as? WebView)?.destroy() },
             )
         }
     }
 }
+
+private const val MAX_IMPORT_CHARS = 1_000_000
 
 private suspend fun fetchText(url: String): String? =
     withContext(Dispatchers.IO) {
@@ -328,7 +333,22 @@ private suspend fun fetchText(url: String): String? =
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
             try {
-                conn.inputStream.bufferedReader().use { it.readText() }
+                conn.inputStream.bufferedReader().use { reader ->
+                    val buffer = CharArray(8192)
+                    val out = StringBuilder()
+                    while (out.length < MAX_IMPORT_CHARS) {
+                        val n = reader.read(buffer)
+                        if (n < 0) break
+                        out.append(buffer, 0, n)
+                    }
+                    // Cut off mid-document means the payload exceeded the cap —
+                    // fail rather than hand truncated JSON to the importer.
+                    if (out.length >= MAX_IMPORT_CHARS && reader.read() >= 0) {
+                        null
+                    } else {
+                        out.toString()
+                    }
+                }
             } finally {
                 conn.disconnect()
             }
