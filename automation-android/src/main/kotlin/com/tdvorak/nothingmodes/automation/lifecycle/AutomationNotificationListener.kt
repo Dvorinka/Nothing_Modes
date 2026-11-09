@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -123,6 +124,11 @@ class AutomationNotificationListener : NotificationListenerService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         val generation = refreshGeneration.incrementAndGet()
         scope.launch {
+            // Debounce bursts: every post/remove schedules a refresh, and each
+            // one unparcels every active notification's extras. A chatty
+            // stream would otherwise keep the heap churning toward OOM;
+            // superseded generations still bail inside the mutex.
+            delay(REFRESH_DEBOUNCE_MS)
             // Serialize refreshes: each one unparcels every active
             // notification's extras, and concurrent runs would multiply the
             // heap spike that OOMed on oversized parcels.
@@ -178,5 +184,6 @@ class AutomationNotificationListener : NotificationListenerService() {
         const val EXTRA_SENDER = "notification_sender"
         const val EXTRA_IS_GROUP = "notification_is_group"
         const val EXTRA_CONVERSATION_ID = "notification_conversation_id"
+        private const val REFRESH_DEBOUNCE_MS = 500L
     }
 }

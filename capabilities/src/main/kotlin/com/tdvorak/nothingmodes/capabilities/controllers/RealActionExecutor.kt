@@ -1268,8 +1268,18 @@ class RealActionExecutor(
                         conn.outputStream.use { it.write(action.body.toByteArray()) }
                     }
                     val code = conn.responseCode
-                    // Drain so the connection can be reused; body content is discarded.
-                    (if (code < 400) conn.inputStream else conn.errorStream)?.use { it.readBytes() }
+                    // Drain a bounded prefix — disconnect() follows, so extra
+                    // draining buys nothing, and an unbounded readBytes() can
+                    // OOM the process on a huge response body.
+                    (if (code < 400) conn.inputStream else conn.errorStream)?.use { stream ->
+                        val buf = ByteArray(8192)
+                        var remaining = MAX_DRAIN_BYTES
+                        while (remaining > 0) {
+                            val n = stream.read(buf, 0, minOf(buf.size, remaining))
+                            if (n < 0) break
+                            remaining -= n
+                        }
+                    }
                     if (code in 200..299) {
                         ActionResult.Success
                     } else {
@@ -2173,6 +2183,7 @@ class RealActionExecutor(
         private const val NOTIFICATION_ID_BASE = 2000
         private const val VERIFY_ATTEMPTS = 4
         private const val VERIFY_SETTLE_MS = 700L
+        private const val MAX_DRAIN_BYTES = 256 * 1024
 
         /** Factory: creates a RealActionExecutor with all Android controllers. */
         fun create(

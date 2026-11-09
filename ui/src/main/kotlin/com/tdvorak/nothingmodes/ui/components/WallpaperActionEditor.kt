@@ -3,7 +3,6 @@ package com.tdvorak.nothingmodes.ui.components
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -32,6 +31,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingEnumSelector
 import com.tdvorak.nothingmodes.ui.theme.NothingInput
 import com.tdvorak.nothingmodes.ui.theme.NothingPrimaryButton
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.util.decodeSampledBitmap
 
 /**
  * Editor for [Action.SetWallpaper] that lets the user pick an image from the
@@ -117,10 +117,7 @@ private fun loadWallpaperThumbnail(
     val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return null
 
     return runCatching {
-        context.contentResolver
-            .openInputStream(uri)
-            ?.use { BitmapFactory.decodeStream(it) }
-            ?.scaledToMax(512)
+        decodeSampledBitmap(context.contentResolver, uri, 1024)?.scaledToMax(512)
     }.getOrNull()
         ?: runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
