@@ -37,9 +37,10 @@ jobs:
           restore-keys: gradle-
 
       - name: Build + Test
-        # workers.max + in-process Kotlin compiler bound peak memory — the job
-        # container OOM-kills the Gradle daemon on unconstrained parallel builds.
-        run: ./gradlew test assembleDebug lint --no-daemon --parallel --build-cache --stacktrace -Dorg.gradle.workers.max=3 -Dkotlin.compiler.execution.strategy=in-process
+        # Job containers are capped at 6g (kern KERN_JOB_MEMORY). Bound the
+        # whole JVM budget: 2.6g daemon heap (Kotlin compiles in-process), 768m
+        # metaspace, max 3 worker forks — unbounded, the daemon gets OOM-killed.
+        run: ./gradlew test assembleDebug lint --no-daemon --parallel --build-cache --stacktrace -Dorg.gradle.workers.max=3 -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs='-Xmx2560m -XX:MaxMetaspaceSize=768m'
 
       - name: Upload APK
         if: always()
