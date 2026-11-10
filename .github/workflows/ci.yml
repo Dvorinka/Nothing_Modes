@@ -37,7 +37,9 @@ jobs:
           restore-keys: gradle-
 
       - name: Build + Test
-        run: ./gradlew test assembleDebug lint --no-daemon --parallel --build-cache --stacktrace
+        # workers.max + in-process Kotlin compiler bound peak memory — the job
+        # container OOM-kills the Gradle daemon on unconstrained parallel builds.
+        run: ./gradlew test assembleDebug lint --no-daemon --parallel --build-cache --stacktrace -Dorg.gradle.workers.max=3 -Dkotlin.compiler.execution.strategy=in-process
 
       - name: Upload APK
         if: always()
