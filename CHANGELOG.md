@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.19.21]
+
+### Fixed
+- No app changes — this release validates the repaired CI/release pipeline: bounded Gradle memory on self-hosted runners, a Google Maven mirror for dependency fetches (Maven Central rate-limited the fleet), the corrected flavored-APK artifact path, and an empty-keystore fallback to debug signing. The app binary is functionally identical to 0.19.20.
+
 ## [0.19.20]
 
 ### Fixed
