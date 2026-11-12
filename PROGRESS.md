@@ -5,9 +5,18 @@ Play Store release track. App is feature-complete and shipping; work is
 polish, store compliance, and crash-driven fixes.
 
 ## Current Version
-0.19.1 (versionCode 26) — pending release.
+0.19.21 (versionCode 46) — pending release.
 
 ## Recently Shipped
+- 0.19.21: maintenance release — no app changes; validates the repaired
+  CI/release pipeline end to end
+- 0.19.20: OutOfMemoryError fixes on low-memory devices — bounded image
+  imports, WebView teardown, 256KB HttpRequest cap, debounced shade
+  refresh, largeHeap for 3-4GB devices
+- 0.19.19: OutOfMemoryError in the notification listener — oversized
+  notification extras parcels degrade instead of crashing
+- 0.19.18: ForegroundServiceDidNotStartInTimeException fixes —
+  startForeground() before Hilt injection, shade refresh off main thread
 - 0.19.0: tap-to-cycle Quick Settings tiles (screen timeout, brightness,
   ultra dim, volume, Glyph lights, scene presets, mode runner), six custom
   tiles, home-screen widgets
@@ -17,8 +26,9 @@ polish, store compliance, and crash-driven fixes.
   control, capability warning layer, priority conflict resolution
 
 ## Active Problems
-- Fixed in 0.19.1: Play startup crash (PlatformInAppUpdate constructed
-  before activity attach — NPE on cold start, 0.18.1+)
+- None known. Recent crash classes (OOM on low-memory devices,
+  FGS start deadline, notification-extras parcels) shipped fixes in
+  0.19.18-0.19.20.
 
 ## Infrastructure
 - CI: `./gradlew test assembleDebug lint` on every PR
