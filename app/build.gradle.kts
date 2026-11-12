@@ -26,7 +26,7 @@ android {
             // Never hardcode passwords. If no config is present, release builds fall
             // back to the debug key for local testing.
             val keystorePath = System.getenv("NOTHING_MODES_KEYSTORE")
-            if (keystorePath != null) {
+            if (!keystorePath.isNullOrEmpty()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("NOTHING_MODES_KEYSTORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("NOTHING_MODES_KEY_ALIAS") ?: ""
