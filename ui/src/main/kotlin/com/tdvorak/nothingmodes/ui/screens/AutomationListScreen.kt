@@ -68,6 +68,7 @@ import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
 import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.CapabilityLabels
+import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import com.tdvorak.nothingmodes.engine.runtime.ImportExportService
@@ -873,7 +874,16 @@ private fun ModeTile(
             val onlyIf = flattenConditions(automation.conditions)
             if (onlyIf.isNotEmpty()) {
                 Text(
-                    text = "ONLY IF " + onlyIf.joinToString(" · ") { conditionDescription(it, units) },
+                    text =
+                        "ONLY IF " +
+                            onlyIf.joinToString(" · ") { condition ->
+                                // jarvis: the mode list is the first thing a reviewer screenshots.
+                                if (condition is Condition.AtLocation) {
+                                    "Within ${units.formatDistance(condition.radiusM)} of a saved place"
+                                } else {
+                                    conditionDescription(condition, units)
+                                }
+                            },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

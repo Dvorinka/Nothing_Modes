@@ -18,6 +18,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ import com.tdvorak.nothingmodes.ui.theme.NothingFonts
 import com.tdvorak.nothingmodes.ui.theme.NothingIconCircle
 import com.tdvorak.nothingmodes.ui.theme.NothingShapes
 import com.tdvorak.nothingmodes.ui.theme.NothingSpacing
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.util.CapabilityGap
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +40,7 @@ fun CapabilityWarningDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    var pendingGap by remember { mutableStateOf<CapabilityGap?>(null) }
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -93,7 +99,13 @@ fun CapabilityWarningDialog(
                                     softWrap = false,
                                     modifier =
                                         Modifier
-                                            .clickable(onClick = gap.onFix)
+                                            .clickable {
+                                                if (gap.disclosure == null) {
+                                                    gap.onFix()
+                                                } else {
+                                                    pendingGap = gap
+                                                }
+                                            }
                                             .padding(vertical = NothingSpacing.xs),
                                 )
                             }
@@ -127,5 +139,17 @@ fun CapabilityWarningDialog(
                 }
             }
         }
+    }
+    pendingGap?.disclosure?.let { copy ->
+        val gap = pendingGap
+        PermissionDisclosureDialog(
+            title = copy.title,
+            body = copy.body,
+            onConfirm = {
+                pendingGap = null
+                gap?.onFix()
+            },
+            onDismiss = { pendingGap = null },
+        )
     }
 }

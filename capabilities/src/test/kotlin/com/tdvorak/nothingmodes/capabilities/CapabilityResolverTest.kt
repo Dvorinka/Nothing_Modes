@@ -15,6 +15,7 @@ class CapabilityResolverTest {
             CapabilityIds.TRIGGER_NOTIFICATION,
             CapabilityIds.TRIGGER_PHONE_SMS,
             CapabilityIds.TRIGGER_PHONE_CALL,
+            CapabilityIds.TRIGGER_PHONE_CALLER,
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
             CapabilityIds.TRIGGER_CONNECTIVITY_BT,
@@ -128,6 +129,37 @@ class CapabilityResolverTest {
         assertTrue(resolution.canRun)
         assertTrue(resolution.missing.isEmpty())
         assertEquals(allCapabilities, resolution.satisfied)
+    }
+
+    @Test
+    fun phoneCallNeedsPhoneStateOnly() {
+        val resolver = CapabilityResolver(everything().copy(hasReadCallLog = false))
+        val resolution = resolver.resolve("test", setOf(CapabilityIds.TRIGGER_PHONE_CALL))
+
+        assertTrue(resolution.canRun)
+        assertTrue(resolution.missing.isEmpty())
+    }
+
+    @Test
+    fun callerNumberNeedsCallLog() {
+        val caps = everything().copy(hasReadCallLog = false, hasReadPhoneState = true)
+        val resolver = CapabilityResolver(caps)
+        val resolution =
+            resolver.resolve(
+                "test",
+                setOf(CapabilityIds.TRIGGER_PHONE_CALL, CapabilityIds.TRIGGER_PHONE_CALLER),
+            )
+
+        assertFalse(resolution.canRun)
+        assertEquals(setOf(CapabilityIds.TRIGGER_PHONE_CALLER), resolution.missing)
+    }
+
+    @Test
+    fun receiveSmsDoesNotNeedSendPermission() {
+        val caps = everything().copy(hasSendSms = false, hasReceiveSms = true)
+        val resolution = CapabilityResolver(caps).resolve("test", setOf(CapabilityIds.TRIGGER_PHONE_SMS))
+
+        assertTrue(resolution.canRun)
     }
 
     @Test

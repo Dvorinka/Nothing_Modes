@@ -2,6 +2,99 @@
 
 This document tracks everything that must be resolved before `Nothing Modes` can be published on the Google Play Store. It also defines the `github` / `play` product-flavor split, because the full-featured GitHub build uses permissions and capabilities that Play will not accept in the consumer store.
 
+## Status as of 2026-11-18
+
+App version `0.19.21` (`versionCode` 46), `applicationId` `com.tdvorak.nothingmodes`. Declared Play use case: **Device Automation**.
+
+Rejections dated 18 Nov 2026:
+
+1. Permissions and APIs that Access Sensitive Information: missing user prompt for permissions access.
+2. Same policy: unable to verify core functionality.
+
+What the Play artifact does now:
+
+- Every sensitive runtime permission shows an in-app disclosure (what data, why, on-device) before the system dialog. Settings, trigger editors, action editors, and condition editors all use that dialog.
+- `CAMERA` is not declared. The flashlight uses `CameraManager.setTorchMode`, which does not need it.
+- `DimOverlayAccessibilityService` is removed from the Play manifest. Ultra dim on Play uses `SYSTEM_ALERT_WINDOW` only. GitHub keeps the service.
+- SMS and call log stay, scoped to Device Automation. Call state uses `READ_PHONE_STATE`. `READ_CALL_LOG` is requested only when a phone trigger has a caller-number filter. The app does not query `CallLog.Calls`. `RECEIVE_SMS` is the SMS-received trigger. `SEND_SMS` is the Send SMS action.
+- A reviewer can run an automation with no Shizuku, accessibility, location, SMS, or call log.
+
+### Reviewer script
+
+1. Install the Play build. A fresh data directory seeds **Try it now** first (priority 0). It is a Manual trigger with Show toast ("Nothing Modes is running") and a 200 ms vibration.
+2. On the home screen, tap **Run** on that card.
+3. Expected: the toast appears and the phone vibrates. No permission dialog is required for this path.
+4. The same mode is in Guide → Starter modes, id `starter-try-it`, if the store was not empty.
+
+Do not use Sleep or Morning for the review. Those change Do Not Disturb, brightness, and Glyph and need extra settings.
+
+### Play Console declaration text
+
+SMS (Device Automation):
+
+> Nothing Modes sends an SMS only when the user adds a Send SMS action and that mode runs, using the number and message the user typed. It receives SMS only when the user adds an SMS-received trigger, and then only to match the sender and optional text on the device. Message content is not uploaded, sold, or shared.
+
+Call log (Device Automation):
+
+> Nothing Modes requests READ_CALL_LOG only when a phone-call trigger includes a caller-number filter. Android's call-state callback leaves the number blank without that permission. The app does not read CallLog.Calls and does not browse call history. Call-state detection without a number filter uses READ_PHONE_STATE only. The number stays on the device.
+
+Phone state:
+
+> READ_PHONE_STATE detects ringing, in-call, and idle for a call trigger or a call-state condition the user created. It is not used to read call history.
+
+Contacts:
+
+> READ_CONTACTS is requested only when the user taps Pick contact, to fill in a phone number. The app does not upload the address book.
+
+Background location:
+
+> Location is used only for a geofence or at-location condition the user defined. Background location lets that place run a mode while the app is closed. Coordinates stay on the device and are not sold or shared.
+
+Microphone and media projection:
+
+> RECORD_AUDIO and a one-time MediaProjection capture feed the Glyph music visualizer the user starts. Playback audio is analysed on the device to drive the lights. It is not recorded, stored, or uploaded. The system capture dialog is shown after an in-app explanation.
+
+Notification listener:
+
+> The listener reads notification app, title, and text only to run a notification trigger or condition the user created, or to clear notifications the user asked to clear. Content stays on the device.
+
+Usage access:
+
+> PACKAGE_USAGE_STATS is used to see which app is in the foreground for an app-opened trigger or an app-in-foreground condition the user created. It is not used to build a usage profile.
+
+Exact alarm:
+
+> SCHEDULE_EXACT_ALARM lets a time trigger the user created run at the minute they set. Without it, Doze may delay that trigger.
+
+Display over other apps:
+
+> SYSTEM_ALERT_WINDOW draws a dimming layer only while an ultra-dim mode the user created is on. The layer does not read the screen. Play builds do not include an accessibility service.
+
+Special-use foreground services. Paste these as the subtype descriptions. They match the manifest:
+
+> PersistentMonitorService: Watches triggers you saved (time, Wi-Fi, Bluetooth, notifications)
+> AutomationService: Runs a mode you started
+
+The persistent service is what stays in the foreground so saved triggers can fire. The automation service runs only while a mode is executing. Both are started by the user's modes, not by a remote party.
+
+Full-screen intent:
+
+> Not declared on the Play artifact. Do not submit a full-screen intent declaration. Pending actions use a normal high-priority notification. The GitHub build may still declare USE_FULL_SCREEN_INTENT.
+
+Local network:
+
+> ACCESS_LOCAL_NETWORK is not declared. On Android 16 and later the platform may show a compat grant for targetSdk 36 apps that declare INTERNET. An HTTP request action can talk to an address the user typed, including a device on their Wi-Fi. That traffic stays on that network. Do not add the permission until an in-app disclosure sits immediately before the request.
+
+Accessibility:
+
+> The Play artifact does not register an AccessibilityService. Do not declare the Accessibility API for the Play build.
+
+Distribution:
+
+> The Play build does not link to a GitHub APK. Lock screen and in-app updates are absent from that build. They stay on the GitHub flavor.
+
+Sections below this status note are the historical roadmap. The "Current baseline" still describes 0.10.0 / versionCode 3.
+
 ## Two-version strategy
 
 | Build | Package | Channel | Feature set |

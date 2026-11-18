@@ -40,6 +40,7 @@ import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.DndMode
@@ -65,7 +66,11 @@ import com.tdvorak.nothingmodes.engine.model.vibratePresets
 import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
+import com.tdvorak.nothingmodes.ui.components.SpecialAccess
+import com.tdvorak.nothingmodes.ui.components.specialAccessDisclosure
+import com.tdvorak.nothingmodes.ui.components.combinedDisclosure
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
@@ -346,6 +351,7 @@ fun ActionConfigContent(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             val canOverlay = UltraDimController.canDrawOverlays(context)
+            var showOverlayDisclosure by remember { mutableStateOf(false) }
             NothingPillButton(
                 text =
                     when {
@@ -355,7 +361,7 @@ fun ActionConfigContent(
                     },
                 onClick = {
                     if (!canOverlay) {
-                        runCatching { context.startActivity(UltraDimController.permissionIntent(context)) }
+                        showOverlayDisclosure = true
                     } else if (!previewing) {
                         previewing = true
                         scope.launch {
@@ -367,6 +373,19 @@ fun ActionConfigContent(
                     }
                 },
             )
+            if (showOverlayDisclosure) {
+                val copy = specialAccessDisclosure(SpecialAccess.OVERLAY)
+                PermissionDisclosureDialog(
+                    title = copy.title,
+                    body = copy.body,
+                    onConfirm = {
+                        showOverlayDisclosure = false
+                        runCatching { context.startActivity(UltraDimController.permissionIntent(context)) }
+                    },
+                    onDismiss = { showOverlayDisclosure = false },
+                )
+            }
+            // jarvis: Play manifest removes the dim accessibility service. Do not send that build to accessibility settings.
             if (!canOverlay) {
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 Text(
@@ -375,7 +394,10 @@ fun ActionConfigContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
                 )
-            } else if (!UltraDimController.accessibilityServiceEnabled(context)) {
+            } else if (
+                FeatureFlags.distribution != "play" &&
+                !UltraDimController.accessibilityServiceEnabled(context)
+            ) {
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 Text(
                     text = "Secure screens like sign-in sheets can ignore taps through the overlay. Enable the dim accessibility service to fix that.",
@@ -847,6 +869,13 @@ fun ActionConfigContent(
                 onValueChange = { onActionChange(a.copy(url = it)) },
                 label = "URL",
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            Text(
+                text = "A request to a device on your Wi-Fi stays on that network. It is not uploaded.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(
@@ -1832,6 +1861,14 @@ internal fun ConnectBluetoothDeviceConfig(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
         ) {
             NothingPillButton(
                 text = "Pick paired device",
@@ -1912,6 +1949,14 @@ internal fun BluetoothDeviceOnlyConfig(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
         ) {
             NothingPillButton(
                 text = "Pick paired device",

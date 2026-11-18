@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
+import com.tdvorak.nothingmodes.ui.components.SpecialAccess
+import com.tdvorak.nothingmodes.ui.components.specialAccessDisclosure
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -114,6 +116,7 @@ fun OnboardingScreen(
             ActivityResultContracts.RequestPermission(),
         ) { _ -> viewModel.detect(context) }
     var showLocationDisclosure by remember { mutableStateOf(false) }
+    var setupPrompt by remember { mutableStateOf<SpecialAccess?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -172,53 +175,28 @@ fun OnboardingScreen(
                         title = "Write Settings",
                         description = "Brightness, screen timeout, system settings.",
                         done = capabilities.hasWriteSettings,
-                        onAction = {
-                            context.startActivity(
-                                Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                    data = Uri.parse("package:${context.packageName}")
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
-                            )
-                        },
+                        onAction = { setupPrompt = SpecialAccess.WRITE_SETTINGS },
                     )
                     OnboardingStep(
                         step = 2,
                         title = "Notification Policy",
                         description = "Control Do Not Disturb mode.",
                         done = capabilities.hasNotificationPolicyAccess,
-                        onAction = {
-                            context.startActivity(
-                                Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
-                            )
-                        },
+                        onAction = { setupPrompt = SpecialAccess.NOTIFICATION_POLICY },
                     )
                     OnboardingStep(
                         step = 3,
                         title = "Notification Access",
                         description = "Notification-based triggers.",
                         done = capabilities.hasNotificationListenerAccess,
-                        onAction = {
-                            context.startActivity(
-                                Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
-                            )
-                        },
+                        onAction = { setupPrompt = SpecialAccess.NOTIFICATION_LISTENER },
                     )
                     OnboardingStep(
                         step = 4,
                         title = "Usage Access",
                         description = "App-opened triggers.",
                         done = capabilities.hasUsageAccess,
-                        onAction = {
-                            context.startActivity(
-                                Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
-                            )
-                        },
+                        onAction = { setupPrompt = SpecialAccess.USAGE_ACCESS },
                     )
                     OnboardingStep(
                         step = 5,
@@ -310,6 +288,35 @@ fun OnboardingScreen(
                         .padding(vertical = NothingSpacing.lg),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.xxxl))
+        }
+
+        setupPrompt?.let { access ->
+            val copy = specialAccessDisclosure(access)
+            PermissionDisclosureDialog(
+                title = copy.title,
+                body = copy.body,
+                onConfirm = {
+                    setupPrompt = null
+                    val intent =
+                        when (access) {
+                            SpecialAccess.WRITE_SETTINGS ->
+                                Intent(AndroidSettings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                            SpecialAccess.NOTIFICATION_POLICY ->
+                                Intent(AndroidSettings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                            SpecialAccess.NOTIFICATION_LISTENER ->
+                                Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                            SpecialAccess.USAGE_ACCESS ->
+                                Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS)
+                            SpecialAccess.EXACT_ALARM,
+                            SpecialAccess.OVERLAY,
+                            -> return@PermissionDisclosureDialog
+                        }
+                    context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                },
+                onDismiss = { setupPrompt = null },
+            )
         }
 
         if (showLocationDisclosure) {

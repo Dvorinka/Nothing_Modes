@@ -579,10 +579,10 @@ class PersistentMonitorService : Service() {
                 android.app
                     .NotificationChannel(
                         CHANNEL_ID,
-                        "Persistent Monitor",
+                        "Background triggers",
                         android.app.NotificationManager.IMPORTANCE_LOW,
                     ).apply {
-                        description = "Continuously monitors battery and screen state for automations"
+                        description = "Keeps saved triggers running so your modes can fire"
                     }
             getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
         }
@@ -601,7 +601,7 @@ class PersistentMonitorService : Service() {
         return NotificationCompat
             .Builder(this, CHANNEL_ID)
             .setContentTitle("Nothing Modes")
-            .setContentText("Monitoring device state for your modes")
+            .setContentText("Watching your saved triggers")
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)

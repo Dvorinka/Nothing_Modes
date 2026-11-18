@@ -6,9 +6,13 @@ import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import com.tdvorak.nothingmodes.automation.capture.MediaProjectionCaptureService
 import com.tdvorak.nothingmodes.nothing.MediaProjectionHolder
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
+import com.tdvorak.nothingmodes.ui.components.audioCaptureDisclosure
+import com.tdvorak.nothingmodes.ui.theme.NothingModesTheme
 
 /**
  * Transparent Activity that requests a [MediaProjection] from the user and
@@ -43,9 +47,22 @@ class MediaProjectionRequestActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val copy = audioCaptureDisclosure()
+        setContent {
+            NothingModesTheme {
+                PermissionDisclosureDialog(
+                    title = copy.title,
+                    body = copy.body,
+                    onConfirm = { launchCapture() },
+                    onDismiss = { finish() },
+                )
+            }
+        }
+    }
+
+    private fun launchCapture() {
         try {
-            val intent = projectionManager.createScreenCaptureIntent()
-            launcher.launch(intent)
+            launcher.launch(projectionManager.createScreenCaptureIntent())
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create screen capture intent", e)
             finish()

@@ -74,7 +74,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Automation trigger processing" />
+                android:value="Runs a mode you started" />
         </service>
 
         <service
@@ -83,7 +83,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Continuous device state monitoring" />
+                android:value="Watches triggers you saved (time, Wi-Fi, Bluetooth, notifications)" />
         </service>
 
         <service

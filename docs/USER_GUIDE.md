@@ -15,9 +15,11 @@ Search for "Nothing Modes" in F-Droid and install.
 
 ## First Run
 
-The app ships with two sample automations: **Sleep** and **Morning**.
+The app ships with three sample automations: **Try it now**, **Sleep**, and **Morning**.
 
-1. **Grant permissions**: Open Settings (gear icon) and grant each permission marked "Not granted"
+You can try the app before granting anything. Open **Try it now** and tap **Run** on the home screen. It shows a toast and vibrates. Sleep and Morning change Do Not Disturb, brightness, and Glyph, and those need extra setup.
+
+1. **Grant permissions**: Open Settings (gear icon) and grant each permission marked "Not granted" only for the feature you want. Each runtime permission explains itself before Android asks.
 2. **Set up Shizuku** (optional, for WiFi/Bluetooth/mobile data toggles):
    - Install Shizuku from [shizuku.ketchum](https://shizuku.ketchum)
    - Start Shizuku via ADB or root

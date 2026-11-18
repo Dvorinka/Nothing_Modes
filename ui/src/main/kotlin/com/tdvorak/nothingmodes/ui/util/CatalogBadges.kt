@@ -56,7 +56,11 @@ fun requirementBadges(required: Set<String>): List<String> {
     if (CapabilityIds.TRIGGER_APP_OPENED in required || CapabilityIds.STATE_FOREGROUND_APP in required) {
         badges += "USAGE ACCESS"
     }
-    if (CapabilityIds.TRIGGER_PHONE_SMS in required || CapabilityIds.TRIGGER_PHONE_CALL in required || CapabilityIds.ACTION_SEND_SMS in required) {
+    if (CapabilityIds.TRIGGER_PHONE_SMS in required ||
+        CapabilityIds.TRIGGER_PHONE_CALL in required ||
+        CapabilityIds.TRIGGER_PHONE_CALLER in required ||
+        CapabilityIds.ACTION_SEND_SMS in required
+    ) {
         badges += "PHONE"
     }
     if (CapabilityIds.TRIGGER_GEOFENCE in required || CapabilityIds.STATE_LOCATION in required) {
@@ -75,6 +79,7 @@ fun requirementBadges(required: Set<String>): List<String> {
             CapabilityIds.STATE_FOREGROUND_APP,
             CapabilityIds.TRIGGER_PHONE_SMS,
             CapabilityIds.TRIGGER_PHONE_CALL,
+            CapabilityIds.TRIGGER_PHONE_CALLER,
             CapabilityIds.ACTION_SEND_SMS,
             CapabilityIds.TRIGGER_GEOFENCE,
             CapabilityIds.STATE_LOCATION,

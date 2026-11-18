@@ -36,6 +36,7 @@ fun PermissionGate(
     rationale: String,
     modifier: Modifier = Modifier,
     disclosure: String? = null,
+    disclosureTitle: String = "Permission disclosure",
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -128,7 +129,7 @@ fun PermissionGate(
 
     if (showDisclosure && disclosure != null) {
         PermissionDisclosureDialog(
-            title = "Permission disclosure",
+            title = disclosureTitle,
             body = disclosure,
             onConfirm = {
                 showDisclosure = false
