@@ -87,6 +87,25 @@ class GuideViewModel
 private fun starterModes(tz: String): List<StarterMode> =
     listOf(
         StarterMode(
+            subtitle = "No extra permissions. Open the mode and tap Run. Shows a toast and a short vibration.",
+            automation =
+                Automation(
+                    id = AutomationId("starter-try-it"),
+                    name = "Try it now",
+                    type = AutomationType.ROUTINE,
+                    createdBy = CreatedBy.IMPORT,
+                    status = AutomationStatus.ARMED,
+                    trigger = Trigger.Manual,
+                    actions =
+                        listOf(
+                            Action.ShowToast("Nothing Modes is running"),
+                            Action.Vibrate(durationMs = 200),
+                        ),
+                    icon = "check",
+                    priority = 0,
+                ),
+        ),
+        StarterMode(
             subtitle = "No trigger — run it from the Quick Settings tile when you enter a meeting. Actions: DND Total, ringer volume 0.",
             automation =
                 Automation(
@@ -188,19 +207,19 @@ fun GuideScreen(
                 NothingCardLarge {
                     GuideStep(
                         step = 1,
-                        text = "Tap + on the home screen and name the mode.",
+                        text = "A fresh install already includes Try it now. You can also install it from the list below.",
                     )
                     GuideStep(
                         step = 2,
-                        text = "Add a trigger — or leave it empty to run the mode yourself.",
+                        text = "Open it. The trigger is Manual, so it runs only when you tap Run.",
                     )
                     GuideStep(
                         step = 3,
-                        text = "Add one simple action. DND Total is a good first try.",
+                        text = "It shows a toast and vibrates. No Shizuku, location, SMS, or accessibility.",
                     )
                     GuideStep(
                         step = 4,
-                        text = "Save, then run it from the mode toggle or a Quick Settings tile.",
+                        text = "On the home screen, tap Run on the Try it now card.",
                     )
                 }
 

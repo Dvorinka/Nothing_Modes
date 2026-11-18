@@ -40,6 +40,7 @@ import com.tdvorak.nothingmodes.capabilities.CapabilityResolver
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
 import com.tdvorak.nothingmodes.capabilities.controllers.UltraDimController
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 import com.tdvorak.nothingmodes.engine.model.AodMode
 import com.tdvorak.nothingmodes.engine.model.AodSchedule
 import com.tdvorak.nothingmodes.engine.model.DndMode
@@ -66,6 +67,7 @@ import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
+import com.tdvorak.nothingmodes.ui.components.combinedDisclosure
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
 import com.tdvorak.nothingmodes.ui.components.WriteSettingSelector
@@ -367,6 +369,7 @@ fun ActionConfigContent(
                     }
                 },
             )
+            // jarvis: Play manifest removes the dim accessibility service. Do not send that build to accessibility settings.
             if (!canOverlay) {
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 Text(
@@ -375,7 +378,10 @@ fun ActionConfigContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = NothingFonts.mono(),
                 )
-            } else if (!UltraDimController.accessibilityServiceEnabled(context)) {
+            } else if (
+                FeatureFlags.distribution != "play" &&
+                !UltraDimController.accessibilityServiceEnabled(context)
+            ) {
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
                 Text(
                     text = "Secure screens like sign-in sheets can ignore taps through the overlay. Enable the dim accessibility service to fix that.",
@@ -1832,6 +1838,14 @@ internal fun ConnectBluetoothDeviceConfig(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
         ) {
             NothingPillButton(
                 text = "Pick paired device",
@@ -1912,6 +1926,14 @@ internal fun BluetoothDeviceOnlyConfig(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
         ) {
             NothingPillButton(
                 text = "Pick paired device",

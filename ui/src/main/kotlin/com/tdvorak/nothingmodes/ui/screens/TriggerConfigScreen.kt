@@ -92,6 +92,8 @@ import com.tdvorak.nothingmodes.ui.components.NothingTimeField
 import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
+import com.tdvorak.nothingmodes.ui.components.combinedDisclosure
+import com.tdvorak.nothingmodes.ui.components.permissionDisclosure
 import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -1161,19 +1163,11 @@ private fun PhoneStateContent(
     onUpdate: (Trigger.PhoneState) -> Unit,
 ) {
     val isSms = trigger.event == PhoneEvent.SMS_RECEIVED
-    PermissionGate(
-        permissions =
-            listOf(
-                android.Manifest.permission.READ_PHONE_STATE,
-                android.Manifest.permission.RECEIVE_SMS,
-            ),
-        rationale = "Phone and SMS triggers need phone-state and SMS access to detect calls and messages.",
-        disclosure =
-            "Nothing Modes uses phone state and SMS access to trigger automations when a call or message arrives. " +
-                "The app only reads the sender/caller number and, for SMS, the message text when you set a matching rule. " +
-                "Call and SMS data are processed on your device and are never uploaded, sold, or shared.",
-    ) {
-        Column {
+    val wantsCaller = !isSms && !trigger.number.isNullOrBlank()
+    val gatePermission =
+        if (isSms) Manifest.permission.RECEIVE_SMS else Manifest.permission.READ_PHONE_STATE
+    val gateCopy = permissionDisclosure(gatePermission)
+    Column {
         PhoneEvent.entries.forEach { event ->
             RadioOption(
                 text = event.name.enumLabel(),
@@ -1185,40 +1179,68 @@ private fun PhoneStateContent(
             )
         }
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        PhoneNumberField(
-            value = trigger.number,
-            onValueChange = { onUpdate(trigger.copy(number = it)) },
-            label = if (isSms) "Sender number (optional)" else "Caller number (optional)",
-        )
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        ContactNumberPickerButton(
-            onNumber = { raw ->
-                val defaultRegion = Locale.getDefault().country.ifBlank { "US" }
-                val formatted = PhoneNumberFormatter.formatToE164(raw, defaultRegion)
-                onUpdate(trigger.copy(number = formatted ?: raw))
-            },
-            text = "Pick contact",
-        )
-        if (isSms) {
-            Spacer(modifier = Modifier.height(NothingSpacing.sm))
-            NothingInput(
-                value = trigger.textMatch ?: "",
-                onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
-                label = "SMS text contains",
-            )
-        }
-        Spacer(modifier = Modifier.height(NothingSpacing.sm))
-        Text(
-            text =
+        PermissionGate(
+            permissions = listOf(gatePermission),
+            rationale =
                 if (isSms) {
-                    "Matches when an SMS arrives with the given sender and text. Leave both empty to match every SMS."
+                    "An SMS trigger needs receive-SMS access to notice incoming texts."
                 } else {
-                    "Matches when a call changes to ${trigger.event.name.enumLabel().lowercase()}. Leave number empty to match any caller."
+                    "A call trigger needs phone-state access to notice ringing, in-call, and idle."
                 },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+            disclosure = gateCopy.body,
+            disclosureTitle = gateCopy.title,
+        ) {
+            Column {
+                PhoneNumberField(
+                    value = trigger.number,
+                    onValueChange = { onUpdate(trigger.copy(number = it)) },
+                    label = if (isSms) "Sender number (optional)" else "Caller number (optional)",
+                )
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                ContactNumberPickerButton(
+                    onNumber = { raw ->
+                        val defaultRegion = Locale.getDefault().country.ifBlank { "US" }
+                        val formatted = PhoneNumberFormatter.formatToE164(raw, defaultRegion)
+                        onUpdate(trigger.copy(number = formatted ?: raw))
+                    },
+                    text = "Pick contact",
+                )
+                if (isSms) {
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    NothingInput(
+                        value = trigger.textMatch ?: "",
+                        onValueChange = { onUpdate(trigger.copy(textMatch = it.ifBlank { null })) },
+                        label = "SMS text contains",
+                    )
+                }
+                Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                Text(
+                    text =
+                        if (isSms) {
+                            "Matches when an SMS arrives with the given sender and text. Leave both empty to match every SMS."
+                        } else {
+                            "Matches when a call changes to ${trigger.event.name.enumLabel().lowercase()}. Leave number empty to match any caller."
+                        },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (wantsCaller) {
+                    val caller = permissionDisclosure(Manifest.permission.READ_CALL_LOG)
+                    Spacer(modifier = Modifier.height(NothingSpacing.sm))
+                    PermissionGate(
+                        permissions = listOf(Manifest.permission.READ_CALL_LOG),
+                        rationale =
+                            "Matching a caller number needs call-log access. Android leaves that number blank without it.",
+                        disclosure = caller.body,
+                        disclosureTitle = caller.title,
+                    ) {
+                        HelpText(
+                            text = "Caller matching is on. The number above is compared when a call rings or ends.",
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1279,6 +1301,14 @@ private fun BluetoothDeviceContent(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
         ) {
             NothingPillButton(
                 text = "Pick paired device",
@@ -1543,7 +1573,8 @@ private fun geofenceEndModeLabel(
  * Foreground "while in use" location is not enough for geofences — Android
  * only delivers transitions to a backgrounded app when location is set to
  * "Allow all the time". On API 30+ that grant lives in system Settings, so
- * this card deep-links there; on API 29 it requests the permission directly.
+ * this card deep-links there after a disclosure. On API 29 the same
+ * disclosure is shown, then the permission is requested.
  */
 @Composable
 private fun BackgroundLocationGate(modifier: Modifier = Modifier) {
@@ -1598,34 +1629,29 @@ private fun BackgroundLocationGate(modifier: Modifier = Modifier) {
             )
             NothingPillButton(
                 text = "Enable background location",
-                onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        showDisclosure = true
-                    } else {
-                        launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    }
-                },
+                onClick = { showDisclosure = true },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 
     if (showDisclosure) {
+        val copy = permissionDisclosure(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         PermissionDisclosureDialog(
-            title = "Background location",
-            body =
-                "Nothing Modes needs location set to \"Allow all the time\" so " +
-                    "geofence modes run when the app is closed. On the next " +
-                    "screen: Permissions → Location → Allow all the time. " +
-                    "Location is processed on-device and never shared.",
+            title = copy.title,
+            body = copy.body,
             onConfirm = {
                 showDisclosure = false
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.fromParts("package", context.packageName, null),
-                    ),
-                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", context.packageName, null),
+                        ),
+                    )
+                } else {
+                    launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                }
             },
             onDismiss = { showDisclosure = false },
         )

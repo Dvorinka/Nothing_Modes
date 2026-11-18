@@ -471,6 +471,14 @@ private fun DeviceNameSheetContent(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                 ),
             rationale = "Listing your paired Bluetooth devices needs the nearby-devices permission.",
+            disclosure =
+                com.tdvorak.nothingmodes.ui.components.combinedDisclosure(
+                    listOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                    ),
+                ),
+            disclosureTitle = "Nearby devices",
             modifier = Modifier.fillMaxWidth(),
         ) {
             com.tdvorak.nothingmodes.ui.theme.NothingPillButton(
@@ -948,6 +956,11 @@ private fun AtLocationSheetContent(
                     android.Manifest.permission.ACCESS_COARSE_LOCATION,
                 ),
             rationale = "Checking your location against this area needs location access.",
+            disclosure =
+                com.tdvorak.nothingmodes.ui.components.permissionDisclosure(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                ).body,
+            disclosureTitle = "Location",
             modifier = Modifier.fillMaxWidth(),
         ) {
             com.tdvorak.nothingmodes.ui.components.LocationMapPicker(

@@ -9,6 +9,8 @@ object CapabilityIds {
     const val TRIGGER_NOTIFICATION = "trigger_notification"
     const val TRIGGER_PHONE_SMS = "trigger_phone_sms"
     const val TRIGGER_PHONE_CALL = "trigger_phone_call"
+    /** Caller-number filter. PhoneStateListener returns a blank number without READ_CALL_LOG. */
+    const val TRIGGER_PHONE_CALLER = "trigger_phone_caller"
     const val TRIGGER_CONNECTIVITY_WIFI = "trigger_connectivity_wifi"
     const val TRIGGER_CONNECTIVITY_WIFI_IDENTITY = "trigger_connectivity_wifi_identity"
     const val TRIGGER_CONNECTIVITY_BT = "trigger_connectivity_bt"
@@ -149,7 +151,7 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_BLUETOOTH -> "Bluetooth hardware"
             CapabilityIds.ACTION_SET_FLASHLIGHT -> "Camera flashlight"
             CapabilityIds.ACTION_VIBRATE -> "Vibrator"
-            CapabilityIds.ACTION_SEND_SMS -> "SMS permission"
+            CapabilityIds.ACTION_SEND_SMS -> "Send SMS permission"
             CapabilityIds.ACTION_LOCK_SCREEN -> "Device admin or accessibility service"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification listener access"
             CapabilityIds.ACTION_TAKE_SCREENSHOT -> "Screen capture consent"
@@ -171,7 +173,9 @@ object CapabilityLabels {
             CapabilityIds.ACTION_SET_NOTHING_FEATURE -> "Nothing OS feature flag"
             CapabilityIds.ACTION_SET_STAY_AWAKE -> "Stay awake while charging"
             CapabilityIds.TRIGGER_NOTIFICATION -> "Notification listener access"
-            CapabilityIds.TRIGGER_PHONE_SMS, CapabilityIds.TRIGGER_PHONE_CALL -> "Telephony hardware"
+            CapabilityIds.TRIGGER_PHONE_SMS -> "Receive SMS permission"
+            CapabilityIds.TRIGGER_PHONE_CALL -> "Phone state permission"
+            CapabilityIds.TRIGGER_PHONE_CALLER -> "Call log permission"
             CapabilityIds.TRIGGER_APP_OPENED, CapabilityIds.STATE_FOREGROUND_APP -> "Usage access"
             CapabilityIds.TRIGGER_TORCH_STATE -> "Camera torch callback"
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK, CapabilityIds.TRIGGER_MEDIA_TRACK -> "Media session access"
@@ -216,7 +220,11 @@ object CapabilityRequirements {
             is Trigger.PhoneState ->
                 when (trigger.event) {
                     PhoneEvent.SMS_RECEIVED -> setOf(CapabilityIds.TRIGGER_PHONE_SMS)
-                    PhoneEvent.INCOMING_CALL, PhoneEvent.CALL_ENDED -> setOf(CapabilityIds.TRIGGER_PHONE_CALL)
+                    PhoneEvent.INCOMING_CALL, PhoneEvent.CALL_ENDED ->
+                        buildSet {
+                            add(CapabilityIds.TRIGGER_PHONE_CALL)
+                            if (!trigger.number.isNullOrBlank()) add(CapabilityIds.TRIGGER_PHONE_CALLER)
+                        }
                 }
             is Trigger.Connectivity ->
                 when (trigger.medium) {
@@ -352,7 +360,7 @@ object CapabilityRequirements {
             is Condition.AirplaneModeOn -> setOf(CapabilityIds.STATE_READER_SETTING)
             is Condition.NfcEnabled -> setOf(CapabilityIds.STATE_READER_SETTING)
             is Condition.LocationEnabled -> setOf(CapabilityIds.STATE_LOCATION)
-            is Condition.CallStateCondition -> setOf(CapabilityIds.STATE_READER_BUILTIN)
+            is Condition.CallStateCondition -> setOf(CapabilityIds.TRIGGER_PHONE_CALL)
             is Condition.AlarmRinging -> setOf(CapabilityIds.STATE_READER_BUILTIN)
             is Condition.ScreenTime -> setOf(CapabilityIds.STATE_FOREGROUND_APP)
             is Condition.HeadphonesConnected -> setOf(CapabilityIds.STATE_READER_BUILTIN)

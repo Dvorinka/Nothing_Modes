@@ -65,6 +65,8 @@ import com.tdvorak.nothingmodes.shizuku.ShizukuGateway
 import com.tdvorak.nothingmodes.shizuku.ShizukuGatewayStatus
 import com.tdvorak.nothingmodes.shizuku.ShizukuPermissionResult
 import com.tdvorak.nothingmodes.ui.components.NotifyRulesEditor
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
+import com.tdvorak.nothingmodes.ui.components.permissionDisclosure
 import com.tdvorak.nothingmodes.ui.prefs.CreatorPreferences
 import com.tdvorak.nothingmodes.ui.util.UnitSystem
 import com.tdvorak.nothingmodes.ui.util.UnitsManager
@@ -246,6 +248,7 @@ fun SettingsScreen(
     // longer be shown (permanently denied), send the user to that
     // permission's page instead of doing nothing.
     var pendingPermission by remember { mutableStateOf<String?>(null) }
+    var disclosurePermission by remember { mutableStateOf<String?>(null) }
     val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
@@ -264,7 +267,7 @@ fun SettingsScreen(
 
     fun requestRuntime(permission: String) {
         pendingPermission = permission
-        permissionLauncher.launch(permission)
+        disclosurePermission = permission
     }
 
     val exportLauncher =
@@ -469,8 +472,8 @@ fun SettingsScreen(
                         )
                         NothingDivider()
                         PermissionRow(
-                            label = "SMS",
-                            infoText = "Sends texts from Send SMS actions and detects incoming SMS for the SMS-received trigger.",
+                            label = "Send SMS",
+                            infoText = "Sends the text you write in a Send SMS action. Not used for anything else.",
                             granted = capabilities.hasSendSms,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.SEND_SMS) },
@@ -478,8 +481,17 @@ fun SettingsScreen(
                         )
                         NothingDivider()
                         PermissionRow(
+                            label = "Receive SMS",
+                            infoText = "Detects incoming texts for an SMS-received trigger, including an optional sender or text match.",
+                            granted = capabilities.hasReceiveSms,
+                            isRuntime = true,
+                            onGrant = { requestRuntime(Manifest.permission.RECEIVE_SMS) },
+                            onOpenSettings = { openAppPermissionPage(context, Manifest.permission.RECEIVE_SMS) },
+                        )
+                        NothingDivider()
+                        PermissionRow(
                             label = "Phone state",
-                            infoText = "Detects ringing and active calls for the phone-call trigger and call-state condition.",
+                            infoText = "Detects ringing, active, and ended calls. Does not read the caller's number.",
                             granted = capabilities.hasReadPhoneState,
                             isRuntime = true,
                             onGrant = { requestRuntime(Manifest.permission.READ_PHONE_STATE) },
@@ -487,12 +499,12 @@ fun SettingsScreen(
                         )
                         NothingDivider()
                         PermissionRow(
-                            label = "Camera",
-                            infoText = "Used by the QR-scanner action to read codes through the viewfinder.",
-                            granted = capabilities.hasCamera,
+                            label = "Call log",
+                            infoText = "Reads the caller number only when a phone trigger filters by number. The app does not browse call history.",
+                            granted = capabilities.hasReadCallLog,
                             isRuntime = true,
-                            onGrant = { requestRuntime(Manifest.permission.CAMERA) },
-                            onOpenSettings = { openAppPermissionPage(context, Manifest.permission.CAMERA) },
+                            onGrant = { requestRuntime(Manifest.permission.READ_CALL_LOG) },
+                            onOpenSettings = { openAppPermissionPage(context, Manifest.permission.READ_CALL_LOG) },
                         )
                         NothingDivider()
                         PermissionRow(
@@ -1104,6 +1116,22 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    disclosurePermission?.let { permission ->
+        val copy = permissionDisclosure(permission)
+        PermissionDisclosureDialog(
+            title = copy.title,
+            body = copy.body,
+            onConfirm = {
+                disclosurePermission = null
+                permissionLauncher.launch(permission)
+            },
+            onDismiss = {
+                disclosurePermission = null
+                pendingPermission = null
+            },
+        )
     }
 }
 

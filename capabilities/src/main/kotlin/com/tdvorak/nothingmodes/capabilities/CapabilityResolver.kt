@@ -33,7 +33,10 @@ class CapabilityResolver(
 
             CapabilityIds.TRIGGER_NOTIFICATION -> capabilities.hasNotificationListenerAccess
             CapabilityIds.TRIGGER_PHONE_SMS -> capabilities.hasReceiveSms
-            CapabilityIds.TRIGGER_PHONE_CALL -> capabilities.hasReadPhoneState && capabilities.hasReadCallLog
+            // Call state (ringing / off-hook / idle) is READ_PHONE_STATE.
+            // The caller number on that callback is blank without READ_CALL_LOG.
+            CapabilityIds.TRIGGER_PHONE_CALL -> capabilities.hasReadPhoneState
+            CapabilityIds.TRIGGER_PHONE_CALLER -> capabilities.hasReadCallLog
 
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI,
             CapabilityIds.TRIGGER_CONNECTIVITY_WIFI_IDENTITY,
@@ -225,14 +228,15 @@ class CapabilityResolver(
             CapabilityIds.TRIGGER_GEOFENCE -> "Location permission required"
             CapabilityIds.STATE_FOREGROUND_APP -> "Usage access required — the app can't see which app is open"
             CapabilityIds.STATE_LOCATION -> "Location permission required"
-            CapabilityIds.TRIGGER_PHONE_SMS -> "SMS permission required"
+            CapabilityIds.TRIGGER_PHONE_SMS -> "Receive SMS permission required"
             CapabilityIds.TRIGGER_PHONE_CALL -> "Phone state permission required"
+            CapabilityIds.TRIGGER_PHONE_CALLER -> "Call log permission required to match a caller number"
             CapabilityIds.TRIGGER_CALENDAR_EVENT -> "Calendar permission required"
             CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
             CapabilityIds.TRIGGER_MEDIA_TRACK,
             -> "Notification access required — the app can't see media sessions"
             CapabilityIds.TRIGGER_FAILED_LOGIN -> "Device admin required — enable it in Settings"
-            CapabilityIds.ACTION_SEND_SMS -> "SMS permission required"
+            CapabilityIds.ACTION_SEND_SMS -> "Send SMS permission required"
             CapabilityIds.ACTION_CLEAR_NOTIFICATIONS -> "Notification access required"
             CapabilityIds.ACTION_SET_ULTRA_DIM -> "'Display over other apps' permission required"
             CapabilityIds.ACTION_SET_WALLPAPER -> "Wallpaper permission required"

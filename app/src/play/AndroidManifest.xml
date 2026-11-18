@@ -2,7 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Ultra dim on Play uses the overlay permission only. The accessibility
+         host is a touch-safety upgrade; Play treats it as an AccessibilityService
+         API use. GitHub keeps the service. -->
     <application>
+        <service
+            android:name="com.tdvorak.nothingmodes.capabilities.controllers.DimOverlayAccessibilityService"
+            tools:node="remove" />
     </application>
 
 </manifest>

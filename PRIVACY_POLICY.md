@@ -48,21 +48,27 @@ The app uses the following permissions to function. Some are required at all tim
 | `POST_NOTIFICATIONS` | Show automation notifications | Yes |
 | `WRITE_SETTINGS` | Change brightness, screen timeout, auto-rotate | Yes |
 | `ACCESS_NOTIFICATION_POLICY` | Enable Do Not Disturb | Yes |
-| `CAMERA` | Toggle flashlight | Yes |
 | `VIBRATE` | Vibration feedback | Yes |
 | `WAKE_LOCK` | Keep the device awake during automation execution | Yes |
 | `<queries>` allowlist | Show the list of installed apps for the "Launch app" action | Yes |
 | `REQUEST_INSTALL_PACKAGES` | Install downloaded app updates (used only for GitHub builds) | Yes |
 | `ACCESS_NETWORK_STATE` / `ACCESS_WIFI_STATE` | Detect Wi-Fi connect/disconnect triggers | Optional |
-| `BLUETOOTH` / `BLUETOOTH_CONNECT` | Detect Bluetooth connect/disconnect triggers | Optional |
-| `READ_PHONE_STATE` | Detect incoming calls | Optional (call triggers) |
-| `RECEIVE_SMS` / `SEND_SMS` | Read/send SMS content for SMS triggers and actions | Optional (SMS features) |
+| `BLUETOOTH` / `BLUETOOTH_CONNECT` / `BLUETOOTH_SCAN` | Detect or pick a Bluetooth device. Scans are not used to work out location | Optional |
+| `READ_PHONE_STATE` | Detect ringing, in-call, and idle. Does not read call history | Optional (call triggers) |
+| `READ_CALL_LOG` | Read the number of a call the user asked to match. The app does not browse call history | Optional (caller-number filter) |
+| `RECEIVE_SMS` | Match an incoming text for an SMS-received trigger | Optional (SMS trigger) |
+| `SEND_SMS` | Send a text only when a Send SMS action runs | Optional (SMS action) |
+| `RECORD_AUDIO` | Glyph music visualizer. Audio is analysed on device and not stored | Optional |
+| `READ_CONTACTS` | Fill a phone number when the user taps Pick contact | Optional |
+| `SYSTEM_ALERT_WINDOW` | Ultra-dim overlay drawn over other apps | Optional |
 | `READ_CALENDAR` | Trigger on calendar events | Optional (calendar trigger) |
 | `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` / `ACCESS_BACKGROUND_LOCATION` | Geofence triggers | Optional (location triggers) |
 | `PACKAGE_USAGE_STATS` | Detect foreground app | Optional (app triggers) |
 | `BIND_NOTIFICATION_LISTENER_SERVICE` | Notification triggers and clear notifications | Optional (notification features) |
 | `com.nothing.ketchum.permission.ENABLE` / `QUERY_GLYPH_STATE` / `CONTROL_GLYPH` | Nothing Phone Glyph integration | Optional (Glyph features) |
 | `moe.shizuku.manager.permission.API_V23` | Communicate with the Shizuku app for privileged actions | Optional (Shizuku mode) |
+
+The flashlight uses the camera torch API and does not request `CAMERA`. The dim accessibility service ships in GitHub builds only. Play builds dim with the overlay permission and do not declare an AccessibilityService.
 
 ## Shizuku
 

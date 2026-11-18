@@ -13,17 +13,36 @@ import com.tdvorak.nothingmodes.engine.runtime.AutomationStore
 import java.time.ZoneId
 
 /**
- * Seeds default Sleep and Morning automations on first launch.
+ * Seeds a no-permission demo plus Sleep and Morning on first launch.
  * Idempotent: only inserts if the store is empty.
+ * Try it now shares id `starter-try-it` with the in-app guide.
  */
 object SeedAutomations {
     private val systemTz = ZoneId.systemDefault().id
 
     suspend fun seedIfEmpty(store: AutomationStore) {
         if (store.all().isNotEmpty()) return
+        store.save(tryItNow())
         store.save(sleepMode())
         store.save(morningRoutine())
     }
+
+    private fun tryItNow() =
+        Automation(
+            id = AutomationId("starter-try-it"),
+            name = "Try it now",
+            type = AutomationType.ROUTINE,
+            createdBy = CreatedBy.USER,
+            status = AutomationStatus.ARMED,
+            trigger = Trigger.Manual,
+            actions =
+                listOf(
+                    Action.ShowToast("Nothing Modes is running"),
+                    Action.Vibrate(durationMs = 200),
+                ),
+            icon = "check",
+            priority = 0,
+        )
 
     private fun sleepMode() =
         Automation(

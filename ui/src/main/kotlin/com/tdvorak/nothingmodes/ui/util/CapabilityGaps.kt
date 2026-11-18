@@ -99,7 +99,9 @@ private fun iconFor(id: String): ImageVector =
         CapabilityIds.ACTION_SEND_SMS,
         -> Icons.Outlined.Sms
 
-        CapabilityIds.TRIGGER_PHONE_CALL -> Icons.Outlined.Call
+        CapabilityIds.TRIGGER_PHONE_CALL,
+        CapabilityIds.TRIGGER_PHONE_CALLER,
+        -> Icons.Outlined.Call
         CapabilityIds.TRIGGER_GEOFENCE,
         CapabilityIds.STATE_LOCATION,
         -> Icons.Outlined.Place
@@ -178,11 +180,10 @@ private fun fixLabelFor(
         CapabilityIds.STATE_FOREGROUND_APP,
         -> "Grant usage access"
 
-        CapabilityIds.TRIGGER_PHONE_SMS,
-        CapabilityIds.ACTION_SEND_SMS,
-        -> "Allow SMS"
-
+        CapabilityIds.TRIGGER_PHONE_SMS -> "Allow receive SMS"
+        CapabilityIds.ACTION_SEND_SMS -> "Allow send SMS"
         CapabilityIds.TRIGGER_PHONE_CALL -> "Allow phone state"
+        CapabilityIds.TRIGGER_PHONE_CALLER -> "Allow call log"
         CapabilityIds.TRIGGER_GEOFENCE,
         CapabilityIds.STATE_LOCATION,
         -> "Allow location"
@@ -280,12 +281,14 @@ private fun openFixFor(
         CapabilityIds.STATE_FOREGROUND_APP,
         -> runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
 
-        CapabilityIds.TRIGGER_PHONE_SMS,
-        CapabilityIds.ACTION_SEND_SMS,
-        -> openAppPermissionPage(context, android.Manifest.permission.SEND_SMS)
-
+        CapabilityIds.TRIGGER_PHONE_SMS ->
+            openAppPermissionPage(context, android.Manifest.permission.RECEIVE_SMS)
+        CapabilityIds.ACTION_SEND_SMS ->
+            openAppPermissionPage(context, android.Manifest.permission.SEND_SMS)
         CapabilityIds.TRIGGER_PHONE_CALL ->
             openAppPermissionPage(context, android.Manifest.permission.READ_PHONE_STATE)
+        CapabilityIds.TRIGGER_PHONE_CALLER ->
+            openAppPermissionPage(context, android.Manifest.permission.READ_CALL_LOG)
 
         CapabilityIds.TRIGGER_GEOFENCE,
         CapabilityIds.STATE_LOCATION,

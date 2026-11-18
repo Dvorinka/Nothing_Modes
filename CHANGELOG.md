@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Play policy: every sensitive runtime permission shows an in-app disclosure before the system prompt. Phone, SMS, call log, Bluetooth, and background location each ask only for the permission that feature uses.
+- Play builds no longer declare the camera permission or the ultra-dim accessibility service. The flashlight uses the torch API, which does not need CAMERA. Ultra dim on Play uses the overlay permission.
+
+### Added
+- Fresh installs include Try it now: a manual trigger, a toast, and a short vibration, so the app can be checked without Shizuku or sensitive permissions.
+
 ## [0.19.21]
 
 ### Fixed

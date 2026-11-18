@@ -1,6 +1,7 @@
 package com.tdvorak.nothingmodes.engine
 
 import com.tdvorak.nothingmodes.engine.model.Action
+import com.tdvorak.nothingmodes.engine.model.CallState
 import com.tdvorak.nothingmodes.engine.model.CapabilityIds
 import com.tdvorak.nothingmodes.engine.model.CapabilityRequirements
 import com.tdvorak.nothingmodes.engine.model.CmpOp
@@ -62,6 +63,37 @@ class CapabilityRequirementsTest {
     fun `sms received trigger emits phone sms capability`() {
         val caps = CapabilityRequirements.derive(Trigger.PhoneState(PhoneEvent.SMS_RECEIVED), emptyList())
         assertTrue(CapabilityIds.TRIGGER_PHONE_SMS in caps)
+        assertFalse(CapabilityIds.ACTION_SEND_SMS in caps)
+    }
+
+    @Test
+    fun `incoming call without a number does not need the call log`() {
+        val caps = CapabilityRequirements.derive(Trigger.PhoneState(PhoneEvent.INCOMING_CALL), emptyList())
+        assertTrue(CapabilityIds.TRIGGER_PHONE_CALL in caps)
+        assertFalse(CapabilityIds.TRIGGER_PHONE_CALLER in caps)
+    }
+
+    @Test
+    fun `incoming call with a number needs the call log`() {
+        val caps =
+            CapabilityRequirements.derive(
+                Trigger.PhoneState(PhoneEvent.INCOMING_CALL, number = "+1555"),
+                emptyList(),
+            )
+        assertTrue(CapabilityIds.TRIGGER_PHONE_CALL in caps)
+        assertTrue(CapabilityIds.TRIGGER_PHONE_CALLER in caps)
+    }
+
+    @Test
+    fun `call state condition needs phone state only`() {
+        val caps =
+            CapabilityRequirements.derive(
+                Trigger.Immediate,
+                emptyList(),
+                Condition.CallStateCondition(CallState.INCOMING),
+            )
+        assertTrue(CapabilityIds.TRIGGER_PHONE_CALL in caps)
+        assertFalse(CapabilityIds.TRIGGER_PHONE_CALLER in caps)
     }
 
     @Test
