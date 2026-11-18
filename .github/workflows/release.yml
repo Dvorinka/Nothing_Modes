@@ -41,7 +41,9 @@ jobs:
           echo "NOTHING_MODES_KEYSTORE=$HOME/nothing-modes-release.jks" >> $GITHUB_ENV
 
       - name: Build signed release APK + Play AAB
-        run: ./gradlew assembleGithubRelease bundlePlayRelease --no-daemon --parallel --build-cache --stacktrace
+        # Same 6g cap as ci.yml. gradle.properties asks for 4g, and R8 on top
+        # of that gets the daemon OOM-killed.
+        run: ./gradlew assembleGithubRelease bundlePlayRelease --no-daemon --parallel --build-cache --stacktrace -Dorg.gradle.workers.max=3 -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs='-Xmx2560m -XX:MaxMetaspaceSize=768m'
         env:
           NOTHING_MODES_KEYSTORE: ${{ env.NOTHING_MODES_KEYSTORE }}
           NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
