@@ -17,6 +17,7 @@ What the Play artifact does now:
 - `CAMERA` is not declared. The flashlight uses `CameraManager.setTorchMode`, which does not need it.
 - `DimOverlayAccessibilityService` is removed from the Play manifest. Ultra dim on Play uses `SYSTEM_ALERT_WINDOW` only. GitHub keeps the service.
 - SMS and call log stay, scoped to Device Automation. Call state uses `READ_PHONE_STATE`. `READ_CALL_LOG` is requested only when a phone trigger has a caller-number filter. The app does not query `CallLog.Calls`. `RECEIVE_SMS` is the SMS-received trigger. `SEND_SMS` is the Send SMS action.
+- `android.hardware.telephony` is `android:required="false"`. The permissions above still imply the feature, and an explicit optional declaration is what stops Play from filtering out phones, tablets, desktop, and Android XR devices that have no radio.
 - A reviewer can run an automation with no Shizuku, accessibility, location, SMS, or call log.
 
 ### Reviewer script

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Telephony is optional. Phone, SMS, and call-log modes still use those permissions on a device that has a radio. Devices without one can install the app.
+
 ## [0.19.22]
 
 ### Fixed
