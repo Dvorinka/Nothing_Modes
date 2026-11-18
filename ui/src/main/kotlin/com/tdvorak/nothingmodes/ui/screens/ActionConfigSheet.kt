@@ -66,7 +66,10 @@ import com.tdvorak.nothingmodes.engine.model.vibratePresets
 import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.ContactNumberPickerButton
 import com.tdvorak.nothingmodes.ui.components.GlyphMatrixPreview
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
+import com.tdvorak.nothingmodes.ui.components.SpecialAccess
+import com.tdvorak.nothingmodes.ui.components.specialAccessDisclosure
 import com.tdvorak.nothingmodes.ui.components.combinedDisclosure
 import com.tdvorak.nothingmodes.ui.components.RefreshRateSelector
 import com.tdvorak.nothingmodes.ui.components.WallpaperActionEditor
@@ -348,6 +351,7 @@ fun ActionConfigContent(
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             val canOverlay = UltraDimController.canDrawOverlays(context)
+            var showOverlayDisclosure by remember { mutableStateOf(false) }
             NothingPillButton(
                 text =
                     when {
@@ -357,7 +361,7 @@ fun ActionConfigContent(
                     },
                 onClick = {
                     if (!canOverlay) {
-                        runCatching { context.startActivity(UltraDimController.permissionIntent(context)) }
+                        showOverlayDisclosure = true
                     } else if (!previewing) {
                         previewing = true
                         scope.launch {
@@ -369,6 +373,18 @@ fun ActionConfigContent(
                     }
                 },
             )
+            if (showOverlayDisclosure) {
+                val copy = specialAccessDisclosure(SpecialAccess.OVERLAY)
+                PermissionDisclosureDialog(
+                    title = copy.title,
+                    body = copy.body,
+                    onConfirm = {
+                        showOverlayDisclosure = false
+                        runCatching { context.startActivity(UltraDimController.permissionIntent(context)) }
+                    },
+                    onDismiss = { showOverlayDisclosure = false },
+                )
+            }
             // jarvis: Play manifest removes the dim accessibility service. Do not send that build to accessibility settings.
             if (!canOverlay) {
                 Spacer(modifier = Modifier.height(NothingSpacing.xs))
@@ -853,6 +869,13 @@ fun ActionConfigContent(
                 onValueChange = { onActionChange(a.copy(url = it)) },
                 label = "URL",
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(NothingSpacing.xs))
+            Text(
+                text = "A request to a device on your Wi-Fi stays on that network. It is not uploaded.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = NothingFonts.mono(),
             )
             Spacer(modifier = Modifier.height(NothingSpacing.sm))
             NothingInput(

@@ -93,7 +93,9 @@ import com.tdvorak.nothingmodes.ui.components.BondedDevicePickerDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionDisclosureDialog
 import com.tdvorak.nothingmodes.ui.components.PermissionGate
 import com.tdvorak.nothingmodes.ui.components.combinedDisclosure
+import com.tdvorak.nothingmodes.ui.components.SpecialAccess
 import com.tdvorak.nothingmodes.ui.components.permissionDisclosure
+import com.tdvorak.nothingmodes.ui.components.specialAccessDisclosure
 import com.tdvorak.nothingmodes.ui.components.PhoneNumberField
 import com.tdvorak.nothingmodes.ui.theme.Doto
 import com.tdvorak.nothingmodes.ui.theme.NothingCard
@@ -1884,6 +1886,7 @@ internal fun HelpText(text: String) {
 private fun ExactAlarmWarning(caps: DeviceCapabilities) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || caps.hasExactAlarm) return
     val context = LocalContext.current
+    var showDisclosure by remember { mutableStateOf(false) }
     Column {
         HelpText(
             text = "Exact alarm is not granted. Time triggers may be delayed by a few minutes; grant it for punctual triggers.",
@@ -1891,7 +1894,17 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
         Spacer(modifier = Modifier.height(NothingSpacing.sm))
         NothingPillButton(
             text = "Grant exact alarm",
-            onClick = {
+            onClick = { showDisclosure = true },
+        )
+        Spacer(modifier = Modifier.height(NothingSpacing.md))
+    }
+    if (showDisclosure) {
+        val copy = specialAccessDisclosure(SpecialAccess.EXACT_ALARM)
+        PermissionDisclosureDialog(
+            title = copy.title,
+            body = copy.body,
+            onConfirm = {
+                showDisclosure = false
                 runCatching {
                     context.startActivity(
                         Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
@@ -1901,7 +1914,7 @@ private fun ExactAlarmWarning(caps: DeviceCapabilities) {
                     )
                 }
             },
+            onDismiss = { showDisclosure = false },
         )
-        Spacer(modifier = Modifier.height(NothingSpacing.md))
     }
 }

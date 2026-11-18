@@ -5,6 +5,12 @@
 ### Fixed
 - Play policy: every sensitive runtime permission shows an in-app disclosure before the system prompt. Phone, SMS, call log, Bluetooth, and background location each ask only for the permission that feature uses.
 - Play builds no longer declare the camera permission or the ultra-dim accessibility service. The flashlight uses the torch API, which does not need CAMERA. Ultra dim on Play uses the overlay permission.
+- Play builds no longer declare full-screen intent. A pending unlock stays a heads-up notification. GitHub can still raise it over the lock screen when that permission is granted.
+- System settings, Do Not Disturb, notification access, usage access, exact alarms, display-over-apps, and Glyph audio capture each explain what they use before Android's own screen.
+
+### Changed
+- The always-on automation notification says it is watching saved triggers. The special-use service descriptions match that.
+- The Play settings note no longer links to a GitHub APK. The mode list no longer prints geofence coordinates.
 
 ### Added
 - Fresh installs include Try it now: a manual trigger, a toast, and a short vibration, so the app can be checked without Shizuku or sensitive permissions.

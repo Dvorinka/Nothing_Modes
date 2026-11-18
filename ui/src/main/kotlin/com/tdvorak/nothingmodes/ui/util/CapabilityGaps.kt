@@ -1,5 +1,6 @@
 package com.tdvorak.nothingmodes.ui.util
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -24,6 +25,10 @@ import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.tdvorak.nothingmodes.capabilities.DeviceCapabilities
+import com.tdvorak.nothingmodes.ui.components.PermissionDisclosure
+import com.tdvorak.nothingmodes.ui.components.SpecialAccess
+import com.tdvorak.nothingmodes.ui.components.permissionDisclosure
+import com.tdvorak.nothingmodes.ui.components.specialAccessDisclosure
 import com.tdvorak.nothingmodes.ui.util.openAppPermissionPage
 import com.tdvorak.nothingmodes.capabilities.ShizukuCapabilityStatus
 import com.tdvorak.nothingmodes.engine.model.CapabilityIds
@@ -36,6 +41,7 @@ data class CapabilityGap(
     val fixLabel: String?,
     val icon: ImageVector,
     val onFix: () -> Unit,
+    val disclosure: PermissionDisclosure? = null,
 )
 
 /** Build a list of fixable gaps from the missing capability IDs. */
@@ -51,6 +57,7 @@ fun capabilityGaps(
                 fixLabel = fixLabelFor(id, caps),
                 icon = iconFor(id),
                 onFix = { openFixFor(context, id, caps) },
+                disclosure = disclosureFor(id),
             )
         }.distinctBy { it.reason }
 
@@ -228,6 +235,37 @@ private fun shizukuFixLabel(caps: DeviceCapabilities): String =
         -> "Check Shizuku"
     }
 
+private fun disclosureFor(id: String): PermissionDisclosure? =
+    when (id) {
+        CapabilityIds.ACTION_SET_DND -> specialAccessDisclosure(SpecialAccess.NOTIFICATION_POLICY)
+        CapabilityIds.ACTION_SET_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_AUTO_BRIGHTNESS,
+        CapabilityIds.ACTION_SET_SCREEN_TIMEOUT,
+        CapabilityIds.ACTION_SET_AUTO_ROTATE,
+        CapabilityIds.ACTION_SET_REFRESH_RATE,
+        CapabilityIds.ACTION_SET_SCREEN_ROTATION,
+        CapabilityIds.ACTION_SET_AOD,
+        -> specialAccessDisclosure(SpecialAccess.WRITE_SETTINGS)
+        CapabilityIds.TRIGGER_NOTIFICATION,
+        CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
+        CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
+        CapabilityIds.TRIGGER_MEDIA_TRACK,
+        -> specialAccessDisclosure(SpecialAccess.NOTIFICATION_LISTENER)
+        CapabilityIds.TRIGGER_APP_OPENED,
+        CapabilityIds.STATE_FOREGROUND_APP,
+        -> specialAccessDisclosure(SpecialAccess.USAGE_ACCESS)
+        CapabilityIds.ACTION_SET_ULTRA_DIM -> specialAccessDisclosure(SpecialAccess.OVERLAY)
+        CapabilityIds.TRIGGER_PHONE_SMS -> permissionDisclosure(Manifest.permission.RECEIVE_SMS)
+        CapabilityIds.ACTION_SEND_SMS -> permissionDisclosure(Manifest.permission.SEND_SMS)
+        CapabilityIds.TRIGGER_PHONE_CALL -> permissionDisclosure(Manifest.permission.READ_PHONE_STATE)
+        CapabilityIds.TRIGGER_PHONE_CALLER -> permissionDisclosure(Manifest.permission.READ_CALL_LOG)
+        CapabilityIds.TRIGGER_GEOFENCE,
+        CapabilityIds.STATE_LOCATION,
+        -> permissionDisclosure(Manifest.permission.ACCESS_FINE_LOCATION)
+        CapabilityIds.TRIGGER_CALENDAR_EVENT -> permissionDisclosure(Manifest.permission.READ_CALENDAR)
+        else -> null
+    }
+
 private fun openFixFor(
     context: Context,
     id: String,
@@ -275,6 +313,7 @@ private fun openFixFor(
         CapabilityIds.TRIGGER_NOTIFICATION,
         CapabilityIds.ACTION_CLEAR_NOTIFICATIONS,
         CapabilityIds.TRIGGER_MEDIA_PLAYBACK,
+        CapabilityIds.TRIGGER_MEDIA_TRACK,
         -> runCatching { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
 
         CapabilityIds.TRIGGER_APP_OPENED,

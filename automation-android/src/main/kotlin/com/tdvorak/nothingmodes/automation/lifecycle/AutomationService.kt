@@ -831,10 +831,10 @@ class AutomationService : Service() {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Automation Engine",
+                    "Running modes",
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Processes automation triggers in the background"
+                    description = "Runs a mode you started"
                 }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
@@ -844,7 +844,7 @@ class AutomationService : Service() {
         NotificationCompat
             .Builder(this, CHANNEL_ID)
             .setContentTitle("Nothing Modes")
-            .setContentText("Processing automation...")
+            .setContentText("Running a mode...")
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

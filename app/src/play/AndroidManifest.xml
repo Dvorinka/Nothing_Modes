@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Play allows full-screen intents for calling and alarm apps. The
+         pending-unlock alert stays a heads-up notification. GitHub keeps it. -->
+    <uses-permission
+        android:name="android.permission.USE_FULL_SCREEN_INTENT"
+        tools:node="remove" />
+
     <!-- Ultra dim on Play uses the overlay permission only. The accessibility
          host is a touch-safety upgrade; Play treats it as an AccessibilityService
          API use. GitHub keeps the service. -->

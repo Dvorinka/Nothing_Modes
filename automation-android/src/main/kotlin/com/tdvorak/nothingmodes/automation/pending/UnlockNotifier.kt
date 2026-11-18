@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.tdvorak.nothingmodes.automation.R
+import com.tdvorak.nothingmodes.engine.runtime.FeatureFlags
 
 /**
  * Alert for actions queued by [PendingUnlockStore]: lights the screen and
@@ -77,10 +78,12 @@ object UnlockNotifier {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
-                // Wakes the screen over the lockscreen when USE_FULL_SCREEN_INTENT
-                // is granted; ignored silently otherwise (heads-up remains).
-                .setFullScreenIntent(pendingIntent, true)
-                .build()
+                .apply {
+                    // jarvis: Play rejects full-screen intents outside calls and alarms.
+                    if (FeatureFlags.distribution != "play") {
+                        setFullScreenIntent(pendingIntent, true)
+                    }
+                }.build()
 
         nm.notify(NOTIFICATION_ID, notification)
     }

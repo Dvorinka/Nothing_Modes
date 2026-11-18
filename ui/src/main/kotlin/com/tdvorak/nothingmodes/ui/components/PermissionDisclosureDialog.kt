@@ -126,9 +126,9 @@ fun permissionDisclosure(permission: String): PermissionDisclosure =
             PermissionDisclosure(
                 title = "Background location",
                 body =
-                    "Nothing Modes needs location set to \"Allow all the time\" so geofence " +
-                        "modes run when the app is closed. On the next screen: Permissions, " +
-                        "Location, Allow all the time. Location stays on your device.",
+                    "Nothing Modes needs location set to \"Allow all the time\" so a place " +
+                        "you set can run a mode when the app is closed. On the next screen: " +
+                        "Permissions, Location, Allow all the time. Location stays on your device.",
             )
         Manifest.permission.READ_CALENDAR ->
             PermissionDisclosure(
@@ -222,3 +222,82 @@ fun permissionDisclosure(permission: String): PermissionDisclosure =
 /** One disclosure body for a gate that asks for several permissions at once. */
 fun combinedDisclosure(permissions: List<String>): String =
     permissions.map { permissionDisclosure(it).body }.distinct().joinToString("\n\n")
+
+/**
+ * Special-access screens (not runtime permission dialogs). Play still wants
+ * the data use named in the app before Android's settings page opens.
+ */
+enum class SpecialAccess {
+    WRITE_SETTINGS,
+    NOTIFICATION_POLICY,
+    NOTIFICATION_LISTENER,
+    USAGE_ACCESS,
+    EXACT_ALARM,
+    OVERLAY,
+}
+
+fun specialAccessDisclosure(access: SpecialAccess): PermissionDisclosure =
+    when (access) {
+        SpecialAccess.WRITE_SETTINGS ->
+            PermissionDisclosure(
+                title = "System settings",
+                body =
+                    "Nothing Modes changes a setting only when a mode you create includes " +
+                        "that change, such as brightness or screen timeout. Android opens " +
+                        "Modify system settings next. You can skip this.",
+            )
+        SpecialAccess.NOTIFICATION_POLICY ->
+            PermissionDisclosure(
+                title = "Do Not Disturb",
+                body =
+                    "Nothing Modes changes Do Not Disturb only when a mode you create turns " +
+                        "it on or off. Android opens Notification policy access next. " +
+                        "You can skip this.",
+            )
+        SpecialAccess.NOTIFICATION_LISTENER ->
+            PermissionDisclosure(
+                title = "Notification access",
+                body =
+                    "Nothing Modes reads the app, title, and text of notifications only to " +
+                        "run a notification trigger or condition you create. That content " +
+                        "stays on this phone and is not uploaded, sold, or shared. Android " +
+                        "opens the notification access list next. You can skip this.",
+            )
+        SpecialAccess.USAGE_ACCESS ->
+            PermissionDisclosure(
+                title = "Usage access",
+                body =
+                    "Nothing Modes checks which app is in the foreground only for an " +
+                        "app-opened trigger or an app-in-foreground condition you create. " +
+                        "The check stays on this phone and is not uploaded. Android opens " +
+                        "Usage access next. You can skip this.",
+            )
+        SpecialAccess.EXACT_ALARM ->
+            PermissionDisclosure(
+                title = "Exact alarms",
+                body =
+                    "Nothing Modes uses exact alarms so a time trigger you create can run " +
+                        "at the minute you set. Android opens Alarms & reminders next. " +
+                        "You can skip this. Time triggers may then run a few minutes late.",
+            )
+        SpecialAccess.OVERLAY ->
+            PermissionDisclosure(
+                title = "Display over other apps",
+                body =
+                    "Nothing Modes draws a dimming layer over the screen only while an " +
+                        "ultra-dim mode you create is on. It does not read what is on " +
+                        "screen. Android opens Display over other apps next.",
+            )
+    }
+
+/** Screen-capture prompt for the Glyph visualizer. Not a runtime permission. */
+fun audioCaptureDisclosure(): PermissionDisclosure =
+    PermissionDisclosure(
+        title = "Audio capture",
+        body =
+            "Nothing Modes asks Android for capture permission so the Glyph music " +
+                "visualizer can hear playback, including headphones and Bluetooth. " +
+                "The capture is for that visualizer only. Audio is analysed on this " +
+                "phone and is not recorded, stored, or uploaded. The next screen is " +
+                "Android's own capture prompt.",
+    )

@@ -42,6 +42,57 @@ Phone state:
 
 > READ_PHONE_STATE detects ringing, in-call, and idle for a call trigger or a call-state condition the user created. It is not used to read call history.
 
+Contacts:
+
+> READ_CONTACTS is requested only when the user taps Pick contact, to fill in a phone number. The app does not upload the address book.
+
+Background location:
+
+> Location is used only for a geofence or at-location condition the user defined. Background location lets that place run a mode while the app is closed. Coordinates stay on the device and are not sold or shared.
+
+Microphone and media projection:
+
+> RECORD_AUDIO and a one-time MediaProjection capture feed the Glyph music visualizer the user starts. Playback audio is analysed on the device to drive the lights. It is not recorded, stored, or uploaded. The system capture dialog is shown after an in-app explanation.
+
+Notification listener:
+
+> The listener reads notification app, title, and text only to run a notification trigger or condition the user created, or to clear notifications the user asked to clear. Content stays on the device.
+
+Usage access:
+
+> PACKAGE_USAGE_STATS is used to see which app is in the foreground for an app-opened trigger or an app-in-foreground condition the user created. It is not used to build a usage profile.
+
+Exact alarm:
+
+> SCHEDULE_EXACT_ALARM lets a time trigger the user created run at the minute they set. Without it, Doze may delay that trigger.
+
+Display over other apps:
+
+> SYSTEM_ALERT_WINDOW draws a dimming layer only while an ultra-dim mode the user created is on. The layer does not read the screen. Play builds do not include an accessibility service.
+
+Special-use foreground services. Paste these as the subtype descriptions. They match the manifest:
+
+> PersistentMonitorService: Watches triggers you saved (time, Wi-Fi, Bluetooth, notifications)
+> AutomationService: Runs a mode you started
+
+The persistent service is what stays in the foreground so saved triggers can fire. The automation service runs only while a mode is executing. Both are started by the user's modes, not by a remote party.
+
+Full-screen intent:
+
+> Not declared on the Play artifact. Do not submit a full-screen intent declaration. Pending actions use a normal high-priority notification. The GitHub build may still declare USE_FULL_SCREEN_INTENT.
+
+Local network:
+
+> ACCESS_LOCAL_NETWORK is not declared. On Android 16 and later the platform may show a compat grant for targetSdk 36 apps that declare INTERNET. An HTTP request action can talk to an address the user typed, including a device on their Wi-Fi. That traffic stays on that network. Do not add the permission until an in-app disclosure sits immediately before the request.
+
+Accessibility:
+
+> The Play artifact does not register an AccessibilityService. Do not declare the Accessibility API for the Play build.
+
+Distribution:
+
+> The Play build does not link to a GitHub APK. Lock screen and in-app updates are absent from that build. They stay on the GitHub flavor.
+
 Sections below this status note are the historical roadmap. The "Current baseline" still describes 0.10.0 / versionCode 3.
 
 ## Two-version strategy

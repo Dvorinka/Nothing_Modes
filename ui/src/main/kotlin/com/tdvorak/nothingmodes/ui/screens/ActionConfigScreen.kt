@@ -467,6 +467,13 @@ fun ActionConfigScreen(
                             onValueChange = { action = a.copy(url = it) },
                             label = "URL",
                         )
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        Text(
+                            text = "A request to a device on your Wi-Fi stays on that network. It is not uploaded.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
                         Spacer(modifier = Modifier.height(NothingSpacing.sm))
                         NothingInput(
                             value = a.body,
