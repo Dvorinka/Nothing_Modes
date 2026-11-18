@@ -1,0 +1,1 @@
+Telephony is optional, so devices without a phone radio can install. Phone, SMS, and call-log modes still use those permissions when a radio is present.
