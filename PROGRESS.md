@@ -32,7 +32,7 @@ polish, store compliance, and crash-driven fixes.
 
 ## Infrastructure
 - CI: `./gradlew test assembleDebug lint` on every PR
-- Release: tag `v*` → signed GitHub APK + Play AAB → alpha track upload
+- Release: tag `v*` → signed GitHub APK + Play AAB → production track upload
   with `fastlane/.../changelogs/<versionCode>.txt` as release notes
 - Crash pipeline: opt-in reporting + post-crash prompt →
   `POST nothing-modes.vercel.app/api/crash` → Neon `crash_reports` →

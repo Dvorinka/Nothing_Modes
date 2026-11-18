@@ -80,7 +80,7 @@ jobs:
             https://github.com/tamtom/play-console-cli/releases/download/v0.10.0/gplay-linux-amd64
           chmod +x /tmp/gplay
 
-      - name: Publish to Play closed testing (alpha) track
+      - name: Publish to Play production track
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -103,8 +103,8 @@ jobs:
             '[{status:"completed",versionCodes:[$vc],releaseNotes:[{language:"en-US",text:$t}]}]' \
             > /tmp/play-release.json
           /tmp/gplay tracks update --package com.tdvorak.nothingmodes \
-            --edit "$EDIT_ID" --track alpha --releases @/tmp/play-release.json
+            --edit "$EDIT_ID" --track production --releases @/tmp/play-release.json
           # Play refuses an API commit that would enter review on its own.
-          # The alpha build stays unsent until it is sent from the Console.
+          # The production release stays unsent until it is sent from the Console.
           /tmp/gplay edits commit --package com.tdvorak.nothingmodes --edit "$EDIT_ID" \
             --changes-not-sent-for-review
