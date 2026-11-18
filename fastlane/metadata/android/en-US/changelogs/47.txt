@@ -1,0 +1,1 @@
+Disclosures before sensitive permission prompts. Play builds drop camera, the accessibility service, and full-screen intent. Fresh installs include Try it now.
