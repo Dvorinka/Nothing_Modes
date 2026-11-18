@@ -4,7 +4,7 @@ This document tracks everything that must be resolved before `Nothing Modes` can
 
 ## Status as of 2026-11-18
 
-App version `0.19.23` (`versionCode` 48), `applicationId` `com.tdvorak.nothingmodes`. Declared Play use case: **Device Automation**.
+App version `0.19.24` (`versionCode` 49), `applicationId` `com.tdvorak.nothingmodes`. Declared Play use case: **Device Automation**.
 
 Rejections dated 18 Nov 2026:
 

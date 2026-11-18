@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.19.24]
+
+### Changed
+- No app changes from 0.19.23. This is the production-track upload. Telephony stays optional, so devices without a radio can install.
+
 ## [0.19.23]
 
 ### Fixed

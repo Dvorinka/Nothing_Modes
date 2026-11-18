@@ -1,0 +1,1 @@
+Production upload of the same app as 0.19.23. Telephony is optional, so devices without a phone radio can install.
