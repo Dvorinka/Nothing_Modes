@@ -65,6 +65,8 @@ jobs:
           if ! git diff --cached --quiet; then
             TAG="${{ github.event.release.tag_name || format('v{0}', github.event.inputs.version) }}"
             git commit -m "chore(fdroid): index for ${TAG}"
+            git fetch origin main
+            git rebase origin/main
             git push origin HEAD:main
           fi
 
