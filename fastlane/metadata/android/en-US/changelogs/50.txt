@@ -1,0 +1,1 @@
+Fixes on Nothing OS 5.0: ultra dim no longer blocks taps when the dim service is enabled, geofence modes with a time window fire when already inside the radius, and Wi-Fi toggles verify the real radio state before falling back to the system panel.

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.19.25]
+
+### Fixed
+- Ultra dim could block taps on apps that reject obscured touches (sign-in sheets, permission dialogs, banking apps). GitHub/F-Droid builds get the trusted dim service path back; degraded installs now warn in the notification and offer a "Fix taps" shortcut.
+- Geofence modes with a time window now fire when you are already inside the radius when the window opens. Location checks also request a real GPS fix on a locked phone instead of relying on stale last-known position.
+- Location conditions (AtLocation) read the newest available fix and fetch a fresh one when it is stale.
+- Wi-Fi toggles on Nothing OS 5.0 verify the real radio state and only fall back to the connectivity panel when the change did not apply.
+
 ## [0.19.24]
 
 ### Changed
