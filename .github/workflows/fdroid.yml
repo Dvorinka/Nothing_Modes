@@ -49,9 +49,9 @@ jobs:
             VERSION="${{ github.event.release.tag_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${{ inputs.version }}"
           fi
-          VERSION_CODE="${{ github.event.inputs.version_code }}"
+          VERSION_CODE="${{ inputs.version_code }}"
           if [ -z "$VERSION_CODE" ]; then
             VERSION_CODE=$(grep -E '^\s+versionCode\s*=' app/build.gradle.kts | sed 's/.*=\s*//' | tr -d ' ')
           fi
@@ -63,7 +63,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add landing/fdroid/repo
           if ! git diff --cached --quiet; then
-            TAG="${{ github.event.release.tag_name || format('v{0}', github.event.inputs.version) }}"
+            TAG="${{ github.event.release.tag_name || format('v{0}', inputs.version) }}"
             git commit -m "chore(fdroid): index for ${TAG}"
             git fetch origin main
             git rebase origin/main
@@ -78,7 +78,7 @@ jobs:
       - name: Upload F-Droid repo to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name || format('v{0}', github.event.inputs.version) }}
+          tag_name: ${{ github.event.release.tag_name || format('v{0}', inputs.version) }}
           files: landing/fdroid/fdroid-repo.zip
           fail_on_unmatched_files: false
 
