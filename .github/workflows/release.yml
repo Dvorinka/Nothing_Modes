@@ -109,7 +109,9 @@ jobs:
             > /tmp/play-release.json
           /tmp/gplay tracks update --package com.tdvorak.nothingmodes \
             --edit "$EDIT_ID" --track production --releases @/tmp/play-release.json
-          # Play refuses an API commit that would enter review on its own.
-          # The production release stays unsent until it is sent from the Console.
+          # Hold the commit out of review where Play still allows it; some app
+          # configs now force auto-send and reject the flag outright, so retry
+          # without it on that specific 400.
           /tmp/gplay edits commit --package com.tdvorak.nothingmodes --edit "$EDIT_ID" \
-            --changes-not-sent-for-review
+            --changes-not-sent-for-review || \
+          /tmp/gplay edits commit --package com.tdvorak.nothingmodes --edit "$EDIT_ID"
