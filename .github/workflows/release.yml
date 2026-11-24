@@ -39,13 +39,18 @@ jobs:
         run: |
           echo "${{ secrets.NOTHING_MODES_KEYSTORE_BASE64 }}" | base64 -d > $HOME/nothing-modes-release.jks
           echo "NOTHING_MODES_KEYSTORE=$HOME/nothing-modes-release.jks" >> $GITHUB_ENV
+          # Fail loudly if the decoded store is wrong — a silent debug-key
+          # fallback only surfaces at Play upload time as a 403.
+          keytool -list -v -keystore $HOME/nothing-modes-release.jks \
+            -storepass "${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}" | grep "SHA1:"
 
       - name: Build signed release APK + Play AAB
         # Same 6g cap as ci.yml. gradle.properties asks for 4g, and R8 on top
         # of that gets the daemon OOM-killed.
         run: ./gradlew assembleGithubRelease bundlePlayRelease --no-daemon --parallel --build-cache --stacktrace -Dorg.gradle.workers.max=3 -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs='-Xmx2560m -XX:MaxMetaspaceSize=768m'
         env:
-          NOTHING_MODES_KEYSTORE: ${{ env.NOTHING_MODES_KEYSTORE }}
+          # NOTHING_MODES_KEYSTORE rides $GITHUB_ENV — re-declaring it here as
+          # ${{ env.* }} self-references under kern and blanks the path.
           NOTHING_MODES_KEYSTORE_PASSWORD: ${{ secrets.NOTHING_MODES_KEYSTORE_PASSWORD }}
           NOTHING_MODES_KEY_ALIAS: ${{ secrets.NOTHING_MODES_KEY_ALIAS }}
           NOTHING_MODES_KEY_PASSWORD: ${{ secrets.NOTHING_MODES_KEY_PASSWORD }}
