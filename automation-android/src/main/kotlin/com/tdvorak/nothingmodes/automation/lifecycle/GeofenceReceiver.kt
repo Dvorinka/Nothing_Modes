@@ -36,9 +36,10 @@ class GeofenceReceiver : BroadcastReceiver() {
                 Geofence.GEOFENCE_TRANSITION_DWELL -> Transition.DWELL
                 else -> return
             }
-        val location = event.triggeringLocation
-        val lat = location?.latitude ?: 0.0
-        val lng = location?.longitude ?: 0.0
+        // No triggeringLocation is common; pass NaN rather than 0.0 —
+        // (0,0) is a real coordinate and would read as a Gulf of Guinea fix.
+        val lat = event.triggeringLocation?.latitude ?: Double.NaN
+        val lng = event.triggeringLocation?.longitude ?: Double.NaN
         val geofenceIds = event.triggeringGeofences?.mapNotNull { it.requestId } ?: emptyList()
 
         if (geofenceIds.isEmpty()) {

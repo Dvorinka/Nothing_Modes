@@ -979,6 +979,42 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    fun `atLocation met when accuracy pushes borderline fix inside`() {
+        // ~120m from the centre, 100m radius, ±50m fix — distance − accuracy
+        // lands inside, same borderline policy as the geofence gate.
+        val state =
+            DeviceState(
+                values =
+                    mapOf(
+                        StateKeys.LAT to "50.0765",
+                        StateKeys.LNG to "14.4378",
+                        StateKeys.LOCATION_ACCURACY to "50.0",
+                    ),
+            )
+        assertEquals(
+            ConditionEvaluator.Result.MET,
+            evaluator.result(Condition.AtLocation(50.0755, 14.4378, 100.0), state),
+        )
+    }
+
+    @Test
+    fun `atLocation notMet when far outside even with accuracy`() {
+        val state =
+            DeviceState(
+                values =
+                    mapOf(
+                        StateKeys.LAT to "48.8584",
+                        StateKeys.LNG to "2.2945",
+                        StateKeys.LOCATION_ACCURACY to "50.0",
+                    ),
+            )
+        assertEquals(
+            ConditionEvaluator.Result.NOT_MET,
+            evaluator.result(Condition.AtLocation(50.0755, 14.4378, 100.0), state),
+        )
+    }
+
+    @Test
     fun `eventActive met when title matches`() {
         val state = DeviceState(values = mapOf(StateKeys.ACTIVE_EVENTS to "Team meeting|Lunch"))
         assertEquals(

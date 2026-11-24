@@ -146,6 +146,7 @@ class AutomationService : Service() {
                 AutomationAlarmReceiver.ACTION_WINDOW_END -> handleWindowEnd(intent)
                 AutomationAlarmReceiver.ACTION_NOTIFY_BEFORE -> handleNotifyBefore(intent)
                 AutomationAlarmReceiver.ACTION_GEOFENCE_RECHECK -> handleGeofenceRecheck(intent)
+                AutomationAlarmReceiver.ACTION_GEOFENCE_CHECK -> handleGeofenceCheck(intent)
                 ACTION_GATE_FORCE_END -> handleGateForceEnd(intent)
                 ACTION_GATE_SNOOZE -> handleGateSnooze(intent)
                 ACTION_BATTERY_CHANGED -> handleBatteryChanged(intent)
@@ -270,6 +271,30 @@ class AutomationService : Service() {
                 automationId = AutomationId(automationId),
                 atMillis = System.currentTimeMillis(),
             ),
+        )
+    }
+
+    /**
+     * Window-start position check for a geofence mode with a time condition.
+     * The engine asks the geofence gate for a live fix and treats "inside"
+     * as the ENTER edge GMS never reported. Re-arms the schedule so the
+     * next day's window start is checked too.
+     */
+    private fun handleGeofenceCheck(intent: Intent) {
+        val automationId = intent.getStringExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID) ?: return
+        val id = AutomationId(automationId)
+        dispatchEvent(
+            TriggerEvent.GeofenceWindowCheck(
+                eventId = "geofence_check:${System.currentTimeMillis()}",
+                automationId = id,
+            ),
+        )
+        // Re-arm only the window checks — a full schedule() would see the
+        // still-open window and fire the check again in a loop.
+        trackJob(
+            scope.launch {
+                store.get(id)?.let { scheduler.rearmGeofenceChecks(it) }
+            },
         )
     }
 
@@ -518,8 +543,9 @@ class AutomationService : Service() {
     }
 
     private fun handleGeofence(intent: Intent) {
-        val lat = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LAT, 0.0)
-        val lng = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LNG, 0.0)
+        // NaN default matches the receiver's "no triggeringLocation" path.
+        val lat = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LAT, Double.NaN)
+        val lng = intent.getDoubleExtra(GeofenceReceiver.EXTRA_LNG, Double.NaN)
         val transitionStr = intent.getStringExtra(GeofenceReceiver.EXTRA_TRANSITION) ?: return
         val transition =
             runCatching {

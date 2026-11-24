@@ -132,6 +132,26 @@ class DimAdjustActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    // On the untrusted SAW path secure UIs can ignore taps —
+                    // this window is same-UID so its own fix button still works.
+                    if (UltraDimController.needsTrustedHostFix(this@DimAdjustActivity)) {
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        Text(
+                            text = "Some apps may ignore taps through this dim layer.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = NothingFonts.mono(),
+                        )
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                        TextButton(
+                            onClick = {
+                                startActivity(UltraDimController.accessibilitySettingsIntent())
+                            },
+                        ) {
+                            Text("Fix taps — enable dim service", fontFamily = NothingFonts.mono())
+                        }
+                        Spacer(modifier = Modifier.height(NothingSpacing.xs))
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

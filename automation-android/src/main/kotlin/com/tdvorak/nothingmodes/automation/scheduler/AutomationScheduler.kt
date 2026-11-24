@@ -10,9 +10,12 @@ import android.util.Log
 import com.tdvorak.nothingmodes.automation.lifecycle.GeofenceMonitor
 import com.tdvorak.nothingmodes.engine.model.Automation
 import com.tdvorak.nothingmodes.engine.model.AutomationId
+import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
+import com.tdvorak.nothingmodes.engine.model.Condition
 import com.tdvorak.nothingmodes.engine.model.GeofenceEndMode
 import com.tdvorak.nothingmodes.engine.model.NotifyRule
+import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.inverse
 import com.tdvorak.nothingmodes.engine.runtime.CronSchedule
@@ -59,6 +62,9 @@ class AutomationScheduler(
         }
         scheduledBefore.remove(automationId.value)
         cancelGeofenceRecheck(automationId)
+        for (index in 0 until MAX_GEOFENCE_CHECKS) {
+            alarmManager.cancel(windowCheckPendingIntent(automationId, index))
+        }
         // Always attempt removal — the registeredGeofences set is lost on
         // process death but the OS-side geofence registration persists.
         geofenceMonitor.removeGeofence(automationId.value)
@@ -138,6 +144,105 @@ class AutomationScheduler(
         )
         registeredGeofences.add(id.value)
         Log.i(TAG, "Geofence scheduled for ${id.value} at (${trigger.lat}, ${trigger.lng}) r=${trigger.radiusM}m")
+        if (trigger.transition == Transition.ENTER) {
+            scheduleGeofenceWindowChecks(automation)
+        }
+    }
+
+    /**
+     * Re-arms the next window-check occurrence after a check alarm fired.
+     * Never fires "now" — the check that just ran was the immediate one.
+     */
+    fun rearmGeofenceChecks(automation: Automation) {
+        val trigger = automation.trigger as? Trigger.Geofence ?: return
+        if (automation.enabled &&
+            automation.status == AutomationStatus.ARMED &&
+            trigger.transition == Transition.ENTER
+        ) {
+            scheduleGeofenceWindowChecks(automation, allowImmediate = false)
+        }
+    }
+
+    /**
+     * GMS only fires on boundary crossings — a device already inside the
+     * fence when a time-window condition opens never gets an ENTER edge.
+     * Arm a check alarm at each window start; the engine then asks the
+     * geofence gate for a live fix and treats "inside" as the missing edge.
+     * [allowImmediate] is false on the re-arm path — scheduling "now" again
+     * there would loop the position check until the window ends.
+     */
+    private fun scheduleGeofenceWindowChecks(
+        automation: Automation,
+        allowImmediate: Boolean = true,
+    ) {
+        val windows =
+            (automation.conditions?.timeWindows() ?: emptyList()).take(MAX_GEOFENCE_CHECKS)
+        windows.forEachIndexed { index, window ->
+            val zone =
+                runCatching { ZoneId.of(window.tz) }.getOrNull()
+                    ?: run {
+                        Log.e(TAG, "Invalid timezone '${window.tz}' in geofence conditions for ${automation.id.value}")
+                        return@forEachIndexed
+                    }
+            val now = ZonedDateTime.now(zone)
+            val startToday =
+                runCatching { parseToday(window.startLocal, now) }.getOrNull()
+                    ?: run {
+                        Log.e(TAG, "Invalid start '${window.startLocal}' in geofence conditions for ${automation.id.value}")
+                        return@forEachIndexed
+                    }
+            val endToday = runCatching { parseToday(window.endLocal, now) }.getOrNull() ?: return@forEachIndexed
+            val crossesMidnight = !endToday.isAfter(startToday)
+            val insideWindow =
+                if (crossesMidnight) {
+                    now >= startToday || now < endToday
+                } else {
+                    now >= startToday && now < endToday
+                }
+            val nextStart =
+                when {
+                    // Inside the window already — check position now so a
+                    // device sitting in the fence fires without a crossing.
+                    allowImmediate && insideWindow -> now
+                    startToday.isAfter(now) -> startToday
+                    else -> startToday.plusDays(1)
+                }
+            try {
+                if (canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        nextStart.toInstant().toEpochMilli(),
+                        windowCheckPendingIntent(automation.id, index),
+                    )
+                } else {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        nextStart.toInstant().toEpochMilli(),
+                        windowCheckPendingIntent(automation.id, index),
+                    )
+                }
+            } catch (e: SecurityException) {
+                Log.e(TAG, "Cannot schedule geofence window check for ${automation.id.value}: ${e.message}")
+            }
+        }
+    }
+
+    private fun windowCheckPendingIntent(
+        id: AutomationId,
+        index: Int,
+    ): PendingIntent {
+        val intent =
+            Intent(context, AutomationAlarmReceiver::class.java).apply {
+                action = AutomationAlarmReceiver.ACTION_GEOFENCE_CHECK
+                data = Uri.parse("nothingmodes://alarm/${id.value}/geo_check/$index")
+                putExtra(AutomationAlarmReceiver.EXTRA_AUTOMATION_ID, id.value)
+            }
+        return PendingIntent.getBroadcast(
+            context,
+            requestCode(id.value, isStart = true) xor (0x4C00 + index),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 
     private fun scheduleTime(
@@ -421,5 +526,19 @@ class AutomationScheduler(
 
     companion object {
         const val TAG = "AutomationScheduler"
+
+        /** Window-check alarms per geofence automation — also bounds the
+         *  cancel() sweep. Time-window conditions beyond this are ignored. */
+        private const val MAX_GEOFENCE_CHECKS = 4
     }
 }
+
+/** Every TimeWindow nested in a condition tree — one check alarm each. */
+private fun Condition.timeWindows(): List<Condition.TimeWindow> =
+    when (this) {
+        is Condition.TimeWindow -> listOf(this)
+        is Condition.And -> all.flatMap { it.timeWindows() }
+        is Condition.Or -> any.flatMap { it.timeWindows() }
+        is Condition.Not -> cond.timeWindows()
+        else -> emptyList()
+    }

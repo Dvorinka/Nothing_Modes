@@ -8,6 +8,7 @@ import com.tdvorak.nothingmodes.engine.model.AutomationStatus
 import com.tdvorak.nothingmodes.engine.model.AutomationType
 import com.tdvorak.nothingmodes.engine.model.GateDirection
 import com.tdvorak.nothingmodes.engine.model.GeofenceEndMode
+import com.tdvorak.nothingmodes.engine.model.Transition
 import com.tdvorak.nothingmodes.engine.model.Trigger
 import com.tdvorak.nothingmodes.engine.model.affectedSettings
 import com.tdvorak.nothingmodes.engine.model.isGlyphAction
@@ -38,6 +39,34 @@ class Engine(
 ) {
     suspend fun onTrigger(envelope: TriggerEnvelope): List<FireOutcome> {
         val event = envelope.event
+        // Window-start position check for a geofence mode with a time
+        // condition: GMS only reports boundary crossings, so a device that
+        // was already inside when the window opened never got an ENTER edge.
+        // A live fix confirming "inside" runs through the normal ENTER path.
+        if (event is TriggerEvent.GeofenceWindowCheck) {
+            val automation = store.get(event.automationId) ?: return emptyList()
+            val trigger = automation.trigger as? Trigger.Geofence ?: return emptyList()
+            if (trigger.transition != Transition.ENTER || isLifecycleActive(automation)) {
+                return emptyList()
+            }
+            // Position unknown (null) stays silent — no fix, no fire.
+            if (geofenceGate.isInside(trigger.lat, trigger.lng, trigger.radiusM) != true) {
+                return emptyList()
+            }
+            return onTrigger(
+                envelope.copy(
+                    id = "${envelope.id}:inside",
+                    event =
+                        TriggerEvent.GeofenceTriggered(
+                            eventId = event.eventId,
+                            lat = trigger.lat,
+                            lng = trigger.lng,
+                            transition = Transition.ENTER,
+                            geofenceId = automation.id.value,
+                        ),
+                ),
+            )
+        }
         val candidates =
             when (event) {
                 is TriggerEvent.Registered -> listOfNotNull(store.get(event.automationId))

@@ -340,7 +340,11 @@ class ConditionEvaluator {
     ): Result {
         val lat = state.values[StateKeys.LAT]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
         val lng = state.values[StateKeys.LNG]?.toDoubleOrNull() ?: return Result.STATE_UNAVAILABLE
-        return if (haversineMeters(lat, lng, condition.lat, condition.lng) <= condition.radiusM) {
+        // Fold fix accuracy into the radius — same policy as the geofence
+        // gate: a borderline reading counts as inside so a jittery fix
+        // can't flip the edge.
+        val accuracy = state.values[StateKeys.LOCATION_ACCURACY]?.toDoubleOrNull() ?: 0.0
+        return if (haversineMeters(lat, lng, condition.lat, condition.lng) - accuracy <= condition.radiusM) {
             Result.MET
         } else {
             Result.NOT_MET

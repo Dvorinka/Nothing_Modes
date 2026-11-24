@@ -36,6 +36,7 @@ object StateKeys {
     // Location state keys (Condition.AtLocation)
     const val LAT = "lat"
     const val LNG = "lng"
+    const val LOCATION_ACCURACY = "location_accuracy_m"
 
     // Calendar state key (Condition.EventActive)
     const val ACTIVE_EVENTS = "active_events"
@@ -67,6 +68,7 @@ object StateKeys {
             SCREEN_TIMEOUT to "0-",
             LAT to "-90..90",
             LNG to "-180..180",
+            LOCATION_ACCURACY to "0-",
             ACTIVE_EVENTS to "title1|title2|...",
             ACTIVE_NOTIFICATIONS to "pkg1/title1/text1;pkg2/title2/text2",
         )

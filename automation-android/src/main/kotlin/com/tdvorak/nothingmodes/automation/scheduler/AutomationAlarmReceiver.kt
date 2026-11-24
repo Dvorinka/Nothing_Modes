@@ -35,6 +35,7 @@ class AutomationAlarmReceiver : BroadcastReceiver() {
         const val ACTION_WINDOW_END = "com.tdvorak.nothingmodes.WINDOW_END"
         const val ACTION_NOTIFY_BEFORE = "com.tdvorak.nothingmodes.NOTIFY_BEFORE"
         const val ACTION_GEOFENCE_RECHECK = "com.tdvorak.nothingmodes.GEOFENCE_RECHECK"
+        const val ACTION_GEOFENCE_CHECK = "com.tdvorak.nothingmodes.GEOFENCE_CHECK"
         const val EXTRA_AUTOMATION_ID = "automation_id"
         const val EXTRA_AUTOMATION_NAME = "automation_name"
         const val EXTRA_LEAD_MINUTES = "lead_minutes"

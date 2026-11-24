@@ -49,18 +49,27 @@ class FusedGeofenceGate(
             ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
-    @SuppressLint("MissingPermission")
+    /**
+     * Balanced priority never turns GPS on — it only consumes fixes other
+     * apps requested, so a locked, stationary phone can report nothing.
+     * Escalate to high accuracy when balanced comes back empty.
+     */
     private suspend fun currentLocation(): Location? =
+        currentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+            ?: currentLocation(Priority.PRIORITY_HIGH_ACCURACY)
+
+    @SuppressLint("MissingPermission")
+    private suspend fun currentLocation(priority: Int): Location? =
         runCatching {
             suspendCancellableCoroutine { cont ->
                 val cts = CancellationTokenSource()
                 cont.invokeOnCancellation { cts.cancel() }
                 client
-                    .getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
+                    .getCurrentLocation(priority, cts.token)
                     .addOnSuccessListener { location: Location? -> cont.resume(location) }
                     .addOnFailureListener { cont.resume(null) }
             }
-        }.onFailure { Log.w(TAG, "currentLocation failed", it) }
+        }.onFailure { Log.w(TAG, "currentLocation($priority) failed", it) }
             .getOrNull()
 
     @SuppressLint("MissingPermission")
