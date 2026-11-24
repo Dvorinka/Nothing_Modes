@@ -14,6 +14,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.camera2.CameraManager
 import android.hardware.display.DisplayManager
+import android.location.Location
 import android.location.LocationManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -22,9 +23,11 @@ import android.net.wifi.WifiManager
 import android.nfc.NfcManager
 import android.os.BatteryManager
 import android.os.Build
+import android.os.CancellationSignal
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.CalendarContract
 import android.provider.Settings
 import android.telephony.TelephonyManager
@@ -39,6 +42,9 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Reads device state using public Android APIs (no Shizuku required).
@@ -93,7 +99,7 @@ class AndroidStateProvider(
         )
     }
 
-    private fun readValues(
+    private suspend fun readValues(
         powerManager: PowerManager,
         batteryIntent: Intent?,
     ): Map<String, String> {
@@ -158,10 +164,13 @@ class AndroidStateProvider(
         readRefreshRate()?.let { values[StateKeys.REFRESH_RATE] = it.toString() }
         readScreenTimeout()?.let { values[StateKeys.SCREEN_TIMEOUT] = it.toString() }
 
-        val (lat, lng) = readLocation()
-        if (lat != null && lng != null) {
-            values[StateKeys.LAT] = lat.toString()
-            values[StateKeys.LNG] = lng.toString()
+        val location = readLocation()
+        if (location != null) {
+            values[StateKeys.LAT] = location.latitude.toString()
+            values[StateKeys.LNG] = location.longitude.toString()
+            if (location.hasAccuracy()) {
+                values[StateKeys.LOCATION_ACCURACY] = location.accuracy.toString()
+            }
         }
 
         readActiveEvents().let { values[StateKeys.ACTIVE_EVENTS] = it }
@@ -333,17 +342,78 @@ class AndroidStateProvider(
             ""
         }
 
+    /**
+     * Newest fix across enabled providers — preferring GPS first would hand
+     * back a stale fix even when the network side just updated. When the best
+     * cached fix is older than ~5 min, request one bounded fresh fix; a
+     * locked, stationary phone otherwise evaluates AtLocation on hours-old
+     * coordinates (or none at all).
+     */
     @SuppressLint("MissingPermission")
-    private fun readLocation(): Pair<Double?, Double?> =
-        try {
-            val locationManager = context.getSystemService(LocationManager::class.java)
-            val location =
-                locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                    ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-            location?.latitude to location?.longitude
-        } catch (_: SecurityException) {
-            null to null
+    private suspend fun readLocation(): Location? {
+        val locationManager = context.getSystemService(LocationManager::class.java) ?: return null
+        val last =
+            try {
+                locationManager
+                    .getProviders(true)
+                    .mapNotNull { provider ->
+                        runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull()
+                    }.maxByOrNull { it.elapsedRealtimeNanos }
+            } catch (_: SecurityException) {
+                null
+            }
+        val freshEnough =
+            last != null &&
+                SystemClock.elapsedRealtimeNanos() - last.elapsedRealtimeNanos <= FRESH_FIX_AGE_NS
+        if (freshEnough) return last
+        return freshLocation(locationManager) ?: last
+    }
+
+    /**
+     * Single fresh fix — network first (fast, adequate for kilometre-scale
+     * radii), then GPS when enabled. API 30+ only; older stays passive.
+     */
+    @SuppressLint("MissingPermission")
+    private suspend fun freshLocation(locationManager: LocationManager): Location? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+        val enabled =
+            runCatching { locationManager.getProviders(true) }.getOrDefault(emptyList())
+        val candidates =
+            buildList {
+                if (LocationManager.NETWORK_PROVIDER in enabled &&
+                    (hasFineLocation() || hasCoarseLocation())
+                ) {
+                    add(LocationManager.NETWORK_PROVIDER)
+                }
+                if (LocationManager.GPS_PROVIDER in enabled && hasFineLocation()) {
+                    add(LocationManager.GPS_PROVIDER)
+                }
+            }
+        for (provider in candidates) {
+            val fix =
+                runCatching {
+                    withTimeoutOrNull(FRESH_FIX_TIMEOUT_MS) {
+                        suspendCancellableCoroutine<Location?> { cont ->
+                            val signal = CancellationSignal()
+                            cont.invokeOnCancellation { signal.cancel() }
+                            locationManager.getCurrentLocation(provider, signal, context.mainExecutor) { location ->
+                                cont.resume(location)
+                            }
+                        }
+                    }
+                }.getOrNull()
+            if (fix != null) return fix
         }
+        return null
+    }
+
+    private fun hasFineLocation() =
+        context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun hasCoarseLocation() =
+        context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun readBrightness(): Int? =
         runCatching {
@@ -564,5 +634,7 @@ class AndroidStateProvider(
     companion object {
         const val SCREEN_STATE_PREFS = "nothing_modes_state"
         const val KEY_SCREEN_OFF_SINCE = "screen_off_since_ms"
+        private const val FRESH_FIX_AGE_NS = 5L * 60 * 1_000_000_000 // 5 min
+        private const val FRESH_FIX_TIMEOUT_MS = 4_000L
     }
 }

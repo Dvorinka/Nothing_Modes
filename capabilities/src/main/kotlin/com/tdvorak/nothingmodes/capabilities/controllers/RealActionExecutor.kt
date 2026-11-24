@@ -431,6 +431,27 @@ class RealActionExecutor(
     }
 
     /**
+     * Radio state from `cmd wifi status` — the authoritative read. Nothing OS
+     * 5.0 can decouple `global.wifi_on` the same way it did `mobile_data`,
+     * so the settings key is only the fallback when status is unreadable.
+     * Saw state but never the wanted one → false → panel.
+     */
+    private suspend fun verifyWifiIs(on: Boolean): Boolean? {
+        var sawState = false
+        repeat(VERIFY_ATTEMPTS) {
+            delay(VERIFY_SETTLE_MS)
+            val out = executeShellRead(listOf("cmd", "wifi", "status"))
+            val state = out?.let { WIFI_STATUS_RE.find(it)?.groupValues?.get(1) }
+            if (state != null) {
+                sawState = true
+                if (state.equals("enabled", ignoreCase = true) == on) return true
+            }
+        }
+        if (sawState) return false
+        return verifySettingIs("global", "wifi_on", if (on) "1" else "0")
+    }
+
+    /**
      * Try the privileged shell first; when Shizuku isn't available, open the
      * relevant system panel/settings page so the user can finish the toggle.
      * Beats a dead "Shizuku required" on unprivileged phones.
@@ -459,6 +480,14 @@ class RealActionExecutor(
             shellResult = executeShell(legacyCommand)
         }
         if (shellResult is ActionResult.Success && verify?.invoke() == false) {
+            // A write that exits 0 but didn't apply gets one legacy shot
+            // before the panel — `cmd wifi` could go the way of `svc data`.
+            if (legacyCommand != null) {
+                val legacyResult = executeShell(legacyCommand)
+                if (legacyResult is ActionResult.Success && verify.invoke() != false) {
+                    return legacyResult
+                }
+            }
             return openPanel(panelAction, source, ctx)
         }
         return shellResult
@@ -1595,7 +1624,7 @@ class RealActionExecutor(
                     connectivityPanel(),
                     source,
                     ctx,
-                    verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+                    verify = { verifyWifiIs(on) },
                     legacyCommand = listOf("svc", "wifi", if (on) "enable" else "disable"),
                 )
             }
@@ -1605,7 +1634,8 @@ class RealActionExecutor(
                 connectivityPanel(),
                 source,
                 ctx,
-                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+                verify = { verifyWifiIs(on) },
+                legacyCommand = listOf("svc", "wifi", if (on) "enable" else "disable"),
             )
         } catch (_: NoSuchMethodError) {
             // Method removed on newer API levels — Shizuku or the panel
@@ -1614,7 +1644,8 @@ class RealActionExecutor(
                 connectivityPanel(),
                 source,
                 ctx,
-                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+                verify = { verifyWifiIs(on) },
+                legacyCommand = listOf("svc", "wifi", if (on) "enable" else "disable"),
             )
         } catch (e: Exception) {
             shellOrPanel(
@@ -1622,7 +1653,8 @@ class RealActionExecutor(
                 connectivityPanel(),
                 source,
                 ctx,
-                verify = { verifySettingIs("global", "wifi_on", if (on) "1" else "0") },
+                verify = { verifyWifiIs(on) },
+                legacyCommand = listOf("svc", "wifi", if (on) "enable" else "disable"),
             )
         }
     }
@@ -2183,6 +2215,12 @@ class RealActionExecutor(
         private const val NOTIFICATION_ID_BASE = 2000
         private const val VERIFY_ATTEMPTS = 4
         private const val VERIFY_SETTLE_MS = 700L
+        // `cmd wifi status` prints "Wi-Fi is enabled|disabled" (AOSP) —
+        // OEM builds sometimes drop the hyphen.
+        // Line-anchored: `cmd wifi status` also prints "Wifi scanning is only
+        // available when wifi is enabled" — a decoy match when unanchored.
+        private val WIFI_STATUS_RE =
+            Regex("^Wi-?Fi is (enabled|disabled)", setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
         private const val MAX_DRAIN_BYTES = 256 * 1024
 
         /** Factory: creates a RealActionExecutor with all Android controllers. */

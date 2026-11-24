@@ -135,9 +135,17 @@ object UltraDimNotifier {
 
     private fun buildOn(context: Context): Notification {
         val percent = UltraDimController.percent
+        // Untrusted SAW path while a trusted host exists in this build —
+        // secure UIs can eat touches; the adjust panel carries the fix.
+        val subtext =
+            if (UltraDimController.needsTrustedHostFix(context)) {
+                "Some apps may block taps. Tap to adjust"
+            } else {
+                "Tap to adjust"
+            }
         return baseBuilder(context)
             .setContentTitle("Ultra dim · $percent%")
-            .setContentText("Tap to adjust")
+            .setContentText(subtext)
             .setContentIntent(adjustIntent(context, percent))
             .addAction(0, "-10%", pendingAction(context, UltraDimControlReceiver.ACTION_DIM_LESS))
             .addAction(0, "+10%", pendingAction(context, UltraDimControlReceiver.ACTION_DIM_MORE))

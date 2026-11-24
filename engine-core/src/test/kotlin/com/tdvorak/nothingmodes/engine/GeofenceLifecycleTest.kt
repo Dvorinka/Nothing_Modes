@@ -82,6 +82,17 @@ class GeofenceLifecycleTest {
             receivedAtMillis = 0L,
         )
 
+    private fun windowCheck() =
+        TriggerEnvelope(
+            id = "geo-check",
+            event =
+                TriggerEvent.GeofenceWindowCheck(
+                    eventId = "geo-check",
+                    automationId = AutomationId("mode-gym"),
+                ),
+            receivedAtMillis = 0L,
+        )
+
     private fun engine(
         store: InMemoryAutomationStore,
         audit: RecordingAuditSink,
@@ -230,6 +241,54 @@ class GeofenceLifecycleTest {
 
             assertTrue(outcomes.isEmpty())
             assertTrue(audit.events.isEmpty())
+        }
+
+    @Test
+    fun `window check activates an ENTER mode when position is inside`() =
+        runTest {
+            val store = InMemoryAutomationStore().also { it.save(geofenceMode(GeofenceEndMode.MANUAL)) }
+            val audit = RecordingAuditSink()
+            val sink = RecordingActivationSink()
+            val outcomes = engine(store, audit, sink, inside = true).onTrigger(windowCheck())
+
+            assertEquals(1, outcomes.size)
+            assertEquals(listOf("mode-gym"), sink.activated)
+        }
+
+    @Test
+    fun `window check stays quiet when position is outside`() =
+        runTest {
+            val store = InMemoryAutomationStore().also { it.save(geofenceMode(GeofenceEndMode.MANUAL)) }
+            val audit = RecordingAuditSink()
+            val sink = RecordingActivationSink()
+            val outcomes = engine(store, audit, sink, inside = false).onTrigger(windowCheck())
+
+            assertTrue(outcomes.isEmpty())
+            assertTrue(sink.activated.isEmpty())
+        }
+
+    @Test
+    fun `window check stays quiet when position is unknown`() =
+        runTest {
+            val store = InMemoryAutomationStore().also { it.save(geofenceMode(GeofenceEndMode.MANUAL)) }
+            val audit = RecordingAuditSink()
+            val sink = RecordingActivationSink()
+            val outcomes = engine(store, audit, sink, inside = null).onTrigger(windowCheck())
+
+            assertTrue(outcomes.isEmpty())
+            assertTrue(sink.activated.isEmpty())
+        }
+
+    @Test
+    fun `window check does not re-fire an already active mode`() =
+        runTest {
+            val store = InMemoryAutomationStore().also { it.save(geofenceMode(GeofenceEndMode.MANUAL)) }
+            val audit = RecordingAuditSink()
+            val sink = RecordingActivationSink()
+            val outcomes = engine(store, audit, sink, active = true, inside = true).onTrigger(windowCheck())
+
+            assertTrue(outcomes.isEmpty())
+            assertTrue(sink.activated.isEmpty())
         }
 
     private class RecordingAuditSink : AuditSink {

@@ -82,6 +82,28 @@ object UltraDimController {
     /** True when any window path is usable right now. */
     fun canDim(context: Context): Boolean = canDrawOverlays(context) || trustedHost != null
 
+    /**
+     * True when the dim accessibility service is declared in this build —
+     * the Play manifest strips it, so the trusted-host fix can't be offered
+     * there regardless of settings state.
+     */
+    fun serviceDeclared(context: Context): Boolean =
+        runCatching {
+            context.packageManager.getServiceInfo(
+                ComponentName(context, DimOverlayAccessibilityService::class.java),
+                0,
+            )
+            true
+        }.getOrDefault(false)
+
+    /**
+     * True while the overlay can only ride the untrusted SAW path even though
+     * a trusted host exists in this build — secure UIs may eat touches until
+     * the user enables the accessibility service.
+     */
+    fun needsTrustedHostFix(context: Context): Boolean =
+        !isTouchSafe && serviceDeclared(context)
+
     /** True when the user enabled the dim accessibility service in system settings. */
     fun accessibilityServiceEnabled(context: Context): Boolean {
         val am = context.getSystemService(AccessibilityManager::class.java) ?: return false
@@ -233,20 +255,31 @@ object UltraDimController {
                 .onFailure { Log.w(TAG, "updateViewLayout failed", it) }
         } else {
             removeView(context)
-            val newView =
-                View(host.context).apply {
-                    setBackgroundColor(Color.BLACK)
-                    alpha = percent / 100f
-                }
-            runCatching { host.windowManager.addView(newView, layoutParams(host)) }
-                .onSuccess {
-                    overlayView = newView
-                    attachedHost = host
-                    watchDisplay(host)
-                }
-                .onFailure { Log.w(TAG, "addView failed", it) }
+            // A refused accessibility window must not kill the dimmer — drop
+            // to the SAW host so the overlay still draws (touch caveats apply).
+            if (!tryAddView(host) &&
+                host.windowType == WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            ) {
+                fallbackHost(context)?.let { tryAddView(it) }
+            }
         }
         notifyChanged()
+    }
+
+    /** Builds and attaches the dim view on [host]; true when WindowManager accepted it. */
+    private fun tryAddView(host: Host): Boolean {
+        val newView =
+            View(host.context).apply {
+                setBackgroundColor(Color.BLACK)
+                alpha = percent / 100f
+            }
+        return runCatching {
+            host.windowManager.addView(newView, layoutParams(host))
+            overlayView = newView
+            attachedHost = host
+            watchDisplay(host)
+        }.onFailure { Log.w(TAG, "addView failed on type ${host.windowType}", it) }
+            .isSuccess
     }
 
     private fun removeView(context: Context) {

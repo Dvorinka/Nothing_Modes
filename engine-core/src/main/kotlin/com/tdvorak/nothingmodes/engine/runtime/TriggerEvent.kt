@@ -85,6 +85,17 @@ sealed interface TriggerEvent {
         val geofenceId: String? = null,
     ) : TriggerEvent
 
+    /**
+     * Alarm fired at a time-window condition start for a geofence mode.
+     * GMS only reports boundary crossings — a device already inside the
+     * fence when the window opens never gets an ENTER edge, so the engine
+     * checks live position and treats "inside" as the missing edge.
+     */
+    data class GeofenceWindowCheck(
+        override val eventId: String,
+        val automationId: com.tdvorak.nothingmodes.engine.model.AutomationId,
+    ) : TriggerEvent
+
     /** Snooze-alarm re-check for a deferred gated geofence end. */
     data class GeofenceRecheck(
         override val eventId: String,
