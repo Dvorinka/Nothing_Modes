@@ -4,7 +4,7 @@
 
 # Nothing Modes
 
-**[nothing-modes.vercel.app](https://nothing-modes.vercel.app)**
+**[nothing-modes-infos-team.tdvorak.dev](https://nothing-modes-infos-team.tdvorak.dev)**
 
 Open-source Android automation for Nothing phones — and every other Android device.
 

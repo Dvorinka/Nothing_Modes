@@ -41,7 +41,7 @@ Unique angles nobody else has:
 4. **Nothing-native design language** — looks like it shipped with Nothing OS.
    Show screenshots; the subreddit responds to this aesthetic.
 
-Assets already in hand: landing site (`nothing-modes.vercel.app`) with Rybbit
+Assets already in hand: landing site (`nothing-modes-infos-team.tdvorak.dev`) with Rybbit
 analytics, `art/screenshots/`, fastlane feature graphic, `brag-output/brag.mp4`
 launch video, `templates/` community catalog + `landing/library.html` template
 sharing site, GitHub Releases with signed APKs (Obtainium-compatible out of the
@@ -304,7 +304,7 @@ matters — first helpful answer gets the upvotes.
 - **Ongoing** — F5bot replies, weekly saved-search pass, one SEO post per week
   for three weeks.
 
-Every post links back to `nothing-modes.vercel.app` (the funnel hub) and the
+Every post links back to `nothing-modes-infos-team.tdvorak.dev` (the funnel hub) and the
 GitHub repo; every repo/landing page links the install paths (GitHub APK,
 Obtainium, self-hosted F-Droid, Izzy, Play when live).
 

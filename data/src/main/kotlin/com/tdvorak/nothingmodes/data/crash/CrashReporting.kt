@@ -40,7 +40,7 @@ object CrashReporting {
     private const val MAX_QUEUED_REPORTS = 10
 
     /** Ingest endpoint. Same for all builds; override only for tests. */
-    var endpoint: String = "https://nothing-modes.vercel.app/api/crash"
+    var endpoint: String = "https://nothing-modes-infos-team.tdvorak.dev/api/crash"
 
     private val _enabled = MutableStateFlow(false)
     val enabled: StateFlow<Boolean> = _enabled.asStateFlow()

@@ -264,7 +264,7 @@ class DebugActionReceiver : BroadcastReceiver() {
             "set_dnd" -> Action.SetDnd(DndMode.valueOf(mode.ifBlank { "TOTAL" }.uppercase()))
             "set_ringer" -> Action.SetRinger(mode.ifBlank { "NORMAL" })
             "launch_app" -> Action.LaunchApp(pkg.split(",").filter { it.isNotBlank() })
-            "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes.vercel.app" })
+            "open_url" -> Action.OpenUrl(url.ifBlank { "https://nothing-modes-infos-team.tdvorak.dev" })
             "show_notification" -> {
                 val glyph = intent.getStringExtra("glyph").orEmpty().ifBlank { null }
                 val glyphTimeout = intent.getIntExtra("glyph_timeout", 0)

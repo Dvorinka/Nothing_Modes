@@ -4,12 +4,12 @@
 
 repo_name: Nothing Modes
 repo_description: Self-hosted F-Droid repository for Nothing Modes
-repo_url: https://nothing-modes.vercel.app/fdroid/repo
+repo_url: https://nothing-modes-infos-team.tdvorak.dev/fdroid/repo
 repo_keyalias: nothing-modes-fdroid
 
 # Mirrors where the index can be fetched. The first is canonical.
 mirrors:
-  - https://nothing-modes.vercel.app/fdroid
+  - https://nothing-modes-infos-team.tdvorak.dev/fdroid
 
 # apks are kept out of git; the index points at GitHub release assets.
 # Place a downloaded release APK here when running `fdroid update`,

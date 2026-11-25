@@ -50,4 +50,4 @@ Network access is used only for update checks, community templates, and optional
 
 WEBSITE
 
-https://nothing-modes.vercel.app
+https://nothing-modes-infos-team.tdvorak.dev

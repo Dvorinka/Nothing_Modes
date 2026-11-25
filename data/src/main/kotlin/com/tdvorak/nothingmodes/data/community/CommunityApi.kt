@@ -18,14 +18,14 @@ import java.net.URL
 import java.net.URLEncoder
 
 /**
- * Client for the community library API (nothing-modes.vercel.app).
+ * Client for the community library API (nothing-modes-infos-team.tdvorak.dev).
  *
  * Public reads: [list] / [fetchItem] — approved items only, server-sanitized.
  * Publishing: [submit] — queues for admin review; analysis findings come back
  * in the response so the UI can show why a submission was rejected.
  */
 object CommunityApi {
-    private const val BASE = "https://nothing-modes.vercel.app"
+    private const val BASE = "https://nothing-modes-infos-team.tdvorak.dev"
 
     private val json = Json { ignoreUnknownKeys = true }
 

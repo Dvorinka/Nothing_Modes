@@ -20,8 +20,8 @@ The app does make a small number of network requests, all initiated by the user 
 | GitHub API `releases/latest` | Check for app updates when the user taps "Check for updates" | None (anonymous) |
 | `raw.githubusercontent.com/.../templates/` | Load the community template index and template bundles | None (anonymous) |
 | GitHub Releases APK download | Download an update APK when the user approves an update | None (anonymous, via device DownloadManager) |
-| `POST nothing-modes.vercel.app/api/crash` | Optional crash/error reporting — only when enabled in Settings → Privacy or confirmed via "Send report" on the post-crash prompt | Anonymous crash report (see above) |
-| `POST nothing-modes.vercel.app/api/feedback` | Send feedback — only when the user fills the form in Settings → Feedback and taps Send | Typed message, app version, device model, Android version, optional contact email |
+| `POST nothing-modes-infos-team.tdvorak.dev/api/crash` | Optional crash/error reporting — only when enabled in Settings → Privacy or confirmed via "Send report" on the post-crash prompt | Anonymous crash report (see above) |
+| `POST nothing-modes-infos-team.tdvorak.dev/api/feedback` | Send feedback — only when the user fills the form in Settings → Feedback and taps Send | Typed message, app version, device model, Android version, optional contact email |
 
 ## Data Storage
 

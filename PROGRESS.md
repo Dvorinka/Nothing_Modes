@@ -35,7 +35,7 @@ polish, store compliance, and crash-driven fixes.
 - Release: tag `v*` → signed GitHub APK + Play AAB → production track upload
   with `fastlane/.../changelogs/<versionCode>.txt` as release notes
 - Crash pipeline: opt-in reporting + post-crash prompt →
-  `POST nothing-modes.vercel.app/api/crash` → Neon `crash_reports` →
+  `POST nothing-modes-infos-team.tdvorak.dev/api/crash` → Neon `crash_reports` →
   admin page + email notification
 
 ## Build Notes

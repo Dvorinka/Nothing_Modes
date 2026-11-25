@@ -113,7 +113,7 @@ export default async function handler(req: Request): Promise<Response> {
     RETURNING id
   `;
 
-  const itemUrl = `https://nothing-modes.vercel.app/admin`;
+  const itemUrl = `https://nothing-modes-infos-team.tdvorak.dev/admin`;
   const emailStatus = await notifyAdmin(
     process.env.CRASH_NOTIFY_EMAIL || '',
     { id: row.id, type, title, handle, description },

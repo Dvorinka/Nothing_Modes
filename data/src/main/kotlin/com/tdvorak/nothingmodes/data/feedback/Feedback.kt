@@ -24,7 +24,7 @@ object Feedback {
     private const val MAX_CONTACT = 200
 
     /** Ingest endpoint. Same for all builds; override only for tests. */
-    var endpoint: String = "https://nothing-modes.vercel.app/api/feedback"
+    var endpoint: String = "https://nothing-modes-infos-team.tdvorak.dev/api/feedback"
 
     /**
      * @param category one of "bug" | "idea" | "other" (server clamps unknowns)
