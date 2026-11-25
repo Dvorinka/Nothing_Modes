@@ -163,7 +163,7 @@ function renderHtml(report: CrashReport, subject: string): string {
       <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Stack trace</div>
       <pre style="margin:0;padding:12px;background:#0f0f0f;color:#ccc;border-radius:6px;font-size:11px;line-height:1.5;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${esc(String(report.stacktrace ?? '').slice(0, 8000))}</pre>
     </div>
-    <p style="color:#aaa;font-size:10px;text-align:center;margin-top:16px">${esc(subject)} — view all reports at nothing-modes.vercel.app/admin</p>
+    <p style="color:#aaa;font-size:10px;text-align:center;margin-top:16px">${esc(subject)} — view all reports at nothing-modes-infos-team.tdvorak.dev/admin</p>
   </div>
 </body></html>`;
 }

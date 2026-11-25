@@ -152,7 +152,7 @@ async function notify(report: Feedback): Promise<string> {
         ${meta('DEVICE', `${report.device ?? ''} — Android ${report.android_release ?? ''} (SDK ${report.sdk_int ?? ''})`)}
       </table>
       <div style="border:1px solid #262626;border-radius:6px;background:#111111;padding:16px;color:#fafaf8;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;">${esc(String(report.message))}</div>
-      <p style="margin:16px 0 0;color:#8a8a8a;font-size:11px;letter-spacing:1px;">All feedback lives at nothing-modes.vercel.app/admin</p>
+      <p style="margin:16px 0 0;color:#8a8a8a;font-size:11px;letter-spacing:1px;">All feedback lives at nothing-modes-infos-team.tdvorak.dev/admin</p>
     </td></tr>`,
   );
 

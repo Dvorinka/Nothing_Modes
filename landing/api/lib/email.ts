@@ -32,7 +32,7 @@ export function nothingShell(title: string, body: string): string {
           ${body}
           <tr>
             <td style="padding:18px 24px;border-top:1px solid #262626;color:#8a8a8a;font-size:11px;letter-spacing:1px;">
-              OPEN SOURCE · GPL-3.0 · <a href="https://nothing-modes.vercel.app" style="color:#8a8a8a;text-decoration:underline;">nothing-modes.vercel.app</a>
+              OPEN SOURCE · GPL-3.0 · <a href="https://nothing-modes-infos-team.tdvorak.dev" style="color:#8a8a8a;text-decoration:underline;">nothing-modes-infos-team.tdvorak.dev</a>
             </td>
           </tr>
         </table>
@@ -129,12 +129,12 @@ export async function notifyAuthor(
               <h1 style="margin:0 0 18px;font-size:20px;font-weight:600;letter-spacing:1px;color:#fafaf8;">${esc(title)}</h1>
               <p style="margin:0 0 24px;color:#bbbbbb;font-size:13px;line-height:1.55;">
                 ${approved
-                  ? `Your submission is now live in the <a href="https://nothing-modes.vercel.app/library" style="color:#D71921;text-decoration:none;">Nothing Modes Feature Library</a>.`
+                  ? `Your submission is now live in the <a href="https://nothing-modes-infos-team.tdvorak.dev/library" style="color:#D71921;text-decoration:none;">Nothing Modes Feature Library</a>.`
                   : 'Your submission was not published.'}
               </p>
               ${reason ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="border:1px solid #262626;border-radius:6px;background:#111111;margin-bottom:24px;text-align:left;"><tr><td style="padding:16px;color:#bbbbbb;font-size:13px;line-height:1.5;">${esc(reason)}</td></tr></table>` : ''}
               ${approved
-                ? `<a href="https://nothing-modes.vercel.app/library" style="display:inline-block;background:#D71921;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:5px;font-size:13px;font-weight:600;letter-spacing:1px;">OPEN LIBRARY</a>`
+                ? `<a href="https://nothing-modes-infos-team.tdvorak.dev/library" style="display:inline-block;background:#D71921;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:5px;font-size:13px;font-weight:600;letter-spacing:1px;">OPEN LIBRARY</a>`
                 : `<p style="margin:0;color:#8a8a8a;font-size:12px;">You can edit the content and submit again.</p>`}
             </td>
           </tr>`;

@@ -1,7 +1,7 @@
 # F-Droid self-hosted repository
 
 This directory contains a self-hosted F-Droid repository for Nothing Modes.
-It is served as part of the landing site, typically at `https://nothing-modes.vercel.app/fdroid/`.
+It is served as part of the landing site, typically at `https://nothing-modes-infos-team.tdvorak.dev/fdroid/`.
 
 ## Why self-hosted?
 
@@ -16,7 +16,7 @@ A self-hosted repo keeps every feature while still offering F-Droid client updat
 
 1. Install the F-Droid client.
 2. Go to **Settings → Repositories → +**.
-3. Enter: `https://nothing-modes.vercel.app/fdroid/`
+3. Enter: `https://nothing-modes-infos-team.tdvorak.dev/fdroid/`
 4. Search for "Nothing Modes" and install.
 
 ## Important: one signature rule

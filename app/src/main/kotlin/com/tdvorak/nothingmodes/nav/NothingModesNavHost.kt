@@ -319,7 +319,7 @@ fun NothingModesNavHost(navController: NavHostController = rememberNavController
         }
         composable(Routes.COMMUNITY_LIBRARY) {
             IntegratedBrowserScreen(
-                startUrl = "https://nothing-modes.vercel.app/library",
+                startUrl = "https://nothing-modes-infos-team.tdvorak.dev/library",
                 title = "Feature Library",
                 onBack = { navController.popBackStackOr(Routes.AUTOMATION_LIST) },
             )

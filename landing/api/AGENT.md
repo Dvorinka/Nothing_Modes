@@ -15,7 +15,7 @@ set both `ADMIN_TOKEN` and `CRASH_ADMIN_TOKEN` and hand the agent `ADMIN_TOKEN`.
 ## Pull the review queue
 
 ```
-GET https://nothing-modes.vercel.app/api/submissions?status=pending
+GET https://nothing-modes-infos-team.tdvorak.dev/api/submissions?status=pending
 ```
 
 Each item includes:
@@ -37,7 +37,7 @@ lock the screen permanently), and anything outside the action allowlist.
 ## Post a decision
 
 ```
-POST https://nothing-modes.vercel.app/api/moderate
+POST https://nothing-modes-infos-team.tdvorak.dev/api/moderate
 Content-Type: application/json
 
 {
